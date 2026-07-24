@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/screens/onboarding_screen.dart';
+import 'package:lost_and_found/screens/received_details.dart';
 import 'package:lost_and_found/screens/webView.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
@@ -8,6 +9,7 @@ import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
+import 'package:lost_and_found/shared_widgets/sucess_card.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'app_images.dart';
 import 'app_routes.dart';
@@ -527,6 +529,16 @@ class HandOverToOwner extends StatelessWidget {
           fontSize: 14,
           onTap: () {
             AppRoutes.pop();
+            AppUiHelper.showBottomSheet(
+              showHandle: false,
+              showCloseIcon: true,
+              context: context,
+              child: ReceivedDetails(
+                isReceivedFromPolice: false,
+                isReceivedFromFounder: true,
+                isReceivedFromOthers: false,
+              ),
+            );
           },
           bgColor: AppColors.primaryColor,
           radius: BorderRadius.circular(7),
@@ -541,8 +553,7 @@ class HandOverToPolice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return
-      Column(
+    return Column(
       spacing: 7,
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -569,7 +580,7 @@ class HandOverToPolice extends StatelessWidget {
             children: [
               AppIconWidget(assetPath: AssetImages.policeStation),
 
-               SizedBox(width: 10),
+              SizedBox(width: 10),
 
               Expanded(
                 child: Column(
@@ -605,6 +616,16 @@ class HandOverToPolice extends StatelessWidget {
           fontSize: 14,
           onTap: () {
             AppRoutes.pop();
+            AppUiHelper.showBottomSheet(
+              showHandle: false,
+              showCloseIcon: true,
+              context: context,
+              child: ReceivedDetails(
+                isReceivedFromPolice: true,
+                isReceivedFromFounder: false,
+                isReceivedFromOthers: false,
+              ),
+            );
           },
           bgColor: AppColors.primaryColor,
           radius: BorderRadius.circular(7),
@@ -670,8 +691,7 @@ class HandOverToOthers extends StatelessWidget {
           onTap: () {
             AppRoutes.pop();
           },
-          bgColor:AppColors.primaryColor,
-
+          bgColor: AppColors.primaryColor,
 
           radius: BorderRadius.circular(7),
         ),
@@ -735,9 +755,18 @@ class ReceiveToOthers extends StatelessWidget {
           fontSize: 14,
           onTap: () {
             AppRoutes.pop();
+            AppUiHelper.showBottomSheet(
+              showHandle: false,
+              showCloseIcon: true,
+              context: context,
+              child: ReceivedDetails(
+                isReceivedFromPolice: false,
+                isReceivedFromFounder: false,
+                isReceivedFromOthers: true,
+              ),
+            );
           },
-          bgColor:AppColors.primaryColor,
-
+          bgColor: AppColors.primaryColor,
 
           radius: BorderRadius.circular(7),
         ),
@@ -771,7 +800,6 @@ class PostLive extends StatelessWidget {
           color: AppColors.grey,
         ).padHorizontal(20),
 
-
         SizedBox(height: 10),
         AppButton(
           title: 'Go to Home',
@@ -779,8 +807,7 @@ class PostLive extends StatelessWidget {
           onTap: () {
             AppRoutes.pop();
           },
-          bgColor:AppColors.primaryColor,
-
+          bgColor: AppColors.primaryColor,
 
           radius: BorderRadius.circular(7),
         ),

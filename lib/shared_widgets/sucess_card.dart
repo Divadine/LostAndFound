@@ -9,8 +9,7 @@ import 'app_text.dart';
 Widget SucessCard({
   required String name,
   required String location,
-  required String leftImg,
-  required String rightImg,
+
   required VoidCallback onTap,
 }) {
   return Container(
@@ -55,7 +54,7 @@ Widget SucessCard({
         ),
 
         Spacer(),
-        AppIconWidget(assetPath: rightImg)
+        AppIconWidget(assetPath: AssetImages.iosForward,)
       ],
     ).pad(16),
   ).pad();

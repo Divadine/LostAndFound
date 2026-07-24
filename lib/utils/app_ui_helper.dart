@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 
+import 'app_images.dart';
 import 'app_utils.dart';
 
 class AppUiHelper {
@@ -38,15 +40,15 @@ class AppUiHelper {
           child: Material(
             color: Colors.transparent,
 
-            child:
-            ConstrainedBox(
+            child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.7,
               ),
 
               child: Container(
-                margin: const EdgeInsets.only(bottom: 60), //
+                margin: const EdgeInsets.only(bottom: 60),
 
+                //
                 width: double.infinity,
 
                 padding: const EdgeInsets.all(16),
@@ -54,9 +56,7 @@ class AppUiHelper {
                 decoration: const BoxDecoration(
                   color: Colors.white,
 
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(12),
-                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                 ),
 
                 child: SafeArea(top: false, child: child),
@@ -89,6 +89,7 @@ class AppUiHelper {
     bool minHeight = false,
     bool isDismissible = true,
     bool showHandle = true,
+    bool showCloseIcon = false,
   }) {
     return showModalBottomSheet<T>(
       context: context,
@@ -99,54 +100,81 @@ class AppUiHelper {
       builder: (context) {
         final maxHeight = MediaQuery.of(context).size.height * maxHeightFactor;
         final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-        final bottomNavHeight = MediaQuery.of(context).padding.bottom ;
+        final bottomNavHeight = MediaQuery.of(context).padding.bottom;
         return SafeArea(
-          bottom: true,
           child: Padding(
             padding: EdgeInsets.only(bottom: bottomInset + bottomNavHeight),
-            child: Container(
-              constraints: BoxConstraints(
-                maxHeight: maxHeight,
-                minHeight: minHeight == true ? maxHeight : 0,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  /// Handle bar
-                  if (showHandle)
-                    Center(
-                      child: Container(
-                        width: 60,
-                        height: 5,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.fieldGrey.withAlpha(50),
-                          borderRadius: BorderRadius.circular(10),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  constraints: BoxConstraints(
+                    maxHeight: maxHeight,
+                    minHeight: minHeight == true ? maxHeight : 0,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      /// Handle bar
+                      if (showHandle)
+                        Center(
+                          child: Container(
+                            width: 60,
+                            height: 5,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.fieldGrey.withAlpha(50),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
                         ),
+
+                      /// Optional title
+                      if (title != null)
+                        AppText(
+                          text: title,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          textAlign: TextAlign.start,
+                        ).padBottom(10),
+                      if (titleWidget != null) titleWidget,
+
+                      /// Content
+                      Flexible(child: child),
+                    ],
+                  ),
+                ),
+                if (showCloseIcon)
+                  Positioned(
+                    top: -35,
+                    right: 10,
+                    child: InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        height: 30,
+                        width: 30,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: AppColors.white,
+                        ),
+
+                        child:Icon(Icons.close,color: AppColors.black,weight: 20,),
                       ),
                     ),
-
-                  /// Optional title
-                  if (title != null)
-                    AppText(
-                      text: title,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      textAlign: TextAlign.start,
-                    ).padBottom(10),
-                  if (titleWidget != null) titleWidget,
-
-                  /// Content
-                  Flexible(child: child),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         );

@@ -17,7 +17,9 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'app_button.dart';
 
 class ReceiveHandoverSheet extends StatefulWidget {
-  const ReceiveHandoverSheet({super.key});
+  final String title;
+
+  const ReceiveHandoverSheet({super.key,  required this.title});
 
   @override
   State<ReceiveHandoverSheet> createState() => _ReceiveHandoverSheetState();
@@ -26,6 +28,16 @@ class ReceiveHandoverSheet extends StatefulWidget {
 class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
   int selectedIndex = 0;
 
+  bool get isGold => widget.title!.toLowerCase() == 'gold';
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (isGold) {
+      selectedIndex = 2;
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -43,6 +55,8 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
             fontSize: 12,
             fontWeight: FontWeight.w400,
           ),
+
+          if (!isGold)
           BottomSheetHandOver(
             title: 'Receive from found Person',
             subtitle: 'Receive the item from the person who found it.',
@@ -65,6 +79,7 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
               });
             },
           ),
+          if (!isGold)
           BottomSheetHandOver(
             title: 'Received to others',
             subtitle: 'Provide the others details.',
@@ -79,17 +94,32 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
           SizedBox(height: 5),
           AppButton(
             title: 'Continue',
-      
+
             onTap: () {
-              if(selectedIndex == 0)return;
-              AppUiHelper.showBottomSheet(
-                context: context,
-                child: HandoverMatchedPersons(),
-              );
-              if(selectedIndex == 1)return;
-             AppUiHelper.showBottomSheet(context: context, child: PoliceStationHandOver());
-              if(selectedIndex == 2)return;
-              AppUiHelper.showBottomSheet(context: context, child: OthersHandover());
+              AppRoutes.pop();
+              if (selectedIndex == 1) {
+                AppUiHelper.showBottomSheet(
+                  showHandle: false,
+                  context: context,
+                  child: HandoverMatchedPersons(),
+                );
+              }
+              if (selectedIndex == 2) {
+                AppUiHelper.showBottomSheet(
+                  showHandle: false,
+
+                  context: context,
+                  child: PoliceStationHandOver(),
+                );
+              }
+              if (selectedIndex == 3) {
+                AppUiHelper.showBottomSheet(
+                  showHandle: false,
+
+                  context: context,
+                  child: OthersHandover(),
+                );
+              }
             },
 
             fontSize: 14,

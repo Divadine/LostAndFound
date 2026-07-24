@@ -130,10 +130,13 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
 
 
         AppButton(
-          title: 'Next',
+          title: 'Submit',
           onTap:(){
             AppRoutes.pop();
-             AppUiHelper.showBottomSheet(context: context, child: PoliceHandoverProofDocuments());
+             AppUiHelper.showBottomSheet(
+                 showHandle: false,
+
+                 context: context, child: PoliceHandoverProofDocuments());
 
           },
           fontSize: 14,

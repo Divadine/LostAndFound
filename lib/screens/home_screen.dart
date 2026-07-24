@@ -7,6 +7,7 @@ import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/bottomsheet_handover.dart';
 import 'package:lost_and_found/shared_widgets/item_card.dart';
+import 'package:lost_and_found/shared_widgets/sucess_card.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
@@ -158,7 +159,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             SizedBox(width: 3),
                             GestureDetector(
                               onTap: () {
-                                AppUiHelper.showBottomSheet(context: context, child: ReceivedDetails());
+                                AppDialogue.showPopup(
+                                  context: context,
+                                  content: SucessCard(
+                                    name: 'prakash',
+                                    location: 'coimbatore ',
+                                    onTap: () {},
+                                  ),
+                                );
                               },
                               child: Container(
                                 height: 40,
@@ -190,10 +198,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: TabBarView(
                           children: [
-                            ListView.builder(
-                              itemCount: 2,
-                              itemBuilder: (context, index) {
-                                return ItemCard(
+                            Column(
+                              children: [
+                                ItemCard(
                                   imgUrl:
                                       'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTweFjIvljtnBPBG3-QrPhjYAWLr_1vmJzWbHM58T7TUw&s=10',
                                   title: 'Fossil Watch',
@@ -205,13 +212,33 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onTap: () {
                                     AppRoutes.pushNamed(
                                       AppRoutes.availableMatchingScreen,
-                                      arguments: AvailableScreenModel(foundCount:8,isReceived: false )
+                                      arguments: AvailableScreenModel(
+                                        foundCount: 8,
+                                        isReceived: false,
+                                      ),
                                     );
                                   },
                                   showPostId: true,
-                                ).pad();
-                              },
+                                ),
+                                ItemCard(
+                                  imgUrl:
+                                      'https://getacregold.com/cdn/shop/articles/gold_bar_4100x.jpg?v=1639068933',
+                                  title: 'Gold',
+                                  location: "Coimbatore",
+                                  date: 'May 25 2026',
+                                  postId: 'LF2021',
+                                  onTap: (){
+                                    AppUiHelper.showBottomSheet(
+                                      context: context,
+                                      child: ReceiveHandoverSheet(title: 'gold',),
+                                    );
+                                  },
+                                  showPostId: true,
+                                ),
+                              ],
                             ),
+
+                            //foundItems
                             ListView.builder(
                               itemCount: 2,
                               itemBuilder: (context, index) {

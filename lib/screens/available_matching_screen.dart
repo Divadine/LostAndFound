@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/screens/received_details.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -29,7 +30,8 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: CustomAppBar(
-        title: 'Available Matching item - ${widget.availableScreenModel?.foundCount} founded',
+        title:
+            'Available Matching item - ${widget.availableScreenModel?.foundCount} founded',
         leadingSvg: AssetImages.backArrow,
         titleColor: AppColors.primaryColor,
         leadingIconColor: AppColors.primaryColor,
@@ -63,7 +65,8 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
             ),
             AppContainer(
               widget: AppText(
-                text: 'Matching Items(${widget.availableScreenModel?.foundCount})',
+                text:
+                    'Matching Items(${widget.availableScreenModel?.foundCount})',
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: AppColors.primaryColor,
@@ -105,9 +108,12 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
               child: SucessCard(
                 name: 'Dinesh',
                 location: '22 May 2026',
-                leftImg: AssetImages.greenRoundedTick,
-                rightImg: AssetImages.rightArrowBlack,
-                onTap: () {},
+                onTap: () {
+                  AppUiHelper.showBottomSheet(
+                    context: context,
+                    child: ReceivedDetails(isReceivedFromPolice: false, isReceivedFromFounder: false, isReceivedFromOthers: false,),
+                  );
+                },
               ).pad(),
             )
           : AppContainer(
@@ -129,9 +135,10 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                   AppButton(
                     title: 'Receive',
                     onTap: () {
-                      AppUiHelper.showBottomSheet(
+
+                      final v=AppUiHelper.showBottomSheet(
                         context: context,
-                        child: ReceiveHandoverSheet(),
+                        child: ReceiveHandoverSheet(title: 'gold',),
                       );
                     },
                     radius: BorderRadius.circular(14),
