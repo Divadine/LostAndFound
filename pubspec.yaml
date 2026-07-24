@@ -47,6 +47,11 @@ dependencies:
   device_info_plus: ^13.2.0
   connectivity_plus: ^7.3.0
   dotted_border: ^2.1.0
+  intl: ^0.20.2
+  record: ^6.1.1
+  permission_handler: ^12.0.1
+  path_provider: ^2.1.5
+  video_player: ^2.10.0
 
 
 dev_dependencies:

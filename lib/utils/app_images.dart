@@ -23,18 +23,8 @@ class AssetImages {
   static const String handoverToOwner = "assets/images/handoverToOwner.png";
   static const String policeStation = "assets/images/policeStation.png";
   static const String livePost = "assets/images/livePost.png";
-
-
-
-
-
-
-
-
-
-
-
-
+  static const String video = "assets/images/video.png";
+  static const String calender = "assets/images/calender.png";
 
 
 
@@ -98,6 +88,20 @@ class AssetImages {
 
   static const String greenRoundedTick = "assets/images/greenRoundedTick.svg";
   static const String rightArrowBlack = "assets/images/rightArrowBlack.svg";
+  static const String locationMarker = "assets/images/locationMarker.svg";
+
+  static const String pausePlay = "assets/images/pausePlay.svg";
+  static const String audioRecord = "assets/images/audioRecord.svg";
+  static const String recordSave = "assets/images/recordSave.svg";
+  static const String refresh = "assets/images/refresh.svg";
+  static const String mic = "assets/images/mic.svg";
+
+
+
+
+
+
+
 
 
 

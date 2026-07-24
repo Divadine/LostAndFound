@@ -45,37 +45,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               Positioned(
-                top: 40,
-                left: 20,
-                right: 20,
-                child: Column(
-                  spacing: 10,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        AppText(
-                          text: "Lost & Found",
-                          color: AppColors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-
-                        AppIconWidget(assetPath: AssetImages.notification),
-                      ],
-                    ),
-
-                    AppText(
-                      text: "Helping you reunite with what\nmatters.",
-                      color: AppColors.white,
-                      fontSize: 14,
-                    ),
-                  ],
-                ),
-              ),
-
-              Positioned(
                 top: 30,
                 right: 0,
                 child: AppIconWidget(assetPath: AssetImages.homeBox),
@@ -159,14 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             SizedBox(width: 3),
                             GestureDetector(
                               onTap: () {
-                                AppDialogue.showPopup(
-                                  context: context,
-                                  content: SucessCard(
-                                    name: 'prakash',
-                                    location: 'coimbatore ',
-                                    onTap: () {},
-                                  ),
-                                );
+                               AppRoutes.pushNamed(AppRoutes.secondStepperScreen);
                               },
                               child: Container(
                                 height: 40,
@@ -270,6 +232,40 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
+                ),
+              ),
+
+              Positioned(
+                top: 40,
+                left: 20,
+                right: 20,
+                child: Column(
+                  spacing: 10,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        AppText(
+                          text: "Lost & Found",
+                          color: AppColors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+
+                        GestureDetector(
+                            onTap: (){
+                            },
+                            child: AppIconWidget(assetPath: AssetImages.notification)),
+                      ],
+                    ),
+
+                    AppText(
+                      text: "Helping you reunite with what\nmatters.",
+                      color: AppColors.white,
+                      fontSize: 14,
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -14,6 +14,7 @@ import 'package:lost_and_found/screens/otp_screen.dart';
 import 'package:lost_and_found/screens/profile_screen.dart';
 import 'package:lost_and_found/screens/register_screen.dart';
 import 'package:lost_and_found/screens/report_justification.dart';
+import 'package:lost_and_found/screens/second_stepper_screen.dart';
 import 'package:lost_and_found/screens/settings_screen.dart';
 import 'package:lost_and_found/screens/webView.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
@@ -38,6 +39,8 @@ class AppRoutes {
   static const lostItemsDetailsScreen = '/lostItemsDetailsScreen';
   static const enquiryListScreen = '/enquiryListScreen';
   static const chatScreen = '/chatScreen';
+  static const secondStepperScreen = '/secondStepperScreen';
+
 
   static final GoRouter router = GoRouter(
     navigatorKey: AppUtils.navigatorKey,
@@ -166,6 +169,15 @@ class AppRoutes {
           return ChatScreen();
         },
       ),
+      GoRoute(
+        path: '/secondStepperScreen',
+        name: secondStepperScreen,
+        builder: (context, state) {
+          return SecondStepperScreen();
+        },
+      ),
+
+
     ],
   );
 
