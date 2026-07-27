@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:lost_and_found/screens/otp_screen.dart';
-import 'package:lost_and_found/screens/register_screen.dart';
+import 'package:lost_and_found/screens/authentication/otp_screen.dart';
+import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';

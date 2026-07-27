@@ -68,6 +68,7 @@ class AppUtils {
 
     return null;
   }
+
   static String? required(
       String? value, ) {
     if (value == null || value.trim().isEmpty) {
@@ -75,7 +76,6 @@ class AppUtils {
     }
     return null;
   }
-
 
   static String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
@@ -93,8 +93,7 @@ class AppUtils {
     return null;
   }
 
-
- static Color getMatchColor(int percentage) {
+  static Color getMatchColor(int percentage) {
     if (percentage == 100) {
       return AppColors.green;
     } else if (percentage >= 80) {

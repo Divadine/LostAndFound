@@ -1,22 +1,23 @@
 import 'package:go_router/go_router.dart';
-import 'package:lost_and_found/screens/available_matching_screen.dart';
+import 'package:lost_and_found/screens/home/available_matching_screen.dart';
 import 'package:lost_and_found/screens/bottom_screen.dart';
-import 'package:lost_and_found/screens/category_radios_lists_screen.dart';
-import 'package:lost_and_found/screens/chat_screen.dart';
-import 'package:lost_and_found/screens/delete_account_screeen.dart';
-import 'package:lost_and_found/screens/enquiry_list_screen.dart';
-import 'package:lost_and_found/screens/firstHome_screen.dart';
-import 'package:lost_and_found/screens/home_screen.dart';
-import 'package:lost_and_found/screens/login_screen.dart';
-import 'package:lost_and_found/screens/lost_items_details_screen.dart';
-import 'package:lost_and_found/screens/onboarding_screen.dart';
-import 'package:lost_and_found/screens/otp_screen.dart';
-import 'package:lost_and_found/screens/profile_screen.dart';
-import 'package:lost_and_found/screens/register_screen.dart';
+import 'package:lost_and_found/screens/post/category_radios_lists_screen.dart';
+import 'package:lost_and_found/screens/chat/chat_screen.dart';
+import 'package:lost_and_found/screens/profile/delete_account_screeen.dart';
+import 'package:lost_and_found/screens/home/enquiry_list_screen.dart';
+import 'package:lost_and_found/screens/authentication/role_chosen_screen.dart';
+import 'package:lost_and_found/screens/home/home_screen.dart';
+import 'package:lost_and_found/screens/authentication/login_screen.dart';
+import 'package:lost_and_found/screens/home/details_screen.dart';
+import 'package:lost_and_found/screens/nearby/map_screen.dart';
+import 'package:lost_and_found/screens/authentication/onboarding_screen.dart';
+import 'package:lost_and_found/screens/authentication/otp_screen.dart';
+import 'package:lost_and_found/screens/authentication/profile_screen.dart';
+import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/screens/report_justification.dart';
-import 'package:lost_and_found/screens/second_stepper_screen.dart';
-import 'package:lost_and_found/screens/settings_screen.dart';
-import 'package:lost_and_found/screens/webView.dart';
+import 'package:lost_and_found/screens/post/second_stepper_screen.dart';
+import 'package:lost_and_found/screens/profile/settings_screen.dart';
+import 'package:lost_and_found/screens/profile/webView.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 
 import 'app_utils.dart';
@@ -40,6 +41,8 @@ class AppRoutes {
   static const enquiryListScreen = '/enquiryListScreen';
   static const chatScreen = '/chatScreen';
   static const secondStepperScreen = '/secondStepperScreen';
+  static const mapScreen = '/mapScreen';
+
 
 
   static final GoRouter router = GoRouter(
@@ -176,6 +179,15 @@ class AppRoutes {
           return SecondStepperScreen();
         },
       ),
+      GoRoute(
+        path: '/mapScreen',
+        name: mapScreen,
+        builder: (context, state) {
+          return MapScreen();
+        },
+      ),
+
+
 
 
     ],

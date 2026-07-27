@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:lost_and_found/screens/register_screen.dart';
+import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
@@ -12,7 +12,7 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 
-import 'handover_proff_documents.dart';
+import 'owner_proof_submission.dart';
 
 class ReceivedDetails extends StatefulWidget {
   final bool isReceivedFromPolice;

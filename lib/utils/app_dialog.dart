@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:lost_and_found/screens/onboarding_screen.dart';
-import 'package:lost_and_found/screens/received_details.dart';
-import 'package:lost_and_found/screens/webView.dart';
+import 'package:lost_and_found/screens/authentication/onboarding_screen.dart';
+import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
+import 'package:lost_and_found/screens/profile/webView.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
@@ -805,7 +805,7 @@ class PostLive extends StatelessWidget {
           title: 'Go to Home',
           fontSize: 14,
           onTap: () {
-            AppRoutes.pop();
+            AppRoutes.pushNamed(AppRoutes.homeScreen);
           },
           bgColor: AppColors.primaryColor,
 

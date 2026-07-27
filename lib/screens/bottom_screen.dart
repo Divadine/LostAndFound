@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:lost_and_found/screens/home_screen.dart';
-import 'package:lost_and_found/screens/login_screen.dart';
+import 'package:lost_and_found/screens/home/home_screen.dart';
+import 'package:lost_and_found/screens/authentication/login_screen.dart';
+import 'package:lost_and_found/screens/nearby/map_screen.dart';
 import 'package:lost_and_found/screens/report_justification.dart';
-import 'package:lost_and_found/screens/settings_screen.dart';
+import 'package:lost_and_found/screens/profile/settings_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
@@ -10,8 +11,8 @@ import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
-import 'chat_screen.dart';
-import 'firstHome_screen.dart';
+import 'chat/chat_screen.dart';
+import 'authentication/role_chosen_screen.dart';
 
 class BottomScreen extends StatefulWidget {
   const BottomScreen({super.key});
@@ -24,7 +25,8 @@ class _BottomScreenState extends State<BottomScreen> {
   int selectedIndex = 0;
   final pages = [
     HomeScreen(),
-    LoginScreen(),
+    MapScreen(),
+    //LoginScreen(),
     SizedBox(),
     //ReportJustification(),
     ChatScreen(),

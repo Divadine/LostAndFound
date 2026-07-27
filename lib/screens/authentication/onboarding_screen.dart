@@ -6,7 +6,7 @@ import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
-import 'package:lost_and_found/shared_widgets/bottomsheet_handover.dart';
+import 'package:lost_and_found/screens/bottomsheets/handover_selection.dart';
 import 'package:lost_and_found/shared_widgets/homeSlider.dart';
 import 'package:lost_and_found/shared_widgets/item_card.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
@@ -15,7 +15,7 @@ import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
-import '../utils/app_images.dart';
+import '../../utils/app_images.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});

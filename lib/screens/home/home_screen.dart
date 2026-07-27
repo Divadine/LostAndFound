@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:lost_and_found/screens/available_matching_screen.dart';
-import 'package:lost_and_found/screens/received_details.dart';
+import 'package:lost_and_found/screens/home/available_matching_screen.dart';
+import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
-import 'package:lost_and_found/shared_widgets/bottomsheet_handover.dart';
+import 'package:lost_and_found/screens/bottomsheets/handover_selection.dart';
 import 'package:lost_and_found/shared_widgets/item_card.dart';
 import 'package:lost_and_found/shared_widgets/sucess_card.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
@@ -255,6 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         GestureDetector(
                             onTap: (){
+                              AppRoutes.pushNamed(AppRoutes.loginScreen);
                             },
                             child: AppIconWidget(assetPath: AssetImages.notification)),
                       ],

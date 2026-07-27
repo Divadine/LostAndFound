@@ -95,6 +95,27 @@ class AssetImages {
   static const String recordSave = "assets/images/recordSave.svg";
   static const String refresh = "assets/images/refresh.svg";
   static const String mic = "assets/images/mic.svg";
+  static const String recordTick = "assets/images/recordTick.svg";
+  static const String recordPause = "assets/images/recordPlay.svg";
+  static const String recordCancel = "assets/images/recordCancel.svg";
+  static const String recorderPlay = "assets/images/recorderPause.svg";
+  static const String smallTick = "assets/images/smallTick.svg";
+  static const String mapMarker = "assets/images/mapMarker.svg";
+  static const String mapLocationIcon = "assets/images/mapLocationIcon.svg";
+  static const String iosLeftArrow = "assets/images/iosLeftArrow.svg";
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
