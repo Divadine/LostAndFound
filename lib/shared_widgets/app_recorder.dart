@@ -21,8 +21,10 @@ class AppRecorder extends StatefulWidget {
   State<AppRecorder> createState() => _AppRecorderState();
 }
 
-class _AppRecorderState extends State<AppRecorder> {
-
+// NOTE: Added SingleTickerProviderStateMixin so we can drive a color
+// animation for the waveform bars while recording / playing.
+class _AppRecorderState extends State<AppRecorder>
+    with SingleTickerProviderStateMixin {
   final AudioRecorder recorder = AudioRecorder();
   final RecorderController recorderController = RecorderController();
   final AudioPlayer audioPlayer = AudioPlayer();
@@ -36,10 +38,32 @@ class _AppRecorderState extends State<AppRecorder> {
   String? audioPath;
   Duration recordedDuration = Duration.zero;
   Duration currentPosition = Duration.zero;
-  List<double> waveformHeights = [];
+  List<double> waveformHeights = [2, 7, 4];
+
+  // ---- Color-indication animation ----
+  // Change [activeWaveColor] to whatever "active" color you want to show
+  // while recording/playing. Idle color stays AppColors.grey.
+  late final AnimationController _waveColorController;
+  late final Animation<Color?> _waveColorAnimation;
+  final Color activeWaveColor = AppColors.red; // <- pick your active color
+
   @override
   void initState() {
     super.initState();
+
+    _waveColorController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
+
+    _waveColorAnimation = ColorTween(
+      begin: AppColors.grey,
+      end: activeWaveColor,
+    ).animate(CurvedAnimation(
+      parent: _waveColorController,
+      curve: Curves.easeInOut,
+    ));
+
     // startRecording();
     // ..androidEncoder = AndroidEncoder.aac
     // ..androidOutputFormat = AndroidOutputFormat.mpeg4
@@ -47,15 +71,13 @@ class _AppRecorderState extends State<AppRecorder> {
     // ..sampleRate = 44100;
   }
 
-
-
   String formatDuration(Duration duration) {
     String two(int n) => n.toString().padLeft(2, '0');
 
     return "${two(duration.inMinutes)}:${two(duration.inSeconds % 60)}";
   }
-  Future<void> startRecording() async {
 
+  Future<void> startRecording() async {
     recorderController.reset();
 
     waveformHeights.clear();
@@ -66,14 +88,9 @@ class _AppRecorderState extends State<AppRecorder> {
 
     final dir = await getTemporaryDirectory();
 
-    audioPath =
-    "${dir.path}/${DateTime.now().millisecondsSinceEpoch}.m4a";
+    audioPath = "${dir.path}/${DateTime.now().millisecondsSinceEpoch}.m4a";
 
-
-    await recorderController.record(
-      path: audioPath!,
-    );
-
+    await recorderController.record(path: audioPath!);
 
     await recorder.start(
       const RecordConfig(
@@ -84,7 +101,6 @@ class _AppRecorderState extends State<AppRecorder> {
       path: audioPath!,
     );
 
-
     setState(() {
       isRecording = true;
       isPaused = false;
@@ -92,7 +108,6 @@ class _AppRecorderState extends State<AppRecorder> {
   }
 
   Future<void> pauseRecording() async {
-
     await recorder.pause();
     await recorderController.pause();
 
@@ -100,47 +115,24 @@ class _AppRecorderState extends State<AppRecorder> {
       isPaused = true;
     });
   }
+
   Future<void> resumeRecording() async {
-
     await recorder.resume();
-
 
     setState(() {
       isPaused = false;
     });
   }
 
-  Future<void> generateWaveform() async {
-    final waveFile = File('${audioPath!}.wave');
-
-    final stream = JustWaveform.extract(
-      audioInFile: File(audioPath!),
-      waveOutFile: waveFile,
-    );
-
-    await for (final progress in stream) {
-      if (progress.waveform != null) {
-        waveformHeights = progress.waveform!.data
-
-            .map((e) => e.toDouble())
-            .toList();
-
-        setState(() {});
-      }
-    }
-  }
   Future<void> saveRecording() async {
-
-
     waveformHeights = recorderController.waveData
         .map((e) => e.toDouble())
         .toList();
 
-   await recorderController.stop();
-
+    await recorderController.stop();
 
     final path = await recorder.stop();
-    if(path == null) return;
+    if (path == null) return;
     audioPath = path;
     await audioPlayer.setFilePath(audioPath!);
 
@@ -152,44 +144,44 @@ class _AppRecorderState extends State<AppRecorder> {
       isPlaying = false;
     });
 
-
     //await generateWaveform();
   }
+
   Future<void> cancelRecording() async {
     try {
       // Stop recording if it's in progress
       if (await recorder.isRecording()) {
-      if (await recorder.isRecording()) {
-        await recorder.stop();
-      }
-
-      // Delete the file if it exists
-      if (audioPath != null) {
-        final file = File(audioPath!);
-
-        if (await file.exists()) {
-          await file.delete();
+        if (await recorder.isRecording()) {
+          await recorder.stop();
         }
 
-        audioPath = null;
-      }
+        // Delete the file if it exists
+        if (audioPath != null) {
+          final file = File(audioPath!);
 
-      setState(() {
+          if (await file.exists()) {
+            await file.delete();
+          }
 
-        showRecordUI = false;
-        showRecordedUI = false;
+          audioPath = null;
+        }
 
-        isRecording = false;
-        isPaused = false;
-        isPlaying = false;
+        setState(() {
+          showRecordUI = false;
+          showRecordedUI = false;
 
-        recordedDuration = Duration.zero;
-      });
+          isRecording = false;
+          isPaused = false;
+          isPlaying = false;
+
+          recordedDuration = Duration.zero;
+        });
       }
     } catch (e) {
       debugPrint("Cancel recording error: $e");
     }
   }
+
   Future<void> playAudio() async {
     if (audioPlayer.playing) {
       await audioPlayer.pause();
@@ -204,6 +196,7 @@ class _AppRecorderState extends State<AppRecorder> {
       setState(() {});
     }
   }
+
   Future<void> stopRecording() async {
     audioPath = await recorder.stop();
 
@@ -214,14 +207,15 @@ class _AppRecorderState extends State<AppRecorder> {
     print(audioPath);
   }
 
-
   @override
   void dispose() {
+    _waveColorController.dispose();
     audioPlayer.dispose();
     recorder.dispose();
     recorderController.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -249,11 +243,8 @@ class _AppRecorderState extends State<AppRecorder> {
                     setState(() {
                       showRecordUI = true;
                     });
-
                   },
-                  child: AppIconWidget(
-                    assetPath: AssetImages.mic,
-                  ),
+                  child: AppIconWidget(assetPath: AssetImages.mic),
                 ),
               ],
             ).pad(),
@@ -263,6 +254,10 @@ class _AppRecorderState extends State<AppRecorder> {
   }
 
   Widget buildRecord() {
+    // Wave bars pulse in [activeWaveColor] while actively recording
+    // (i.e. recording started and not paused).
+    final bool isActivelyRecording = isRecording && !isPaused;
+
     return AppContainer(
       widget: Column(
         spacing: 10,
@@ -275,16 +270,7 @@ class _AppRecorderState extends State<AppRecorder> {
             fontWeight: FontWeight.w400,
           ),
 
-          AudioWaveforms(
-            recorderController: recorderController,
-            size: Size(MediaQuery.of(context).size.width - 80, 60),
-            waveStyle: const WaveStyle(
-              waveColor: Colors.indigo,
-              backgroundColor: AppColors.red,
-              extendWaveform: true,
-              showMiddleLine: false,
-            ),
-          ),
+          buildWave(isActive: isActivelyRecording),
 
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -299,21 +285,19 @@ class _AppRecorderState extends State<AppRecorder> {
                 onTap: () async {
                   if (!isRecording) {
                     await startRecording();
-
                   } else if (isPaused) {
                     await resumeRecording();
                   } else {
                     await pauseRecording();
                   }
                   setState(() {
-
                     isPlaying = !isPlaying;
                   });
                 },
                 child: AppIconWidget(
                   assetPath: isPlaying
-                      ?AssetImages.recorderPlay:  AssetImages.recordPause,
-
+                      ? AssetImages.recorderPlay
+                      : AssetImages.recordPause,
                 ),
               ),
 
@@ -325,6 +309,41 @@ class _AppRecorderState extends State<AppRecorder> {
           ),
         ],
       ),
+    );
+  }
+
+  // [isActive] controls whether the bars animate between grey (idle) and
+  // [activeWaveColor] (recording / playing). When false, bars stay grey.
+  Widget buildWave({required bool isActive}) {
+    final heights = [
+      10, 25, 30, 20, 35, 30, 30, 15, 45, 25,
+      10, 10, 25, 30, 20, 35, 30, 30, 15, 35,
+      25, 10, 10, 25, 30, 20, 35, 30, 30, 15,
+    ];
+
+    return AnimatedBuilder(
+      animation: _waveColorController,
+      builder: (context, child) {
+        final Color barColor =
+        isActive ? (_waveColorAnimation.value ?? AppColors.grey) : AppColors.grey;
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: heights.map((height) {
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: 3,
+              height: height.toDouble() - 4,
+              decoration: BoxDecoration(
+                color: barColor,
+                borderRadius: BorderRadius.circular(5),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -342,13 +361,11 @@ class _AppRecorderState extends State<AppRecorder> {
               GestureDetector(
                 onTap: playAudio,
                 child: AppIconWidget(
-                  assetPath: audioPlayer.playing
-                      ?AssetImages.recorderPlay : AssetImages.pausePlay,
-
+                  assetPath: AssetImages.recorderPlay
                 ),
               ),
-             Expanded(child: buildWaveform()),
-
+              // Bars pulse in [activeWaveColor] while audio is playing.
+              Flexible(child: buildWave(isActive: audioPlayer.playing)),
             ],
           ).pad(),
 
@@ -384,14 +401,13 @@ class _AppRecorderState extends State<AppRecorder> {
                     setState(() {
                       showRecordedUI = false;
                       showRecordUI = true;
-waveformHeights.clear();
+                      waveformHeights.clear();
                       isRecording = false;
                       isPaused = false;
                       isPlaying = false;
-
                     });
                     recorderController.reset();
-                    await startRecording();
+                    //await startRecording();
                   },
                   child: AppContainer(
                     widget: Row(
@@ -449,34 +465,6 @@ waveformHeights.clear();
             ],
           ).pad(),
         ],
-      ),
-    );
-  }
-
-  Widget buildWaveform() {
-    return SizedBox(
-      height: 45,
-      //width: MediaQuery.of(context).size.width - 100,
-      child: ClipRRect(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          //crossAxisAlignment: CrossAxisAlignment.center,
-          children: waveformHeights.map((height) {
-        
-            final waveHeight = (height.abs() / 100) * 40;
-        
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              width: 3,
-              height: waveHeight.clamp(2, 40),
-              decoration: BoxDecoration(
-                color: AppColors.grey,
-                borderRadius: BorderRadius.circular(5),
-              ),
-            );
-        
-          }).toList(),
-        ),
       ),
     );
   }
