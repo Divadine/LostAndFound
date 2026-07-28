@@ -104,20 +104,46 @@ class _ChatScreenState extends State<ChatScreen> {
               //chats
 
               Expanded(
-                child: ListView.builder(
-                  itemCount: chats.length,
-                  itemBuilder: (context,index){
+                child: TabBarView(
+                  children: [
 
-                    final chat = chats[index];
+                    //myleads
+                    ListView.builder(
+                      itemCount: chats.length,
+                      itemBuilder: (context,index){
 
-                    return ChatTile(
-                      imageUrl: chat["image"]!,
-                      name: chat["name"]!,
-                      lastMessage: chat["message"]!,
-                      time: chat["time"]!,
-                    );
+                        final chat = chats[index];
 
-                  },
+                        return ChatTile(
+                          imageUrl: chat["image"]!,
+                          name: chat["name"]!,
+                          lastMessage: chat["message"]!,
+                          time: chat["time"]!,
+                        );
+
+                      },
+                    ),
+
+
+
+                    //enquires
+                    ListView.builder(
+                      itemCount: chats.length,
+                      itemBuilder: (context,index){
+
+                        final chat = chats[index];
+
+                        return ChatTile(
+                          imageUrl: chat["image"]!,
+                          name: chat["name"]!,
+                          lastMessage: chat["message"]!,
+                          time: chat["time"]!,
+                        );
+
+                      },
+                    ),
+                  ],
+
                 ),
               )
             ],

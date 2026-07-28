@@ -10,31 +10,34 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/category_not_found.dart';
 
-class CategoryRadiosListsScreen extends StatefulWidget {
-  const CategoryRadiosListsScreen({super.key});
+class SubCategoryScreen extends StatefulWidget {
+  const SubCategoryScreen({super.key});
 
   @override
-  State<CategoryRadiosListsScreen> createState() =>
-      _CategoryRadiosListsScreenState();
+  State<SubCategoryScreen> createState() =>
+      _SubCategoryScreenState();
 }
 
-class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
+class _SubCategoryScreenState extends State<SubCategoryScreen> {
+
+
   List<Map<String, String>> category = [
     {
       'categoryName': 'Dinesh',
       'img':
-          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRBsa5c2bVIPpKs5m1eXf3Y5mlLeqVhbTr1YfAXWYkvRgEZmbyakF7cGc&s=10',
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRBsa5c2bVIPpKs5m1eXf3Y5mlLeqVhbTr1YfAXWYkvRgEZmbyakF7cGc&s=10',
     },
 
     {
       'categoryName': 'Kumar',
       'img':
-          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRBsa5c2bVIPpKs5m1eXf3Y5mlLeqVhbTr1YfAXWYkvRgEZmbyakF7cGc&s=10',
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRBsa5c2bVIPpKs5m1eXf3Y5mlLeqVhbTr1YfAXWYkvRgEZmbyakF7cGc&s=10',
     },
   ];
   TextEditingController searchController = TextEditingController();
   int? selectedIndex;
   List<Map<String, String>> filteredCategory = [];
+
 
   @override
   void initState() {
@@ -45,15 +48,12 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
   void searchCategory(String value) {
     setState(() {
       filteredCategory = category
-          .where(
-            (item) => item['categoryName']!.toLowerCase().contains(
-              value.toLowerCase(),
-            ),
-          )
+          .where((item) => item['categoryName']!
+          .toLowerCase()
+          .contains(value.toLowerCase()))
           .toList();
     });
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -65,13 +65,13 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
         spacing: 10,
         children: [
           AppText(
-            text: 'Select Category',
+            text: 'Select Sub-Category',
             fontWeight: FontWeight.w600,
             fontSize: 20,
             color: AppColors.primaryColor,
           ),
           AppText(
-            text: 'Choose the Category that best matches your item',
+            text: 'Choose the Sub-Category that best matches your item',
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
@@ -93,37 +93,35 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
             ),
           ),
           SizedBox(height: 5),
-          filteredCategory.isEmpty
-              ? CategoryNotFound()
-              : Expanded(
-                  child: ListView.builder(
-                    itemCount: category.length,
-                    itemBuilder: (context, index) {
-                      final cat = category[index];
-                      return buildTile(
-                        categoryName: cat['categoryName']!,
-                        img: cat['img']!,
-                        isSelected: selectedIndex == index,
-                        onTap: () {},
-                        value: index,
-                      );
-                    },
-                  ),
-                ),
+          filteredCategory.isEmpty ? CategoryNotFound() : Expanded(
+            child: ListView.builder(
+              itemCount: category.length,
+              itemBuilder: (context, index) {
+                final cat = category[index];
+                return buildTile(
+                  categoryName: cat['categoryName']!,
+                  img: cat['img']!,
+                  isSelected: selectedIndex == index,
+                  onTap: () {},
+                  value:index,
+                );
+              },
+            ),
+          ),
         ],
       ).pad(16),
+
       bottomNavigationBar: SafeArea(
         child:
 
         (selectedIndex != null) ? AppButton(
-            title: 'Next',
-            onTap: () {
-              AppRoutes.pushNamed(AppRoutes.subCategoryScreen);
-            },
-            icon: AssetImages.arrow_forward,
-          ).pad(16) : SizedBox(),
-        ),
-
+          title: 'Next',
+          onTap: () {
+            AppRoutes.pushNamed(AppRoutes.secondStepperScreen);
+          },
+          icon: AssetImages.arrow_forward,
+        ).pad(16) : SizedBox(),
+      ),
     );
   }
 
@@ -135,7 +133,7 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
     required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: () {
+      onTap: (){
         setState(() {
           selectedIndex = value;
         });
@@ -159,11 +157,12 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
               value: value,
               activeColor: AppColors.primaryColor,
               groupValue: selectedIndex,
-              onChanged: (val) {
+              onChanged: (val){
                 setState(() {
                   selectedIndex = val;
                 });
               },
+
             ),
           ],
         ).pad(5),

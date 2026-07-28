@@ -1,12 +1,15 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/screens/authentication/profile_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
+import 'package:lost_and_found/screens/otp_screen_shared.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
+import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
@@ -104,21 +107,41 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
 
                   AppButton(
-                    title: 'Login',
-                    onTap: () {
-
-                      if (_formKey.currentState!.validate()) {
-                        if(AppPreferences.getIsLoggedIn() == true){
-                          AppRoutes.pushNamed(AppRoutes.bottomScreen);
-
-                        }
-                        AppPreferences.setIsLoggedIn(true);
-
-
-                      }
+                    title: "Login",
+                    onTap: () async {
+                      AppRoutes.pushNamed(AppRoutes.otpScreen);
+                      // final verified = await AppDialogue.showPopup(
+                      //   context: context,
+                      //   content: OtpDialog(
+                      //     mobileNumber: phoneController.text,
+                      //     isAlternateNumber: false,
+                      //   ),
+                      // );
+                      //
+                      // if (verified) {
+                      //   AppRoutes.pushNamed(
+                      //     AppRoutes.profileScreen,
+                      //     arguments: ProfileScreenModel(isFromEdit: false),
+                      //   );
+                      // }
                     },
-                    radius: BorderRadius.circular(8),
                   ).padHorizontal(30),
+                  // AppButton(
+                  //   title: 'Login',
+                  //   onTap: () {
+                  //
+                  //     if (_formKey.currentState!.validate()) {
+                  //       if(AppPreferences.getIsLoggedIn() == true){
+                  //         AppRoutes.pushNamed(AppRoutes.bottomScreen);
+                  //
+                  //       }
+                  //       AppPreferences.setIsLoggedIn(true);
+                  //
+                  //
+                  //     }
+                  //   },
+                  //   radius: BorderRadius.circular(8),
+                  // ).padHorizontal(30),
 
                   SizedBox(height: 15),
 

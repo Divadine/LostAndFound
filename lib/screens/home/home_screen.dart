@@ -87,23 +87,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
 
                                 child: TabBar(
+                                  indicatorSize: TabBarIndicatorSize.tab,
                                   padding: EdgeInsets.zero,
                                   indicatorPadding: EdgeInsets.only(
-                                    left: 18,
-                                    right: 18,
+                                    left: 10,
+                                    right: 10,
                                   ),
 
                                   indicator: UnderlineTabIndicator(
                                     borderSide: BorderSide(
                                       color: AppColors.primaryColor,
-                                      width: 3,
+                                      width: 2,
                                     ),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
 
                                   dividerColor: Colors.transparent,
 
-                                  labelColor: AppColors.primaryColor,
+                                  labelColor: AppColors.red,
                                   unselectedLabelColor: Colors.grey,
 
                                   tabs: [
@@ -128,7 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             SizedBox(width: 3),
                             GestureDetector(
                               onTap: () {
-                               AppRoutes.pushNamed(AppRoutes.secondStepperScreen);
+                               AppDialogue.showPopup(context: context, content: LocationAccess());
+                               //AppRoutes.pushNamed(AppRoutes.secondStepperScreen);
                               },
                               child: Container(
                                 height: 40,
@@ -181,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     );
                                   },
                                   showPostId: true,
-                                ),
+                                ).pad(),
                                 ItemCard(
                                   imgUrl:
                                       'https://getacregold.com/cdn/shop/articles/gold_bar_4100x.jpg?v=1639068933',
@@ -196,7 +198,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     );
                                   },
                                   showPostId: true,
-                                ),
+                                ).pad(),
+
                               ],
                             ),
 
@@ -289,3 +292,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+

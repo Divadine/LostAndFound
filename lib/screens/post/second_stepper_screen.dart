@@ -36,26 +36,20 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
   XFile? selectedVideo;
 
-
-
   TextEditingController textController = TextEditingController();
   TextEditingController mapController = TextEditingController();
   TextEditingController dateController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
-
 
   final ImagePicker picker = ImagePicker();
   VideoPlayerController? _videoController;
 
   @override
   void dispose() {
-
-
     _videoController?.dispose();
 
     super.dispose();
   }
-
 
   Future<void> pickVideos() async {
     final XFile? video = await picker.pickVideo(
@@ -138,6 +132,27 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
       initialDate: DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primaryColor,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+              surface: Colors.white,
+            ),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Colors.white,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.black,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -145,7 +160,6 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
       setState(() {});
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +228,6 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                   maxLines: 5,
                 ),
               ),
-
               SizedBox(height: 10),
               Column(
                 spacing: 10,
@@ -291,8 +304,6 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
       ),
     );
   }
-
-
 
   Widget buildVideoPreview() {
     return Column(

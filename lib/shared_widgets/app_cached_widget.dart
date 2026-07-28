@@ -33,12 +33,14 @@ class _AppCachedNetworkImageState extends State<AppCachedNetworkImage> {
         width: widget.width,
         height: widget.height,
         fit: widget.fit,
-        placeholder: (context, url) => Container(
+        placeholder: (context, url) => SizedBox(
           height: 15,
           width: 15,
-          child: CircularProgressIndicator(
-            color: AppColors.primaryColor,
-            padding: EdgeInsets.all(30),
+          child: Center(
+            child: CircularProgressIndicator(
+              color: AppColors.primaryColor,
+              padding: EdgeInsets.all(30),
+            ),
           ),
         ),
         errorWidget: (context, url, error) => Container(

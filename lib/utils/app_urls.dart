@@ -30,4 +30,6 @@ class AppUrls {
   static bool isInterstitialShowing = false;
 
   static String appStoreId = '6779589172';
+  static const String googleMap =
+      "https://www.google.com/maps/search/?api=1&query=";
 }

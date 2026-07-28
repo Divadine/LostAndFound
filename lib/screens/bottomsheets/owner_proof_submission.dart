@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/screens/authentication/otp_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
+import 'package:lost_and_found/screens/otp_screen_shared.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -263,206 +264,18 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                 ? () {
                     AppDialogue.showPopup(
                       context: context,
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        spacing: 10,
-                        children: [
-                          AppIconWidget(assetPath: AssetImages.enterOtpIcon),
-                          AppText(
-                            text: 'Enter OTP',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primaryColor,
-                          ),
-                          AppText(
-                            text:
-                                'We have sent a 4-digit OTP to  +91 9585445777',
-                            fontWeight: FontWeight.w400,
-                            fontSize: 14,
-                            color: AppColors.black,
-                            textAlign: TextAlign.center,
-                          ).padHorizontal(16),
+                      content: OtpSharedScreen(
+                        isAlternateNumber: true,
+                        mobileNumber: '8888888888',
+                        onVerified: () {
+                          AppRoutes.pop();
+                          AppRoutes.pop();
+                          AppDialogue.showPopup(
+                            context: context,
+                            content: HandOverToOwner(),
+                          );
 
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            spacing: 10,
-                            children: List.generate(_controller.length, (
-                              index,
-                            ) {
-                              return Container(
-                                height: 50,
-                                width: 50,
-
-                                child: TextField(
-                                  controller: _controller[index],
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    counterText: '',
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(
-                                        color: isFocused[index]
-                                            ? AppColors.grey
-                                            : otpError[index]
-                                            ? AppColors.red
-                                            : _controller[index].text.isEmpty
-                                            ? AppColors.grey
-                                            : AppColors.primaryColor,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(
-                                        width: 1.5,
-                                        color: isFocused[index]
-                                            ? AppColors.grey
-                                            : otpError[index]
-                                            ? AppColors.red
-                                            : _controller[index].text.isEmpty
-                                            ? AppColors.grey
-                                            : AppColors.primaryColor,
-                                      ),
-                                    ),
-                                  ),
-                                  focusNode: focusNode[index],
-                                  maxLength: 1,
-                                  textAlign: TextAlign.center,
-                                  keyboardType: TextInputType.phone,
-                                  onChanged: (v) {
-                                    if (v.contains(' ') ||
-                                        v.contains('.') ||
-                                        v.contains(',') ||
-                                        v.contains('-')) {
-                                      setState(() {
-                                        errorText =
-                                            "OTP cannot contain special character";
-                                        otpError[index] = true;
-                                      });
-                                      return;
-                                    }
-
-                                    setState(() {
-                                      errorText = null;
-                                      otpError[index] = false;
-                                    });
-
-                                    _onChanged(index, v);
-
-                                    _controller[index].selection =
-                                        TextSelection(
-                                          baseOffset: 0,
-                                          extentOffset:
-                                              _controller[index].text.length,
-                                        );
-                                  },
-                                ),
-                              );
-                            }),
-                          ),
-
-                          if (errorText != null)
-                            AppText(
-                              text: errorText!,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14,
-                              color: AppColors.errorRed,
-                            ),
-
-                          Container(
-                            height: 20,
-                            width: 70,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: AppColors.fieldGrey),
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child: Row(
-                              spacing: 7,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                AppIconWidget(assetPath: AssetImages.time),
-                                AppText(
-                                  text: _formatTime(seconds),
-                                  color: AppColors.navyBlue,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          AuthChangeText(
-                            text1: 'Didn’t receive ?',
-                            fadeColor: seconds != 0
-                                ? AppColors.fadeColor
-                                : null,
-
-                            tappableText: 'Resend',
-                            onTap: () {
-                              if (seconds == 0) {
-                                setState(() {
-                                  _startTimer();
-                                });
-                              }
-                            },
-                          ),
-
-                          AppButton(
-                            title: 'Verify',
-                            onTap: () {
-                              otp = _controller.map((e) => e.text).join();
-
-                              if (otp.length != 4) {
-                                setState(() {
-                                  errorText = "Please enter OTP";
-
-                                  for (int i = 0; i < otpError.length; i++) {
-                                    otpError[i] = true;
-                                  }
-                                });
-
-                                return;
-                              }
-
-                              if (otp != "1234") {
-                                setState(() {
-                                  errorText = "Please enter valid OTP";
-
-                                  for (int i = 0; i < otpError.length; i++) {
-                                    otpError[i] = true;
-                                  }
-                                });
-
-                                return;
-                              }
-
-                              // OTP success
-                              setState(() {
-                                errorText = null;
-                                isVerified = true;
-
-                                AppRoutes.pop();
-                                for (int i = 0; i < otpError.length; i++) {
-                                  otpError[i] = false;
-                                }
-                              });
-                              AppRoutes.pop();
-                              AppDialogue.showPopup(
-                                context: context,
-                                content: HandOverToOwner(),
-                              );
-
-                              // Navigate next screen
-                              // AppRoutes.pushNamed(
-                              //   AppRoutes.profileScreen,
-                              // );
-                            },
-                            radius: BorderRadius.circular(8),
-                          ).padHorizontal(30),
-                          SizedBox(height: 10),
-                        ],
+                        },
                       ),
                     );
                   }
@@ -522,7 +335,7 @@ DottedBorder buildDottedBorder({
 
 Widget buildProofDocuments({
   required String title,
-   String? subTitle,
+  String? subTitle,
   required Widget widget,
 }) {
   return Column(
@@ -532,8 +345,8 @@ Widget buildProofDocuments({
 
     children: [
       AppText(text: title, fontWeight: FontWeight.w500, fontSize: 14),
-      if(subTitle!=null)
-      AppText(text: subTitle, fontWeight: FontWeight.w400, fontSize: 12),
+      if (subTitle != null)
+        AppText(text: subTitle, fontWeight: FontWeight.w400, fontSize: 12),
       widget,
     ],
   );

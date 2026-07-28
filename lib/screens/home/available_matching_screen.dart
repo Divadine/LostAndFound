@@ -89,13 +89,12 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                     date: '20 May 2026',
                     postId: '',
                     onTap: () {},
-                    percentageMatch: 95,
+                    percentageMatch: 100,
                     showPostId: false,
-
                     profileUrl:
                         'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTweFjIvljtnBPBG3-QrPhjYAWLr_1vmJzWbHM58T7TUw&s=10',
                     profileName: 'diva',
-                  );
+                  ).padBottom(10);
                 },
               ),
             ),
@@ -116,36 +115,38 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                 },
               ).pad(),
             )
-          : AppContainer(
-              widget: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.grey,
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
+          : SafeArea(
+            child: AppContainer(
+                widget: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.grey,
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-
-                  AppButton(
-                    title: 'Receive',
-                    onTap: () {
-
-                      final v=AppUiHelper.showBottomSheet(
-                        context: context,
-                        child: ReceiveHandoverSheet(title: 'gold',),
-                      );
-                    },
-                    radius: BorderRadius.circular(14),
-                  ),
-                ],
-              ),
-            ).pad(),
+            
+                    AppButton(
+                      title: 'Receive',
+                      onTap: () {
+            
+                        final v=AppUiHelper.showBottomSheet(
+                          context: context,
+                          child: ReceiveHandoverSheet(title: '',),
+                        );
+                      },
+                      radius: BorderRadius.circular(14),
+                    ),
+                  ],
+                ),
+              ).pad(),
+          ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:lost_and_found/screens/home/available_matching_screen.dart';
 import 'package:lost_and_found/screens/bottom_screen.dart';
 import 'package:lost_and_found/screens/post/category_radios_lists_screen.dart';
 import 'package:lost_and_found/screens/chat/chat_screen.dart';
+import 'package:lost_and_found/screens/post/sub_category_screen.dart';
 import 'package:lost_and_found/screens/profile/delete_account_screeen.dart';
 import 'package:lost_and_found/screens/home/enquiry_list_screen.dart';
 import 'package:lost_and_found/screens/authentication/role_chosen_screen.dart';
@@ -42,6 +43,8 @@ class AppRoutes {
   static const chatScreen = '/chatScreen';
   static const secondStepperScreen = '/secondStepperScreen';
   static const mapScreen = '/mapScreen';
+  static const subCategoryScreen = '/subCategoryScreen';
+
 
 
 
@@ -184,6 +187,14 @@ class AppRoutes {
         name: mapScreen,
         builder: (context, state) {
           return MapScreen();
+        },
+      ),
+
+      GoRoute(
+        path: '/subCategoryScreen',
+        name: subCategoryScreen,
+        builder: (context, state) {
+          return SubCategoryScreen();
         },
       ),
 

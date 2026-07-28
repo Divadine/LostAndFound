@@ -26,9 +26,7 @@ class _BottomScreenState extends State<BottomScreen> {
   final pages = [
     HomeScreen(),
     MapScreen(),
-    //LoginScreen(),
     SizedBox(),
-    //ReportJustification(),
     ChatScreen(),
     SettingsScreen(),
   ];
@@ -43,7 +41,6 @@ class _BottomScreenState extends State<BottomScreen> {
 
   void _showPostBottomSheet() {
     AppUiHelper.showCustomBottomDialog(
-
       Row(
         children: [
           Expanded(

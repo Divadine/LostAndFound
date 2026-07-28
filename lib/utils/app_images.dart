@@ -25,6 +25,10 @@ class AssetImages {
   static const String livePost = "assets/images/livePost.png";
   static const String video = "assets/images/video.png";
   static const String calender = "assets/images/calender.png";
+  static const String noSubCategoryFound = "assets/images/noSubCategoryFound.png";
+  static const String mapAccess = "assets/images/mapAccess.png";
+
+
 
 
 
@@ -104,6 +108,14 @@ class AssetImages {
   static const String mapLocationIcon = "assets/images/mapLocationIcon.svg";
   static const String iosLeftArrow = "assets/images/iosLeftArrow.svg";
 
+  static const String map_pin = "assets/images/map_pin.svg";
+  static const String iosBackArrow = "assets/images/iosBackArrow.svg";
+  static const String currentLocation = "assets/images/currentLocation.svg";
+  static const String search = "assets/images/search.svg";
+  static const String close = "assets/images/close.svg";
+  static const String mapIcon = "assets/images/map.svg";
+  static const String add = "assets/images/add.svg";
+  static const String nearByMap = "assets/images/nearByMap.svg";
 
 
 

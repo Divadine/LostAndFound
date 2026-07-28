@@ -14,6 +14,10 @@ class AppButton extends StatelessWidget {
   final BorderRadiusGeometry? radius;
   final double? fontSize;
   final double? height;
+  final double? width;
+  final double? size;
+
+
   const AppButton({
     super.key,
     required this.title,
@@ -22,7 +26,7 @@ class AppButton extends StatelessWidget {
     this.prefixIcon,
     this.textColor,
     this.bgColor,
-    this.border, this.radius, this.fontSize, this.height,
+    this.border, this.radius, this.fontSize, this.height, this.width, this.size,
   });
 
   @override
@@ -31,7 +35,7 @@ class AppButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         height: height ?? 40,
-        width: double.infinity,
+        width: width ?? double.infinity,
         decoration: BoxDecoration(
           color: bgColor ?? AppColors.primaryColor,
           border: border,
@@ -51,7 +55,7 @@ class AppButton extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
 
-              if (icon != null) AppIconWidget(assetPath: icon!),
+              if (icon != null) AppIconWidget(assetPath: icon!,size: size,),
             ],
           ),
         ),

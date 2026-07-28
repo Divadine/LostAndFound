@@ -345,7 +345,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ],
-          ).pad(16),
+          ).pad(20),
         ),
       ),
     );

@@ -7,6 +7,7 @@ import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class ItemCard extends StatelessWidget {
   final String imgUrl;
@@ -117,22 +118,21 @@ class ItemCard extends StatelessWidget {
                       ),
                     ),
                     Spacer(),
+
                     Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.green.withAlpha(50),
+                        color: AppUtils.getMatchColor(percentageMatch!).withAlpha(70),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: AppText(
-                        text: '${percentageMatch!}% match',
+                        text: '$percentageMatch% match',
                         fontWeight: FontWeight.w500,
                         fontSize: 10,
-                        color: AppColors.green,
+                        color: AppUtils.getMatchColor(percentageMatch!),
                       ),
                     ),
+
                   ],
                 ).padHorizontal(15),
               ),
@@ -194,17 +194,37 @@ class ItemCard extends StatelessWidget {
 
                 if (profileUrl == null && !isFromEnquiry)
                   PopupMenuButton(
+                    color: AppColors.white,
                     icon: AppIconWidget(assetPath: AssetImages.more),
 
+                    offset: const Offset(0, 40),
                     itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: AppText(text: 'Delete', color: AppColors.red),
-                      ),
+                    PopupMenuItem(
+                          value: 'delete',
+                          //height: 25
+                          child: Container(
+
+                            width: 80,
+                            height: 50,
+                            child: Card(
+                              child: AppText(
+                                text: 'Delete',
+                                color: AppColors.red,
+                                fontSize: 14,
+                                textAlign: TextAlign.center,
+                              ),
+                            ).pad(),
+                          ),
+
+                        ),
+
                     ],
                     onSelected: (value) {
                       if (value == 'delete') {
-                        //DeletePopUp();
+                        AppDialogue.showPopup(
+                          context: context,
+                          content: const DeletePostReasonsDialog(),
+                        );
                       }
                     },
                   ),

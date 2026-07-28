@@ -112,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
 
                     AppButton(
-                      title: 'Login',
+                      title: 'Register',
                       onTap: () {
                         if (_formKey.currentState!.validate()) {
                           AppDialogue.showPopup(

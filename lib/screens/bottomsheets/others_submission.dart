@@ -8,6 +8,7 @@ import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'owner_proof_submission.dart';
 
@@ -112,6 +113,7 @@ class _OthersHandoverState extends State<OthersHandover> {
         AppButton(
           title: 'Submit',
           onTap: () {
+            AppRoutes.pop();
             AppDialogue.showPopup(
               context: context,
               content: ReceiveToOthers(),

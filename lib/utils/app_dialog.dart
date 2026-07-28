@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lost_and_found/screens/authentication/onboarding_screen.dart';
 import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
 import 'package:lost_and_found/screens/profile/webView.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
@@ -8,8 +7,8 @@ import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
-import 'package:lost_and_found/shared_widgets/sucess_card.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'app_images.dart';
 import 'app_routes.dart';
@@ -171,7 +170,7 @@ class ProfileReportPopUp extends StatelessWidget {
               child: AppButton(
                 title: ' Cancel',
                 onTap: () {
-                  //Navigator.pop(context);
+                  Navigator.pop(context);
                 },
                 fontSize: 14,
                 bgColor: Colors.transparent,
@@ -815,3 +814,349 @@ class PostLive extends StatelessWidget {
     );
   }
 }
+
+class DeletePostReasonsDialog extends StatefulWidget {
+  const DeletePostReasonsDialog({super.key});
+
+  @override
+  State<DeletePostReasonsDialog> createState() => _DeletePostReasonsDialogState();
+}
+
+class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
+
+  int presentIndex = 0;
+  String? selectedReason;
+  PageController pageController = PageController();
+
+  TextEditingController reasonController = TextEditingController();
+  List<String> items = [
+    'Item found',
+    'Post Created by Mistake',
+    'Duplicate Post',
+    'Privacy Concern',
+    'Item no longer available',
+    'Others',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        spacing: 5,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
+        mainAxisAlignment: .start,
+        children: [
+          AppText(
+            text: 'Delete Post',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+          SizedBox(height: 10),
+          AppText(
+            text:
+            'Why are you deleting this post ?',
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+          ),
+
+          ...items.map((item) {
+            return Padding(
+              padding: const EdgeInsets.all(
+                8.0,
+              ),
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    selectedReason = item;
+                  });
+                },
+                child: Row(
+                  spacing: 5,
+                  children: [
+                    SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: Radio<String>(
+                        hoverColor: AppColors
+                            .primaryColor,
+                        groupValue:
+                        selectedReason,
+                        activeColor: AppColors
+                            .primaryColor,
+                        onChanged: (value) {
+                          setState(() {
+                            selectedReason =
+                                value;
+                          });
+                        },
+                        value: item,
+                      ),
+                    ),
+                    Expanded(
+                      child: AppText(
+                        text: item,
+                        fontSize: 14,
+                        color: AppColors.black,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+
+          if (selectedReason == 'Others') ...[
+            AppText(
+              text: 'Please tell us the reason',
+              fontWeight: FontWeight.w400,
+              fontSize: 14,
+              textAlign: TextAlign.start,
+            ),
+
+            SizedBox(height: 10),
+            AppTextField(
+              hintText: 'Write a reason',
+              textController: reasonController,
+              onChange: (v) {},
+              onSubmit: (v) {},
+              maxLines: 4,
+            ),
+          ],
+
+          SizedBox(height: 8),
+          Row(
+            spacing: 10,
+            children: [
+              Expanded(
+                child: AppButton(
+                  title: 'cancel',
+                  onTap: () {
+                    AppRoutes.pop();
+                  },
+                  bgColor: Colors.transparent,
+                  border: Border.all(
+                    color:
+                    AppColors.primaryColor,
+                  ),
+                  textColor:
+                  AppColors.primaryColor,
+                  radius: BorderRadius.circular(
+                    7,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: AppButton(
+                  title: 'Next',
+                  onTap: () {
+                    AppRoutes.pop();
+
+                    AppDialogue.showPopup(
+                      context: context,
+                      content: DeletePostDialog()
+                    );
+                  },
+                  textColor: AppColors.white,
+                  bgColor:
+                  AppColors.primaryColor,
+                  radius: BorderRadius.circular(
+                    7,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+class DeletePostDialog extends StatefulWidget {
+  const DeletePostDialog({super.key});
+
+  @override
+  State<DeletePostDialog> createState() => _DeletePostDialogState();
+}
+
+class _DeletePostDialogState extends State<DeletePostDialog> {
+  @override
+  Widget build(BuildContext context) {
+    return   Column(
+      mainAxisSize:
+      MainAxisSize.min,
+      children: [
+        CircleAvatar(
+          backgroundColor:
+          AppColors.red
+              .withAlpha(
+            50,
+          ),
+          radius: 20,
+          child: AppIconWidget(
+            assetPath:
+            AssetImages
+                .delete,
+          ),
+        ),
+        SizedBox(height: 7),
+        AppText(
+          text: 'Delete Post',
+          fontWeight:
+          FontWeight.w600,
+          fontSize: 16,
+        ),
+        SizedBox(height: 7),
+        AppText(
+          text:
+          'Are you sure you want to delete this lost item post ?',
+          fontSize: 14,
+          fontWeight:
+          FontWeight.w400,
+          textAlign: .center,
+        ).padHorizontal(20),
+        SizedBox(height: 15),
+        Row(
+          spacing: 10,
+          children: [
+            Expanded(
+              child: AppButton(
+                title:
+                'Cancel',
+                onTap: () {
+                  //Navigator.pop(context);
+                },
+                fontSize: 14,
+                bgColor: Colors
+                    .transparent,
+                border: Border.all(
+                  color: AppColors
+                      .black,
+                ),
+                textColor:
+                AppColors
+                    .black,
+                radius:
+                BorderRadius.circular(
+                  7,
+                ),
+              ),
+            ),
+            Expanded(
+              child: AppButton(
+                title:
+                'Delete Post',
+                onTap: () {
+                  AppRoutes.pop();
+                },
+                fontSize: 14,
+                bgColor:
+                AppColors
+                    .red,
+                textColor:
+                AppColors
+                    .white,
+                radius:
+                BorderRadius.circular(
+                  7,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+
+class LocationAccess extends StatefulWidget {
+  const LocationAccess({super.key});
+
+  @override
+  State<LocationAccess> createState() => _LocationAccessState();
+}
+
+class _LocationAccessState extends State<LocationAccess> {
+  @override
+  Widget build(BuildContext context) {
+    return   Column(
+      spacing: 5,
+      mainAxisSize:
+      MainAxisSize.min,
+      children: [
+         AppIconWidget(
+            assetPath:
+            AssetImages
+                .mapAccess,
+          ),
+
+        SizedBox(height: 7),
+        AppText(
+          text: 'Set your location',
+          fontWeight:
+          FontWeight.w500,
+          fontSize: 20,
+        ),
+        SizedBox(height: 7),
+        AppText(
+          text:
+          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+          fontSize: 14,
+          fontWeight:
+          FontWeight.w400,
+          textAlign: .center,
+          color: AppColors.fieldGrey,
+        ).padHorizontal(10),
+        SizedBox(height: 15),
+        Row(
+          spacing: 10,
+          children: [
+            Expanded(
+              child: AppButton(
+                title:
+                'Deny',
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                fontSize: 14,
+                bgColor: Colors
+                    .transparent,
+                border: Border.all(
+                  color: AppColors
+                      .black,
+                ),
+                textColor:
+                AppColors
+                    .black,
+                radius:
+                BorderRadius.circular(
+                  7,
+                ),
+              ),
+            ),
+            Expanded(
+              child: AppButton(
+                title:
+                'Enable location',
+                onTap: () {
+                  AppRoutes.pop();
+                },
+                fontSize: 16,
+
+                radius:
+                BorderRadius.circular(
+                  7,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
