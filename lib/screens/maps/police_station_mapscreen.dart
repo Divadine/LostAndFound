@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lost_and_found/models/selected_location_model.dart';
+import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
 import 'package:lost_and_found/services/place_service.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
@@ -18,8 +19,6 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_urls.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import 'location_selection_screen.dart';
 
 class PoliceStationMapScreen extends StatefulWidget {
   const PoliceStationMapScreen({super.key});
@@ -40,7 +39,15 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   BitmapDescriptor? _pinIcon;
+
+  // Actual device GPS fix - only used to drive the "my location" blue dot.
   Position? _currentPosition;
+
+  // The point everything else (distance sort, card distance badge, camera
+  // fit) is measured from. This is the device position on first load, or
+  // the location the user picked on the search/map-selection screen.
+  LatLng? _referencePosition;
+
   List<NearbyPlace> _stations = [];
   NearbyPlace? _selectedStation;
 
@@ -86,16 +93,24 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
     }
     final position = await Geolocator.getCurrentPosition();
 
-    getPloceStation(position.latitude, position.longitude, position: position);
+    getPoliceStations(
+      position.latitude,
+      position.longitude,
+      position: position,
+    );
   }
 
-  Future<void> getPloceStation(
+  Future<void> getPoliceStations(
     double lat,
     double lng, {
     Position? position,
   }) async {
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+
     try {
-      // final position = await Geolocator.getCurrentPosition();
       final stations = await PlacesService.nearbySearch(
         lat: lat,
         lng: lng,
@@ -105,10 +120,20 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
       if (!mounted) return;
 
       setState(() {
-        _currentPosition = position;
         if (position != null) {
-          _stations = _sortedByDistance(stations, position);
+          _currentPosition = position;
         }
+        // Always update the reference point - this is what sorting,
+        // the card's distance badge, and the camera fit rely on, whether
+        // the lat/lng came from GPS or from a searched location.
+        _referencePosition = LatLng(lat, lng);
+
+        _stations = _sortedByDistance(stations, _referencePosition!);
+        // Reset selection so the bottom-sheet card falls back to the
+        // nearest station of the *new* list, instead of a stale station
+        // (or one that may not even be in this new list).
+        _selectedStation = null;
+
         _loading = false;
         if (_stations.isEmpty) {
           _errorMessage = null; // handled by empty-state text instead
@@ -126,10 +151,7 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
     }
   }
 
-  List<NearbyPlace> _sortedByDistance(
-    List<NearbyPlace> stations,
-    Position from,
-  ) {
+  List<NearbyPlace> _sortedByDistance(List<NearbyPlace> stations, LatLng from) {
     final withDistance = [...stations];
     withDistance.sort((a, b) {
       final da = Geolocator.distanceBetween(
@@ -150,20 +172,20 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
   }
 
   double? _distanceToStation(NearbyPlace station) {
-    if (_currentPosition == null) return null;
+    if (_referencePosition == null) return null;
     return Geolocator.distanceBetween(
-      _currentPosition!.latitude,
-      _currentPosition!.longitude,
+      _referencePosition!.latitude,
+      _referencePosition!.longitude,
       station.latitude,
       station.longitude,
     );
   }
 
   void _moveCameraToFitAll() {
-    if (_mapController == null || _currentPosition == null) return;
+    if (_mapController == null || _referencePosition == null) return;
 
     final points = <LatLng>[
-      LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+      _referencePosition!,
       ..._stations.map((s) => LatLng(s.latitude, s.longitude)),
     ];
 
@@ -211,14 +233,8 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
       body: Stack(
         children: [
           GoogleMap(
-            initialCameraPosition: _currentPosition != null
-                ? CameraPosition(
-                    target: LatLng(
-                      _currentPosition!.latitude,
-                      _currentPosition!.longitude,
-                    ),
-                    zoom: 13,
-                  )
+            initialCameraPosition: _referencePosition != null
+                ? CameraPosition(target: _referencePosition!, zoom: 13)
                 : _fallbackCamera,
             onMapCreated: (c) {
               _mapController = c;
@@ -241,11 +257,20 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
             const Positioned.fill(
               child: ColoredBox(
                 color: Colors.black12,
-                child: Center(child: CircularProgressIndicator(color: AppColors.primaryColor,)),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryColor,
+                  ),
+                ),
               ),
             ),
-
-          Positioned(left: 0, right: 0, bottom: 0, child: _buildBottomSheet()),
+          if (!_loading)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildBottomSheet(),
+            ),
         ],
       ),
     );
@@ -275,12 +300,20 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
         readOnly: true,
         onChange: (v) {},
         onTap: () async {
-          final result = await context.pushNamed(AppRoutes.mapScreen);
+          final result = await context.pushNamed(
+            AppRoutes.mapScreen,
+            extra: MapScreenModel(needSingleLocation: true),
+          );
 
-          if (result is List<SelectedLocationModel>) {
-            debugPrint(result.first.address);
-            debugPrint(result.length.toString());
-            getPloceStation(result.first.latitude, result.first.longitude);
+          if (result is List<SelectedLocationModel> && result.isNotEmpty) {
+            final selected = result.first;
+            _searchController.text = selected.address;
+            // No device Position for a searched point - just pass the
+            // lat/lng. getPoliceStations() will update the reference
+            // point, re-sort stations, refit the camera, and refresh
+            // the card automatically.
+            getPoliceStations(selected.latitude, selected.longitude);
+            _searchController.text = result.first.address;
           }
         },
         hintText: 'Search location',
@@ -303,14 +336,15 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.3,
+        minHeight: MediaQuery.of(context).size.height * 0.2,
+        maxHeight: MediaQuery.of(context).size.height * 0.27,
       ),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12,
+            color: AppColors.grey,
             blurRadius: 12,
             offset: Offset(0, -2),
           ),
@@ -330,17 +364,9 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
                 fontSize: 13,
                 color: AppColors.grey,
               )
-            else
+            else if (_stations.isNotEmpty)
               Flexible(
-                child:
-                // ListView.separated(
-                //   shrinkWrap: true,
-                //   itemCount: _stations.length,
-                //   separatorBuilder: (_, __) => const SizedBox(height: 8),
-                //   itemBuilder: (context, index) =>
-                //       _buildStationCard(_stations[index]),
-                // ),
-                _buildStationCard(_selectedStation ?? _stations.first),
+                child: _buildStationCard(_selectedStation ?? _stations.first),
               ),
           ],
         ),
@@ -349,20 +375,18 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
   }
 
   Widget _buildStationCard(NearbyPlace station) {
-    final isSelected = _selectedStation?.placeId == station.placeId;
     final distance = _distanceToStation(station);
 
     return GestureDetector(
       onTap: () => _selectStation(station),
-      child: AppContainer(
-        widget: Column(
-          spacing: 10,
+      child: Container(
+        child: Column(
+          spacing: 20,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AppCachedNetworkImage(imageUrl: station.icon),
-                // AppIconWidget(assetPath: AssetImages.mapIcon, size: 18).pad(4),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -371,7 +395,7 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: .start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Flexible(
                             child: AppText(
@@ -386,9 +410,7 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
                               width: 60,
                               height: 30,
                               bgColor: AppColors.idCardColor,
-                              border: Border.all(
-                                color: AppColors.primaryColor,
-                              ),
+                              border: Border.all(color: AppColors.primaryColor),
                               title: distance >= 1000
                                   ? '${(distance / 1000).toStringAsFixed(1)} km '
                                   : '${distance.toStringAsFixed(0)} m ',
@@ -409,18 +431,12 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
                     ],
                   ),
                 ),
-                // if (isSelected)
-                //   const Icon(
-                //     Icons.check_circle,
-                //     color: AppColors.primaryColor,
-                //     size: 20,
-                //   ),
               ],
             ),
             Flexible(
               child: Row(
                 children: [
-                  Expanded(
+                  Flexible(
                     child: AppButton(
                       title: 'Call',
                       onTap: () {},
@@ -433,7 +449,7 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
                     ),
                   ),
                   SizedBox(width: 10),
-                  Expanded(
+                  Flexible(
                     child: AppButton(
                       title: 'Direction',
                       onTap: () async {
@@ -463,8 +479,8 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
               ),
             ),
           ],
-        ).pad(12),
-      ).pad(),
+        ).pad(),
+      ),
     );
   }
 }

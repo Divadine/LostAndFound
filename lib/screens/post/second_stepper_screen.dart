@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:lost_and_found/models/selected_location_model.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
+import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -35,6 +38,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   Duration videoDuration = Duration.zero;
 
   XFile? selectedVideo;
+  List<SelectedLocationModel> loc = [];
 
   TextEditingController textController = TextEditingController();
   TextEditingController mapController = TextEditingController();
@@ -141,13 +145,9 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
               onSurface: Colors.black,
               surface: Colors.white,
             ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: Colors.white,
-            ),
+            dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
             textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.black,
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.black),
             ),
           ),
           child: child!,
@@ -192,15 +192,101 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
               buildTextFieldWithHeading(
                 title: 'Location',
-                fieldWidget: AppTextField(
-                  hintText: 'Chennai, Tamil Nadu, India',
-                  textController: mapController,
-                  onChange: (v) {},
-                  onSubmit: (v) {},
-                  suffixIcon: AppIconWidget(
-                    assetPath: AssetImages.locationMarker,
-                  ).pad(),
-                ),
+                fieldWidget: loc.isEmpty
+                    ? AppTextField(
+                        readOnly: true,
+
+                        onTap: () async {
+                          final location = await context.pushNamed(
+                            AppRoutes.mapScreen,
+                            extra: MapScreenModel(
+                              needSingleLocation: false,
+                              selectedLocation: loc,
+                            ),
+                          );
+                          loc = location as List<SelectedLocationModel>;
+                          print(
+                            "lllllllllllllllllllllllllllllllll${loc.map((e) => e.address)}",
+                          );
+                        },
+                        hintText: 'Chennai, Tamil Nadu, India',
+                        textController: mapController,
+                        onChange: (v) {},
+                        onSubmit: (v) {},
+                        suffixIcon: AppIconWidget(
+                          assetPath: AssetImages.locationMarker,
+                        ).pad(),
+                      )
+                    : Column(
+                        children: [
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: loc.length,
+                            itemBuilder: (context, index) {
+                              final locate = loc[index];
+                              return AppContainer(
+                                widget: Row(
+                                  spacing: 7,
+                                  children: [
+                                    buildIconContainer(
+                                      context,
+                                      icon: AssetImages.mapIcon,
+                                      size: 15,
+                                      height: 30,
+                                      width: 30,
+                                    ),
+                                    Flexible(
+                                      child: AppText(
+                                        text: locate.address,
+                                        maxLine: 2,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: AppColors.black,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        loc.remove(locate);
+                                        setState(() {});
+                                      },
+                                      child: AppIconWidget(
+                                        assetPath: AssetImages.delete,
+
+                                        color: AppColors.black,
+                                      ).pad(),
+                                    ),
+                                  ],
+                                ).pad(),
+                              ).padBottom();
+                            },
+                          ),
+
+                          if (loc.length < 3)
+                            AppButton(
+                              prefixIcon: AssetImages.add,
+                              bgColor: Colors.transparent,
+                              border: Border.all(color: AppColors.primaryColor),
+                              title: 'Add Another Location (UP TO 3)',
+                              textColor: AppColors.primaryColor,
+                              radius: BorderRadius.circular(10),
+                              fontSize: 12,
+                              onTap: () async {
+                                final location = await context.pushNamed(
+                                  AppRoutes.mapScreen,
+                                  extra: MapScreenModel(
+                                    needSingleLocation: false,
+                                    selectedLocation: loc,
+                                  ),
+                                );
+                                loc = location as List<SelectedLocationModel>;
+                                print(
+                                  "lllllllllllllllllllllllllllllllll${loc.map((e) => e.address)}",
+                                );
+                              },
+                            ),
+                        ],
+                      ),
               ),
 
               buildTextFieldWithHeading(
@@ -208,6 +294,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                 fieldWidget: AppTextField(
                   //readOnly: true,
                   hintText: 'Select Date',
+                  readOnly: true,
                   textController: dateController,
                   onChange: (v) {},
                   onSubmit: (v) {},

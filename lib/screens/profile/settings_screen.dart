@@ -205,7 +205,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () {
                         AppDialogue.showPopup(
                           context: context,
-                          content: DisclaimerPopUP(isFromOnBoard: false,),
+                          content: DisclaimerPopUP(isFromOnBoard: false),
                         );
                         // AppRoutes.pop();
                       },

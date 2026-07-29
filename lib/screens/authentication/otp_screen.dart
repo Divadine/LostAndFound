@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/screens/otp_screen_shared.dart';
 
@@ -25,6 +26,9 @@ class _OtpScreenState extends State<OtpScreen> {
           widget:  OtpSharedScreen(
             isAlternateNumber: false,
             mobileNumber: '',
+            onVerified: (){
+              AppRoutes.pushNamed(AppRoutes.bottomScreen);
+            },
 
           ).pad(),
         ).padHorizontal(18),

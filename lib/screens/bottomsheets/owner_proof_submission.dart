@@ -266,7 +266,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                       context: context,
                       content: OtpSharedScreen(
                         isAlternateNumber: true,
-                        mobileNumber: '8888888888',
+                        mobileNumber: '',
                         onVerified: () {
                           AppRoutes.pop();
                           AppRoutes.pop();
@@ -293,11 +293,22 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
   }
 }
 
-DottedBorder buildDottedBorder({
+Widget buildDottedBorder({
   required String title,
   required String image,
   File? selectedImage,
 }) {
+  if (selectedImage != null) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.file(
+        selectedImage,
+        width: double.infinity,
+        height: 100,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
   return DottedBorder(
     borderType: BorderType.RRect,
     radius: const Radius.circular(12),

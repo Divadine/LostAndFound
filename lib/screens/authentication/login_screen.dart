@@ -25,6 +25,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   TextEditingController phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +35,6 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
 
       body: Column(
-
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
 
@@ -66,42 +66,50 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         buildTextFieldWithHeading(
-                            title: 'Mobile Number',
-                            fieldWidget: AppTextField(
-                              prefixIcon: Container(
-                                width: 20,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 16,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.fieldGrey.withAlpha(90),
-                                  border: Border(
-                                    right: BorderSide(color: AppColors.fieldGrey),
+                          title: 'Mobile Number',
+                          fieldWidget: Column(
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                spacing: 10,
+                                children: [
+                                  //+91
+                                  Expanded(
+                                    flex: 2,
+                                    child: AppTextField(
+                                      readOnly: true,
+                                      hintText: '+91',
+                                      textController: TextEditingController(),
+                                      textInputType: TextInputType.phone,
+                                      maxLength: 10,
+                                      onChange: (v) {},
+                                      onSubmit: (v) {},
+                                    ),
                                   ),
-                                ),
-                                child: AppText(
-                                  text: '+91',
-                                  fontWeight: FontWeight.w400,
-                                  fontSize: 12,
-                                  color: AppColors.numberGrey,
-                                ),
+
+                                  Expanded(
+                                    flex: 8,
+                                    child: AppTextField(
+                                      hintText: 'Enter a mobile number',
+                                      textController: phoneController,
+                                      textInputType: TextInputType.phone,
+                                      maxLength: 10,
+                                      onChange: (v) {
+                                        setState(() {
+                                          errorText =
+                                              AppUtils.validateMobileNumber(v);
+                                        });
+                                      },
+                                      onSubmit: (v) {},
+                                    ),
+                                  ),
+                                ],
                               ),
-                              hintText: 'Enter a mobile number',
-                              textController: phoneController,
-                              textInputType: TextInputType.phone,
-                              maxLength: 10,
-                              validator: (e) {
-                                if (e == null) return null;
-
-                                return AppUtils.validateMobileNumber(e);
-                              },
-                              onChange: (v) {},
-                              onSubmit: (v) {},
-                            ),
+                              if (errorText != null)
+                                buildErrorText(errorText: errorText ?? ''),
+                            ],
+                          ),
                         ),
-
-
                       ],
                     ),
                   ),
@@ -109,7 +117,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   AppButton(
                     title: "Login",
                     onTap: () async {
-                      AppRoutes.pushNamed(AppRoutes.otpScreen);
+                      setState(() {
+                        errorText = AppUtils.validateMobileNumber(
+                          phoneController.text,
+                        );
+                      });
+                      if (errorText == null &&
+                          phoneController.text.isNotEmpty) {
+                        AppRoutes.pushNamed(AppRoutes.otpScreen);
+                      }
                       // final verified = await AppDialogue.showPopup(
                       //   context: context,
                       //   content: OtpDialog(
@@ -126,6 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       // }
                     },
                   ).padHorizontal(30),
+
                   // AppButton(
                   //   title: 'Login',
                   //   onTap: () {
@@ -142,18 +159,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   //   },
                   //   radius: BorderRadius.circular(8),
                   // ).padHorizontal(30),
-
                   SizedBox(height: 15),
 
                   AuthChangeText(
                     text1: "Don't have an account?",
                     tappableText: 'Register',
                     onTap: () {
-
                       AppRoutes.pushNamed(AppRoutes.registerScreen);
                     },
                   ),
-
                 ],
               ),
             ),

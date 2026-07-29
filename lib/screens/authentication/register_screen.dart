@@ -19,6 +19,8 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  String? errorText;
+  String? nameErrorText;
   final _formKey = GlobalKey<FormState>();
   TextEditingController phoneController = TextEditingController();
   TextEditingController textController = TextEditingController();
@@ -60,54 +62,73 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       color: AppColors.primaryColor,
                       textAlign: TextAlign.center,
                     ).padHorizontal(),
+
                     buildTextFieldWithHeading(
                       title: 'Name',
-                      fieldWidget: AppTextField(
-                        hintText: 'Enter Name',
-                        textController: textController,
+                      fieldWidget:
+                      Column(
+                        children: [
+                          AppTextField(
+                            hintText: 'Enter Name',
+                            textController: textController,
 
-                        validator: (e) {
-                          return AppUtils.validateName(e);
-                        },
-                        onChange: (v) {},
-                        onSubmit: (v) {},
+                            onChange: (v) {
+                              setState(() {
+                                nameErrorText = AppUtils.validateName(v);
+                              });
+                            },
+
+                            onSubmit: (v) {},
+                          ),
+                          if (nameErrorText != null)
+                            buildErrorText(errorText: nameErrorText ?? ''),
+                        ],
                       ),
+
                     ),
 
+                    // +91
                     buildTextFieldWithHeading(
                       title: 'Mobile Number',
-                      fieldWidget: AppTextField(
-                        prefixIcon: Container(
-                          width: 20,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 16,
+                      fieldWidget: Column(
+                        children: [
+                          Row(
+                            spacing: 10,
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: AppTextField(
+                                  hintText: '+91',
+                                  textController: TextEditingController(),
+                                  onChange: (v) {},
+                                  onSubmit: (v) {},
+                                ),
+                              ),
+
+                              Expanded(
+                                flex: 8,
+                                child: AppTextField(
+                                  maxLength: 10,
+                                  hintText: 'Enter a mobile number',
+                                  textController: phoneController,
+                                  onChange: (v) {
+
+                                    setState(() {
+                                      errorText =  AppUtils.validateMobileNumber(v);
+
+                                    });
+
+
+                                  },
+                                  onSubmit: (v) {},
+                                  textInputType: TextInputType.phone,
+                                ),
+                              ),
+                            ],
                           ),
-                          decoration: BoxDecoration(
-                            color: AppColors.fieldGrey.withAlpha(90),
-                            border: Border(
-                              right: BorderSide(color: AppColors.fieldGrey),
-                            ),
-                          ),
-                          child: AppText(
-                            text: '+91',
-                            fontWeight: FontWeight.w400,
-                            fontSize: 12,
-                            color: AppColors.numberGrey,
-                          ),
-                        ),
-                        hintText: 'Enter a mobile number',
-                        textController: phoneController,
-                        textInputType: TextInputType.phone,
-                        maxLength: 10,
-                        validator: AppUtils.validateMobileNumber,
-                        //     (e) {
-                        //   if (e == null) return null;
-                        //
-                        //   return AppUtils.validateMobileNumber(e);
-                        // },
-                        onChange: (v) {},
-                        onSubmit: (v) {},
+                          if (errorText != null)
+                            buildErrorText(errorText: errorText ?? ''),
+                        ],
                       ),
                     ),
 
@@ -146,7 +167,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
 Widget buildTextFieldWithHeading({
   required String title,
-  required AppTextField fieldWidget,
+  required Widget fieldWidget,
 }) {
   return Column(
     spacing: 10,

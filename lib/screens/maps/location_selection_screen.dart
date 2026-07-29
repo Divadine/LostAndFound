@@ -16,7 +16,9 @@ import 'package:lost_and_found/utils/app_permission.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 class LocationSelectionScreen extends StatefulWidget {
-  const LocationSelectionScreen({super.key});
+  final MapScreenModel mapScreenModel;
+
+  const LocationSelectionScreen({super.key, required this.mapScreenModel});
 
   @override
   State<LocationSelectionScreen> createState() =>
@@ -30,13 +32,12 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
     zoom: 11,
   );
 
-
   static const String _pinAssetPath = 'assets/images/map_pin.svg';
 
   final AppPermissions _appPermissions = AppPermissions();
   final TextEditingController _searchController = TextEditingController();
   final StreamController<List<PlaceSuggestion>> _suggestionsController =
-  StreamController<List<PlaceSuggestion>>.broadcast();
+      StreamController<List<PlaceSuggestion>>.broadcast();
 
   GoogleMapController? _mapController;
   Timer? _debounce;
@@ -50,11 +51,14 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
 
   SelectedLocationModel? _pendingLocation;
 
-  final List<SelectedLocationModel> _selectedLocations = [];
+  List<SelectedLocationModel> _selectedLocations = [];
 
   @override
   void initState() {
     super.initState();
+    if (widget.mapScreenModel.selectedLocation != null) {
+      _selectedLocations = widget.mapScreenModel.selectedLocation!;
+    }
     _loadPinIcon();
     _initLocation();
   }
@@ -164,10 +168,10 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
   }
 
   Future<void> _setPinFromLatLng(
-      LatLng latLng, {
-        required bool moveCamera,
-        String? knownAddress,
-      }) async {
+    LatLng latLng, {
+    required bool moveCamera,
+    String? knownAddress,
+  }) async {
     // Drop the pin and show a loading state immediately, so the tap feels
     // instant even while the address is still being fetched.
     setState(() {
@@ -185,9 +189,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
 
     final address =
         knownAddress ??
-            await PlacesService.reverseGeocode(latLng.latitude, latLng.longitude) ??
-            'Dropped pin (${latLng.latitude.toStringAsFixed(5)}, '
-                '${latLng.longitude.toStringAsFixed(5)})';
+        await PlacesService.reverseGeocode(latLng.latitude, latLng.longitude) ??
+        'Dropped pin (${latLng.latitude.toStringAsFixed(5)}, '
+            '${latLng.longitude.toStringAsFixed(5)})';
 
     if (!mounted) return;
 
@@ -221,8 +225,8 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
     if (_selectedLocations.length >= kMaxLocations) return;
 
     final exists = _selectedLocations.any(
-          (e) =>
-      e.latitude == _pendingLocation!.latitude &&
+      (e) =>
+          e.latitude == _pendingLocation!.latitude &&
           e.longitude == _pendingLocation!.longitude,
     );
 
@@ -250,6 +254,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
 
   void _confirm() {
     if (_selectedLocations.isEmpty) return;
+    print(_selectedLocations);
     Navigator.pop(context, _selectedLocations);
   }
 
@@ -314,62 +319,43 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
   }
 
   Widget _buildSearchBar() {
-      return Row(
-        children: [
-          buildIconContainer(
-            context,
-            icon: AssetImages.iosBackArrow,
-            onTap: () {
-              context.pop();
-            },
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: AppTextField(
-              textController: _searchController,
-              onChange: _onSearchChanged,
-              onTap: () => setState(() => _searchFocused = true),
-              hintText: 'Search location',
-              onSubmit: (v) {},
-              borderColor: Colors.transparent,
-              prefixIcon: AppIconWidget(assetPath: AssetImages.search).pad(12),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? GestureDetector(
-                onTap: () {
-                  _searchController.clear();
-                  _suggestionsController.add([]);
-                },
-                child: AppIconWidget(assetPath: AssetImages.close).pad(3),
-              )
-                  : null,
-            ),
-          ),
-          const SizedBox(width: 10),
-          buildIconContainer(
-            context,
-            icon: AssetImages.currentLocation,
-            onTap: _useCurrentLocation,
-          ),
-        ],
-      );
-  }
-
-  Widget _circleIconButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.white,
-      shape: const CircleBorder(),
-      elevation: 2,
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Icon(icon, size: 20, color: AppColors.primaryColor),
+    return Row(
+      children: [
+        buildIconContainer(
+          context,
+          icon: AssetImages.iosBackArrow,
+          onTap: () {
+            context.pop();
+          },
         ),
-      ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: AppTextField(
+            textController: _searchController,
+            onChange: _onSearchChanged,
+            onTap: () => setState(() => _searchFocused = true),
+            hintText: 'Search location',
+            onSubmit: (v) {},
+            borderColor: Colors.transparent,
+            prefixIcon: AppIconWidget(assetPath: AssetImages.search).pad(12),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? GestureDetector(
+                    onTap: () {
+                      _searchController.clear();
+                      _suggestionsController.add([]);
+                    },
+                    child: AppIconWidget(assetPath: AssetImages.close).pad(3),
+                  )
+                : null,
+          ),
+        ),
+        const SizedBox(width: 10),
+        buildIconContainer(
+          context,
+          icon: AssetImages.currentLocation,
+          onTap: _useCurrentLocation,
+        ),
+      ],
     );
   }
 
@@ -419,11 +405,11 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
   Widget _buildBottomSheet(bool canAddMore) {
     final hasPendingPreview =
         _pendingLocation != null &&
-            !_selectedLocations.any(
-                  (e) =>
+        !_selectedLocations.any(
+          (e) =>
               e.latitude == _pendingLocation!.latitude &&
-                  e.longitude == _pendingLocation!.longitude,
-            );
+              e.longitude == _pendingLocation!.longitude,
+        );
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -460,7 +446,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
 
             // Selected (confirmed) location cards
             ..._selectedLocations.map(
-                  (loc) =>
+              (loc) =>
                   _buildLocationCard(loc, isLoading: false, isPending: false),
             ),
 
@@ -474,13 +460,15 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
               ),
 
             // Add another location
-            if (canAddMore) ...[
+            if (canAddMore && !widget.mapScreenModel.needSingleLocation) ...[
               const SizedBox(height: 8),
               _buildAddAnotherButton(),
             ],
 
-            // Hint banner
-            if (_selectedLocations.isNotEmpty || _pendingLocation != null) ...[
+            if (_selectedLocations.isNotEmpty &&
+                    !widget.mapScreenModel.needSingleLocation ||
+                _pendingLocation != null &&
+                    !widget.mapScreenModel.needSingleLocation) ...[
               const SizedBox(height: 12),
               _buildHintBanner(),
             ],
@@ -500,10 +488,10 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
   }
 
   Widget _buildLocationCard(
-      SelectedLocationModel location, {
-        required bool isLoading,
-        bool isPending = false,
-      }) {
+    SelectedLocationModel location, {
+    required bool isLoading,
+    bool isPending = false,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -535,29 +523,30 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
           Expanded(
             child: isLoading
                 ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppText(
-                  text: 'Fetching address...',
-                  fontSize: 13,
-                  color: AppColors.grey,
-                ),
-              ],
-            )
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppText(
+                        text: 'Fetching address...',
+                        fontSize: 13,
+                        color: AppColors.grey,
+                      ),
+                    ],
+                  )
                 : AppText(
-              text: location.address,
-              fontSize: 13,
-              color: Colors.black87,
-            ),
+                    text: location.address,
+                    fontSize: 13,
+                    color: Colors.black87,
+                  ),
           ),
           if (!isLoading)
             GestureDetector(
               // A "pending" card isn't in `_selectedLocations` yet, so
               // removing it means clearing the preview, not calling
               // `_removeLocation` (which would silently do nothing).
-              onTap: () =>
-              isPending ? _clearPendingPreview() : _removeLocation(location),
+              onTap: () => isPending
+                  ? _clearPendingPreview()
+                  : _removeLocation(location),
               child: AppIconWidget(
                 assetPath: AssetImages.delete,
                 color: AppColors.black,
@@ -626,7 +615,7 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
           Expanded(
             child: AppText(
               text:
-              'You can add up to $kMaxLocations locations. We\'ll search '
+                  'You can add up to $kMaxLocations locations. We\'ll search '
                   'around all selected locations.',
               fontSize: 12,
               color: AppColors.grey,
@@ -639,17 +628,17 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
 }
 
 Widget buildIconContainer(
-    BuildContext context, {
-      VoidCallback? onTap,
-      String? icon,
-      double? padSize,
-      Color? borderColor,
-      Color? bgColor,
-      Color? iconColor,
-      double? height,
-      double? width,
-      double? size,
-    }) {
+  BuildContext context, {
+  VoidCallback? onTap,
+  String? icon,
+  double? padSize,
+  Color? borderColor,
+  Color? bgColor,
+  Color? iconColor,
+  double? height,
+  double? width,
+  double? size,
+}) {
   return GestureDetector(
     onTap: onTap,
     child: Container(
@@ -672,4 +661,11 @@ Widget buildIconContainer(
       ).pad(padSize ?? 2),
     ),
   );
+}
+
+class MapScreenModel {
+  final bool needSingleLocation;
+  final List<SelectedLocationModel>? selectedLocation;
+
+  MapScreenModel({required this.needSingleLocation, this.selectedLocation});
 }

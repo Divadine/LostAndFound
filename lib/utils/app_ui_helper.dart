@@ -46,7 +46,7 @@ class AppUiHelper {
               ),
 
               child: Container(
-                margin: const EdgeInsets.only(bottom: 60),
+                // margin: const EdgeInsets.only(bottom: 60),
 
                 //
                 width: double.infinity,

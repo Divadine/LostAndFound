@@ -118,6 +118,11 @@ class AssetImages {
   static const String nearByMap = "assets/images/nearByMap.svg";
 
 
+  static const String lostItemHome = "assets/images/lostItemHome.svg";
+
+
+
+
 
 
 

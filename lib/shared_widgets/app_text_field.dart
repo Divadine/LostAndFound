@@ -31,7 +31,7 @@ class AppTextField extends StatelessWidget {
   final double? textSize;
   final BoxConstraints? suffixIconConstraints;
   final bool? obscureText;
-
+  final InputBorder? border;
 
   const AppTextField({
     super.key,
@@ -58,111 +58,121 @@ class AppTextField extends StatelessWidget {
     this.textBackgroundColor,
     this.textSize,
     this.textInputAction,
-    this.suffixIconConstraints, this.obscureText, this.borderColor,
+    this.suffixIconConstraints,
+    this.obscureText,
+    this.borderColor,
+    this.border,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: borderRadius ?? BorderRadius.circular(6),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.fieldGrey.withAlpha(200),
-            blurRadius: 5,
-           offset: Offset(0,0),
-          ),
-        ],
-      ),
-      child: TextFormField(
+    return FormField<String>(
+      initialValue: textController.text,
+      validator: validator,
+      autovalidateMode: autoValidateMode ?? AutovalidateMode.onUserInteraction,
+      builder: (field) {
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Material(
+              elevation: 1,
+              shadowColor: AppColors.fieldGrey,
+              borderRadius: BorderRadius.circular(6),
+              child: TextField(
+                style: appTextStyle(color: textBackgroundColor),
+                controller: textController,
+                readOnly: readOnly ?? false,
+                maxLength: maxLength,
+                maxLines: maxLines ?? 1,
+                textCapitalization:
+                    textCapitalization ?? TextCapitalization.none,
+                inputFormatters: inputFormatters,
+                obscureText: obscureText ?? false,
+                keyboardType:
+                    textInputType ??
+                    (maxLines != null && maxLines! > 1
+                        ? TextInputType.multiline
+                        : TextInputType.text),
+                textInputAction: textInputAction,
+                onChanged: onChange,
+                onTap: onTap,
+                // onFieldSubmitted: onSubmit,
+                //
+                // errorBuilder: (context, errorText) {
+                //   if (errorText == null) return const SizedBox.shrink();
+                //
+                //   return Transform.translate(
+                //     offset: const Offset(-12, 0), // Adjust this value if needed
+                //     child: buildErrorText(errorText: errorText),
+                //   );
+                // },
+                decoration: InputDecoration(
+                  border: border ?? OutlineInputBorder(),
+                  counterText: '',
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 0,
+                  ),
+                  hintText: hintText,
+                  hintStyle: hintStyle ?? appTextStyle(color: Colors.grey),
 
-          style: appTextStyle(color: textBackgroundColor),
-          controller: textController,
-          readOnly: readOnly ?? false,
-          maxLength: maxLength,
-          maxLines: maxLines ?? 1,
-          textCapitalization: textCapitalization ?? TextCapitalization.none,
-          inputFormatters: inputFormatters,
-          autovalidateMode: autoValidateMode ?? AutovalidateMode.onUserInteraction,
-          obscureText: obscureText ?? false,
-          validator: validator,
-          keyboardType:
-          textInputType ??
-              (maxLines != null && maxLines! > 1
-                  ? TextInputType.multiline
-                  : TextInputType.text),
-          textInputAction: textInputAction,
-          onChanged: onChange,
-          onTap: onTap,
-          onFieldSubmitted: onSubmit,
-
-
-          errorBuilder: (context, errorText) {
-            if (errorText == null) return const SizedBox.shrink();
-
-            return Transform.translate(
-              offset: const Offset(-12, 0), // Adjust this value if needed
-              child: Padding(
-                padding: const EdgeInsets.only(top: 6, bottom: 6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      color: AppColors.red,
-                      size: 16,
+                  prefixIcon: prefixIcon,
+                  suffixIcon: suffixIcon,
+                  suffixIconConstraints: suffixIcon == null
+                      ? const BoxConstraints(minWidth: 0, minHeight: 0)
+                      : suffixIconConstraints ??
+                            const BoxConstraints(minWidth: 0, minHeight: 0),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: borderRadius ?? BorderRadius.circular(6),
+                    borderSide: BorderSide(
+                      color: borderColor ?? Colors.transparent,
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: AppText(
-                        text: errorText,
-                        color: AppColors.red,
-                        fontSize: 12,
-                      ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: borderRadius ?? BorderRadius.circular(6),
+                    borderSide: BorderSide(
+                      color: borderColor ?? Colors.transparent,
                     ),
-                  ],
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: borderRadius ?? BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: AppColors.red),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: borderRadius ?? BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: AppColors.red),
+                  ),
                 ),
               ),
-            );
-          },
-          decoration: InputDecoration(
-            counterText: '',
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 0,
-
             ),
-            hintText: hintText,
-            hintStyle: hintStyle ?? appTextStyle(color: Colors.grey),
-
-            prefixIcon: prefixIcon,
-            suffixIcon: suffixIcon,
-            suffixIconConstraints: suffixIcon == null
-                ? const BoxConstraints(minWidth: 0, minHeight: 0)
-                : suffixIconConstraints ??
-                const BoxConstraints(minWidth: 0, minHeight: 0),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: borderRadius ?? BorderRadius.circular(6),
-              borderSide:  BorderSide(color: borderColor ?? Colors.transparent),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: borderRadius ?? BorderRadius.circular(6),
-              borderSide:  BorderSide(color: borderColor ?? Colors.transparent),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: borderRadius ?? BorderRadius.circular(6),
-              borderSide: const BorderSide(color: AppColors.red),
-
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: borderRadius ?? BorderRadius.circular(6),
-              borderSide: const BorderSide(color: AppColors.red),
-            ),
-          ),
-
-      ),
+            if (field.hasError) ...[
+              buildErrorText(errorText: field.errorText!),
+            ],
+          ],
+        );
+      },
     );
   }
+}
+
+Widget buildErrorText({required String errorText}) {
+  return Padding(
+    padding: const EdgeInsets.only(top: 6, bottom: 6),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.info_outline, color: AppColors.red, size: 16),
+        const SizedBox(width: 4),
+        Expanded(
+          child: AppText(
+            text: errorText ?? '',
+            color: AppColors.red,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    ),
+  );
 }

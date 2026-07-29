@@ -22,13 +22,11 @@ class AppContainer extends StatelessWidget {
         border: Border.all(color: color ?? Colors.transparent),
         borderRadius: BorderRadius.circular(14),
         color: bgColor ?? AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.grey.withAlpha(200),
-            blurRadius: 1,
-            offset: Offset(1,1),
-          ),
-        ],
+        boxShadow: [BoxShadow(
+          color: AppColors.fieldGrey,
+          blurRadius: 1,
+          offset: Offset(0, 0)
+        )]
       ),
       child: widget,
     );

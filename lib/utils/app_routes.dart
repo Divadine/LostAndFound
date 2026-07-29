@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:lost_and_found/screens/home/available_matching_screen.dart';
 import 'package:lost_and_found/screens/bottom_screen.dart';
+import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
 import 'package:lost_and_found/screens/post/category_radios_lists_screen.dart';
 import 'package:lost_and_found/screens/chat/chat_screen.dart';
 import 'package:lost_and_found/screens/post/sub_category_screen.dart';
@@ -44,9 +45,6 @@ class AppRoutes {
   static const secondStepperScreen = '/secondStepperScreen';
   static const mapScreen = '/mapScreen';
   static const subCategoryScreen = '/subCategoryScreen';
-
-
-
 
   static final GoRouter router = GoRouter(
     navigatorKey: AppUtils.navigatorKey,
@@ -186,7 +184,8 @@ class AppRoutes {
         path: '/mapScreen',
         name: mapScreen,
         builder: (context, state) {
-          return MapScreen();
+          final mapScreenModel = state.extra as MapScreenModel;
+          return LocationSelectionScreen(mapScreenModel: mapScreenModel);
         },
       ),
 
@@ -197,10 +196,6 @@ class AppRoutes {
           return SubCategoryScreen();
         },
       ),
-
-
-
-
     ],
   );
 

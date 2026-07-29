@@ -6,7 +6,6 @@ import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
-import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 class OtpSharedScreen extends StatefulWidget {
@@ -288,7 +287,10 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
             widget.onVerified?.call();
 
             //want to change based on altrnatenumber,handover
-            AppRoutes.pushNamed(AppRoutes.bottomScreen);
+            // setState(() {
+            //
+            // });
+            // AppRoutes.pushNamed(AppRoutes.bottomScreen);
 
           },
           radius: BorderRadius.circular(8),

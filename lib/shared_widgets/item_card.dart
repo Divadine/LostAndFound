@@ -54,7 +54,7 @@ class ItemCard extends StatelessWidget {
     this.isFromHomePage,
     required this.showPostId,
     this.isTopAvailabilityCard = false,
-     this.imageWidth,
+    this.imageWidth,
   });
 
   @override
@@ -120,9 +120,14 @@ class ItemCard extends StatelessWidget {
                     Spacer(),
 
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: AppUtils.getMatchColor(percentageMatch!).withAlpha(70),
+                        color: AppUtils.getMatchColor(
+                          percentageMatch!,
+                        ).withAlpha(70),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: AppText(
@@ -132,7 +137,6 @@ class ItemCard extends StatelessWidget {
                         color: AppUtils.getMatchColor(percentageMatch!),
                       ),
                     ),
-
                   ],
                 ).padHorizontal(15),
               ),
@@ -199,25 +203,30 @@ class ItemCard extends StatelessWidget {
 
                     offset: const Offset(0, 40),
                     itemBuilder: (context) => [
-                    PopupMenuItem(
-                          value: 'delete',
-                          //height: 25
-                          child: Container(
-
-                            width: 80,
-                            height: 50,
-                            child: Card(
-                              child: AppText(
-                                text: 'Delete',
-                                color: AppColors.red,
-                                fontSize: 14,
-                                textAlign: TextAlign.center,
-                              ),
-                            ).pad(),
+                      PopupMenuItem(
+                        height: 0,
+                        value: 'delete',
+                        //height: 25
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.fieldGrey.withAlpha(50)),
+                            // boxShadow: [
+                            //   BoxShadow(
+                            //     color: AppColors.fieldGrey,
+                            //     offset: Offset(0,0)
+                            //   )
+                            // ]
+                            borderRadius: BorderRadius.circular(10),
                           ),
-
+                          child: AppText(
+                            text: 'Delete',
+                            color: AppColors.red,
+                            fontSize: 14,
+                            textAlign: TextAlign.center,
+                          ).pad(),
                         ),
-
+                      ),
                     ],
                     onSelected: (value) {
                       if (value == 'delete') {

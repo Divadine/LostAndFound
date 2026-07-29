@@ -13,6 +13,7 @@ class PlaceSuggestion {
         description: json['description'] as String,
       );
 }
+
 class NearbyPlace {
   final String placeId;
   final String name;
@@ -26,7 +27,8 @@ class NearbyPlace {
     required this.name,
     required this.vicinity,
     required this.latitude,
-    required this.longitude, required this.icon,
+    required this.longitude,
+    required this.icon,
   });
 
   factory NearbyPlace.fromJson(Map<String, dynamic> json) {
@@ -37,11 +39,11 @@ class NearbyPlace {
       name: json['name'] as String? ?? 'Unknown',
       vicinity: (json['vicinity'] ?? json['formatted_address'] ?? '') as String,
       latitude: (location?['lat'] as num?)?.toDouble() ?? 0,
-      longitude: (location?['lng'] as num?)?.toDouble() ?? 0, icon: json['icon'] as String? ?? '',
+      longitude: (location?['lng'] as num?)?.toDouble() ?? 0,
+      icon: json['icon'] as String? ?? '',
     );
   }
 }
-
 
 class PlaceDetails {
   final double lat;
@@ -59,10 +61,10 @@ class PlacesService {
   static const String _apiKey = 'AIzaSyC5S9f4bqHOjf0DP3yeL1C32t0S609fUQM';
 
   static Future<List<PlaceSuggestion>> autocomplete(
-      String input, {
-        double? biasLat,
-        double? biasLng,
-      }) async {
+    String input, {
+    double? biasLat,
+    double? biasLng,
+  }) async {
     if (input.trim().isEmpty) return [];
 
     final params = <String, String>{
@@ -122,14 +124,10 @@ class PlacesService {
   /// Reverse geocode a lat/lng — used when the user taps/drags the pin
   /// directly on the map instead of picking from search suggestions.
   static Future<String?> reverseGeocode(double lat, double lng) async {
-    final uri = Uri.https(
-      'maps.googleapis.com',
-      '/maps/api/geocode/json',
-      {
-        'latlng': '$lat,$lng',
-        'key': _apiKey,
-      },
-    );
+    final uri = Uri.https('maps.googleapis.com', '/maps/api/geocode/json', {
+      'latlng': '$lat,$lng',
+      'key': _apiKey,
+    });
 
     try {
       final res = await http.get(uri);
@@ -159,7 +157,7 @@ class PlacesService {
         'key': _apiKey,
       },
     );
-print("URL: $uri");
+    print("URL: $uri");
     try {
       final res = await http.get(uri);
       if (res.statusCode != 200) return [];

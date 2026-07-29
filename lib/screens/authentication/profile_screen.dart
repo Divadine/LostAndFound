@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/screens/authentication/otp_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
+import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
@@ -40,6 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int seconds = 30;
   int? enableRestart;
   String? errorText;
+  bool isFormValid = false;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -62,6 +64,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<bool> isFocused = List.generate(4, (_) => false);
   final ImagePicker picker = ImagePicker();
 
+  void checkFormValidation() {
+    setState(() {
+      isFormValid =
+          selectedImage != null &&
+          AppUtils.validateName(nameController.text) == null &&
+          AppUtils.validateMobileNumber(mobileController.text) == null &&
+          AppUtils.validatePincode(pinController.text) == null &&
+          AppUtils.required(countryController.text) == null &&
+          AppUtils.required(stateController.text) == null &&
+          AppUtils.required(cityController.text) == null &&
+          AppUtils.required(addressController.text) == null &&
+          AppUtils.required(landmarkController.text) == null;
+    });
+  }
+
   void _onPinCodeChanged(String value) {
     setState(() {
       isPinCodeValid = AppUtils.validatePincode(value) == null;
@@ -76,12 +93,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         selectedImage = File(pic.path);
       });
     }
+
+    checkFormValidation();
   }
 
   void deleteProfilePicture() {
     setState(() {
       selectedImage = null;
     });
+
+    checkFormValidation();
   }
 
   void _onChanged(int index, String value) {
@@ -295,142 +316,149 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fieldWidget: AppTextField(
                     hintText: 'enter name',
                     textController: nameController,
-                    onChange: (v) {},
+                    onChange: (v) {
+                      checkFormValidation();
+                    },
                     onSubmit: (v) {},
                     validator: (e) {
                       return AppUtils.validateName(e);
                     },
                   ),
                 ),
-                //number
+
+                // Mobile Number
                 buildTextFieldWithHeading(
                   title: 'Mobile Number',
-                  fieldWidget: AppTextField(
-                  suffixIcon: isVerified ?  AppIconWidget(
-                    assetPath: AssetImages.phoneVerified,
-                  ) : null,
-                    prefixIcon: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        //color: AppColors.fieldGrey.withAlpha(90),
-                        border: Border(
-                          right: BorderSide(color: AppColors.fieldGrey),
+                  fieldWidget: Row(
+                    spacing: 10,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: AppTextField(
+                          hintText: '+91',
+                          textController: TextEditingController(),
+                          onChange: (v) {},
+                          onSubmit: (v) {},
                         ),
                       ),
-                      child: AppText(
-                        text: '+91',
-                        fontWeight: FontWeight.w400,
-                        fontSize: 12,
-                        color: AppColors.numberGrey,
-                      ),
-                    ),
-                    hintText: 'Enter a mobile number',
-                    textController: mobileController,
-                    textInputType: TextInputType.phone,
-                    maxLength: 10,
-                    validator: (e) {
-                      if (e == null) return null;
 
-                      return AppUtils.validateMobileNumber(e);
-                    },
-                    onChange: (v) {},
-                    onSubmit: (v) {},
+                      Expanded(
+                        flex: 8,
+                        child: AppTextField(
+                          maxLength: 10,
+                          readOnly: true,
+                          hintText: 'Enter a mobile number',
+                          textController: mobileController,
+                          onChange: (v) {},
+                          onSubmit: (v) {},
+                          textInputType: TextInputType.phone,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
-                // alternative number
+                // Alternate Mobile Number
                 buildTextFieldWithHeading(
-                  title: ' Alternate Mobile Number (Optional)',
-                  fieldWidget: AppTextField(
-                    prefixIcon: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        //color: AppColors.fieldGrey.withAlpha(90),
-                        border: Border(
-                          right: BorderSide(color: AppColors.fieldGrey),
-                        ),
-                      ),
-                      child: AppText(
-                        text: '+91',
-                        fontWeight: FontWeight.w400,
-                        fontSize: 12,
-                        color: AppColors.numberGrey,
-                      ),
-                    ),
-
-                    suffixIcon: GestureDetector(
-                      onTap: () {
-                        if (isVerified) return;
-                        AppDialogue.showPopup(
-                          context: context,
-                          content: OtpSharedScreen(
-                            isAlternateNumber: true,
-                            mobileNumber: alternativeController.text,
-                            onVerified: () {
-                              setState(() {
-                                isVerified = true;
-                              });
-                              AppRoutes.pop();
-                            },
-                          ),
-                        );
-                      },
-                      child: SizedBox(
-                        width: 100,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isVerified
-                                ? AppColors.lightGreen
-                                : AppColors.idCardColor,
-                            borderRadius: BorderRadius.only(
-                              topRight: Radius.circular(5),
-                              bottomRight: Radius.circular(5),
+                  title: ' Alternate Mobile Number',
+                  fieldWidget: Column(
+                    children: [
+                      Row(
+                        spacing: 10,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: AppTextField(
+                              hintText: '+91',
+                              textController: TextEditingController(),
+                              onChange: (v) {},
+                              onSubmit: (v) {},
                             ),
                           ),
-                          child: Row(
-                            spacing: 5,
-                            crossAxisAlignment: .center,
-                            mainAxisAlignment: .center,
-                            children: [
-                              if (isVerified)
-                                Icon(Icons.check, color: AppColors.green),
-                              AppText(
-                                text: isVerified ? "Verified" : "Verify",
-                                fontSize: 12,
-                                fontWeight: FontWeight.w400,
-                                color: isVerified
-                                    ? AppColors.green
-                                    : AppColors.primaryColor,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    hintText: 'Enter a mobile number',
-                    textController: alternativeController,
-                    textInputType: TextInputType.phone,
-                    readOnly: isVerified,
-                    maxLength: 10,
-                    validator: (e) {
-                      if (e == null) return null;
 
-                      return AppUtils.validateMobileNumber(e);
-                    },
-                    onChange: (v) {},
-                    onSubmit: (v) {},
+                          Expanded(
+                            flex: 8,
+                            child: AppTextField(
+                              maxLength: 10,
+                              hintText: 'Enter a mobile number',
+                              textController: alternativeController,
+                              onChange: (v) {
+                                setState(() {
+                                  errorText = AppUtils.validateMobileNumber(v);
+                                });
+                              },
+                              onSubmit: (v) {},
+                              textInputType: TextInputType.phone,
+                              suffixIcon: GestureDetector(
+                                onTap: () {
+                                  if (isVerified) return;
+                                  if (AppUtils.validateMobileNumber(
+                                        alternativeController.text,
+                                      ) !=
+                                      null) {
+                                    AppDialogue.showPopup(
+                                      context: context,
+                                      content: OtpSharedScreen(
+                                        isAlternateNumber: true,
+                                        mobileNumber:
+                                            alternativeController.text,
+                                        onVerified: () {
+                                          setState(() {
+                                            isVerified = true;
+                                          });
+                                          AppRoutes.pop();
+                                        },
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: SizedBox(
+                                  width: 100,
+                                  child: Container(
+                                    color: isVerified
+                                        ? AppColors.lightGreen
+                                        : AppColors.idCardColor,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 16,
+                                    ),
+                                    child: Center(
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (isVerified)
+                                            Icon(
+                                              Icons.check,
+                                              color: AppColors.green,
+                                              size: 16,
+                                            ),
+                                          if (isVerified)
+                                            const SizedBox(width: 4),
+                                          AppText(
+                                            text: isVerified
+                                                ? "Verified"
+                                                : "Verify",
+                                            fontSize: 12,
+                                            color: isVerified
+                                                ? AppColors.green
+                                                : AppColors.grey,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (errorText != null)
+                        buildErrorText(errorText: errorText ?? ''),
+                    ],
                   ),
                 ),
+
                 buildTextFieldWithHeading(
                   title: ' PinCode',
                   fieldWidget: AppTextField(
@@ -443,7 +471,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: SizedBox(
                         width: 100,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                             vertical: 16,
                             horizontal: 18,
                           ),
@@ -476,12 +504,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       return AppUtils.validatePincode(e);
                     },
-                    onChange: _onPinCodeChanged,
+                    onChange: (v) {
+                      _onPinCodeChanged(v);
+                      checkFormValidation();
+                    },
 
                     onSubmit: (v) {},
                   ),
                 ),
-                //pincode
+
                 Opacity(
                   opacity: 1,
                   child: Column(
@@ -492,7 +523,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fieldWidget: AppTextField(
                           hintText: 'Enter country',
                           textController: countryController,
-                          onChange: (v) {},
+                          onChange: (v) {
+                            checkFormValidation();
+                          },
                           onSubmit: (v) {},
                           validator: (v) {
                             return AppUtils.required(v);
@@ -506,7 +539,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fieldWidget: AppTextField(
                           hintText: 'Enter state',
                           textController: stateController,
-                          onChange: (v) {},
+                          onChange: (v) {
+                            checkFormValidation();
+                          },
                           onSubmit: (v) {},
                           validator: (v) {
                             return AppUtils.required(v);
@@ -520,7 +555,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fieldWidget: AppTextField(
                           hintText: 'Enter city',
                           textController: cityController,
-                          onChange: (v) {},
+                          onChange: (v) {
+                            checkFormValidation();
+                          },
                           onSubmit: (v) {},
                           validator: (v) {
                             return AppUtils.required(v);
@@ -547,45 +584,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontWeight: FontWeight.w500,
                     ).pad(1),
 
-                    Container(
-                      height: 100,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.fieldGrey),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Stack(
-                        children: [
-                          // Image background
-                          Positioned.fill(
-                            child: AppIconWidget(
-                              assetPath: AssetImages.map,
-                              // 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-dXyMpH81pBa6x9qvetSA8LqNx4mnigmw0eRp8KFWqBP9nrfmDOdkX2y3&s=10',
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                    GestureDetector(
+                      onTap: (){
+                        print('---------------------------------------------------------------');
+                        AppRoutes.pushNamed(AppRoutes.mapScreen,arguments: MapScreenModel(needSingleLocation: true));
+                      },
 
-                          // Bottom button
-                          Center(
-                            child: AppTextField(
-                              hintText: '',
-                              textController: TextEditingController(
-                                text: "Pin Location on Map",
+                      child: Container(
+                        height: 100,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: AppColors.red,
+                          border: Border.all(color: AppColors.fieldGrey),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Stack(
+                          children: [
+                            // Image background
+                            Positioned.fill(
+                              child: AppIconWidget(
+                                assetPath: AssetImages.map,
+                                // 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-dXyMpH81pBa6x9qvetSA8LqNx4mnigmw0eRp8KFWqBP9nrfmDOdkX2y3&s=10',
+                                fit: BoxFit.cover,
                               ),
-                              textBackgroundColor: AppColors.primaryColor,
-                              onChange: (e) {},
-                              suffixIcon: AppIconWidget(
-                                assetPath: AssetImages.iosForward,
-                              ).pad(12),
-                              readOnly: true,
-                              onSubmit: (e) {},
-                              prefixIcon: AppIconWidget(
-                                assetPath: AssetImages.map_marker,
-                                size: 20,
-                              ).pad(12),
-                            ).padHorizontal(15),
-                          ),
-                        ],
+                            ),
+
+                            // Bottom button
+                            Center(
+                              child: AppTextField(
+                                onTap: (){
+                                  print('---------------------------------------------------------------');
+                                  AppRoutes.pushNamed(AppRoutes.mapScreen,arguments: MapScreenModel(needSingleLocation: true));
+                                },
+                                hintText: '',
+                                textController: TextEditingController(
+                                  text: "Pin Location on Map",
+                                ),
+                                textBackgroundColor: AppColors.primaryColor,
+                                onChange: (e) {
+                                  checkFormValidation();
+                                },
+                                suffixIcon: AppIconWidget(
+                                  assetPath: AssetImages.iosForward,
+                                ).pad(12),
+                                readOnly: true,
+                                onSubmit: (e) {},
+                                prefixIcon: AppIconWidget(
+                                  assetPath: AssetImages.map_marker,
+                                  size: 20,
+                                ).pad(12),
+                              ).padHorizontal(15),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -598,7 +649,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fieldWidget: AppTextField(
                     hintText: 'Enter Full Address',
                     textController: addressController,
-                    onChange: (v) {},
+                    onChange: (v) {
+                      checkFormValidation();
+                    },
                     onSubmit: (v) {},
                     validator: (v) {
                       return AppUtils.required(v);
@@ -612,7 +665,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fieldWidget: AppTextField(
                     hintText: 'Enter landmark',
                     textController: landmarkController,
-                    onChange: (v) {},
+                    onChange: (v) {
+                      checkFormValidation();
+                    },
                     onSubmit: (v) {},
                     validator: (v) {
                       return AppUtils.required(v);
@@ -656,12 +711,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               } else {
                 print('**************************************************');
               }
-
-              // bgColor: isFormFilled != null   ? AppColors.idCardColor : AppColors.primaryColor,
-              //
-              //
-              // textColor: isFormFilled != null   ? AppColors.black : AppColors.white,
             },
+
+            bgColor: isFormValid
+                ? AppColors.primaryColor
+                : AppColors.idCardColor,
+            textColor: isFormValid ? AppColors.white : AppColors.black,
           ).pad(16),
         ),
       ),

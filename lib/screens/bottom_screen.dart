@@ -13,6 +13,7 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 import 'chat/chat_screen.dart';
 import 'authentication/role_chosen_screen.dart';
+import 'maps/police_station_mapscreen.dart';
 
 class BottomScreen extends StatefulWidget {
   const BottomScreen({super.key});
@@ -25,7 +26,7 @@ class _BottomScreenState extends State<BottomScreen> {
   int selectedIndex = 0;
   final pages = [
     HomeScreen(),
-    MapScreen(),
+    PoliceStationMapScreen(),
     SizedBox(),
     ChatScreen(),
     SettingsScreen(),
@@ -42,6 +43,8 @@ class _BottomScreenState extends State<BottomScreen> {
   void _showPostBottomSheet() {
     AppUiHelper.showCustomBottomDialog(
       Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+
         children: [
           Expanded(
             child: GestureDetector(
@@ -159,11 +162,21 @@ Widget buildHomeBottomSheet({
   return Column(
     spacing: 10,
     mainAxisSize: MainAxisSize.min,
-    mainAxisAlignment: MainAxisAlignment.center,
+    mainAxisAlignment: MainAxisAlignment.start,
+    crossAxisAlignment: .center,
     children: [
-      AppIconWidget(assetPath: image),
+      SizedBox(
+        height: 100,
+        width: 100,
+        child: AppIconWidget(assetPath: image, fit: BoxFit.contain),
+      ),
       AppText(text: title, fontSize: 14, fontWeight: FontWeight.w600),
-      AppText(text: description, fontWeight: FontWeight.w400, fontSize: 10),
+      AppText(
+        text: description,
+        fontWeight: FontWeight.w400,
+        fontSize: 10,
+        textAlign: TextAlign.center,
+      ),
       SizedBox(height: 15),
     ],
   );
