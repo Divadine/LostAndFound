@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
 import 'package:lost_and_found/screens/profile/webView.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
@@ -43,6 +44,33 @@ class AppDialogue {
     );
     return result == true;
   }
+
+
+  static Future<T?> showValuePopup<T>({
+    required BuildContext context,
+    required Widget content,
+    EdgeInsetsGeometry contentPadding = const EdgeInsets.all(15),
+    EdgeInsets? insetPadding,
+    Color backgroundColor = AppColors.white,
+    double radius = 12,
+    BorderSide borderSides = BorderSide.none,
+  }) async {
+    return showDialog<T>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          contentPadding: contentPadding,
+          insetPadding: insetPadding,
+          content: content,
+          backgroundColor: backgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radius),
+            side: borderSides,
+          ),
+        );
+      },
+    );
+  }
 }
 
 class AppSnackBar {
@@ -79,6 +107,9 @@ class AppSnackBar {
       );
   }
 }
+
+
+
 
 class DeletePopUp extends StatelessWidget {
   const DeletePopUp({super.key});
@@ -1073,14 +1104,14 @@ class _DeletePostDialogState extends State<DeletePostDialog> {
 }
 
 
-class LocationAccess extends StatefulWidget {
-  const LocationAccess({super.key});
+class AppLocationAccess extends StatefulWidget {
+  const AppLocationAccess({super.key});
 
   @override
-  State<LocationAccess> createState() => _LocationAccessState();
+  State<AppLocationAccess> createState() => _AppLocationAccessState();
 }
 
-class _LocationAccessState extends State<LocationAccess> {
+class _AppLocationAccessState extends State<AppLocationAccess> {
   @override
   Widget build(BuildContext context) {
     return   Column(
@@ -1141,9 +1172,13 @@ class _LocationAccessState extends State<LocationAccess> {
             Expanded(
               child: AppButton(
                 title:
-                'Enable location',
-                onTap: () {
-                  AppRoutes.pop();
+                'Allow location',
+                onTap: () async {
+
+                    Navigator.pop(context);
+
+                    await Geolocator.openAppSettings();
+
                 },
                 fontSize: 16,
 
@@ -1160,3 +1195,92 @@ class _LocationAccessState extends State<LocationAccess> {
   }
 }
 
+
+class DeviceLocationAccess extends StatefulWidget {
+  const DeviceLocationAccess({super.key});
+
+  @override
+  State<DeviceLocationAccess> createState() => _DeviceLocationAccessState();
+}
+
+class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
+  @override
+  Widget build(BuildContext context) {
+    return   Column(
+      spacing: 5,
+      mainAxisSize:
+      MainAxisSize.min,
+      children: [
+        AppIconWidget(
+          assetPath:
+          AssetImages
+              .mapAccess,
+        ),
+
+        SizedBox(height: 7),
+        AppText(
+          text: 'Set your location',
+          fontWeight:
+          FontWeight.w500,
+          fontSize: 20,
+        ),
+        SizedBox(height: 7),
+        AppText(
+          text:
+          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+          fontSize: 14,
+          fontWeight:
+          FontWeight.w400,
+          textAlign: .center,
+          color: AppColors.fieldGrey,
+        ).padHorizontal(10),
+        SizedBox(height: 15),
+        Row(
+          spacing: 10,
+          children: [
+            Expanded(
+              child: AppButton(
+                title:
+                'Cancel',
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                fontSize: 14,
+                bgColor: Colors
+                    .transparent,
+                border: Border.all(
+                  color: AppColors
+                      .black,
+                ),
+                textColor:
+                AppColors
+                    .black,
+                radius:
+                BorderRadius.circular(
+                  7,
+                ),
+              ),
+            ),
+            Expanded(
+              child: AppButton(
+                title:
+                'Enable location',
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  await Geolocator.openLocationSettings();
+                },
+                fontSize: 16,
+
+                radius:
+                BorderRadius.circular(
+                  7,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}

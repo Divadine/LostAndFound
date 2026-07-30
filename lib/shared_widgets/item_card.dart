@@ -67,6 +67,7 @@ class ItemCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
             if (percentageMatch != null &&
                 profileName != null &&
                 profileUrl != null) ...[

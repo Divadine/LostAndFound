@@ -20,7 +20,9 @@ class AppRecorderService extends ChangeNotifier {
       isPlaying = playerState.playing;
 
       if (playerState.processingState == ProcessingState.completed) {
+        await _player.pause();
         isPlaying = false;
+        _isCompleted = true;
         playbackPosition = Duration.zero;
         await _player.seek(Duration.zero);
         notifyListeners();
@@ -155,7 +157,7 @@ class AppRecorderService extends ChangeNotifier {
     if (_isCompleted) {
       _isCompleted = false;
       await _player.seek(Duration.zero);
-      return; // Don't auto-play again
+
     }
 
     await _player.play();

@@ -107,8 +107,8 @@ class _AppRecorderState extends State<AppRecorder> {
                 },
                 child: AppIconWidget(
                   assetPath: _service.isPaused
-                      ? AssetImages.recorderPlay
-                      : AssetImages.recordPause,
+                      ? AssetImages.recordingPause
+                      : AssetImages.recordingPlay,
                 ),
               ),
               GestureDetector(
@@ -140,9 +140,9 @@ class _AppRecorderState extends State<AppRecorder> {
                 onTap: _service.togglePlayback,
                 child: AppIconWidget(
                   assetPath: _service.isPlaying
-                      ? AssetImages.recordPause
-
-                      : AssetImages.recorderPlay,
+                      ? AssetImages.recordingPlay
+                      : AssetImages.recordingPause
+                  ,
                 ),
               ),
               Flexible(child: _buildWave()),

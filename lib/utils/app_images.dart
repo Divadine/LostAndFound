@@ -119,6 +119,11 @@ class AssetImages {
 
 
   static const String lostItemHome = "assets/images/lostItemHome.svg";
+  static const String recordingPause = "assets/images/recordingPause.svg";
+  static const String recordingPlay = "assets/images/recordingPlay.svg";
+  static const String filterTick = "assets/images/filterTick.svg";
+
+
 
 
 

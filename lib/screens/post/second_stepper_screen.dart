@@ -7,6 +7,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:lost_and_found/models/selected_location_model.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
+import 'package:lost_and_found/screens/permissions/location_permission.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -47,6 +48,8 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
   final ImagePicker picker = ImagePicker();
   VideoPlayerController? _videoController;
+
+  final AppLocationPermission _appPermissions = AppLocationPermission();
 
   @override
   void dispose() {
@@ -161,6 +164,27 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     }
   }
 
+
+  Future<void> _openMapForLocations() async {
+    final granted = await _appPermissions.requestLocationPermission(context);
+    if (!granted) return;
+
+    if (!mounted) return;
+    final result = await context.pushNamed(
+      AppRoutes.mapScreen,
+      extra: MapScreenModel(
+        needSingleLocation: false,
+        selectedLocation: List<SelectedLocationModel>.from(loc),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        loc = result as List<SelectedLocationModel>;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -196,19 +220,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                     ? AppTextField(
                         readOnly: true,
 
-                        onTap: () async {
-                          final location = await context.pushNamed(
-                            AppRoutes.mapScreen,
-                            extra: MapScreenModel(
-                              needSingleLocation: false,
-                              selectedLocation: loc,
-                            ),
-                          );
-                          loc = location as List<SelectedLocationModel>;
-                          print(
-                            "lllllllllllllllllllllllllllllllll${loc.map((e) => e.address)}",
-                          );
-                        },
+                        onTap: _openMapForLocations,
                         hintText: 'Chennai, Tamil Nadu, India',
                         textController: mapController,
                         onChange: (v) {},
@@ -271,19 +283,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                               textColor: AppColors.primaryColor,
                               radius: BorderRadius.circular(10),
                               fontSize: 12,
-                              onTap: () async {
-                                final location = await context.pushNamed(
-                                  AppRoutes.mapScreen,
-                                  extra: MapScreenModel(
-                                    needSingleLocation: false,
-                                    selectedLocation: loc,
-                                  ),
-                                );
-                                loc = location as List<SelectedLocationModel>;
-                                print(
-                                  "lllllllllllllllllllllllllllllllll${loc.map((e) => e.address)}",
-                                );
-                              },
+                              onTap: _openMapForLocations,
                             ),
                         ],
                       ),
@@ -401,7 +401,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
             alignment: Alignment.center,
             children: [
               SizedBox(
-                height: 180,
+                height: 100,
                 width: double.infinity,
                 child: FittedBox(
                   fit: BoxFit.cover,

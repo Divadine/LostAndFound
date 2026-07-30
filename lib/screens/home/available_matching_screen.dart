@@ -136,7 +136,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                       title: 'Receive',
                       onTap: () {
             
-                        final v=AppUiHelper.showBottomSheet(
+                        AppUiHelper.showBottomSheet(
                           context: context,
                           child: ReceiveHandoverSheet(title: '',),
                         );

@@ -39,6 +39,24 @@ class AppPreferences {
 
   }
 
+  static const String _askedDeviceLocationService = 'asked_device_location_service_before';
 
+  static Future<bool> setAskedDeviceLocationService(bool asked) async {
+    return _prefs.setBool(_askedDeviceLocationService, asked);
+  }
+
+  static bool getAskedDevicePermissionService() {
+    return _prefs.getBool(_askedDeviceLocationService) ?? false;
+  }
+
+  static const String _askedAppLocationPermission = 'asked_app_location_permission_before';
+
+  static Future<bool> setAskedAppLocationPermission(bool asked) {
+    return _prefs.setBool(_askedAppLocationPermission, asked);
+  }
+
+  static bool getAskedAppLocationPermission(){
+    return _prefs.getBool(_askedAppLocationPermission) ?? false ;
+  }
 
 }

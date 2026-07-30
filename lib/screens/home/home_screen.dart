@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/screens/bottomsheets/filter_screen.dart';
 import 'package:lost_and_found/screens/home/available_matching_screen.dart';
 import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
@@ -29,6 +30,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   late TabController _tabController;
   int _selectedIndex = 0;
+  bool filterApplied = false;
+  String? _selectedRange;
+  String? _customRange;
+
 
   @override
   void initState() {
@@ -85,10 +90,13 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
+
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8),
                       child: Row(
                         children: [
+
+
                           Expanded(
                             child: Container(
                               height: 40,
@@ -143,11 +151,18 @@ class _HomeScreenState extends State<HomeScreen>
 
                           SizedBox(width: 5),
                           GestureDetector(
-                            onTap: () {
-                              AppDialogue.showPopup(
-                                context: context,
-                                content: LocationAccess(),
-                              );
+                            onTap: () async{
+
+                              final filterData = await AppUiHelper.showBottomSheet(context: context, child: FilterScreen());
+
+                              if(filterData != null){
+                                setState(() {
+
+                                  filterApplied = true;
+                                  _selectedRange = filterData['range'];
+                                  _customRange = filterData['customRange'];
+                                });
+                              }
                             },
                             child: Container(
                               height: 40,
@@ -182,6 +197,36 @@ class _HomeScreenState extends State<HomeScreen>
                         children: [
                           Column(
                             children: [
+
+                              if(filterApplied)
+                              Container(
+                                height: 35,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  //border: Border.all(color: AppColors.primaryColor),
+                                  color: AppColors.lightBlue,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+
+                                    AppIconWidget(assetPath: AssetImages.filterTick),
+                                    SizedBox(width: 15,),
+                                    AppText(
+                                      text: 'Showing results : April 1 - April 10 ',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    Spacer(),
+                                    GestureDetector(
+                                      onTap: () {},
+                                      child:AppIconWidget(assetPath: AssetImages.crossIcon,color: AppColors.black,)
+                                    ),
+                                  ],
+                                ).padHorizontal(16),
+                              ).padHorizontal(),
                               ItemCard(
                                 imgUrl:
                                     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTweFjIvljtnBPBG3-QrPhjYAWLr_1vmJzWbHM58T7TUw&s=10',
@@ -274,7 +319,8 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       GestureDetector(
                         onTap: () {
-                          AppRoutes.pushNamed(AppRoutes.loginScreen);
+
+                          //AppRoutes.pushNamed(AppRoutes.loginScreen);
                         },
                         child: AppIconWidget(
                           assetPath: AssetImages.notification,

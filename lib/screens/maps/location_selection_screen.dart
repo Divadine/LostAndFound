@@ -57,7 +57,9 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
   void initState() {
     super.initState();
     if (widget.mapScreenModel.selectedLocation != null) {
-      _selectedLocations = widget.mapScreenModel.selectedLocation!;
+      _selectedLocations = List<SelectedLocationModel>.from(
+        widget.mapScreenModel.selectedLocation ?? [],
+      );
     }
     _loadPinIcon();
     _initLocation();
@@ -254,8 +256,12 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
 
   void _confirm() {
     if (_selectedLocations.isEmpty) return;
-    print(_selectedLocations);
-    Navigator.pop(context, _selectedLocations);
+
+    if (widget.mapScreenModel.needSingleLocation) {
+      Navigator.pop(context, _selectedLocations.first);
+    } else {
+      Navigator.pop(context, _selectedLocations);
+    }
   }
 
   // ---------------- UI ----------------
@@ -667,5 +673,5 @@ class MapScreenModel {
   final bool needSingleLocation;
   final List<SelectedLocationModel>? selectedLocation;
 
-  MapScreenModel({required this.needSingleLocation, this.selectedLocation});
+  MapScreenModel({required this.needSingleLocation, this.selectedLocation, });
 }

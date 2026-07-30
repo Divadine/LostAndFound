@@ -2,10 +2,13 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lost_and_found/models/selected_location_model.dart';
 import 'package:lost_and_found/screens/authentication/otp_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
+import 'package:lost_and_found/screens/permissions/location_permission.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
@@ -42,6 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int? enableRestart;
   String? errorText;
   bool isFormValid = false;
+  late String selectedLocation;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -63,6 +67,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<bool> otpError = List.generate(4, (_) => false);
   List<bool> isFocused = List.generate(4, (_) => false);
   final ImagePicker picker = ImagePicker();
+
+  final AppLocationPermission _appPermissions = AppLocationPermission();
+
+  Future<void> _openMapForAddress() async {
+    final granted = await _appPermissions.requestLocationPermission(context);
+    if (!granted) return;
+
+    if (!mounted) return;
+    final singleLocation = await context.pushNamed(
+      AppRoutes.mapScreen,
+      extra: MapScreenModel(needSingleLocation: true),
+    );
+
+    if (singleLocation != null) {
+      final locations = singleLocation as SelectedLocationModel;
+      setState(() {
+        addressController.text = locations.address;
+      });
+    }
+  }
 
   void checkFormValidation() {
     setState(() {
@@ -584,61 +608,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontWeight: FontWeight.w500,
                     ).pad(1),
 
-                    GestureDetector(
-                      onTap: (){
-                        print('---------------------------------------------------------------');
-                        AppRoutes.pushNamed(AppRoutes.mapScreen,arguments: MapScreenModel(needSingleLocation: true));
-                      },
 
-                      child: Container(
-                        height: 100,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: AppColors.red,
-                          border: Border.all(color: AppColors.fieldGrey),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Stack(
-                          children: [
-                            // Image background
-                            Positioned.fill(
-                              child: AppIconWidget(
-                                assetPath: AssetImages.map,
-                                // 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-dXyMpH81pBa6x9qvetSA8LqNx4mnigmw0eRp8KFWqBP9nrfmDOdkX2y3&s=10',
-                                fit: BoxFit.cover,
-                              ),
-                            ),
 
-                            // Bottom button
-                            Center(
-                              child: AppTextField(
-                                onTap: (){
-                                  print('---------------------------------------------------------------');
-                                  AppRoutes.pushNamed(AppRoutes.mapScreen,arguments: MapScreenModel(needSingleLocation: true));
-                                },
-                                hintText: '',
-                                textController: TextEditingController(
-                                  text: "Pin Location on Map",
+
+                      GestureDetector(
+                        onTap: _openMapForAddress,
+                        child: Container(
+                          height: 100,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: AppColors.red,
+                            border: Border.all(color: AppColors.fieldGrey),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Stack(
+                            children: [
+                              // Image background
+                              Positioned.fill(
+                                child: AppIconWidget(
+                                  assetPath: AssetImages.map,
+                                  // 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-dXyMpH81pBa6x9qvetSA8LqNx4mnigmw0eRp8KFWqBP9nrfmDOdkX2y3&s=10',
+                                  fit: BoxFit.cover,
                                 ),
-                                textBackgroundColor: AppColors.primaryColor,
-                                onChange: (e) {
-                                  checkFormValidation();
-                                },
-                                suffixIcon: AppIconWidget(
-                                  assetPath: AssetImages.iosForward,
-                                ).pad(12),
-                                readOnly: true,
-                                onSubmit: (e) {},
-                                prefixIcon: AppIconWidget(
-                                  assetPath: AssetImages.map_marker,
-                                  size: 20,
-                                ).pad(12),
-                              ).padHorizontal(15),
-                            ),
-                          ],
+                              ),
+
+                              // Bottom button
+                              Center(
+                                child: AppTextField(
+                                  onTap: _openMapForAddress,
+                                  hintText: '',
+                                  textController: TextEditingController(
+                                    text: "Pin Location on Map",
+                                  ),
+                                  textBackgroundColor: AppColors.primaryColor,
+                                  onChange: (e) {
+                                    checkFormValidation();
+                                  },
+                                  suffixIcon: AppIconWidget(
+                                    assetPath: AssetImages.iosForward,
+                                  ).pad(12),
+                                  readOnly: true,
+                                  onSubmit: (e) {},
+                                  prefixIcon: AppIconWidget(
+                                    assetPath: AssetImages.map_marker,
+                                    size: 20,
+                                  ).pad(12),
+                                ).padHorizontal(15),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+
                   ],
                 ),
 
@@ -647,12 +668,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 buildTextFieldWithHeading(
                   title: 'Full Address',
                   fieldWidget: AppTextField(
+                    readOnly: true,
+                    maxLines: 2,
                     hintText: 'Enter Full Address',
                     textController: addressController,
                     onChange: (v) {
                       checkFormValidation();
                     },
-                    onSubmit: (v) {},
+                    onSubmit: (v) {
+
+                    },
                     validator: (v) {
                       return AppUtils.required(v);
                     },

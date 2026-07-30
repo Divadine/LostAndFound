@@ -32,4 +32,6 @@ class AppColors {
   static const Color percentageBlue = Color(0xff3B82F6);
   static const Color percentageOrange = Color(0xffF59E0B);
   static const Color percentageGrey = Color(0xff6B7280);
+  static const Color customRange = Color(0xffE7EFFF);
+
 }
