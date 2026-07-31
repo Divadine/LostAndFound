@@ -33,5 +33,11 @@ class AppColors {
   static const Color percentageOrange = Color(0xffF59E0B);
   static const Color percentageGrey = Color(0xff6B7280);
   static const Color customRange = Color(0xffE7EFFF);
+  static const Color chatByMe = Color(0xffCEDAFF);
+  static const Color chatByOther = Color(0xffF2F2F2);
+  static const Color chatDelete = Color(0xffECF0FF);
+
+
+
 
 }

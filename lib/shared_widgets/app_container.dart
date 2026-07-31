@@ -6,18 +6,20 @@ class AppContainer extends StatelessWidget {
   final Widget widget;
   final Color? bgColor;
   final Color? color;
+  final double? width;
 
   const AppContainer({
     super.key,
     required this.widget,
     this.bgColor,
-    this.color,
+    this.color, this.width,
+
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
+      width: width ?? double.infinity,
       decoration: BoxDecoration(
         border: Border.all(color: color ?? Colors.transparent),
         borderRadius: BorderRadius.circular(14),

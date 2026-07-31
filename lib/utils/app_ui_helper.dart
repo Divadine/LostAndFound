@@ -90,6 +90,8 @@ class AppUiHelper {
     bool isDismissible = true,
     bool showHandle = true,
     bool showCloseIcon = false,
+    Color? color,
+    Color? iconColor,
   }) {
     return showModalBottomSheet<T>(
       context: context,
@@ -167,10 +169,10 @@ class AppUiHelper {
                         width: 30,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
-                          color: AppColors.white,
+                          color: color ?? AppColors.white,
                         ),
 
-                        child:Icon(Icons.close,color: AppColors.black,weight: 20,),
+                        child:Icon(Icons.close,color: iconColor??  AppColors.black,weight: 20,),
                       ),
                     ),
                   ),

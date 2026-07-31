@@ -78,7 +78,8 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
               child: ListView.builder(
                 itemCount: 2,
                 itemBuilder: (context, index) {
-                  return ItemCard(
+                  return
+                    ItemCard(
                     imageWidth: 170,
                     isFromEnquiry: true,
                     imgUrl:

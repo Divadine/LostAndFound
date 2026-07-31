@@ -117,7 +117,7 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
         (selectedIndex != null) ? AppButton(
           title: 'Next',
           onTap: () {
-            AppRoutes.pushNamed(AppRoutes.secondStepperScreen);
+            AppRoutes.pushNamed(AppRoutes.firstStepperScreen);
           },
           icon: AssetImages.arrow_forward,
         ).pad(16) : SizedBox(),

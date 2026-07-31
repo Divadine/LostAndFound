@@ -9,6 +9,7 @@ import 'package:lost_and_found/screens/authentication/otp_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
 import 'package:lost_and_found/screens/permissions/location_permission.dart';
+import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
@@ -35,6 +36,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController alternativeController = TextEditingController();
 
+  bool isNotFromSetUp = false;
   bool isAlternativeNumberValid = false;
   bool isVerified = false;
   bool isPinCodeValid = false;
@@ -62,10 +64,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController cityController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController landmarkController = TextEditingController();
+  final TextEditingController countryCodeController = TextEditingController();
+  final TextEditingController countryCodeController2 = TextEditingController();
 
-  final List<FocusNode> focusNode = List.generate(4, (_) => FocusNode());
-  List<bool> otpError = List.generate(4, (_) => false);
-  List<bool> isFocused = List.generate(4, (_) => false);
   final ImagePicker picker = ImagePicker();
 
   final AppLocationPermission _appPermissions = AppLocationPermission();
@@ -85,23 +86,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         addressController.text = locations.address;
       });
+      // checkFormValidation();
     }
   }
 
-  void checkFormValidation() {
-    setState(() {
-      isFormValid =
-          selectedImage != null &&
-          AppUtils.validateName(nameController.text) == null &&
-          AppUtils.validateMobileNumber(mobileController.text) == null &&
-          AppUtils.validatePincode(pinController.text) == null &&
-          AppUtils.required(countryController.text) == null &&
-          AppUtils.required(stateController.text) == null &&
-          AppUtils.required(cityController.text) == null &&
-          AppUtils.required(addressController.text) == null &&
-          AppUtils.required(landmarkController.text) == null;
-    });
-  }
+  // void checkFormValidation() {
+  //   setState(() {
+  //     isFormValid =
+  //         selectedImage != null &&
+  //         AppUtils.validateName(nameController.text) == null &&
+  //         AppUtils.validateMobileNumber(mobileController.text) == null &&
+  //         AppUtils.validatePincode(pinController.text) == null &&
+  //         AppUtils.required(countryController.text) == null &&
+  //         AppUtils.required(stateController.text) == null &&
+  //         AppUtils.required(cityController.text) == null &&
+  //         AppUtils.required(addressController.text) == null &&
+  //         AppUtils.required(landmarkController.text) == null;
+  //   });
+  // }
 
   void _onPinCodeChanged(String value) {
     setState(() {
@@ -118,50 +120,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     }
 
-    checkFormValidation();
+    // checkFormValidation();
   }
 
   void deleteProfilePicture() {
-    setState(() {
-      selectedImage = null;
-    });
+    if (selectedImage == null) return;
+    selectedImage = null;
+    setState(() {});
+    AppRoutes.pop();
 
-    checkFormValidation();
-  }
-
-  void _onChanged(int index, String value) {
-    if (value.isNotEmpty && index < 3) {
-      focusNode[index + 1].requestFocus();
-    }
-    if (value.isEmpty && index > 0) {
-      focusNode[index - 1].requestFocus();
-    }
-
-    otp = _controller.map((e) => e.text).join();
-    if (otp.length == 4) {
-      FocusScope.of(context).unfocus();
-    }
-  }
-
-  void _startTimer() {
-    timer?.cancel();
-    seconds = 30;
-
-    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (seconds == 0) {
-        timer.cancel();
-      } else {
-        setState(() {
-          seconds--;
-        });
-      }
-    });
-  }
-
-  String _formatTime(int sec) {
-    final m = (sec ~/ 60).toString().padLeft(2, '0');
-    final s = (sec % 60).toString().padLeft(2, '0');
-    return "$m:$s";
+    // checkFormValidation();
   }
 
   @override
@@ -189,7 +157,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
-
+      appBar: isNotFromSetUp
+          ? CustomAppBar(
+              title: '',
+              leadingSvg: AssetImages.backArrow,
+              onLeadingTap: () {
+                AppRoutes.pop();
+              },
+            )
+          : null,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Form(
@@ -341,10 +317,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     hintText: 'enter name',
                     textController: nameController,
                     onChange: (v) {
-                      checkFormValidation();
+                      // checkFormValidation();
                     },
                     onSubmit: (v) {},
                     validator: (e) {
+                      if (e == null) return null;
                       return AppUtils.validateName(e);
                     },
                   ),
@@ -360,7 +337,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         flex: 2,
                         child: AppTextField(
                           hintText: '+91',
-                          textController: TextEditingController(),
+                          textController: countryCodeController,
                           onChange: (v) {},
                           onSubmit: (v) {},
                         ),
@@ -370,10 +347,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         flex: 8,
                         child: AppTextField(
                           maxLength: 10,
-                          readOnly: true,
+                          //readOnly: true,
                           hintText: 'Enter a mobile number',
                           textController: mobileController,
-                          onChange: (v) {},
+                          onChange: (v) {
+                            setState(() {
+                              errorText = AppUtils.validateMobileNumber(v);
+                            });
+                          },
                           onSubmit: (v) {},
                           textInputType: TextInputType.phone,
                         ),
@@ -393,8 +374,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Expanded(
                             flex: 2,
                             child: AppTextField(
+                              readOnly: true,
                               hintText: '+91',
-                              textController: TextEditingController(),
+                              textController: countryCodeController2,
                               onChange: (v) {},
                               onSubmit: (v) {},
                             ),
@@ -530,7 +512,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                     onChange: (v) {
                       _onPinCodeChanged(v);
-                      checkFormValidation();
+                      // checkFormValidation();
                     },
 
                     onSubmit: (v) {},
@@ -548,7 +530,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           hintText: 'Enter country',
                           textController: countryController,
                           onChange: (v) {
-                            checkFormValidation();
+                            //
+                            //
+                            //
+                            //
+                            // ();
                           },
                           onSubmit: (v) {},
                           validator: (v) {
@@ -564,7 +550,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           hintText: 'Enter state',
                           textController: stateController,
                           onChange: (v) {
-                            checkFormValidation();
+                            // checkFormValidation();
                           },
                           onSubmit: (v) {},
                           validator: (v) {
@@ -580,7 +566,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           hintText: 'Enter city',
                           textController: cityController,
                           onChange: (v) {
-                            checkFormValidation();
+                            // checkFormValidation();
                           },
                           onSubmit: (v) {},
                           validator: (v) {
@@ -608,58 +594,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontWeight: FontWeight.w500,
                     ).pad(1),
 
+                    GestureDetector(
+                      onTap: _openMapForAddress,
+                      child: Container(
+                        height: 100,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: AppColors.red,
+                          border: Border.all(color: AppColors.fieldGrey),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Stack(
+                          children: [
+                            // Image background
+                            Positioned.fill(
+                              child: AppIconWidget(
+                                assetPath: AssetImages.map,
+                                // 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-dXyMpH81pBa6x9qvetSA8LqNx4mnigmw0eRp8KFWqBP9nrfmDOdkX2y3&s=10',
+                                fit: BoxFit.cover,
+                              ),
+                            ),
 
-
-
-                      GestureDetector(
-                        onTap: _openMapForAddress,
-                        child: Container(
-                          height: 100,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: AppColors.red,
-                            border: Border.all(color: AppColors.fieldGrey),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Stack(
-                            children: [
-                              // Image background
-                              Positioned.fill(
-                                child: AppIconWidget(
-                                  assetPath: AssetImages.map,
-                                  // 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-dXyMpH81pBa6x9qvetSA8LqNx4mnigmw0eRp8KFWqBP9nrfmDOdkX2y3&s=10',
-                                  fit: BoxFit.cover,
+                            // Bottom button
+                            Center(
+                              child: AppTextField(
+                                onTap: _openMapForAddress,
+                                hintText: '',
+                                textController: TextEditingController(
+                                  text: "Pin Location on Map",
                                 ),
-                              ),
-
-                              // Bottom button
-                              Center(
-                                child: AppTextField(
-                                  onTap: _openMapForAddress,
-                                  hintText: '',
-                                  textController: TextEditingController(
-                                    text: "Pin Location on Map",
-                                  ),
-                                  textBackgroundColor: AppColors.primaryColor,
-                                  onChange: (e) {
-                                    checkFormValidation();
-                                  },
-                                  suffixIcon: AppIconWidget(
-                                    assetPath: AssetImages.iosForward,
-                                  ).pad(12),
-                                  readOnly: true,
-                                  onSubmit: (e) {},
-                                  prefixIcon: AppIconWidget(
-                                    assetPath: AssetImages.map_marker,
-                                    size: 20,
-                                  ).pad(12),
-                                ).padHorizontal(15),
-                              ),
-                            ],
-                          ),
+                                textBackgroundColor: AppColors.primaryColor,
+                                onChange: (e) {
+                                  // checkFormValidation();
+                                },
+                                suffixIcon: AppIconWidget(
+                                  assetPath: AssetImages.iosForward,
+                                ).pad(12),
+                                readOnly: true,
+                                onSubmit: (e) {},
+                                prefixIcon: AppIconWidget(
+                                  assetPath: AssetImages.map_marker,
+                                  size: 20,
+                                ).pad(12),
+                              ).padHorizontal(15),
+                            ),
+                          ],
                         ),
                       ),
-
+                    ),
                   ],
                 ),
 
@@ -673,11 +655,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     hintText: 'Enter Full Address',
                     textController: addressController,
                     onChange: (v) {
-                      checkFormValidation();
+                      // checkFormValidation();
                     },
-                    onSubmit: (v) {
-
-                    },
+                    onSubmit: (v) {},
                     validator: (v) {
                       return AppUtils.required(v);
                     },
@@ -691,7 +671,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     hintText: 'Enter landmark',
                     textController: landmarkController,
                     onChange: (v) {
-                      checkFormValidation();
+                      // checkFormValidation();
                     },
                     onSubmit: (v) {},
                     validator: (v) {

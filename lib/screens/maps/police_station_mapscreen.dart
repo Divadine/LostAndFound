@@ -40,12 +40,9 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
 
   BitmapDescriptor? _pinIcon;
 
-  // Actual device GPS fix - only used to drive the "my location" blue dot.
   Position? _currentPosition;
 
-  // The point everything else (distance sort, card distance badge, camera
-  // fit) is measured from. This is the device position on first load, or
-  // the location the user picked on the search/map-selection screen.
+
   LatLng? _referencePosition;
 
   List<NearbyPlace> _stations = [];
@@ -123,20 +120,16 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
         if (position != null) {
           _currentPosition = position;
         }
-        // Always update the reference point - this is what sorting,
-        // the card's distance badge, and the camera fit rely on, whether
-        // the lat/lng came from GPS or from a searched location.
+
         _referencePosition = LatLng(lat, lng);
 
         _stations = _sortedByDistance(stations, _referencePosition!);
-        // Reset selection so the bottom-sheet card falls back to the
-        // nearest station of the *new* list, instead of a stale station
-        // (or one that may not even be in this new list).
+
         _selectedStation = null;
 
         _loading = false;
         if (_stations.isEmpty) {
-          _errorMessage = null; // handled by empty-state text instead
+          _errorMessage = null;
         }
       });
 
@@ -308,10 +301,7 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
           if (result is List<SelectedLocationModel> && result.isNotEmpty) {
             final selected = result.first;
             _searchController.text = selected.address;
-            // No device Position for a searched point - just pass the
-            // lat/lng. getPoliceStations() will update the reference
-            // point, re-sort stations, refit the camera, and refresh
-            // the card automatically.
+
             getPoliceStations(selected.latitude, selected.longitude);
             _searchController.text = result.first.address;
           }

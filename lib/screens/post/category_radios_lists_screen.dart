@@ -114,7 +114,6 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
       ).pad(16),
       bottomNavigationBar: SafeArea(
         child:
-
         (selectedIndex != null) ? AppButton(
             title: 'Next',
             onTap: () {

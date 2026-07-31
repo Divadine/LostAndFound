@@ -1284,3 +1284,235 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
     );
   }
 }
+
+
+class BlockChat extends StatefulWidget {
+  const BlockChat({super.key});
+
+  @override
+  State<BlockChat> createState() => _BlockChatState();
+}
+
+class _BlockChatState extends State<BlockChat> {
+  @override
+  Widget build(BuildContext context) {
+    return   Column(
+      spacing: 5,
+      mainAxisSize:
+      MainAxisSize.min,
+      children: [
+        AppIconWidget(
+          assetPath:
+          AssetImages.blockChatBorder
+
+        ),
+
+        SizedBox(height: 7),
+        AppText(
+          text: 'This chat has been blocked',
+          fontWeight:
+          FontWeight.w500,
+          fontSize: 20,
+        ),
+        SizedBox(height: 7),
+        AppText(
+          text:
+          'Lorem ipsum is Lorem ipsum isLorem ipsum is Lorem ipsum is Lorem ipsum',
+          fontSize: 14,
+          fontWeight:
+          FontWeight.w400,
+          textAlign: .center,
+          color: AppColors.fieldGrey,
+        ).padHorizontal(10),
+        SizedBox(height: 15),
+        Row(
+          spacing: 10,
+          children: [
+            Expanded(
+              child: AppButton(
+                title:
+                'Delete chat',
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                fontSize: 14,
+                bgColor: Colors
+                    .transparent,
+                border: Border.all(
+                  color: AppColors
+                      .black,
+                ),
+                textColor:
+                AppColors
+                    .black,
+                radius:
+                BorderRadius.circular(
+                  7,
+                ),
+              ),
+            ),
+            Expanded(
+              child: AppButton(
+                title:
+                'Unblock chat',
+                onTap: () async {
+                  Navigator.pop(context);
+
+                },
+                fontSize: 16,
+
+                radius:
+                BorderRadius.circular(
+                  7,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+
+class ReportChatDialog extends StatefulWidget {
+  const ReportChatDialog({super.key});
+
+  @override
+  State<ReportChatDialog> createState() => _ReportChatDialogState();
+}
+
+class _ReportChatDialogState extends State<ReportChatDialog> {
+
+  bool isChecked = false;
+  @override
+  Widget build(BuildContext context) {
+    return   Column(
+      spacing: 5,
+      mainAxisSize:
+      MainAxisSize.min,
+      children: [
+
+        AppText(
+          text: 'Report This Chat?',
+          fontWeight:
+          FontWeight.w500,
+          fontSize: 20,
+        ),
+        SizedBox(height: 7),
+        AppText(
+          text:
+          'Lorem ipsum is Lorem ipsum isLorem ipsum is Lorem ipsum is Lorem ipsum',
+          fontSize: 14,
+          fontWeight:
+          FontWeight.w400,
+          textAlign: .center,
+          color: AppColors.fieldGrey,
+        ).padHorizontal(10),
+        SizedBox(height: 15),
+
+
+        Row(
+          crossAxisAlignment: .start,
+          spacing: 5,
+          children: [
+            Checkbox(
+              value: isChecked,
+              onChanged: (e) {
+                setState(() {
+                  isChecked = e!;
+                  if (isChecked) {
+                    AppSnackBar.show(
+                      context: context,
+                      message: "Confirm for deletion",
+                    );
+                  }
+                });
+              },
+              hoverColor: AppColors.grey,
+              focusColor: AppColors.fieldGrey,
+              fillColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppColors.primaryColor;
+                }
+                return AppColors.white;
+              }),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: const VisualDensity(
+                horizontal: -4,
+                vertical: -4,
+              ),
+
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              side: BorderSide(color: AppColors.fieldGrey, width: 2),
+            ),
+            Flexible(
+              child: AppText(
+                text:
+                "Report and Block this chat",
+                fontWeight: FontWeight.w400,
+                textAlign: .start,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+        Row(
+          spacing: 10,
+          children: [
+            Expanded(
+              child: AppButton(
+                title:
+                'Cancel',
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                fontSize: 14,
+                bgColor: Colors
+                    .transparent,
+                border: Border.all(
+                  color: AppColors
+                      .black,
+                ),
+                textColor:
+                AppColors
+                    .black,
+                radius:
+                BorderRadius.circular(
+                  7,
+                ),
+              ),
+            ),
+            Expanded(
+              child: AppButton(
+                title:
+                'Report',
+                onTap: () async {
+
+                  if (isChecked ) {
+                   AppRoutes.pop();
+                  } else {
+                    AppSnackBar.show(
+                      context: context,
+                      message: "Please choose a reason",
+                    );
+                  }
+
+                },
+                fontSize: 16,
+
+                radius:
+                BorderRadius.circular(
+                  7,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+

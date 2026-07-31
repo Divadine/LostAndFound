@@ -122,6 +122,22 @@ class AssetImages {
   static const String recordingPause = "assets/images/recordingPause.svg";
   static const String recordingPlay = "assets/images/recordingPlay.svg";
   static const String filterTick = "assets/images/filterTick.svg";
+  static const String mobileIcon = "assets/images/mobileIcon.svg";
+  static const String shieldBorder = "assets/images/shieldBorder.svg";
+  static const String blockChat = "assets/images/blockChat.svg";
+  static const String blockChatBorder = "assets/images/blockChatBorder.svg";
+  static const String sendMessage = "assets/images/sendMessage.svg";
+  static const String send = "assets/images/send.svg";
+  static const String chatEditPencilIcon = "assets/images/chatEditPencilIcon.svg";
+  static const String doubleTick = "assets/images/doubleTick.svg";
+
+
+
+
+
+
+
+
 
 
 

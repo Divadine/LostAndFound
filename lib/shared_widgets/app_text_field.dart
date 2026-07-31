@@ -4,6 +4,11 @@ import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/utils/app_colors.dart';
+
 class AppTextField extends StatelessWidget {
   final TextEditingController textController;
   final String hintText;
@@ -24,14 +29,14 @@ class AppTextField extends StatelessWidget {
   final int? maxLength;
   final int? maxLines;
   final Color? backgroundColor;
+  final Color? borderColor;
+
   final bool isTextVisible;
   final Color? textColor;
-  final Color? borderColor;
   final Color? textBackgroundColor;
   final double? textSize;
   final BoxConstraints? suffixIconConstraints;
   final bool? obscureText;
-  final InputBorder? border;
 
   const AppTextField({
     super.key,
@@ -58,10 +63,7 @@ class AppTextField extends StatelessWidget {
     this.textBackgroundColor,
     this.textSize,
     this.textInputAction,
-    this.suffixIconConstraints,
-    this.obscureText,
-    this.borderColor,
-    this.border,
+    this.suffixIconConstraints, this.obscureText, this.borderColor,
   });
 
   @override
@@ -69,45 +71,40 @@ class AppTextField extends StatelessWidget {
     return FormField<String>(
       initialValue: textController.text,
       validator: validator,
-      autovalidateMode: autoValidateMode ?? AutovalidateMode.onUserInteraction,
+
+      autovalidateMode:
+      autoValidateMode ?? AutovalidateMode.onUserInteraction,
       builder: (field) {
         return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: .center,
           children: [
             Material(
-              elevation: 1,
+              elevation: 2,
               shadowColor: AppColors.fieldGrey,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: borderRadius ?? BorderRadius.circular(6),
               child: TextField(
-                style: appTextStyle(color: textBackgroundColor),
                 controller: textController,
+                style: appTextStyle(color: textBackgroundColor),
                 readOnly: readOnly ?? false,
                 maxLength: maxLength,
                 maxLines: maxLines ?? 1,
-                textCapitalization:
-                    textCapitalization ?? TextCapitalization.none,
-                inputFormatters: inputFormatters,
                 obscureText: obscureText ?? false,
-                keyboardType:
-                    textInputType ??
+                textCapitalization:
+                textCapitalization ?? TextCapitalization.none,
+                inputFormatters: inputFormatters,
+                keyboardType: textInputType ??
                     (maxLines != null && maxLines! > 1
                         ? TextInputType.multiline
                         : TextInputType.text),
                 textInputAction: textInputAction,
-                onChanged: onChange,
                 onTap: onTap,
-                // onFieldSubmitted: onSubmit,
-                //
-                // errorBuilder: (context, errorText) {
-                //   if (errorText == null) return const SizedBox.shrink();
-                //
-                //   return Transform.translate(
-                //     offset: const Offset(-12, 0), // Adjust this value if needed
-                //     child: buildErrorText(errorText: errorText),
-                //   );
-                // },
+                onSubmitted: onSubmit,
+                onChanged: (value) {
+                  field.didChange(value);
+                  onChange(value);
+                },
                 decoration: InputDecoration(
-                  border: border ?? OutlineInputBorder(),
                   counterText: '',
                   filled: true,
                   fillColor: Colors.white,
@@ -117,45 +114,78 @@ class AppTextField extends StatelessWidget {
                   ),
                   hintText: hintText,
                   hintStyle: hintStyle ?? appTextStyle(color: Colors.grey),
-
                   prefixIcon: prefixIcon,
                   suffixIcon: suffixIcon,
                   suffixIconConstraints: suffixIcon == null
                       ? const BoxConstraints(minWidth: 0, minHeight: 0)
                       : suffixIconConstraints ??
-                            const BoxConstraints(minWidth: 0, minHeight: 0),
+                      const BoxConstraints(minWidth: 0, minHeight: 0),
+
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: borderRadius ?? BorderRadius.circular(6),
+                    borderRadius:
+                    borderRadius ?? BorderRadius.circular(6),
                     borderSide: BorderSide(
-                      color: borderColor ?? Colors.transparent,
+                      color: borderColor ??
+                          AppColors.fieldGrey.withAlpha(20),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: borderRadius ?? BorderRadius.circular(6),
+                    borderRadius:
+                    borderRadius ?? BorderRadius.circular(6),
                     borderSide: BorderSide(
-                      color: borderColor ?? Colors.transparent,
+                      color: borderColor ??
+                          AppColors.fieldGrey.withAlpha(20),
                     ),
                   ),
                   errorBorder: OutlineInputBorder(
-                    borderRadius: borderRadius ?? BorderRadius.circular(6),
+                    borderRadius:
+                    borderRadius ?? BorderRadius.circular(6),
                     borderSide: const BorderSide(color: AppColors.red),
                   ),
                   focusedErrorBorder: OutlineInputBorder(
-                    borderRadius: borderRadius ?? BorderRadius.circular(6),
+                    borderRadius:
+                    borderRadius ?? BorderRadius.circular(6),
                     borderSide: const BorderSide(color: AppColors.red),
+                  ),
+
+                  // Show red border when invalid
+                  border: OutlineInputBorder(
+                    borderRadius:
+                    borderRadius ?? BorderRadius.circular(6),
                   ),
                 ),
               ),
             ),
+
             if (field.hasError) ...[
-              buildErrorText(errorText: field.errorText!),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      color: AppColors.red,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: AppText(
+                        text: field.errorText!,
+                        color: AppColors.red,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ],
         );
       },
     );
-  }
-}
+  }}
 
 Widget buildErrorText({required String errorText}) {
   return Padding(
