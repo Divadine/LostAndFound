@@ -45,7 +45,6 @@ class AppDialogue {
     return result == true;
   }
 
-
   static Future<T?> showValuePopup<T>({
     required BuildContext context,
     required Widget content,
@@ -107,9 +106,6 @@ class AppSnackBar {
       );
   }
 }
-
-
-
 
 class DeletePopUp extends StatelessWidget {
   const DeletePopUp({super.key});
@@ -850,11 +846,11 @@ class DeletePostReasonsDialog extends StatefulWidget {
   const DeletePostReasonsDialog({super.key});
 
   @override
-  State<DeletePostReasonsDialog> createState() => _DeletePostReasonsDialogState();
+  State<DeletePostReasonsDialog> createState() =>
+      _DeletePostReasonsDialogState();
 }
 
 class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
-
   int presentIndex = 0;
   String? selectedReason;
   PageController pageController = PageController();
@@ -875,8 +871,7 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
       child: Column(
         spacing: 5,
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: .start,
         children: [
           AppText(
@@ -886,17 +881,14 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
           ),
           SizedBox(height: 10),
           AppText(
-            text:
-            'Why are you deleting this post ?',
+            text: 'Why are you deleting this post ?',
             fontWeight: FontWeight.w500,
             fontSize: 14,
           ),
 
           ...items.map((item) {
             return Padding(
-              padding: const EdgeInsets.all(
-                8.0,
-              ),
+              padding: const EdgeInsets.all(8.0),
               child: GestureDetector(
                 onTap: () {
                   setState(() {
@@ -910,16 +902,12 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
                       height: 20,
                       width: 20,
                       child: Radio<String>(
-                        hoverColor: AppColors
-                            .primaryColor,
-                        groupValue:
-                        selectedReason,
-                        activeColor: AppColors
-                            .primaryColor,
+                        hoverColor: AppColors.primaryColor,
+                        groupValue: selectedReason,
+                        activeColor: AppColors.primaryColor,
                         onChanged: (value) {
                           setState(() {
-                            selectedReason =
-                                value;
+                            selectedReason = value;
                           });
                         },
                         value: item,
@@ -967,15 +955,9 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
                     AppRoutes.pop();
                   },
                   bgColor: Colors.transparent,
-                  border: Border.all(
-                    color:
-                    AppColors.primaryColor,
-                  ),
-                  textColor:
-                  AppColors.primaryColor,
-                  radius: BorderRadius.circular(
-                    7,
-                  ),
+                  border: Border.all(color: AppColors.primaryColor),
+                  textColor: AppColors.primaryColor,
+                  radius: BorderRadius.circular(7),
                 ),
               ),
               Expanded(
@@ -986,15 +968,12 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
 
                     AppDialogue.showPopup(
                       context: context,
-                      content: DeletePostDialog()
+                      content: DeletePostDialog(),
                     );
                   },
                   textColor: AppColors.white,
-                  bgColor:
-                  AppColors.primaryColor,
-                  radius: BorderRadius.circular(
-                    7,
-                  ),
+                  bgColor: AppColors.primaryColor,
+                  radius: BorderRadius.circular(7),
                 ),
               ),
             ],
@@ -1004,7 +983,6 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
     );
   }
 }
-
 
 class DeletePostDialog extends StatefulWidget {
   const DeletePostDialog({super.key});
@@ -1016,37 +994,21 @@ class DeletePostDialog extends StatefulWidget {
 class _DeletePostDialogState extends State<DeletePostDialog> {
   @override
   Widget build(BuildContext context) {
-    return   Column(
-      mainAxisSize:
-      MainAxisSize.min,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         CircleAvatar(
-          backgroundColor:
-          AppColors.red
-              .withAlpha(
-            50,
-          ),
+          backgroundColor: AppColors.red.withAlpha(50),
           radius: 20,
-          child: AppIconWidget(
-            assetPath:
-            AssetImages
-                .delete,
-          ),
+          child: AppIconWidget(assetPath: AssetImages.delete),
         ),
         SizedBox(height: 7),
-        AppText(
-          text: 'Delete Post',
-          fontWeight:
-          FontWeight.w600,
-          fontSize: 16,
-        ),
+        AppText(text: 'Delete Post', fontWeight: FontWeight.w600, fontSize: 16),
         SizedBox(height: 7),
         AppText(
-          text:
-          'Are you sure you want to delete this lost item post ?',
+          text: 'Are you sure you want to delete this lost item post ?',
           fontSize: 14,
-          fontWeight:
-          FontWeight.w400,
+          fontWeight: FontWeight.w400,
           textAlign: .center,
         ).padHorizontal(20),
         SizedBox(height: 15),
@@ -1055,45 +1017,27 @@ class _DeletePostDialogState extends State<DeletePostDialog> {
           children: [
             Expanded(
               child: AppButton(
-                title:
-                'Cancel',
+                title: 'Cancel',
                 onTap: () {
                   //Navigator.pop(context);
                 },
                 fontSize: 14,
-                bgColor: Colors
-                    .transparent,
-                border: Border.all(
-                  color: AppColors
-                      .black,
-                ),
-                textColor:
-                AppColors
-                    .black,
-                radius:
-                BorderRadius.circular(
-                  7,
-                ),
+                bgColor: Colors.transparent,
+                border: Border.all(color: AppColors.black),
+                textColor: AppColors.black,
+                radius: BorderRadius.circular(7),
               ),
             ),
             Expanded(
               child: AppButton(
-                title:
-                'Delete Post',
+                title: 'Delete Post',
                 onTap: () {
                   AppRoutes.pop();
                 },
                 fontSize: 14,
-                bgColor:
-                AppColors
-                    .red,
-                textColor:
-                AppColors
-                    .white,
-                radius:
-                BorderRadius.circular(
-                  7,
-                ),
+                bgColor: AppColors.red,
+                textColor: AppColors.white,
+                radius: BorderRadius.circular(7),
               ),
             ),
           ],
@@ -1102,7 +1046,6 @@ class _DeletePostDialogState extends State<DeletePostDialog> {
     );
   }
 }
-
 
 class AppLocationAccess extends StatefulWidget {
   const AppLocationAccess({super.key});
@@ -1114,31 +1057,24 @@ class AppLocationAccess extends StatefulWidget {
 class _AppLocationAccessState extends State<AppLocationAccess> {
   @override
   Widget build(BuildContext context) {
-    return   Column(
+    return Column(
       spacing: 5,
-      mainAxisSize:
-      MainAxisSize.min,
+      mainAxisSize: MainAxisSize.min,
       children: [
-         AppIconWidget(
-            assetPath:
-            AssetImages
-                .mapAccess,
-          ),
+        AppIconWidget(assetPath: AssetImages.mapAccess),
 
         SizedBox(height: 7),
         AppText(
           text: 'Set your location',
-          fontWeight:
-          FontWeight.w500,
+          fontWeight: FontWeight.w500,
           fontSize: 20,
         ),
         SizedBox(height: 7),
         AppText(
           text:
-          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+              'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
           fontSize: 14,
-          fontWeight:
-          FontWeight.w400,
+          fontWeight: FontWeight.w400,
           textAlign: .center,
           color: AppColors.fieldGrey,
         ).padHorizontal(10),
@@ -1148,44 +1084,28 @@ class _AppLocationAccessState extends State<AppLocationAccess> {
           children: [
             Expanded(
               child: AppButton(
-                title:
-                'Deny',
+                title: 'Deny',
                 onTap: () {
                   Navigator.pop(context);
                 },
                 fontSize: 14,
-                bgColor: Colors
-                    .transparent,
-                border: Border.all(
-                  color: AppColors
-                      .black,
-                ),
-                textColor:
-                AppColors
-                    .black,
-                radius:
-                BorderRadius.circular(
-                  7,
-                ),
+                bgColor: Colors.transparent,
+                border: Border.all(color: AppColors.black),
+                textColor: AppColors.black,
+                radius: BorderRadius.circular(7),
               ),
             ),
             Expanded(
               child: AppButton(
-                title:
-                'Allow location',
+                title: 'Allow location',
                 onTap: () async {
+                  Navigator.pop(context);
 
-                    Navigator.pop(context);
-
-                    await Geolocator.openAppSettings();
-
+                  await Geolocator.openAppSettings();
                 },
                 fontSize: 16,
 
-                radius:
-                BorderRadius.circular(
-                  7,
-                ),
+                radius: BorderRadius.circular(7),
               ),
             ),
           ],
@@ -1194,7 +1114,6 @@ class _AppLocationAccessState extends State<AppLocationAccess> {
     );
   }
 }
-
 
 class DeviceLocationAccess extends StatefulWidget {
   const DeviceLocationAccess({super.key});
@@ -1206,31 +1125,24 @@ class DeviceLocationAccess extends StatefulWidget {
 class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
   @override
   Widget build(BuildContext context) {
-    return   Column(
+    return Column(
       spacing: 5,
-      mainAxisSize:
-      MainAxisSize.min,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        AppIconWidget(
-          assetPath:
-          AssetImages
-              .mapAccess,
-        ),
+        AppIconWidget(assetPath: AssetImages.mapAccess),
 
         SizedBox(height: 7),
         AppText(
           text: 'Set your location',
-          fontWeight:
-          FontWeight.w500,
+          fontWeight: FontWeight.w500,
           fontSize: 20,
         ),
         SizedBox(height: 7),
         AppText(
           text:
-          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+              'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
           fontSize: 14,
-          fontWeight:
-          FontWeight.w400,
+          fontWeight: FontWeight.w400,
           textAlign: .center,
           color: AppColors.fieldGrey,
         ).padHorizontal(10),
@@ -1240,31 +1152,20 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
           children: [
             Expanded(
               child: AppButton(
-                title:
-                'Cancel',
+                title: 'Cancel',
                 onTap: () {
                   Navigator.pop(context);
                 },
                 fontSize: 14,
-                bgColor: Colors
-                    .transparent,
-                border: Border.all(
-                  color: AppColors
-                      .black,
-                ),
-                textColor:
-                AppColors
-                    .black,
-                radius:
-                BorderRadius.circular(
-                  7,
-                ),
+                bgColor: Colors.transparent,
+                border: Border.all(color: AppColors.black),
+                textColor: AppColors.black,
+                radius: BorderRadius.circular(7),
               ),
             ),
             Expanded(
               child: AppButton(
-                title:
-                'Enable location',
+                title: 'Enable location',
                 onTap: () async {
                   Navigator.pop(context);
 
@@ -1272,10 +1173,7 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
                 },
                 fontSize: 16,
 
-                radius:
-                BorderRadius.circular(
-                  7,
-                ),
+                radius: BorderRadius.circular(7),
               ),
             ),
           ],
@@ -1284,7 +1182,6 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
     );
   }
 }
-
 
 class BlockChat extends StatefulWidget {
   const BlockChat({super.key});
@@ -1296,31 +1193,24 @@ class BlockChat extends StatefulWidget {
 class _BlockChatState extends State<BlockChat> {
   @override
   Widget build(BuildContext context) {
-    return   Column(
+    return Column(
       spacing: 5,
-      mainAxisSize:
-      MainAxisSize.min,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        AppIconWidget(
-          assetPath:
-          AssetImages.blockChatBorder
-
-        ),
+        AppIconWidget(assetPath: AssetImages.blockChatBorder),
 
         SizedBox(height: 7),
         AppText(
           text: 'This chat has been blocked',
-          fontWeight:
-          FontWeight.w500,
+          fontWeight: FontWeight.w500,
           fontSize: 20,
         ),
         SizedBox(height: 7),
         AppText(
           text:
-          'Lorem ipsum is Lorem ipsum isLorem ipsum is Lorem ipsum is Lorem ipsum',
+              'Lorem ipsum is Lorem ipsum isLorem ipsum is Lorem ipsum is Lorem ipsum',
           fontSize: 14,
-          fontWeight:
-          FontWeight.w400,
+          fontWeight: FontWeight.w400,
           textAlign: .center,
           color: AppColors.fieldGrey,
         ).padHorizontal(10),
@@ -1330,41 +1220,26 @@ class _BlockChatState extends State<BlockChat> {
           children: [
             Expanded(
               child: AppButton(
-                title:
-                'Delete chat',
+                title: 'Delete chat',
                 onTap: () {
                   Navigator.pop(context);
                 },
                 fontSize: 14,
-                bgColor: Colors
-                    .transparent,
-                border: Border.all(
-                  color: AppColors
-                      .black,
-                ),
-                textColor:
-                AppColors
-                    .black,
-                radius:
-                BorderRadius.circular(
-                  7,
-                ),
+                bgColor: Colors.transparent,
+                border: Border.all(color: AppColors.black),
+                textColor: AppColors.black,
+                radius: BorderRadius.circular(7),
               ),
             ),
             Expanded(
               child: AppButton(
-                title:
-                'Unblock chat',
+                title: 'Unblock chat',
                 onTap: () async {
                   Navigator.pop(context);
-
                 },
                 fontSize: 16,
 
-                radius:
-                BorderRadius.circular(
-                  7,
-                ),
+                radius: BorderRadius.circular(7),
               ),
             ),
           ],
@@ -1374,7 +1249,6 @@ class _BlockChatState extends State<BlockChat> {
   }
 }
 
-
 class ReportChatDialog extends StatefulWidget {
   const ReportChatDialog({super.key});
 
@@ -1383,34 +1257,29 @@ class ReportChatDialog extends StatefulWidget {
 }
 
 class _ReportChatDialogState extends State<ReportChatDialog> {
-
   bool isChecked = false;
+
   @override
   Widget build(BuildContext context) {
-    return   Column(
+    return Column(
       spacing: 5,
-      mainAxisSize:
-      MainAxisSize.min,
+      mainAxisSize: MainAxisSize.min,
       children: [
-
         AppText(
           text: 'Report This Chat?',
-          fontWeight:
-          FontWeight.w500,
+          fontWeight: FontWeight.w500,
           fontSize: 20,
         ),
         SizedBox(height: 7),
         AppText(
           text:
-          'Lorem ipsum is Lorem ipsum isLorem ipsum is Lorem ipsum is Lorem ipsum',
+              'Lorem ipsum is Lorem ipsum isLorem ipsum is Lorem ipsum is Lorem ipsum',
           fontSize: 14,
-          fontWeight:
-          FontWeight.w400,
+          fontWeight: FontWeight.w400,
           textAlign: .center,
           color: AppColors.fieldGrey,
         ).padHorizontal(10),
         SizedBox(height: 15),
-
 
         Row(
           crossAxisAlignment: .start,
@@ -1438,10 +1307,7 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
                 return AppColors.white;
               }),
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: const VisualDensity(
-                horizontal: -4,
-                vertical: -4,
-              ),
+              visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
 
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(6),
@@ -1450,8 +1316,7 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
             ),
             Flexible(
               child: AppText(
-                text:
-                "Report and Block this chat",
+                text: "Report and Block this chat",
                 fontWeight: FontWeight.w400,
                 textAlign: .start,
                 fontSize: 14,
@@ -1464,49 +1329,33 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
           children: [
             Expanded(
               child: AppButton(
-                title:
-                'Cancel',
+                title: 'Cancel',
                 onTap: () {
                   Navigator.pop(context);
                 },
                 fontSize: 14,
-                bgColor: Colors
-                    .transparent,
-                border: Border.all(
-                  color: AppColors
-                      .black,
-                ),
-                textColor:
-                AppColors
-                    .black,
-                radius:
-                BorderRadius.circular(
-                  7,
-                ),
+                bgColor: Colors.transparent,
+                border: Border.all(color: AppColors.black),
+                textColor: AppColors.black,
+                radius: BorderRadius.circular(7),
               ),
             ),
             Expanded(
               child: AppButton(
-                title:
-                'Report',
+                title: 'Report',
                 onTap: () async {
-
-                  if (isChecked ) {
-                   AppRoutes.pop();
+                  if (isChecked) {
+                    AppRoutes.pop();
                   } else {
                     AppSnackBar.show(
                       context: context,
                       message: "Please choose a reason",
                     );
                   }
-
                 },
                 fontSize: 16,
 
-                radius:
-                BorderRadius.circular(
-                  7,
-                ),
+                radius: BorderRadius.circular(7),
               ),
             ),
           ],
@@ -1516,3 +1365,89 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
   }
 }
 
+class ChatSendRequest extends StatefulWidget {
+  const ChatSendRequest({super.key});
+
+  @override
+  State<ChatSendRequest> createState() => _ChatSendRequestState();
+}
+
+class _ChatSendRequestState extends State<ChatSendRequest> {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 10,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(backgroundColor: AppColors.idCardColor,
+              radius: 20,
+              child: AppIconWidget(assetPath: AssetImages.phone),
+            ),
+
+            SizedBox(width: 7,),
+            Flexible(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: .start,
+                //mainAxisAlignment: MainAxisAlignment.start,
+                spacing: 7,
+                children: [
+                  AppText(
+                    text: 'Contact Received',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  AppText(
+                    text:
+                        'Varunesha Wants to share contact information with you.',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12,
+                    maxLine: 2,
+                  ),
+                ],
+              ),
+            ),
+            AppText(
+              text: 'Just now',
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppColors.primaryColor,
+            ),
+          ],
+        ),
+
+        Row(
+          spacing: 10,
+          children: [
+            Expanded(
+              child: AppButton(
+                title: 'Decline',
+                onTap: () {
+                  AppRoutes.pop();
+                },
+                bgColor: AppColors.white,
+                border: Border.all(color: AppColors.red),
+                textColor: AppColors.red,
+                fontSize: 14,
+              ),
+            ),
+            Expanded(
+              child: AppButton(
+                title: 'Accept',
+                onTap: () {
+                  AppRoutes.pop();
+                },
+                bgColor: AppColors.primaryColor,
+                textColor: AppColors.white,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}

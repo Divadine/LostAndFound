@@ -126,39 +126,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           phoneController.text.isNotEmpty) {
                         AppRoutes.pushNamed(AppRoutes.otpScreen);
                       }
-                      // final verified = await AppDialogue.showPopup(
-                      //   context: context,
-                      //   content: OtpDialog(
-                      //     mobileNumber: phoneController.text,
-                      //     isAlternateNumber: false,
-                      //   ),
-                      // );
-                      //
-                      // if (verified) {
-                      //   AppRoutes.pushNamed(
-                      //     AppRoutes.profileScreen,
-                      //     arguments: ProfileScreenModel(isFromEdit: false),
-                      //   );
-                      // }
+
                     },
                   ).padHorizontal(30),
-
-                  // AppButton(
-                  //   title: 'Login',
-                  //   onTap: () {
-                  //
-                  //     if (_formKey.currentState!.validate()) {
-                  //       if(AppPreferences.getIsLoggedIn() == true){
-                  //         AppRoutes.pushNamed(AppRoutes.bottomScreen);
-                  //
-                  //       }
-                  //       AppPreferences.setIsLoggedIn(true);
-                  //
-                  //
-                  //     }
-                  //   },
-                  //   radius: BorderRadius.circular(8),
-                  // ).padHorizontal(30),
                   SizedBox(height: 15),
 
                   AuthChangeText(

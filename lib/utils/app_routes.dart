@@ -205,7 +205,7 @@ class AppRoutes {
         path: '/subCategoryScreen',
         name: subCategoryScreen,
         builder: (context, state) {
-          return SubCategoryScreen();
+          return SubCategoryScreen(category: state.extra as Map<String,dynamic>,);
         },
       ),
 
@@ -221,7 +221,9 @@ class AppRoutes {
         path: '/firstStepperScreen',
         name: firstStepperScreen,
         builder: (context, state) {
-          return FirstStepperScreen();
+          final data = state.extra as Map<String,dynamic>;
+
+          return FirstStepperScreen(subCategory : data['subCategory']);
         },
       ),
 

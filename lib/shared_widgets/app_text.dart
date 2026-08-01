@@ -12,6 +12,7 @@ class AppText extends StatelessWidget {
   final TextDecoration? textDecoration;
   final bool? softWrap;
 
+
   const AppText({
     super.key,
     required this.text,

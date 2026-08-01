@@ -142,7 +142,8 @@ Widget BottomSheetHandOver({
     onTap: onTap,
     child: AppContainer(
       color: isSelected ? AppColors.primaryColor : Colors.transparent,
-      widget: Row(
+      widget:
+      Row(
         spacing: 10,
         mainAxisAlignment: MainAxisAlignment.start,
         //crossAxisAlignment: CrossAxisAlignment.start,

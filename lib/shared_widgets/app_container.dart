@@ -7,18 +7,21 @@ class AppContainer extends StatelessWidget {
   final Color? bgColor;
   final Color? color;
   final double? width;
+  final double? height;
+
 
   const AppContainer({
     super.key,
     required this.widget,
     this.bgColor,
-    this.color, this.width,
+    this.color, this.width, this.height,
 
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: height,
       width: width ?? double.infinity,
       decoration: BoxDecoration(
         border: Border.all(color: color ?? Colors.transparent),

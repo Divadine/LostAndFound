@@ -1,233 +1,41 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
+import 'package:lost_and_found/shared_widgets/app_dropdown_field.dart';
+import 'package:lost_and_found/shared_widgets/app_image_upload_file.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 
+import '../../utils/app_ui_helper.dart';
+
 class FirstStepperScreen extends StatefulWidget {
-  const FirstStepperScreen({super.key});
+  final Map<String, dynamic> subCategory;
+  const FirstStepperScreen({super.key,  required this.subCategory});
 
   @override
   State<FirstStepperScreen> createState() => _FirstStepperScreenState();
 }
 
 class _FirstStepperScreenState extends State<FirstStepperScreen> {
-  List<Map<String, dynamic>> property = [
-    {
-      "id": 1,
-      "category": "Electronics",
-      "image": "electronics.png",
-      "subCategories": [
-        {
-          "name": "Mobile",
-          "fields": [
-            {
-              "key": "brand",
-              "title": "Brand",
-              "type": "dropdown",
-              "options": [
-                "Samsung",
-                "Redmi",
-                "Realme",
-                "Poco",
-                "Vivo",
-                "Oppo",
-                "Apple",
-                "OnePlus"
-              ]
-            },
-            {
-              "key": "model",
-              "title": "Model",
-              "type": "dropdown",
-              "dependsOn": "brand",
-              "options": {
-                "Samsung": [
-                  "Galaxy A20",
-                  "Galaxy A35",
-                  "Galaxy S24"
-                ],
-                "Redmi": [
-                  "Note 12",
-                  "Note 13",
-                  "Note 14"
-                ],
-                "Realme": [
-                  "Narzo 60",
-                  "11 Pro"
-                ],
-                "Poco": [
-                  "X6",
-                  "F6"
-                ]
-              }
-            },
-            {
-              "key": "color",
-              "title": "Color",
-              "type": "dropdown",
-              "options": [
-                "Black",
-                "White",
-                "Blue",
-                "Silver",
-                "Green"
-              ]
-            },
-            {
-              "key": "image",
-              "title": "Upload Image",
-              "type": "image"
-            }
-          ]
-        },
-        {
-          "name": "Laptop",
-          "fields": [
-            {
-              "key": "brand",
-              "title": "Brand",
-              "type": "dropdown",
-              "options": [
-                "HP",
-                "Dell",
-                "Lenovo",
-                "Asus",
-                "Acer",
-                "Apple"
-              ]
-            },
-            {
-              "key": "ram",
-              "title": "RAM",
-              "type": "dropdown",
-              "options": [
-                "4 GB",
-                "8 GB",
-                "16 GB",
-                "32 GB"
-              ]
-            },
-            {
-              "key": "color",
-              "title": "Color",
-              "type": "dropdown",
-              "options": [
-                "Black",
-                "Silver",
-                "Grey"
-              ]
-            },
-            {
-              "key": "image",
-              "title": "Upload Image",
-              "type": "image"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "category": "Documents",
-      "image": "documents.png",
-      "subCategories": [
-        {
-          "name": "Aadhar Card",
-          "fields": [
-            {
-              "key": "holderName",
-              "title": "Holder Name",
-              "type": "text"
-            },
-            {
-              "key": "lastFour",
-              "title": "Last 4 Digits",
-              "type": "number"
-            },
-            {
-              "key": "image",
-              "title": "Upload Image",
-              "type": "image"
-            }
-          ]
-        },
-        {
-          "name": "Driving License",
-          "fields": [
-            {
-              "key": "holderName",
-              "title": "Holder Name",
-              "type": "text"
-            },
-            {
-              "key": "state",
-              "title": "State",
-              "type": "dropdown",
-              "options": [
-                "Tamil Nadu",
-                "Kerala",
-                "Karnataka"
-              ]
-            },
-            {
-              "key": "image",
-              "title": "Upload Image",
-              "type": "image"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "category": "Gold",
-      "image": "gold.png",
-      "subCategories": [
-        {
-          "name": "Ring",
-          "fields": [
-            {
-              "key": "metal",
-              "title": "Metal",
-              "type": "dropdown",
-              "options": [
-                "Gold",
-                "Silver",
-                "Platinum"
-              ]
-            },
-            {
-              "key": "weight",
-              "title": "Weight",
-              "type": "text"
-            },
-            {
-              "key": "color",
-              "title": "Color",
-              "type": "dropdown",
-              "options": [
-                "Yellow",
-                "Rose Gold",
-                "White Gold"
-              ]
-            },
-            {
-              "key": "image",
-              "title": "Upload Image",
-              "type": "image"
-            }
-          ]
-        }
-      ]
-    }
-  ];
 
+  List<Map<String,dynamic>> filteredSubCategory =[];
+  late String pickedFile;
+
+
+  @override
+  void initState(){
+    super.initState();
+
+    filteredSubCategory = widget.subCategory['fields'];
+    print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^$filteredSubCategory');
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -246,26 +54,28 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         children: [
           Expanded(
             child: ListView.builder(
-              itemCount: property.length,
+              itemCount: filteredSubCategory.length,
               itemBuilder: (context, index) {
-                final field= property[index];
+                final field= filteredSubCategory[index];
 
                 switch(field['type']) {
                   case "text" :
                     return buildTextFieldWithHeading(
                       title:field['title'],
                       fieldWidget: AppTextField(
+                       borderRadius:BorderRadius.circular(0),
                         hintText: '',
                         textController: TextEditingController(),
                         onChange: (v) {},
                         onSubmit: (v) {},
-                      ),
+                      ).pad(),
                     );
 
                   case 'number' :
                     return buildTextFieldWithHeading(
-                      title: '',
+                      title: field['title'] ?? '',
                       fieldWidget: AppTextField(
+
                         hintText: '',
                         textController: TextEditingController(),
                         onChange: (v) {},
@@ -273,13 +83,33 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                       ),
                     );
 
-                  case "dropdown" :
-                    return DropdownButtonFormField(
-                        items: (field['options'] as List).map((e) => DropdownMenuItem(value:e,child: AppText(text: e))).toList(),
-                        onChanged: (v){});
+                  case "dropdown":
+                    return buildTextFieldWithHeading(
+                      title: field['title'] ?? '',
+                      fieldWidget: AppDropdownField<String>(
+                        value: field['selectedValue'] as String?,
+                        hintText: 'Select ${field['title'] ?? 'item'}',
+                        items: List<String>.from(field['options'] ?? []),
+                        itemLabel: (e) => e,
+                        selectedItemColor: AppColors.primaryColor.withAlpha(30),
+                        selectedItemTextColor: AppColors.primaryColor,
+                        onChanged: (v) => setState(() => field['selectedValue'] = v),
+                      ),
+                    );
 
-                  case "image" :
-                    return AppCachedNetworkImage(imageUrl: '');
+                  case "image":
+                    return AppImageUploadField(
+                      title: 'Upload Image',
+                      images: field['pickedImages'] ?? [],
+                      maxImages: field['maxImages'] ?? 4,
+                      onAdd: () async {
+
+
+                      },
+                      onRemove: (i) => setState(() => (field['pickedImages'] as List).removeAt(i)),
+                    );
+
+
 
                   default :
                     return SizedBox();
@@ -295,7 +125,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
             },
           ),
         ],
-      ),
+      ).pad(10),
     );
   }
 }

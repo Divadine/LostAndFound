@@ -168,10 +168,14 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
+
+
                         Container(
-                          padding: .zero,
+                          height: 30,
+                          width: 30,
                           decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.grey),
+                            border: Border.all(color: AppColors.fieldGrey,),
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           child: PopupMenuButton(
                             padding: EdgeInsets.zero,

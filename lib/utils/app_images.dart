@@ -130,6 +130,12 @@ class AssetImages {
   static const String send = "assets/images/send.svg";
   static const String chatEditPencilIcon = "assets/images/chatEditPencilIcon.svg";
   static const String doubleTick = "assets/images/doubleTick.svg";
+  static const String phone = "assets/images/phone.svg";
+  static const String dropDown = "assets/images/dropDown.svg";
+  static const String dropUp = "assets/images/dropUp.svg";
+
+
+
 
 
 

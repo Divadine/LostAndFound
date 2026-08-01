@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -19,32 +20,110 @@ class CategoryRadiosListsScreen extends StatefulWidget {
 }
 
 class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
-  List<Map<String, String>> category = [
+  final List<Map<String, dynamic>> products = [
     {
-      'categoryName': 'Dinesh',
-      'img':
-          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRBsa5c2bVIPpKs5m1eXf3Y5mlLeqVhbTr1YfAXWYkvRgEZmbyakF7cGc&s=10',
+      "id": 1,
+      "category": "Electronics",
+      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvM3NbtpQg4MM517dpJ8SzhyEhQ0ZNTlS-bO79XfrZhA&s",
+      "subCategories": [
+        {
+          "name": "Mobile",
+          "fields": [
+            {
+              "key": "brand",
+              "title": "Brand",
+              "type": "dropdown",
+              "options": [
+                "Samsung",
+                "Apple",
+                "Redmi",
+                "Realme"
+              ]
+            },
+            {
+              "key": "model",
+              "title": "Model",
+              "type": "text"
+            },
+            {
+              "key": "color",
+              "title": "Color",
+              "type": "dropdown",
+              "options": [
+                "Black",
+                "White",
+                "Blue"
+              ]
+            },
+            {
+              "key": "image",
+              "title": "Upload Image",
+              "type": "image"
+            }
+          ]
+        },
+        {
+          "name": "Laptop",
+          "fields": [
+            {
+              "key": "brand",
+              "title": "Brand",
+              "type": "dropdown",
+              "options": [
+                "HP",
+                "Dell",
+                "Lenovo"
+              ]
+            },
+            {
+              "key": "ram",
+              "title": "RAM",
+              "type": "dropdown",
+              "options": [
+                "8 GB",
+                "16 GB",
+                "32 GB"
+              ]
+            }
+          ]
+        }
+      ]
     },
-
     {
-      'categoryName': 'Kumar',
-      'img':
-          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRBsa5c2bVIPpKs5m1eXf3Y5mlLeqVhbTr1YfAXWYkvRgEZmbyakF7cGc&s=10',
-    },
+      "id": 2,
+      "category": "Documents",
+      "image": "https://digitalinspiration.com/static/d15fbd06120f76d62fd4eb1a55a8d52c/file-upload-forms.png",
+      "subCategories": [
+        {
+          "name": "Aadhar Card",
+          "fields": [
+            {
+              "key": "holderName",
+              "title": "Holder Name",
+              "type": "text"
+            },
+            {
+              "key": "lastFour",
+              "title": "Last 4 Digits",
+              "type": "number"
+            }
+          ]
+        }
+      ]
+    }
   ];
   TextEditingController searchController = TextEditingController();
   int? selectedIndex;
-  List<Map<String, String>> filteredCategory = [];
+  List<Map<String, dynamic>> filteredCategory = [];
 
   @override
   void initState() {
     super.initState();
-    filteredCategory = category;
+    filteredCategory = products;
   }
-
   void searchCategory(String value) {
     setState(() {
-      filteredCategory = category
+      filteredCategory = products
           .where(
             (item) => item['categoryName']!.toLowerCase().contains(
               value.toLowerCase(),
@@ -97,12 +176,12 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
               ? CategoryNotFound()
               : Expanded(
                   child: ListView.builder(
-                    itemCount: category.length,
+                    itemCount: products.length,
                     itemBuilder: (context, index) {
-                      final cat = category[index];
+                      final cat = products[index];
                       return buildTile(
-                        categoryName: cat['categoryName']!,
-                        img: cat['img']!,
+                        categoryName: cat['category'] ?? '',
+                        img: cat['image'] ?? '',
                         isSelected: selectedIndex == index,
                         onTap: () {},
                         value: index,
@@ -117,8 +196,11 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
         (selectedIndex != null) ? AppButton(
             title: 'Next',
             onTap: () {
-              AppRoutes.pushNamed(AppRoutes.subCategoryScreen);
+              final selectedCategory =filteredCategory[selectedIndex!];
+              context.pushNamed(AppRoutes.subCategoryScreen,extra:selectedCategory );
+
             },
+
             icon: AssetImages.arrow_forward,
           ).pad(16) : SizedBox(),
         ),
@@ -141,7 +223,7 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
       },
       child: AppContainer(
         widget: Row(
-          spacing: 20,
+          spacing: 10,
           children: [
             AppCachedNetworkImage(
               imageUrl: img,
@@ -150,7 +232,7 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
               width: 50,
               borderRadius: BorderRadius.circular(30),
             ),
-            AppText(text: categoryName),
+            AppText(text: categoryName,fontWeight: FontWeight.w500,fontSize: 14,maxLine: 2,textOverflow: TextOverflow.ellipsis,),
             Spacer(),
 
             Radio<int>(

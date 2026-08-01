@@ -319,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       GestureDetector(
                         onTap: () {
-
+                          AppDialogue.showPopup(context: context, content: ChatSendRequest());
                           //AppRoutes.pushNamed(AppRoutes.loginScreen);
                         },
                         child: AppIconWidget(

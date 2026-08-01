@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -11,7 +12,8 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/category_not_found.dart';
 
 class SubCategoryScreen extends StatefulWidget {
-  const SubCategoryScreen({super.key});
+  final Map<String, dynamic> category;
+  const SubCategoryScreen({super.key, required this.category});
 
   @override
   State<SubCategoryScreen> createState() =>
@@ -20,35 +22,28 @@ class SubCategoryScreen extends StatefulWidget {
 
 class _SubCategoryScreenState extends State<SubCategoryScreen> {
 
-
-  List<Map<String, String>> category = [
-    {
-      'categoryName': 'Dinesh',
-      'img':
-      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRBsa5c2bVIPpKs5m1eXf3Y5mlLeqVhbTr1YfAXWYkvRgEZmbyakF7cGc&s=10',
-    },
-
-    {
-      'categoryName': 'Kumar',
-      'img':
-      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRBsa5c2bVIPpKs5m1eXf3Y5mlLeqVhbTr1YfAXWYkvRgEZmbyakF7cGc&s=10',
-    },
-  ];
+  late List<Map<String,dynamic>> subCategories;
+  List<Map<String,dynamic>> filteredCategory =[];
   TextEditingController searchController = TextEditingController();
   int? selectedIndex;
-  List<Map<String, String>> filteredCategory = [];
+
 
 
   @override
   void initState() {
     super.initState();
-    filteredCategory = category;
+    print(widget.category);
+    subCategories = widget.category["subCategories"];
+    filteredCategory = subCategories;
+    print('**************************************************$subCategories');
+    print('filtered category --------------------------->$filteredCategory');
+
   }
 
   void searchCategory(String value) {
     setState(() {
-      filteredCategory = category
-          .where((item) => item['categoryName']!
+      filteredCategory = subCategories
+          .where((item) => item['name']!
           .toLowerCase()
           .contains(value.toLowerCase()))
           .toList();
@@ -95,12 +90,12 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
           SizedBox(height: 5),
           filteredCategory.isEmpty ? CategoryNotFound() : Expanded(
             child: ListView.builder(
-              itemCount: category.length,
+              itemCount: filteredCategory.length,
               itemBuilder: (context, index) {
-                final cat = category[index];
+                final cat = filteredCategory[index];
                 return buildTile(
-                  categoryName: cat['categoryName']!,
-                  img: cat['img']!,
+                  categoryName: cat['name']!,
+                  img: cat['image'] ?? '',
                   isSelected: selectedIndex == index,
                   onTap: () {},
                   value:index,
@@ -117,7 +112,8 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
         (selectedIndex != null) ? AppButton(
           title: 'Next',
           onTap: () {
-            AppRoutes.pushNamed(AppRoutes.firstStepperScreen);
+            final selectedSubCategory = filteredCategory[selectedIndex!];
+            context.pushNamed(AppRoutes.firstStepperScreen,extra: {'category' : widget.category ,'subCategory' :selectedSubCategory} );
           },
           icon: AssetImages.arrow_forward,
         ).pad(16) : SizedBox(),
