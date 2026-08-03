@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/screens/authentication/profile_screen.dart';
@@ -26,6 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String? errorText;
+
+  StreamController<String?> numberStream = StreamController.broadcast();
 
   @override
   Widget build(BuildContext context) {
@@ -67,47 +71,58 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         buildTextFieldWithHeading(
                           title: 'Mobile Number',
-                          fieldWidget: Column(
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                spacing: 10,
+                          fieldWidget: StreamBuilder(
+                            stream: numberStream.stream,
+                            builder: (context, snapshot) {
+                              final snapData = snapshot.data;
+                              errorText = snapData;
+                              return Column(
                                 children: [
-                                  //+91
-                                  Expanded(
-                                    flex: 2,
-                                    child: AppTextField(
-                                      readOnly: true,
-                                      hintText: '+91',
-                                      textController: TextEditingController(),
-                                      textInputType: TextInputType.phone,
-                                      maxLength: 10,
-                                      onChange: (v) {},
-                                      onSubmit: (v) {},
-                                    ),
-                                  ),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    spacing: 10,
+                                    children: [
+                                      //+91
+                                      Expanded(
+                                        flex: 2,
+                                        child: AppTextField(
+                                          readOnly: true,
+                                          hintText: '+91',
+                                          textController:
+                                              TextEditingController(),
+                                          textInputType: TextInputType.phone,
+                                          maxLength: 10,
+                                          onChange: (v) {},
+                                          onSubmit: (v) {},
+                                        ),
+                                      ),
 
-                                  Expanded(
-                                    flex: 8,
-                                    child: AppTextField(
-                                      hintText: 'Enter a mobile number',
-                                      textController: phoneController,
-                                      textInputType: TextInputType.phone,
-                                      maxLength: 10,
-                                      onChange: (v) {
-                                        setState(() {
-                                          errorText =
-                                              AppUtils.validateMobileNumber(v);
-                                        });
-                                      },
-                                      onSubmit: (v) {},
-                                    ),
+                                      Expanded(
+                                        flex: 8,
+                                        child: AppTextField(
+                                          hintText: 'Enter a mobile number',
+                                          textController: phoneController,
+                                          textInputType: TextInputType.phone,
+                                          maxLength: 10,
+                                          onChange: (v) {
+                                            errorText =
+                                                AppUtils.validateMobileNumber(
+                                                  v,
+                                                );
+                                            numberStream.add(errorText);
+                                          },
+
+                                          onSubmit: (v) {},
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                  if (errorText != null)
+                                    buildErrorText(errorText: errorText ?? ''),
                                 ],
-                              ),
-                              if (errorText != null)
-                                buildErrorText(errorText: errorText ?? ''),
-                            ],
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -117,16 +132,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   AppButton(
                     title: "Login",
                     onTap: () async {
-                      setState(() {
-                        errorText = AppUtils.validateMobileNumber(
-                          phoneController.text,
-                        );
-                      });
+                      errorText = AppUtils.validateMobileNumber(
+                        phoneController.text,
+                      );
+
+                      numberStream.add(errorText);
                       if (errorText == null &&
                           phoneController.text.isNotEmpty) {
                         AppRoutes.pushNamed(AppRoutes.otpScreen);
                       }
-
                     },
                   ).padHorizontal(30),
                   SizedBox(height: 15),

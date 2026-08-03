@@ -30,6 +30,10 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
   int seconds = 30;
   int? enableRestart;
   String? errorText;
+  StreamController<String> otpStream = StreamController.broadcast();
+  StreamController<int> timeStream = StreamController.broadcast();
+
+
 
   final List<TextEditingController> _controller = List.generate(
     4,
@@ -65,19 +69,21 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
     if (otp.length == 4) {
       FocusScope.of(context).unfocus();
     }
+
+    otpStream.add(otp);
   }
 
   void _startTimer() {
     timer?.cancel();
     seconds = 30;
-
+    timeStream.add(seconds);
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (seconds == 0) {
         timer.cancel();
       } else {
-        setState(() {
           seconds--;
-        });
+
+          timeStream.add(seconds);
       }
     });
   }
@@ -91,6 +97,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
   @override
   void dispose() {
     timer?.cancel();
+    otpStream.close();
 
     for (var controller in _controller) {
       controller.dispose();
@@ -127,78 +134,85 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
           textAlign: TextAlign.center,
         ).padHorizontal(),
 
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          spacing: 10,
-          children: List.generate(_controller.length, (index) {
-            return Container(
-              height: 50,
-              width: 50,
+        StreamBuilder<String>(
+          stream: otpStream.stream,
+            initialData: '',
+          builder: (context, asyncSnapshot) {
+            final otpData = asyncSnapshot.data ?? '';
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 10,
+              children: List.generate(_controller.length, (index) {
+                return Container(
+                  height: 50,
+                  width: 50,
 
-              child: TextField(
-                controller: _controller[index],
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  counterText: '',
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(
-                      color: isFocused[index]
-                          ? AppColors.grey
-                          : otpError[index]
-                          ? AppColors.red
-                          : _controller[index].text.isEmpty
-                          ? AppColors.grey
-                          : AppColors.primaryColor,
-                      width: 1.5,
+                  child: TextField(
+                    controller: _controller[index],
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      counterText: '',
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: isFocused[index]
+                              ? AppColors.grey
+                              : otpError[index]
+                              ? AppColors.red
+                              :otpData.length <= index
+                              ? AppColors.grey
+                              : AppColors.primaryColor,
+                          width: 1.5,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          width: 1.5,
+                          color: isFocused[index]
+                              ? AppColors.grey
+                              : otpError[index]
+                              ? AppColors.red
+                              :otpData.length <= index
+                              ? AppColors.grey
+                              : AppColors.primaryColor,
+                        ),
+                      ),
                     ),
+                    focusNode: focusNode[index],
+                    maxLength: 1,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.phone,
+                    onChanged: (v) {
+                      if (v.contains(' ') ||
+                          v.contains('.') ||
+                          v.contains(',') ||
+                          v.contains('-')) {
+                        setState(() {
+                          errorText = "OTP cannot contain special character";
+                          otpError[index] = true;
+                        });
+                        return;
+                      }
+
+                      setState(() {
+                        errorText = null;
+                        otpError[index] = false;
+                      });
+
+                      _onChanged(index, v);
+
+                      _controller[index].selection = TextSelection(
+                        baseOffset: 0,
+                        extentOffset: _controller[index].text.length,
+                      );
+                    },
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(
-                      width: 1.5,
-                      color: isFocused[index]
-                          ? AppColors.grey
-                          : otpError[index]
-                          ? AppColors.red
-                          : _controller[index].text.isEmpty
-                          ? AppColors.grey
-                          : AppColors.primaryColor,
-                    ),
-                  ),
-                ),
-                focusNode: focusNode[index],
-                maxLength: 1,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.phone,
-                onChanged: (v) {
-                  if (v.contains(' ') ||
-                      v.contains('.') ||
-                      v.contains(',') ||
-                      v.contains('-')) {
-                    setState(() {
-                      errorText = "OTP cannot contain special character";
-                      otpError[index] = true;
-                    });
-                    return;
-                  }
-
-                  setState(() {
-                    errorText = null;
-                    otpError[index] = false;
-                  });
-
-                  _onChanged(index, v);
-
-                  _controller[index].selection = TextSelection(
-                    baseOffset: 0,
-                    extentOffset: _controller[index].text.length,
-                  );
-                },
-              ),
+                );
+              }),
             );
-          }),
+          }
         ),
 
         if (errorText != null)
@@ -222,28 +236,42 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AppIconWidget(assetPath: AssetImages.time),
-              AppText(
-                text: _formatTime(seconds),
-                color: AppColors.navyBlue,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
+              StreamBuilder(
+                stream: timeStream.stream,
+                builder: (context, asyncSnapshot) {
+                  final timeData = asyncSnapshot.data ?? 0;
+                  return AppText(
+                    text: _formatTime(timeData),
+                    color: AppColors.navyBlue,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  );
+                }
               ),
             ],
           ),
         ),
 
-        AuthChangeText(
-          text1: 'Didn’t receive ?',
-          fadeColor: seconds != 0 ? AppColors.fadeColor : null,
+        StreamBuilder(
+          stream: timeStream.stream,
+            //initialData: 30,
+          builder: (context, asyncSnapshot) {
 
-          tappableText: 'Resend',
-          onTap: () {
-            if (seconds == 0) {
-              setState(() {
-                _startTimer();
-              });
-            }
-          },
+            final reSendData = asyncSnapshot.data ?? 0;
+            return AuthChangeText(
+              text1: 'Didn’t receive ?',
+              fadeColor: reSendData != 0 ? AppColors.fadeColor : null,
+              tappableText: 'Resend',
+              onTap: () {
+                if (reSendData == 0) {
+                  setState(() {
+
+                    _startTimer();
+                  });
+                }
+              },
+            );
+          }
         ),
 
         AppButton(

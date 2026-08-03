@@ -106,7 +106,7 @@ class AppRoutes {
         name: profileScreen,
         builder: (context, state) {
           final model = state.extra as ProfileScreenModel;
-          return ProfileScreen(profileModel: model);
+          return ProfileScreen(profileModel:model);
         },
       ),
 

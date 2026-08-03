@@ -1,12 +1,12 @@
-import 'package:flutter/gestures.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/screens/authentication/profile_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
-import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
@@ -24,6 +24,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   TextEditingController phoneController = TextEditingController();
   TextEditingController textController = TextEditingController();
+
+  StreamController<String?> numberStream = StreamController.broadcast();
+  StreamController<String?> nameStream = StreamController.broadcast();
 
   @override
   Widget build(BuildContext context) {
@@ -63,83 +66,91 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       textAlign: TextAlign.center,
                     ).padHorizontal(),
 
-                    buildTextFieldWithHeading(
-                      title: 'Name',
-                      fieldWidget:
-                      Column(
-                        children: [
-                          AppTextField(
-                            hintText: 'Enter Name',
-                            textController: textController,
+                    StreamBuilder(
+                      stream: nameStream.stream,
+                      builder: (context, asyncSnapshot) {
+                        final nameData = asyncSnapshot.data;
+                        return buildTextFieldWithHeading(
+                          title: 'Name',
+                          fieldWidget:
+                          Column(
+                            children: [
+                              AppTextField(
+                                hintText: 'Enter Name',
+                                textController: textController,
+                                onChange: (v) {
+                                  nameStream.add(AppUtils.validateName(v));
+                                  // setState(() {
+                                  //   nameErrorText = AppUtils.validateName(v);
+                                  // });
+                                },
 
-                            onChange: (v) {
-                              setState(() {
-                                nameErrorText = AppUtils.validateName(v);
-                              });
-                            },
-
-                            onSubmit: (v) {},
+                                onSubmit: (v) {},
+                              ),
+                              if (nameData != null)
+                                buildErrorText(errorText: nameData ),
+                            ],
                           ),
-                          if (nameErrorText != null)
-                            buildErrorText(errorText: nameErrorText ?? ''),
-                        ],
-                      ),
 
+                        );
+                      }
                     ),
 
                     // +91
-                    buildTextFieldWithHeading(
-                      title: 'Mobile Number',
-                      fieldWidget: Column(
-                        children: [
-                          Row(
-                            spacing: 10,
+                    StreamBuilder(
+                      stream: numberStream.stream,
+                      builder: (context, asyncSnapshot) {
+                        final numberData = asyncSnapshot.data;
+                        return buildTextFieldWithHeading(
+                          title: 'Mobile Number',
+                          fieldWidget: Column(
                             children: [
-                              Expanded(
-                                flex: 2,
-                                child: AppTextField(
-                                  hintText: '+91',
-                                  textController: TextEditingController(),
-                                  onChange: (v) {},
-                                  onSubmit: (v) {},
-                                ),
+                              Row(
+                                spacing: 10,
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: AppTextField(
+                                      hintText: '+91',
+                                      textController: TextEditingController(),
+                                      onChange: (v) {},
+                                      onSubmit: (v) {},
+                                    ),
+                                  ),
+
+                                  Expanded(
+                                    flex: 8,
+                                    child: AppTextField(
+                                      maxLength: 10,
+                                      hintText: 'Enter a mobile number',
+                                      textController: phoneController,
+                                      onChange: (v) {
+
+                                        numberStream.add(AppUtils.validateMobileNumber(v));
+                                        // setState(() {
+                                        //   errorText =  AppUtils.validateMobileNumber(v);
+                                        //
+                                        // });
+                                      },
+                                      onSubmit: (v) {},
+                                      textInputType: TextInputType.phone,
+                                    ),
+                                  ),
+                                ],
                               ),
-
-                              Expanded(
-                                flex: 8,
-                                child: AppTextField(
-                                  maxLength: 10,
-                                  hintText: 'Enter a mobile number',
-                                  textController: phoneController,
-                                  onChange: (v) {
-
-                                    setState(() {
-                                      errorText =  AppUtils.validateMobileNumber(v);
-
-                                    });
-
-
-                                  },
-                                  onSubmit: (v) {},
-                                  textInputType: TextInputType.phone,
-                                ),
-                              ),
+                              if (numberData != null)
+                                buildErrorText(errorText: numberData ),
                             ],
                           ),
-                          if (errorText != null)
-                            buildErrorText(errorText: errorText ?? ''),
-                        ],
-                      ),
+                        );
+                      }
                     ),
 
                     AppButton(
                       title: 'Register',
                       onTap: () {
                         if (_formKey.currentState!.validate()) {
-                          AppDialogue.showPopup(
-                            context: context,
-                            content: DisclaimerPopUP(isFromOnBoard: true),
-                          );
+                         AppRoutes.pushNamed(AppRoutes.profileScreen,arguments: ProfileScreenModel(isFromEdit: false));
                         }
                       },
                       radius: BorderRadius.circular(8),

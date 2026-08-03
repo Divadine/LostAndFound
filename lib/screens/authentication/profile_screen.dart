@@ -38,9 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool isNotFromSetUp = false;
   bool isAlternativeNumberValid = false;
-  bool isVerified = false;
   bool isPinCodeValid = false;
-  File? selectedImage;
   String otp = '';
   Timer? timer;
   int seconds = 30;
@@ -48,6 +46,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? errorText;
   bool isFormValid = false;
   late String selectedLocation;
+  StreamController<String?> nameStream = StreamController.broadcast();
+  StreamController<String?> mobileStream = StreamController.broadcast();
+  StreamController<bool?> verifyMobileStream = StreamController.broadcast();
+  StreamController<String?> pinStream = StreamController.broadcast();
+  StreamController<File?> imageStream = StreamController.broadcast();
+  File? choosenImage;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -83,70 +87,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (singleLocation != null) {
       final locations = singleLocation as SelectedLocationModel;
-      setState(() {
         addressController.text = locations.address;
-      });
-      // checkFormValidation();
+
     }
   }
 
-  // void checkFormValidation() {
-  //   setState(() {
-  //     isFormValid =
-  //         selectedImage != null &&
-  //         AppUtils.validateName(nameController.text) == null &&
-  //         AppUtils.validateMobileNumber(mobileController.text) == null &&
-  //         AppUtils.validatePincode(pinController.text) == null &&
-  //         AppUtils.required(countryController.text) == null &&
-  //         AppUtils.required(stateController.text) == null &&
-  //         AppUtils.required(cityController.text) == null &&
-  //         AppUtils.required(addressController.text) == null &&
-  //         AppUtils.required(landmarkController.text) == null;
-  //   });
-  // }
-
-  void _onPinCodeChanged(String value) {
-    setState(() {
-      isPinCodeValid = AppUtils.validatePincode(value) == null;
-    });
+  String? _validatePinCode(String value) {
+    final errorPinCode = AppUtils.validatePincode(value);
+    isPinCodeValid = errorPinCode == null;
+    return errorPinCode;
   }
 
   Future<void> photoFromGallery() async {
     final XFile? pic = await picker.pickImage(source: ImageSource.gallery);
 
     if (pic != null) {
-      setState(() {
-        selectedImage = File(pic.path);
-      });
+      choosenImage = File(pic.path);
+
+      imageStream.add(File(pic.path));
     }
 
     // checkFormValidation();
   }
 
   void deleteProfilePicture() {
-    if (selectedImage == null) return;
-    selectedImage = null;
-    setState(() {});
+    if (choosenImage == null) return;
+    choosenImage = null;
+
+    imageStream.add(null);
     AppRoutes.pop();
 
     // checkFormValidation();
   }
 
   @override
+  @override
   void dispose() {
+    nameStream.close();
+    mobileStream.close();
+    pinStream.close();
+
     nameController.dispose();
     mobileController.dispose();
     alternativeController.dispose();
     pinController.dispose();
-    countryController.dispose();
-    stateController.dispose();
-    cityController.dispose();
-    addressController.dispose();
-    landmarkController.dispose();
-
-    for (final c in _controller) {
-      c.dispose();
-    }
 
     timer?.cancel();
 
@@ -182,117 +166,124 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fontWeight: FontWeight.w600,
                 ),
 
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      backgroundImage: selectedImage != null
-                          ? FileImage(selectedImage!)
-                          : null,
-                      radius: 50,
-                      child: selectedImage == null ? Icon(Icons.person) : null,
-                    ),
+                StreamBuilder(
+                  stream: imageStream.stream,
+                  builder: (context, asyncSnapshot) {
+                    final selectedImage = asyncSnapshot.data;
+                    return Stack(
+                      children: [
+                        CircleAvatar(
+                          backgroundImage: selectedImage != null
+                              ? FileImage(selectedImage)
+                              : null,
+                          radius: 50,
+                          child: selectedImage == null
+                              ? Icon(Icons.person)
+                              : null,
+                        ),
 
-                    Positioned(
-                      bottom: 0,
-                      right: -4,
+                        Positioned(
+                          bottom: 0,
+                          right: -4,
 
-                      child: GestureDetector(
-                        onTap: () {
-                          FocusScope.of(context).unfocus();
-                          AppUiHelper.showBottomSheet(
-                            maxHeightFactor: 0.25,
-                            context: context,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              spacing: 10,
-                              children: [
-                                Align(
-                                  alignment: Alignment.topRight,
-                                  child: InkWell(
-                                    onTap: () {
-                                      AppRoutes.pop();
-                                    },
-                                    child: AppIconWidget(
-                                      assetPath: AssetImages.crossIcon,
+                          child: GestureDetector(
+                            onTap: () {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              AppUiHelper.showBottomSheet(
+                                maxHeightFactor: 0.25,
+                                context: context,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  spacing: 10,
+                                  children: [
+                                    Align(
+                                      alignment: Alignment.topRight,
+                                      child: InkWell(
+                                        onTap: () {
+                                          AppRoutes.pop();
+                                        },
+                                        child: AppIconWidget(
+                                          assetPath: AssetImages.crossIcon,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () async {
-                                    await photoFromGallery();
-                                    AppRoutes.pop();
-                                  },
+                                    GestureDetector(
+                                      onTap: () async {
+                                        await photoFromGallery();
+                                        AppRoutes.pop();
+                                      },
 
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    spacing: 10,
-                                    children: [
-                                      AppIconWidget(
-                                        assetPath: AssetImages.galleryImage,
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        spacing: 10,
+                                        children: [
+                                          AppIconWidget(
+                                            assetPath: AssetImages.galleryImage,
+                                          ),
+                                          AppText(
+                                            text: 'Choose from gallery',
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 14,
+                                          ),
+                                        ],
                                       ),
-                                      AppText(
-                                        text: 'Choose from gallery',
-                                        fontWeight: FontWeight.w400,
-                                        fontSize: 14,
+                                    ),
+                                    Divider(),
+                                    GestureDetector(
+                                      onTap: () {
+                                        deleteProfilePicture();
+                                      },
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        spacing: 10,
+                                        children: [
+                                          AppIconWidget(
+                                            assetPath: AssetImages.delete,
+                                          ),
+                                          AppText(
+                                            text: 'Delete profile picture',
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 14,
+                                            color: AppColors.red,
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                                Divider(),
-                                GestureDetector(
-                                  onTap: () {
-                                    if (selectedImage == null) return;
-                                    selectedImage = null;
-                                    setState(() {});
-                                    AppRoutes.pop();
-                                  },
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    spacing: 10,
-                                    children: [
-                                      AppIconWidget(
-                                        assetPath: AssetImages.delete,
-                                      ),
-                                      AppText(
-                                        text: 'Delete profile picture',
-                                        fontWeight: FontWeight.w400,
-                                        fontSize: 14,
-                                        color: AppColors.red,
-                                      ),
-                                    ],
-                                  ),
+                              );
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color: AppColors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Container(
+                                //color: AppColors.white,
+                                padding: EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.fieldGrey.withAlpha(70),
                                 ),
-                              ],
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color: AppColors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Container(
-                            //color: AppColors.white,
-                            padding: EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.fieldGrey.withAlpha(70),
-                            ),
-                            child: AppIconWidget(
-                              assetPath: AssetImages.camera,
-                              size: 20,
+                                child: AppIconWidget(
+                                  assetPath: AssetImages.camera,
+                                  size: 20,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
 
                 //userid
@@ -312,21 +303,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 //name field
                 buildTextFieldWithHeading(
                   title: 'Name',
-
                   fieldWidget: AppTextField(
                     hintText: 'enter name',
                     textController: nameController,
-                    onChange: (v) {
-                      // checkFormValidation();
-                    },
+                    // onChange: (v) {
+                    //   nameStream.add(AppUtils.validateName(v));
+                    //   // checkFormValidation();
+                    // },
                     onSubmit: (v) {},
                     validator: (e) {
                       if (e == null) return null;
                       return AppUtils.validateName(e);
                     },
+                    onChange: (String p1) {},
                   ),
                 ),
-
                 // Mobile Number
                 buildTextFieldWithHeading(
                   title: 'Mobile Number',
@@ -336,6 +327,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Expanded(
                         flex: 2,
                         child: AppTextField(
+                          readOnly: true,
                           hintText: '+91',
                           textController: countryCodeController,
                           onChange: (v) {},
@@ -351,9 +343,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           hintText: 'Enter a mobile number',
                           textController: mobileController,
                           onChange: (v) {
-                            setState(() {
-                              errorText = AppUtils.validateMobileNumber(v);
-                            });
+                            // errorText = AppUtils.validateMobileNumber(v);
                           },
                           onSubmit: (v) {},
                           textInputType: TextInputType.phone,
@@ -364,159 +354,177 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
 
                 // Alternate Mobile Number
-                buildTextFieldWithHeading(
-                  title: ' Alternate Mobile Number',
-                  fieldWidget: Column(
-                    children: [
-                      Row(
-                        spacing: 10,
+                StreamBuilder(
+                  stream: mobileStream.stream,
+                  builder: (context, asyncSnapshot) {
+                    final numberData = asyncSnapshot.data;
+                    return buildTextFieldWithHeading(
+                      title: ' Alternate Mobile Number',
+                      fieldWidget: Column(
                         children: [
-                          Expanded(
-                            flex: 2,
-                            child: AppTextField(
-                              readOnly: true,
-                              hintText: '+91',
-                              textController: countryCodeController2,
-                              onChange: (v) {},
-                              onSubmit: (v) {},
-                            ),
-                          ),
+                          Row(
+                            spacing: 10,
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: AppTextField(
+                                  readOnly: true,
+                                  hintText: '+91',
+                                  textController: countryCodeController2,
+                                  onChange: (v) {},
+                                  onSubmit: (v) {},
+                                ),
+                              ),
 
-                          Expanded(
-                            flex: 8,
-                            child: AppTextField(
-                              maxLength: 10,
-                              hintText: 'Enter a mobile number',
-                              textController: alternativeController,
-                              onChange: (v) {
-                                setState(() {
-                                  errorText = AppUtils.validateMobileNumber(v);
-                                });
-                              },
-                              onSubmit: (v) {},
-                              textInputType: TextInputType.phone,
-                              suffixIcon: GestureDetector(
-                                onTap: () {
-                                  if (isVerified) return;
-                                  if (AppUtils.validateMobileNumber(
-                                        alternativeController.text,
-                                      ) !=
-                                      null) {
-                                    AppDialogue.showPopup(
-                                      context: context,
-                                      content: OtpSharedScreen(
-                                        isAlternateNumber: true,
-                                        mobileNumber:
-                                            alternativeController.text,
-                                        onVerified: () {
-                                          setState(() {
-                                            isVerified = true;
-                                          });
-                                          AppRoutes.pop();
-                                        },
-                                      ),
+                              Expanded(
+                                flex: 8,
+                                child: AppTextField(
+                                  maxLength: 10,
+                                  hintText: 'Enter a mobile number',
+                                  textController: alternativeController,
+                                  onChange: (v) {
+                                    mobileStream.add(
+                                      AppUtils.validateMobileNumber(v),
                                     );
-                                  }
-                                },
-                                child: SizedBox(
-                                  width: 100,
-                                  child: Container(
-                                    color: isVerified
-                                        ? AppColors.lightGreen
-                                        : AppColors.idCardColor,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 16,
-                                    ),
-                                    child: Center(
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (isVerified)
-                                            Icon(
-                                              Icons.check,
-                                              color: AppColors.green,
-                                              size: 16,
-                                            ),
-                                          if (isVerified)
-                                            const SizedBox(width: 4),
-                                          AppText(
-                                            text: isVerified
-                                                ? "Verified"
-                                                : "Verify",
-                                            fontSize: 12,
+                                  },
+                                  onSubmit: (v) {},
+                                  textInputType: TextInputType.phone,
+                                  suffixIcon: StreamBuilder(
+                                    stream: verifyMobileStream.stream,
+                                    builder: (context, asyncSnapshot) {
+                                      final isVerified =
+                                          asyncSnapshot.data ?? false;
+                                      return GestureDetector(
+                                        onTap: () {
+                                          if (isVerified) return;
+                                          if (AppUtils.validateMobileNumber(
+                                                alternativeController.text,
+                                              ) ==
+                                              null) {
+                                            AppDialogue.showPopup(
+                                              context: context,
+                                              content: OtpSharedScreen(
+                                                isAlternateNumber: true,
+                                                mobileNumber:
+                                                    alternativeController.text,
+                                                onVerified: () {
+                                                  verifyMobileStream.add(true);
+                                                  AppRoutes.pop();
+                                                },
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: SizedBox(
+                                          width: 100,
+                                          child: Container(
                                             color: isVerified
-                                                ? AppColors.green
-                                                : AppColors.grey,
+                                                ? AppColors.lightGreen
+                                                : AppColors.idCardColor,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 16,
+                                            ),
+                                            child: Center(
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  if (isVerified)
+                                                    Icon(
+                                                      Icons.check,
+                                                      color: AppColors.green,
+                                                      size: 16,
+                                                    ),
+                                                  if (isVerified)
+                                                    const SizedBox(width: 4),
+                                                  AppText(
+                                                    text: isVerified
+                                                        ? "Verified"
+                                                        : "Verify",
+                                                    fontSize: 12,
+                                                    color: isVerified
+                                                        ? AppColors.green
+                                                        : AppColors.grey,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
+                                        ),
+                                      );
+                                    },
                                   ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (numberData != null)
+                            buildErrorText(errorText: numberData ?? ''),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                StreamBuilder(
+                  stream: pinStream.stream,
+                  builder: (context, asyncSnapshot) {
+                    final pinData = asyncSnapshot.data;
+                    return buildTextFieldWithHeading(
+                      title: ' PinCode',
+                      fieldWidget: AppTextField(
+                        suffixIcon: GestureDetector(
+                          onTap: isPinCodeValid
+                              ? () {
+                                  // Call API here
+                                }
+                              : null,
+                          child: SizedBox(
+                            width: 100,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 18,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.idCardColor,
+                                borderRadius: const BorderRadius.only(
+                                  topRight: Radius.circular(5),
+                                  bottomRight: Radius.circular(5),
+                                ),
+                              ),
+                              child: Center(
+                                child: AppText(
+                                  text: 'Get Details',
+                                  color: isPinCodeValid
+                                      ? AppColors.primaryColor
+                                      : AppColors.grey,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 12,
                                 ),
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                      if (errorText != null)
-                        buildErrorText(errorText: errorText ?? ''),
-                    ],
-                  ),
-                ),
-
-                buildTextFieldWithHeading(
-                  title: ' PinCode',
-                  fieldWidget: AppTextField(
-                    suffixIcon: GestureDetector(
-                      onTap: isPinCodeValid
-                          ? () {
-                              // Call API here
-                            }
-                          : null,
-                      child: SizedBox(
-                        width: 100,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            vertical: 16,
-                            horizontal: 18,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.idCardColor,
-                            borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(5),
-                              bottomRight: Radius.circular(5),
-                            ),
-                          ),
-                          child: Center(
-                            child: AppText(
-                              text: 'Get Details',
-                              color: isPinCodeValid
-                                  ? AppColors.primaryColor
-                                  : AppColors.grey,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                          ),
                         ),
+                        hintText: 'Enter Pincode',
+                        textController: pinController,
+                        textInputType: TextInputType.phone,
+                        maxLength: 6,
+                        validator: (e) {
+                          if (e == null) return null;
+
+                          return AppUtils.validatePincode(e);
+                        },
+                        onChange: (v) {
+                          // _validatePinCode(v);
+                          pinStream.add(_validatePinCode(v));
+                          // checkFormValidation();
+                        },
+
+                        onSubmit: (v) {},
                       ),
-                    ),
-                    hintText: 'Enter Pincode',
-                    textController: pinController,
-                    textInputType: TextInputType.phone,
-                    maxLength: 6,
-                    validator: (e) {
-                      if (e == null) return null;
-
-                      return AppUtils.validatePincode(e);
-                    },
-                    onChange: (v) {
-                      _onPinCodeChanged(v);
-                      // checkFormValidation();
-                    },
-
-                    onSubmit: (v) {},
-                  ),
+                    );
+                  },
                 ),
 
                 Opacity(
@@ -699,12 +707,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: widget.profileModel.isFromEdit ? 'Save' : 'Save & Next',
             radius: BorderRadius.circular(7),
             onTap: () {
-              if (_formKey.currentState!.validate()) {
+              if (!_formKey.currentState!.validate()) {
                 widget.profileModel.isFromEdit
                     ? AppRoutes.pop()
                     : AppRoutes.pushNamed(AppRoutes.firstHomeScreen);
               }
-              if (selectedImage == null) {
+              if (choosenImage == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: AppText(
@@ -718,10 +726,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               }
             },
 
-            bgColor: isFormValid
+            bgColor:( _formKey.currentState?.validate() ?? false)&&choosenImage != null
                 ? AppColors.primaryColor
                 : AppColors.idCardColor,
-            textColor: isFormValid ? AppColors.white : AppColors.black,
+            textColor: ( _formKey.currentState?.validate() ?? false)&&choosenImage != null ? AppColors.white : AppColors.black,
           ).pad(16),
         ),
       ),

@@ -402,7 +402,7 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
             onTap: () {
               if (isChecked) {
                 AppRoutes.pop();
-                AppRoutes.pushNamed(AppRoutes.bottomScreen);
+                AppRoutes.pushNamed(AppRoutes.loginScreen);
               } else {
                 AppSnackBar.show(
                   context: context,
