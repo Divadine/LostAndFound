@@ -117,9 +117,6 @@ class _AppDropdownFieldState<T>
 
   }
 
-
-
-
   @override
   void dispose() {
 
@@ -130,12 +127,6 @@ class _AppDropdownFieldState<T>
     super.dispose();
 
   }
-
-
-
-
-
-
 
   @override
   Widget build(BuildContext context) {

@@ -63,7 +63,8 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                     return buildTextFieldWithHeading(
                       title:field['title'],
                       fieldWidget: AppTextField(
-                       borderRadius:BorderRadius.circular(0),
+                        borderColor: AppColors.fieldGrey,
+                       borderRadius:BorderRadius.circular(10),
                         hintText: '',
                         textController: TextEditingController(),
                         onChange: (v) {},
@@ -76,6 +77,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                       title: field['title'] ?? '',
                       fieldWidget: AppTextField(
 
+                        borderColor: AppColors.fieldGrey,
                         hintText: '',
                         textController: TextEditingController(),
                         onChange: (v) {},
