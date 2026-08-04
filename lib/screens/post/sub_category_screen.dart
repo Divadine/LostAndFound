@@ -37,6 +37,7 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
       widget.category["subCategories"] ?? [],
     );
     print(widget.category);
+    print('filtered Category ------------>>>>>>>>>>>>>>>>>>>>>>>>>>>${filteredCategory}');
   }
 
   @override

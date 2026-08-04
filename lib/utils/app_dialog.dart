@@ -831,7 +831,7 @@ class PostLive extends StatelessWidget {
           title: 'Go to Home',
           fontSize: 14,
           onTap: () {
-            AppRoutes.pushNamed(AppRoutes.homeScreen);
+            AppRoutes.pushNamed(AppRoutes.bottomScreen);
           },
           bgColor: AppColors.primaryColor,
 

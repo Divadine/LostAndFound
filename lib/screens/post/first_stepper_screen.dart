@@ -50,84 +50,79 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         },
       ),
 
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredSubCategory.length,
-              itemBuilder: (context, index) {
-                final field= filteredSubCategory[index];
+      body: ListView.builder(
+        itemCount: filteredSubCategory.length,
+        itemBuilder: (context, index) {
+          final field= filteredSubCategory[index];
 
-                switch(field['type']) {
-                  case "text" :
-                    return buildTextFieldWithHeading(
-                      title:field['title'],
-                      fieldWidget: AppTextField(
-                        borderColor: AppColors.fieldGrey,
-                       borderRadius:BorderRadius.circular(10),
-                        hintText: '',
-                        textController: TextEditingController(),
-                        onChange: (v) {},
-                        onSubmit: (v) {},
-                      ).pad(),
-                    );
+          switch(field['type']) {
+            case "text" :
+              return buildTextFieldWithHeading(
+                title:field['title'],
+                fieldWidget: AppTextField(
+                  borderColor: AppColors.fieldGrey,
+                 borderRadius:BorderRadius.circular(5),
+                  hintText: '',
+                  textController: TextEditingController(),
+                  onChange: (v) {},
+                  onSubmit: (v) {},
+                ).pad(),
+              ).pad();
 
-                  case 'number' :
-                    return buildTextFieldWithHeading(
-                      title: field['title'] ?? '',
-                      fieldWidget: AppTextField(
+            case 'number' :
+              return buildTextFieldWithHeading(
+                title: field['title'] ?? '',
+                fieldWidget: AppTextField(
+                  // borderRadius: BorderRadius.circular(10),
+                  borderColor: AppColors.fieldGrey,
+                  hintText: '',
+                  textController: TextEditingController(),
+                  onChange: (v) {},
+                  onSubmit: (v) {},
+                ).pad(),
+              ).pad();
 
-                        borderColor: AppColors.fieldGrey,
-                        hintText: '',
-                        textController: TextEditingController(),
-                        onChange: (v) {},
-                        onSubmit: (v) {},
-                      ),
-                    );
+            case "dropdown":
+              return buildTextFieldWithHeading(
+                title: field['title'] ?? '',
+                fieldWidget: AppDropdownField<String>(
+                  borderColor: AppColors.fieldGrey,
+                  value: field['selectedValue'] as String?,
+                  hintText: 'Select ${field['title'] ?? 'item'}',
+                  items: List<String>.from(field['options'] ?? []),
+                  itemLabel: (e) => e,
+                  selectedItemColor: AppColors.primaryColor.withAlpha(30),
+                  selectedItemTextColor: AppColors.primaryColor,
+                  onChanged: (v) => setState(() => field['selectedValue'] = v),
+                ).pad(),
+              ).pad();
 
-                  case "dropdown":
-                    return buildTextFieldWithHeading(
-                      title: field['title'] ?? '',
-                      fieldWidget: AppDropdownField<String>(
-                        value: field['selectedValue'] as String?,
-                        hintText: 'Select ${field['title'] ?? 'item'}',
-                        items: List<String>.from(field['options'] ?? []),
-                        itemLabel: (e) => e,
-                        selectedItemColor: AppColors.primaryColor.withAlpha(30),
-                        selectedItemTextColor: AppColors.primaryColor,
-                        onChanged: (v) => setState(() => field['selectedValue'] = v),
-                      ),
-                    );
-
-                  case "image":
-                    return AppImageUploadField(
-                      title: 'Upload Image',
-                      images: field['pickedImages'] ?? [],
-                      maxImages: field['maxImages'] ?? 4,
-                      onAdd: () async {
+            case "image":
+              return AppImageUploadField(
+                title: 'Upload Image',
+                images: field['pickedImages'] ?? [],
+                maxImages: field['maxImages'] ?? 4,
+                onAdd: () async {
 
 
-                      },
-                      onRemove: (i) => setState(() => (field['pickedImages'] as List).removeAt(i)),
-                    );
+                },
+                onRemove: (i) => setState(() => (field['pickedImages'] as List).removeAt(i)),
+              );
 
 
 
-                  default :
-                    return SizedBox();
-                }
-              },
-            ),
-          ),
-
-          AppButton(
-            title: 'Next',
-            onTap: () {
-              AppRoutes.pushNamed(AppRoutes.secondStepperScreen);
-            },
-          ),
-        ],
-      ).pad(10),
+            default :
+              return SizedBox();
+          }
+        },
+      ),
+      bottomNavigationBar:  AppButton(
+        radius: BorderRadius.circular(5),
+        title: 'Next',
+        onTap: () {
+          AppRoutes.pushNamed(AppRoutes.secondStepperScreen);
+        },
+      ).pad(16),
     );
   }
 }

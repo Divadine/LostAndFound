@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/screens/bottomsheets/filter_screen.dart';
 import 'package:lost_and_found/screens/home/available_matching_screen.dart';
@@ -27,14 +29,21 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> details = [
     {'imageUrl': ''},
   ];
+  HomeFilterState  filterState = const HomeFilterState();
+
+  StreamController<HomeFilterState> filterStateStream = StreamController.broadcast();
 
   late TabController _tabController;
   int _selectedIndex = 0;
-  bool filterApplied = false;
-  String? _selectedRange;
-  String? _customRange;
 
 
+  void _emitFilter(HomeFilterState state) {
+filterState = state;
+filterStateStream.add(state);
+  }
+  void _clearFilter() {
+    _emitFilter(HomeFilterState.cleared());
+  }
   @override
   void initState() {
     super.initState();
@@ -52,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    filterStateStream.close();
     super.dispose();
   }
 
@@ -95,10 +105,9 @@ class _HomeScreenState extends State<HomeScreen>
                       padding: EdgeInsets.symmetric(horizontal: 8),
                       child: Row(
                         children: [
-
-
                           Expanded(
                             child: Container(
+
                               height: 40,
                               decoration: BoxDecoration(
                                 color: AppColors.white,
@@ -155,14 +164,19 @@ class _HomeScreenState extends State<HomeScreen>
 
                               final filterData = await AppUiHelper.showBottomSheet(context: context, child: FilterScreen());
 
-                              if(filterData != null){
-                                setState(() {
-
-                                  filterApplied = true;
-                                  _selectedRange = filterData['range'];
-                                  _customRange = filterData['customRange'];
-                                });
+                              if(filterData == 'clear'){
+                                _emitFilter(HomeFilterState.cleared());
+                              }else if(filterData is Map){
+                                _emitFilter(HomeFilterState(customRange: filterData['customRange'],filterApplied: true,selectedRange: filterData['range']));
                               }
+                              // if(filterData != null){
+                              //   setState(() {
+                              //
+                              //     filterApplied = true;
+                              //     _selectedRange = filterData['range'];
+                              //     _customRange = filterData['customRange'];
+                              //   });
+                              // }
                             },
                             child: Container(
                               height: 40,
@@ -198,35 +212,49 @@ class _HomeScreenState extends State<HomeScreen>
                           Column(
                             children: [
 
-                              if(filterApplied)
-                              Container(
-                                height: 35,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  //border: Border.all(color: AppColors.primaryColor),
-                                  color: AppColors.lightBlue,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
+                              // if()
+                              StreamBuilder(
+                                stream: filterStateStream.stream,
 
-                                    AppIconWidget(assetPath: AssetImages.filterTick),
-                                    SizedBox(width: 15,),
-                                    AppText(
-                                      text: 'Showing results : April 1 - April 10 ',
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
+                                builder: (context, asyncSnapshot) {
+                                  final filterData = asyncSnapshot.data ?? HomeFilterState();
+
+                                  if (!filterData.filterApplied) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Container(
+                                    height: 35,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      //border: Border.all(color: AppColors.primaryColor),
+                                      color: AppColors.lightBlue,
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    Spacer(),
-                                    GestureDetector(
-                                      onTap: () {},
-                                      child:AppIconWidget(assetPath: AssetImages.crossIcon,color: AppColors.black,)
-                                    ),
-                                  ],
-                                ).padHorizontal(16),
-                              ).padHorizontal(),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                  
+                                        AppIconWidget(assetPath: AssetImages.filterTick),
+                                        SizedBox(width: 15,),
+                                        AppText(
+                                          text: 'Showing results : ${filterData.selectedRange ?? " "}  ',
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        Spacer(),
+                                        GestureDetector(
+                                          onTap: () {
+                                            _clearFilter();
+                                            //AppRoutes.pop();},
+                                          },
+                                          child:AppIconWidget(assetPath: AssetImages.crossIcon,color: AppColors.black,),
+                                        ),
+                                      ],
+                                    ).padHorizontal(16),
+                                  ).padHorizontal();
+                                }
+                              ),
                               ItemCard(
                                 imgUrl:
                                     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTweFjIvljtnBPBG3-QrPhjYAWLr_1vmJzWbHM58T7TUw&s=10',
@@ -366,4 +394,19 @@ class _HomeScreenState extends State<HomeScreen>
       ],
     );
   }
+}
+
+
+class HomeFilterState {
+  final bool filterApplied;
+  final String? selectedRange;
+  final DateTimeRange? customRange;
+
+  const HomeFilterState({
+    this.filterApplied = false,
+    this.selectedRange,
+    this.customRange,
+  });
+
+  factory HomeFilterState.cleared() => const HomeFilterState();
 }

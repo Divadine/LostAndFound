@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +41,10 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
   XFile? selectedVideo;
   List<SelectedLocationModel> loc = [];
+  StreamController<List<SelectedLocationModel>> locationController = StreamController.broadcast();
+  StreamController<DateTime?> dateStreamController =  StreamController.broadcast();
+  StreamController<void> videoStreamController =  StreamController.broadcast();
+
 
   TextEditingController textController = TextEditingController();
   TextEditingController mapController = TextEditingController();
@@ -52,10 +57,18 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   final AppLocationPermission _appPermissions = AppLocationPermission();
 
   @override
+  void initState() {
+    super.initState();
+    locationController.add(loc);
+    print('##########################--$loc');
+  }
+  @override
   void dispose() {
     _videoController?.dispose();
+    locationController.close();
 
     super.dispose();
+
   }
 
   Future<void> pickVideos() async {
@@ -87,7 +100,8 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
     videoDuration = _videoController!.value.duration;
 
-    setState(() {});
+    videoStreamController.add(null);
+    //setState(() {});
   }
 
   Future<void> pickVideo() async {
@@ -114,7 +128,8 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     _videoController = VideoPlayerController.file(file);
     await _videoController!.initialize();
 
-    setState(() {});
+    videoStreamController.add(file);
+    //setState(() {});
   }
 
   String formatDuration(Duration duration) {
@@ -124,13 +139,18 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   }
 
   void deleteVideo() {
-    _videoController?.dispose();
 
-    setState(() {
-      selectedVideo = null;
-      _videoController = null;
-      isVideoPlaying = false;
-    });
+    _videoController?.dispose();
+    _videoController = null;
+    selectedVideo = null;
+    isVideoPlaying = false;
+
+    videoStreamController.add(null);
+    // setState(() {
+    //   selectedVideo = null;
+    //   //_videoController = null;
+    //   isVideoPlaying = false;
+    // });
   }
 
   Future<void> selectDate() async {
@@ -159,8 +179,10 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     );
 
     if (picked != null) {
+
       dateController.text = DateFormat('dd/MM/yyyy').format(picked);
-      setState(() {});
+      dateStreamController.add(picked);
+      //setState(() {});
     }
   }
 
@@ -179,9 +201,11 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     );
 
     if (result != null) {
-      setState(() {
-        loc = result as List<SelectedLocationModel>;
-      });
+      loc = result as List<SelectedLocationModel>;
+      locationController.add(loc);
+      // setState(() {
+      //   loc = result as List<SelectedLocationModel>;
+      // });
     }
   }
 
@@ -214,95 +238,109 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                 ),
               ),
 
-              buildTextFieldWithHeading(
-                title: 'Location',
-                fieldWidget: loc.isEmpty
-                    ? AppTextField(
-                        readOnly: true,
+              StreamBuilder(
+                stream: locationController.stream,
+                initialData: loc,
+                builder: (context, asyncSnapshot) {
+                  final locData = asyncSnapshot.data ?? [];
+                  return buildTextFieldWithHeading(
+                    title: 'Location',
+                    fieldWidget: loc.isEmpty
+                        ? AppTextField(
+                            readOnly: true,
 
-                        onTap: _openMapForLocations,
-                        hintText: 'Chennai, Tamil Nadu, India',
-                        textController: mapController,
-                        onChange: (v) {},
-                        onSubmit: (v) {},
-                        suffixIcon: AppIconWidget(
-                          assetPath: AssetImages.locationMarker,
-                        ).pad(),
-                      )
-                    : Column(
-                        children: [
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: loc.length,
-                            itemBuilder: (context, index) {
-                              final locate = loc[index];
-                              return AppContainer(
-                                widget: Row(
-                                  spacing: 7,
-                                  children: [
-                                    buildIconContainer(
-                                      context,
-                                      icon: AssetImages.mapIcon,
-                                      size: 15,
-                                      height: 30,
-                                      width: 30,
-                                    ),
-                                    Flexible(
-                                      child: AppText(
-                                        text: locate.address,
-                                        maxLine: 2,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w400,
-                                        color: AppColors.black,
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        loc.remove(locate);
-                                        setState(() {});
-                                      },
-                                      child: AppIconWidget(
-                                        assetPath: AssetImages.delete,
+                            onTap: _openMapForLocations,
+                            hintText: 'Chennai, Tamil Nadu, India',
+                            textController: mapController,
+                            onChange: (v) {},
+                            onSubmit: (v) {},
+                            suffixIcon: AppIconWidget(
+                              assetPath: AssetImages.locationMarker,
+                            ).pad(),
+                          )
+                        : Column(
+                            children: [
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: locData.length,
+                                itemBuilder: (context, index) {
+                                  final locate = locData[index];
+                                  return AppContainer(
+                                    widget: Row(
+                                      spacing: 7,
+                                      children: [
+                                        buildIconContainer(
+                                          context,
+                                          icon: AssetImages.mapIcon,
+                                          size: 15,
+                                          height: 30,
+                                          width: 30,
+                                        ),
+                                        Flexible(
+                                          child: AppText(
+                                            text: locate.address,
+                                            maxLine: 2,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w400,
+                                            color: AppColors.black,
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            loc.remove(locate);
+                                            locationController.add(loc);
+                                            //setState(() {});
+                                          },
+                                          child: AppIconWidget(
+                                            assetPath: AssetImages.delete,
 
-                                        color: AppColors.black,
-                                      ).pad(),
-                                    ),
-                                  ],
-                                ).pad(),
-                              ).padBottom();
-                            },
+                                            color: AppColors.black,
+                                          ).pad(),
+                                        ),
+                                      ],
+                                    ).pad(),
+                                  ).padBottom();
+                                },
+                              ),
+
+                              if (loc.length < 3)
+                                AppButton(
+                                  prefixIcon: AssetImages.add,
+                                  bgColor: Colors.transparent,
+                                  border: Border.all(color: AppColors.primaryColor),
+                                  title: 'Add Another Location (UP TO 3)',
+                                  textColor: AppColors.primaryColor,
+                                  radius: BorderRadius.circular(10),
+                                  fontSize: 12,
+                                  onTap: _openMapForLocations,
+                                ),
+                            ],
                           ),
-
-                          if (loc.length < 3)
-                            AppButton(
-                              prefixIcon: AssetImages.add,
-                              bgColor: Colors.transparent,
-                              border: Border.all(color: AppColors.primaryColor),
-                              title: 'Add Another Location (UP TO 3)',
-                              textColor: AppColors.primaryColor,
-                              radius: BorderRadius.circular(10),
-                              fontSize: 12,
-                              onTap: _openMapForLocations,
-                            ),
-                        ],
-                      ),
+                  );
+                }
               ),
 
-              buildTextFieldWithHeading(
-                title: 'Date',
-                fieldWidget: AppTextField(
-                  //readOnly: true,
-                  hintText: 'Select Date',
-                  readOnly: true,
-                  textController: dateController,
-                  onChange: (v) {},
-                  onSubmit: (v) {},
-                  suffixIcon: GestureDetector(
-                    onTap: selectDate,
-                    child: AppIconWidget(assetPath: AssetImages.calender).pad(),
-                  ),
-                ),
+              StreamBuilder(
+                stream: dateStreamController.stream,
+                builder: (context, asyncSnapshot) {
+                  //final dateData = asyncSnapshot.data;
+                  return buildTextFieldWithHeading(
+                    title: 'Date',
+                    fieldWidget: AppTextField(
+                      //readOnly: true,
+                      hintText: 'Select Date',
+                      readOnly: true,
+                      textController: dateController,
+                      onChange: (v) {},
+                      onSubmit: (v) {},
+                      suffixIcon: GestureDetector(
+                        onTap: selectDate,
+                        child: AppIconWidget(assetPath: AssetImages.calender).pad(),
+                      ),
+                    ),
+                  );
+                }
               ),
 
               buildTextFieldWithHeading(
@@ -332,49 +370,56 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
               ),
 
               SizedBox(height: 10),
-              Column(
-                spacing: 10,
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppText(
-                    text: 'Add a short video of your item or place',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  AppContainer(
-                    widget: Column(
-                      spacing: 10,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        if (selectedVideo == null)
-                          AppText(
-                            text: 'Tap to choose a video',
-                            fontWeight: FontWeight.w400,
-                            fontSize: 12,
-                            color: AppColors.grey,
-                          ),
-
-                        if (_videoController != null &&
-                            _videoController!.value.isInitialized)
-                          buildVideoPreview()
-                        else
-                          GestureDetector(
-                            onTap: pickVideos,
-                            child: AppIconWidget(assetPath: AssetImages.video),
-                          ),
-                      ],
-                    ).pad(),
-                  ),
-
-                  AppText(
-                    text: 'Max 30 seconds & Max size 15 MB',
-                    fontWeight: FontWeight.w400,
-                    fontSize: 12,
-                    color: AppColors.grey,
-                  ),
-                ],
+              
+              StreamBuilder(
+                stream: videoStreamController.stream,
+                builder: (context, asyncSnapshot) {
+                  return Column(
+                    spacing: 10,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AppText(
+                        text: 'Add a short video of your item or place',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      AppContainer(
+                        widget: Column(
+                          spacing: 10,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            if (selectedVideo == null)
+                              AppText(
+                                text: 'Tap to choose a video',
+                                fontWeight: FontWeight.w400,
+                                fontSize: 12,
+                                color: AppColors.grey,
+                              ),
+                            
+                  
+                            if (_videoController != null &&
+                                _videoController!.value.isInitialized)
+                              buildVideoPreview()
+                            else
+                              GestureDetector(
+                                onTap: pickVideos,
+                                child: AppIconWidget(assetPath: AssetImages.video),
+                              ),
+                          ],
+                        ).pad(),
+                      ),
+                  
+                      AppText(
+                        text: 'Max 30 seconds & Max size 15 MB',
+                        fontWeight: FontWeight.w400,
+                        fontSize: 12,
+                        color: AppColors.grey,
+                      ),
+                    ],
+                  );
+                }
               ),
 
               AppButton(
@@ -416,7 +461,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
               // Play button
               GestureDetector(
                 onTap: () {
-                  setState(() {
+                  
                     if (_videoController!.value.isPlaying) {
                       _videoController!.pause();
                       isVideoPlaying = false;
@@ -424,7 +469,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                       _videoController!.play();
                       isVideoPlaying = true;
                     }
-                  });
+                videoStreamController.add(null);
                 },
 
                 child: CircleAvatar(

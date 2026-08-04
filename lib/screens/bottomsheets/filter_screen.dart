@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/providers/calender_provider.dart';
@@ -9,6 +11,25 @@ import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 
+
+class DateFilterState {
+  final String? selectedRange;
+  final DateTimeRange? customRange;
+
+  const DateFilterState({this.selectedRange, this.customRange});
+
+  DateFilterState copyWith({
+    String? selectedRange,
+    DateTimeRange? customRange,
+    bool clearCustomRange = false,
+  }) {
+    return DateFilterState(
+      selectedRange: selectedRange ?? this.selectedRange,
+      customRange: clearCustomRange ? null : (customRange ?? this.customRange),
+    );
+  }
+}
+
 class FilterScreen extends StatefulWidget {
   const FilterScreen({super.key});
 
@@ -17,9 +38,6 @@ class FilterScreen extends StatefulWidget {
 }
 
 class _FilterScreenState extends State<FilterScreen> {
-  String? _selectedRange;
-  DateTimeRange? _customRange;
-
   final List<String> _ranges = [
     'Today',
     'Last 7 Days',
@@ -29,28 +47,54 @@ class _FilterScreenState extends State<FilterScreen> {
     'Custom Range',
   ];
 
+  DateFilterState _filterState = const DateFilterState();
+  final StreamController<DateFilterState> _filterStreamController =
+  StreamController<DateFilterState>.broadcast();
+
+  void _emit(DateFilterState state) {
+    _filterState = state;
+    _filterStreamController.add(state);
+  }
+
+  @override
+  void dispose() {
+    _filterStreamController.close();
+    super.dispose();
+  }
+
   Future<void> _pickCustomRange() async {
     final range = await AppDialogue.showValuePopup<DateTimeRange>(
       context: context,
       contentPadding: EdgeInsets.zero,
       radius: 16,
       content: CustomDateRangePicker(
-        initialRange: _customRange,
+        initialRange: _filterState.customRange,
         firstDate: DateTime(2020),
         lastDate: DateTime(2030),
       ),
     );
 
     if (range != null) {
-      setState(() {
-        _customRange = range;
-        _selectedRange = 'Custom Range';
-      });
+      _emit(
+        _filterState.copyWith(
+          selectedRange: 'Custom Range',
+          customRange: range,
+        ),
+      );
     }
   }
 
-  Widget _buildRangeChip(String label) {
-    final bool isSelected = _selectedRange == label;
+  void _selectPresetRange(String label) {
+    _emit(
+      _filterState.copyWith(
+        selectedRange: label,
+        clearCustomRange: true,
+      ),
+    );
+  }
+
+  Widget _buildRangeChip(String label, DateFilterState state) {
+    final bool isSelected = state.selectedRange == label;
 
     return InkWell(
       borderRadius: BorderRadius.circular(8),
@@ -58,10 +102,7 @@ class _FilterScreenState extends State<FilterScreen> {
         if (label == 'Custom Range') {
           _pickCustomRange();
         } else {
-          setState(() {
-            _selectedRange = label;
-            _customRange = null;
-          });
+          _selectPresetRange(label);
         }
       },
       child: Container(
@@ -117,20 +158,39 @@ class _FilterScreenState extends State<FilterScreen> {
           ),
           const SizedBox(height: 10),
 
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 2.6,
-            children: _ranges.map(_buildRangeChip).toList(),
-          ),
+          // Everything driven by _filterState lives inside this StreamBuilder.
+          StreamBuilder<DateFilterState>(
+            stream: _filterStreamController.stream,
+            initialData: _filterState,
+            builder: (context, snapshot) {
+              final state = snapshot.data ?? const DateFilterState();
 
-          if (_selectedRange == 'Custom Range') ...[
-            const SizedBox(height: 10),
-            CustomDateRangePicker(),
-          ],
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GridView.count(
+                    crossAxisCount: 3,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 2.6,
+                    children: _ranges
+                        .map((label) => _buildRangeChip(label, state))
+                        .toList(),
+                  ),
+                  if (state.selectedRange == 'Custom Range') ...[
+                    const SizedBox(height: 10),
+                    CustomDateRangePicker(
+                      initialRange: state.customRange,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
 
           const SizedBox(height: 24),
 
@@ -140,7 +200,7 @@ class _FilterScreenState extends State<FilterScreen> {
                 child: AppButton(
                   title: 'Clear',
                   onTap: () {
-                    AppRoutes.pop();
+                    AppRoutes.pop('clear');
                   },
                   fontSize: 15,
                   textColor: AppColors.primaryColor,
@@ -153,12 +213,12 @@ class _FilterScreenState extends State<FilterScreen> {
                 child: AppButton(
                   title: 'Apply Filter',
                   onTap: () {
-
-                    if (_selectedRange == null) return;
-                    AppRoutes.pop({'range': _selectedRange,'customRange': _customRange,});
-                    setState(() {
-
+                    if (_filterState.selectedRange == null) return;
+                    AppRoutes.pop({
+                      'range': _filterState.selectedRange,
+                      'customRange': _filterState.customRange,
                     });
+
                   },
                   fontSize: 15,
                   textColor: AppColors.white,
@@ -173,3 +233,4 @@ class _FilterScreenState extends State<FilterScreen> {
     );
   }
 }
+

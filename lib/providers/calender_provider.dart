@@ -273,7 +273,6 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
           const SizedBox(width: 4),
           TextButton(
             onPressed:(){
-              print('***************************************************');
               _start == null
                   ? null
                   : () {
@@ -282,7 +281,7 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
                   end: _end ?? _start!,
                 );
                 if (_selectedRange == null) return;
-                AppRoutes.pop({'range': _selectedRange,'customRange': _customRange,});
+                AppRoutes.pop(range);
 
               };
             },

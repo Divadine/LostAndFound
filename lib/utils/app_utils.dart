@@ -5,7 +5,7 @@ import 'package:lost_and_found/utils/app_colors.dart';
 
 class AppUtils {
   static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
+static bool isTab=false;
 
   static Future<bool> checkConnectivity() async {
     final value = await Connectivity().checkConnectivity();

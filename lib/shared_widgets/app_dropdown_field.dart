@@ -65,13 +65,9 @@ class AppDropdownField<T> extends StatefulWidget {
 class _AppDropdownFieldState<T>
     extends State<AppDropdownField<T>> {
 
-
   late TextEditingController controller;
 
   late FocusNode focusNode;
-
-
-
   bool isOpen = false;
 
 
@@ -135,125 +131,121 @@ class _AppDropdownFieldState<T>
     return LayoutBuilder(
 
       builder: (context,constraints){
-        return DropdownMenu<T>(
-          width: constraints.maxWidth,
-          controller: controller,
-          focusNode: focusNode,
-          requestFocusOnTap: false,
-          initialSelection: widget.value,
-          trailingIcon:AppIconWidget(assetPath: AssetImages.dropDown),
-          selectedTrailingIcon: AppIconWidget(assetPath: AssetImages.dropUp),
-          hintText: widget.hintText,
-          textStyle: TextStyle(
-            fontSize: 16,
-            color: AppColors.black
-
-          ),
-          inputDecorationTheme:
-          InputDecorationTheme(
-            filled: true,
-            fillColor:
-                Colors.white,
-            hintStyle: const TextStyle(
-              color:AppColors.black,
+        return Material(
+          elevation: 2,
+          shadowColor: AppColors.fieldGrey,
+          borderRadius: BorderRadius.circular(6),
+          child: DropdownMenu<T>(
+            width: constraints.maxWidth,
+            controller: controller,
+            focusNode: focusNode,
+            requestFocusOnTap: false,
+            initialSelection: widget.value,
+            trailingIcon:AppIconWidget(assetPath: AssetImages.dropDown),
+            selectedTrailingIcon: AppIconWidget(assetPath: AssetImages.dropUp),
+            hintText: widget.hintText,
+            textStyle: TextStyle(
               fontSize: 16,
+              color: AppColors.black
+
             ),
-            contentPadding:
-            const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 15,
-            ),
-            enabledBorder:
-            OutlineInputBorder(
-              borderRadius:
-              BorderRadius.circular(10),
-              borderSide: BorderSide(color:
-                    AppColors.fieldGrey,
-                width: 1,
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: Colors.white,
+              isDense: true,
+
+              // contentPadding: const EdgeInsets.symmetric(
+              //   horizontal: 12,
+              //   vertical: -10,
+              // ),
+
+
+              hintStyle: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(
+                  color: widget.borderColor ??
+                      AppColors.fieldGrey.withAlpha(20),
+                ),
+              ),
+
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(
+                  color: widget.borderColor ??
+                      AppColors.fieldGrey.withAlpha(20),
+                ),
+              ),
+
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
               ),
             ),
-            focusedBorder:
-            OutlineInputBorder(borderRadius:
-              BorderRadius.circular(10),
-              borderSide: BorderSide(color:
-                AppColors.fieldGrey ,
-                width: 1,
+            menuStyle: MenuStyle(
+              elevation: WidgetStateProperty.all(2),
+              backgroundColor: WidgetStateProperty.all(Colors.white),
+              shape: WidgetStateProperty.all(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
-          ),
-          menuStyle: MenuStyle(
-            backgroundColor:
-            WidgetStateProperty.all(
-              AppColors.white
-            ),
-            elevation:
-            WidgetStateProperty.all(2),
-            shape:
-            WidgetStateProperty.all(
-              RoundedRectangleBorder(
-                borderRadius:
-                BorderRadius.circular(10),
-              ),
-            ),
-            fixedSize:
-            WidgetStateProperty.all(
-              Size(
-                constraints.maxWidth,
-                220,
-              ),
-            ),
-          ),
-          dropdownMenuEntries:
-          widget.items.map((item){
-            bool selected =
-                item == widget.value;
-            return DropdownMenuEntry<T>(
-              value: item,
-              label:
-              widget.itemLabel(item),
-              style:
-              ButtonStyle(
-                padding:
-                WidgetStateProperty.all(
-                  const EdgeInsets.symmetric(
-                    horizontal: 20,
+            dropdownMenuEntries:
+            widget.items.map((item){
+              bool selected =
+                  item == widget.value;
+              return DropdownMenuEntry<T>(
+                value: item,
+                label:
+                widget.itemLabel(item),
+                style:
+                ButtonStyle(
+                  padding:
+                  WidgetStateProperty.all(
+                    const EdgeInsets.symmetric(
+                      horizontal: 20,
+                    ),
+                  ),
+                  backgroundColor:
+                  WidgetStateProperty.resolveWith(
+                        (states){
+                      if(selected){
+
+                        return AppColors.idCardColor;
+
+                      }
+                      return Colors.white;
+                    },
+                  ),
+                  foregroundColor:
+                  WidgetStateProperty.resolveWith(
+                        (states){
+                      if(selected){
+                        return AppColors.black ;
+                      }
+                      return Colors.black;
+                    },
+                  ),
+                  textStyle:
+                  WidgetStateProperty.all(
+                    const TextStyle(
+                      fontSize:16,
+                    ),
                   ),
                 ),
-                backgroundColor:
-                WidgetStateProperty.resolveWith(
-                      (states){
-                    if(selected){
+              );
+            }).toList(),
 
-                      return AppColors.idCardColor;
+            onSelected: (value){
+              focusNode.unfocus();
+              widget.onChanged(value);
+            },
 
-                    }
-                    return Colors.white;
-                  },
-                ),
-                foregroundColor:
-                WidgetStateProperty.resolveWith(
-                      (states){
-                    if(selected){
-                      return AppColors.black ;
-                    }
-                    return Colors.black;
-                  },
-                ),
-                textStyle:
-                WidgetStateProperty.all(
-                  const TextStyle(
-                    fontSize:16,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-
-          onSelected: (value){
-            focusNode.unfocus();
-            widget.onChanged(value);
-          },
-
+          ),
         );
 
       },
