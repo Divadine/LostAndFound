@@ -59,4 +59,23 @@ class AppPreferences {
     return _prefs.getBool(_askedAppLocationPermission) ?? false ;
   }
 
+
+  static const String _tokenKey = "access_token";
+
+  static Future<void> saveToken(String token) async {
+    //final prefs = await SharedPreferences.getInstance();
+    await _prefs.setString(_tokenKey, token);
+  }
+
+  static Future<String?> getToken() async {
+    //final prefs = await SharedPreferences.getInstance();
+    return _prefs.getString(_tokenKey);
+  }
+
+
+  static Future<void> clearToken() async {
+    //final prefs = await SharedPreferences.getInstance();
+    await _prefs.remove(_tokenKey);
+  }
+
 }

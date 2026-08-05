@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/screens/authentication/otp_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/screens/otp_screen_shared.dart';
@@ -41,6 +42,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
   int? enableRestart;
   String? errorText;
 
+  late final AuthControllers authController;
   TextEditingController textController = TextEditingController();
   TextEditingController phoneController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
@@ -267,15 +269,17 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                       content: OtpSharedScreen(
                         isAlternateNumber: true,
                         mobileNumber: '',
-                        onVerified: () {
+                        onVerified: (phone, otp) async{
                           AppRoutes.pop();
                           AppRoutes.pop();
-                          AppDialogue.showPopup(
-                            context: context,
-                            content: HandOverToOwner(),
-                          );
+                          await authController.verifyOtp(phone: phone, otp: otp);
+                          // AppDialogue.showPopup(
+                          //   context: context,
+                          //   content: HandOverToOwner(),
+                          // );
 
                         },
+                        authController: authController,
                       ),
                     );
                   }

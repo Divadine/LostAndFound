@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/authentication/profile_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
@@ -17,6 +20,7 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -25,12 +29,30 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // final authController = AuthControllers(
+  //     AuthRepository(
+  //         ApiClient()
+  //     )
+  // );
+
+  final authController = AuthControllers(
+    authRepository: AuthRepository(
+      apiClient: ApiClient(),
+    ),
+  );
+
   TextEditingController phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String? errorText;
 
   StreamController<String?> numberStream = StreamController.broadcast();
 
+  @override
+  void dispose() {
+    phoneController.dispose();
+    numberStream.close();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -139,7 +161,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       numberStream.add(errorText);
                       if (errorText == null &&
                           phoneController.text.isNotEmpty) {
-                        AppRoutes.pushNamed(AppRoutes.otpScreen);
+                        final success = await authController.sendOtp(phoneController.text,);
+                        if(success){
+                          AppRoutes.pushNamed(AppRoutes.otpScreen,arguments: {"phone" : phoneController.text});
+                        }else{
+                          AppDialogue.showPopup(context: context, content:AppText(text: 'OTP generation failed'));
+                        }
+
                       }
                     },
                   ).padHorizontal(30),

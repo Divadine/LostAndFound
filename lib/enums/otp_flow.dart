@@ -1,0 +1,4 @@
+enum OtpFlow {
+  login,
+  alternateMobile,
+}

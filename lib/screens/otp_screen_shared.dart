@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
@@ -11,13 +12,15 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 class OtpSharedScreen extends StatefulWidget {
   final bool isAlternateNumber;
   final String mobileNumber;
-  final VoidCallback? onVerified;
+  final Future<void> Function(String phone, String otp)? onVerified;
+  final AuthControllers authController;
 
   const OtpSharedScreen({
     super.key,
     required this.isAlternateNumber,
     required this.mobileNumber,
     this.onVerified,
+    required this.authController,
   });
 
   @override
@@ -32,6 +35,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
   String? errorText;
   StreamController<String> otpStream = StreamController.broadcast();
   StreamController<int> timeStream = StreamController.broadcast();
+
 
 
 
@@ -276,50 +280,44 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
 
         AppButton(
           title: 'Verify',
-          onTap: () {
-            otp = _controller.map((e) => e.text).join();
+          onTap: () async{
+            widget.onVerified?.call( widget.mobileNumber, otp,);
+            return;
 
-            if (otp.length != 4) {
-              setState(() {
-                errorText = "Please enter OTP";
 
-                for (int i = 0; i < otpError.length; i++) {
-                  otpError[i] = true;
-                }
-              });
-
-              return;
-            }
-
-            if (otp != "1234") {
-              setState(() {
-                errorText = "Please enter valid OTP";
-
-                for (int i = 0; i < otpError.length; i++) {
-                  otpError[i] = true;
-                }
-              });
-
-              return;
-            }
-
-            // OTP success
-            setState(() {
-              errorText = null;
-
-              for (int i = 0; i < otpError.length; i++) {
-                otpError[i] = false;
-              }
-            });
-
-            widget.onVerified?.call();
-
-            //want to change based on altrnatenumber,handover
-            // setState(() {
             //
-            // });
-            // AppRoutes.pushNamed(AppRoutes.bottomScreen);
-
+            // otp = _controller.map((e) => e.text).join();
+            //
+            // if (otp.length != 4) {
+            //   setState(() {
+            //     errorText = "Please enter OTP";
+            //
+            //   });
+            //
+            //   return;
+            //
+            // }
+            //
+            // if(widget.isAlternateNumber == false) {
+            //   final success = await widget.authController.verifyOtp(
+            //     phone: widget.mobileNumber,
+            //     otp: otp,
+            //   );
+            //   if (success) {
+            //     widget.onVerified?.call();
+            //   }
+            //
+            //   else {
+            //     setState(() {
+            //       errorText = "Please enter valid OTP";
+            //
+            //       for (int i = 0; i < otpError.length; i++) {
+            //         otpError[i] = true;
+            //       }
+            //     });
+            //   }
+            // }else {
+            // }
           },
           radius: BorderRadius.circular(8),
         ).padHorizontal(30),

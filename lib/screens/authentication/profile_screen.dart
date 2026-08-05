@@ -4,7 +4,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/controllers/pincode_profile_controllers.dart';
+import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/selected_location_model.dart';
+import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/authentication/otp_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
@@ -35,7 +40,11 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController alternativeController = TextEditingController();
+  final AuthControllers authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
 
+   final addressControllers = AddressControllers(authRepository: AuthRepository(apiClient: ApiClient()));
   bool isNotFromSetUp = false;
   bool isAlternativeNumberValid = false;
   bool isPinCodeValid = false;
@@ -75,6 +84,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   final AppLocationPermission _appPermissions = AppLocationPermission();
 
+  @override
+  void initState() {
+    super.initState();
+
+    nameController.text = widget.profileModel.name ?? '';
+    mobileController.text = widget.profileModel.mobile ?? '';
+
+    countryCodeController.text = '+91';
+    countryCodeController2.text = '+91';
+  }
   Future<void> _openMapForAddress() async {
     final granted = await _appPermissions.requestLocationPermission(context);
     if (!granted) return;
@@ -120,7 +139,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // checkFormValidation();
   }
 
-  @override
   @override
   void dispose() {
     nameStream.close();
@@ -306,15 +324,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fieldWidget: AppTextField(
                     hintText: 'enter name',
                     textController: nameController,
+                    readOnly: !widget.profileModel.isFromEdit,
                     // onChange: (v) {
                     //   nameStream.add(AppUtils.validateName(v));
                     //   // checkFormValidation();
                     // },
                     onSubmit: (v) {},
-                    validator: (e) {
-                      if (e == null) return null;
-                      return AppUtils.validateName(e);
-                    },
+                    // validator: (e) {
+                    //   if (e == null) return null;
+                    //   return AppUtils.validateName(e);
+                    // },
                     onChange: (String p1) {},
                   ),
                 ),
@@ -329,7 +348,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: AppTextField(
                           readOnly: true,
                           hintText: '+91',
-                          textController: countryCodeController,
+                          textController: TextEditingController(),
+
                           onChange: (v) {},
                           onSubmit: (v) {},
                         ),
@@ -339,7 +359,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         flex: 8,
                         child: AppTextField(
                           maxLength: 10,
-                          //readOnly: true,
+                          readOnly:  !widget.profileModel.isFromEdit,
                           hintText: 'Enter a mobile number',
                           textController: mobileController,
                           onChange: (v) {
@@ -359,7 +379,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   builder: (context, asyncSnapshot) {
                     final numberData = asyncSnapshot.data;
                     return buildTextFieldWithHeading(
-                      title: ' Alternate Mobile Number',
+                      title: ' Alternate Mobile Number(optional)',
                       fieldWidget: Column(
                         children: [
                           Row(
@@ -407,10 +427,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 isAlternateNumber: true,
                                                 mobileNumber:
                                                     alternativeController.text,
-                                                onVerified: () {
+                                                onVerified: (phone, otp) async{
+
+                                                  await authController.verifyMobileOtp(phone: phone, otp: otp, userId: widget.profileModel.userId!,);
                                                   verifyMobileStream.add(true);
                                                   AppRoutes.pop();
                                                 },
+                                                authController: authController,
                                               ),
                                             );
                                           }
@@ -475,8 +498,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fieldWidget: AppTextField(
                         suffixIcon: GestureDetector(
                           onTap: isPinCodeValid
-                              ? () {
-                                  // Call API here
+                              ? () async {
+                                 final result =  await addressControllers.getAddressByPincode(pinController.text);
+                                  if(result != null){
+                                    setState(()  {
+                                      countryController.text = result.country;
+                                      stateController.text = result.state;
+                                      cityController.text = result.city;
+                                      // result.areas is available too if you want to show a dropdown
+                                    });
+                                  }else{
+                                    AppDialogue.showPopup(context: context, content: AppText(text: 'Could not fetch location details'));
+                                  }
                                 }
                               : null,
                           child: SizedBox(
@@ -535,6 +568,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       buildTextFieldWithHeading(
                         title: 'Country',
                         fieldWidget: AppTextField(
+                          readOnly: true,
                           hintText: 'Enter country',
                           textController: countryController,
                           onChange: (v) {
@@ -545,9 +579,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             // ();
                           },
                           onSubmit: (v) {},
-                          validator: (v) {
-                            return AppUtils.required(v);
-                          },
+                          // validator: (v) {
+                          //   return AppUtils.required(v);
+                          // },
                         ),
                       ),
 
@@ -556,14 +590,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: 'State',
                         fieldWidget: AppTextField(
                           hintText: 'Enter state',
+                          readOnly: true,
+
                           textController: stateController,
                           onChange: (v) {
                             // checkFormValidation();
                           },
                           onSubmit: (v) {},
-                          validator: (v) {
-                            return AppUtils.required(v);
-                          },
+                          // validator: (v) {
+                          //   return AppUtils.required(v);
+                          // },
                         ),
                       ),
 
@@ -572,14 +608,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: 'City',
                         fieldWidget: AppTextField(
                           hintText: 'Enter city',
+                          readOnly: true,
+
                           textController: cityController,
                           onChange: (v) {
                             // checkFormValidation();
                           },
                           onSubmit: (v) {},
-                          validator: (v) {
-                            return AppUtils.required(v);
-                          },
+                          // validator: (v) {
+                          //   return AppUtils.required(v);
+                          // },
                         ),
                       ),
                     ],
@@ -666,9 +704,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // checkFormValidation();
                     },
                     onSubmit: (v) {},
-                    validator: (v) {
-                      return AppUtils.required(v);
-                    },
+                    // validator: (v) {
+                    //   return AppUtils.required(v);
+                    // },
                   ),
                 ),
 
@@ -737,8 +775,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class ProfileScreenModel {
-  final bool isFromEdit;
 
-  ProfileScreenModel({required this.isFromEdit});
-}

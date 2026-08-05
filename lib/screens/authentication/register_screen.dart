@@ -1,12 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/repository/Auth_repository.dart';
+import 'package:lost_and_found/screens/authentication/otp_screen.dart';
 import 'package:lost_and_found/screens/authentication/profile_screen.dart';
+import 'package:lost_and_found/screens/otp_screen_shared.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
+import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
@@ -21,6 +28,7 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   String? errorText;
   String? nameErrorText;
+  late final AuthControllers authController;
   final _formKey = GlobalKey<FormState>();
   TextEditingController phoneController = TextEditingController();
   TextEditingController textController = TextEditingController();
@@ -28,6 +36,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   StreamController<String?> numberStream = StreamController.broadcast();
   StreamController<String?> nameStream = StreamController.broadcast();
 
+  @override
+  void initState() {
+    super.initState();
+
+    authController = AuthControllers(
+      authRepository: AuthRepository(
+        apiClient: ApiClient(),
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,8 +90,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         final nameData = asyncSnapshot.data;
                         return buildTextFieldWithHeading(
                           title: 'Name',
-                          fieldWidget:
-                          Column(
+                          fieldWidget: Column(
                             children: [
                               AppTextField(
                                 hintText: 'Enter Name',
@@ -88,12 +105,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 onSubmit: (v) {},
                               ),
                               if (nameData != null)
-                                buildErrorText(errorText: nameData ),
+                                buildErrorText(errorText: nameData),
                             ],
                           ),
-
                         );
-                      }
+                      },
                     ),
 
                     // +91
@@ -125,8 +141,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       hintText: 'Enter a mobile number',
                                       textController: phoneController,
                                       onChange: (v) {
-
-                                        numberStream.add(AppUtils.validateMobileNumber(v));
+                                        numberStream.add(
+                                          AppUtils.validateMobileNumber(v),
+                                        );
                                         // setState(() {
                                         //   errorText =  AppUtils.validateMobileNumber(v);
                                         //
@@ -139,18 +156,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ],
                               ),
                               if (numberData != null)
-                                buildErrorText(errorText: numberData ),
+                                buildErrorText(errorText: numberData),
                             ],
                           ),
                         );
-                      }
+                      },
                     ),
 
                     AppButton(
                       title: 'Register',
                       onTap: () {
                         if (_formKey.currentState!.validate()) {
-                         AppRoutes.pushNamed(AppRoutes.profileScreen,arguments: ProfileScreenModel(isFromEdit: false));
+                          AppDialogue.showPopup(context: context, content: OtpSharedScreen(isAlternateNumber: false, mobileNumber:phoneController.text , authController: authController));
+                          // AppRoutes.pushNamed(
+                          //   AppRoutes.profileScreen,
+                          //   arguments: ProfileScreenModel(
+                          //     isFromEdit: false,
+                          //     name: textController.text.trim(),
+                          //     mobile: phoneController.text.trim(),
+                          //     userId: null,
+                          //   ),
+                          // );
                         }
                       },
                       radius: BorderRadius.circular(8),

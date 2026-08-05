@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/screens/authentication/profile_screen.dart';
 import 'package:lost_and_found/screens/profile/webView.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
@@ -59,8 +60,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               CircleAvatar(
                 radius: 40,
-                backgroundImage: NetworkImage(
-                  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRLEWjC-Hd4WpPkUHnFslUH-qp_VENqS3vYvZJUGoxMU5Zb-Ar3EXKq3c6&s=10',
+                backgroundImage: NetworkImage(''
+                  //'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRLEWjC-Hd4WpPkUHnFslUH-qp_VENqS3vYvZJUGoxMU5Zb-Ar3EXKq3c6&s=10',
                 ),
               ),
               AppText(text: 'name', fontWeight: FontWeight.w500, fontSize: 16),
@@ -72,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () {
                   AppRoutes.pushNamed(
                     AppRoutes.profileScreen,
-                    arguments: ProfileScreenModel(isFromEdit: true),
+                    arguments: ProfileScreenModel(isFromEdit: true, ),
                   );
                 },
                 height: 35,
