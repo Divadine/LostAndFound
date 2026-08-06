@@ -49,24 +49,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.white,
       appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
 
-      body: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-
-          children: [
-            AppContainer(
-              widget: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 20,
-                ),
+      body: Center(
+        child: Form(
+          key: _formKey,
+          child: AppContainer(
+            widget: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 20,
+              ),
+              child: SingleChildScrollView(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   spacing: 20,
                   children: [
                     AppText(
@@ -83,7 +81,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       color: AppColors.primaryColor,
                       textAlign: TextAlign.center,
                     ).padHorizontal(),
-
+                
                     StreamBuilder(
                       stream: nameStream.stream,
                       builder: (context, asyncSnapshot) {
@@ -101,7 +99,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   //   nameErrorText = AppUtils.validateName(v);
                                   // });
                                 },
-
+                
                                 onSubmit: (v) {},
                               ),
                               if (nameData != null)
@@ -111,7 +109,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         );
                       },
                     ),
-
+                
                     // +91
                     StreamBuilder(
                       stream: numberStream.stream,
@@ -133,7 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       onSubmit: (v) {},
                                     ),
                                   ),
-
+                
                                   Expanded(
                                     flex: 8,
                                     child: AppTextField(
@@ -141,6 +139,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       hintText: 'Enter a mobile number',
                                       textController: phoneController,
                                       onChange: (v) {
+                                        print(v);
                                         numberStream.add(
                                           AppUtils.validateMobileNumber(v),
                                         );
@@ -162,12 +161,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         );
                       },
                     ),
-
+                
                     AppButton(
                       title: 'Register',
-                      onTap: () {
+                      onTap: () async{
                         if (_formKey.currentState!.validate()) {
-                          AppDialogue.showPopup(context: context, content: OtpSharedScreen(isAlternateNumber: false, mobileNumber:phoneController.text , authController: authController));
+                          //api
+                          await authController.sendOtp(phoneController.text, type: 1);
+                          //popup
+                          AppDialogue.showPopup(context: context, content: OtpSharedScreen(
+                              isAlternateNumber: false,
+                              mobileNumber: phoneController.text,
+                            onVerifyOtp: ( otp) async {
+                
+                            final response = await authController.verifyOtp(phone: phoneController.text, otp: otp, type: 1,name:textController.text);
+                            if(response.status == 1){
+                              print('^^^^^^^^^^^^^^^^^^^^^^^^^^^${response.data?.name}');
+                              AppRoutes.pop();
+                              AppRoutes.pushNamed(AppRoutes.profileScreen,arguments:
+                              ProfileScreenModel(
+                                isFromEdit: false,name: response.data?.name ?? textController.text.trim(),mobile: response.data?.phoneno ?? phoneController.text.trim(),userId: response.data?.userId, altMobileVerified: false,)
+                              );
+                              return null;
+                            }
+                            return response.message ;
+                          },
+                            onSendOtp: () => authController.sendOtp(phoneController.text, type: 1)
+                
+                          )
+                          );
                           // AppRoutes.pushNamed(
                           //   AppRoutes.profileScreen,
                           //   arguments: ProfileScreenModel(
@@ -181,9 +203,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                       radius: BorderRadius.circular(8),
                     ).padHorizontal(30),
-
+                
                     SizedBox(height: 15),
-
+                
                     AuthChangeText(
                       text1: "Already have an Account?",
                       tappableText: 'Login',
@@ -195,8 +217,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
             ),
-          ],
-        ).pad(18),
+          ).pad(18),
+        ),
       ),
     );
   }

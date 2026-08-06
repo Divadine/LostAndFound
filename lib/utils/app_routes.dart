@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/screens/bottomsheets/filter_screen.dart';
 import 'package:lost_and_found/screens/chat/individual_chat_screen.dart';
@@ -94,7 +95,10 @@ class AppRoutes {
       GoRoute(
         path: '/otpScreen',
         name: otpScreen,
-        builder: (context, state) => const OtpScreen(),
+        builder: (context, state){
+          final mobileNo = state.extra as String;
+          return OtpScreen(mobileNo: mobileNo,);
+        },
       ),
       GoRoute(
         path: '/bottomScreen',
@@ -107,7 +111,8 @@ class AppRoutes {
         name: profileScreen,
         builder: (context, state) {
           final model = state.extra as ProfileScreenModel;
-          return ProfileScreen(profileModel:model);
+
+          return ProfileScreen(profileModel:model, );
         },
       ),
 

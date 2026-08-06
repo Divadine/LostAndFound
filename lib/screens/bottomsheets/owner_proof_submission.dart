@@ -267,19 +267,23 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                     AppDialogue.showPopup(
                       context: context,
                       content: OtpSharedScreen(
-                        isAlternateNumber: true,
-                        mobileNumber: '',
-                        onVerified: (phone, otp) async{
-                          AppRoutes.pop();
-                          AppRoutes.pop();
-                          await authController.verifyOtp(phone: phone, otp: otp);
-                          // AppDialogue.showPopup(
-                          //   context: context,
-                          //   content: HandOverToOwner(),
-                          // );
-
+                        isAlternateNumber: false,
+                        mobileNumber:phoneController.text ,
+                        onVerifyOtp: (otp) async {
+                          final response = await authController.verifyOtp(
+                            phone: phoneController.text,
+                            otp: otp,
+                            type: 2,
+                          );
+                          if(response.status == 1){
+                            AppDialogue.showPopup(context: context, content: HandOverToOwner());
+                            AppRoutes.pushNamed(AppRoutes.bottomScreen);
+                            return null;
+                          }
+                          return response.message;
                         },
-                        authController: authController,
+                        onSendOtp: () =>authController.sendOtp(phoneController.text,type: 0),
+
                       ),
                     );
                   }

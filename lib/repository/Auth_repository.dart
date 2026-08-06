@@ -7,6 +7,8 @@ import 'package:lost_and_found/models/authmodels/login_model.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_response_model.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/models/authmodels/pincode_details_model.dart';
+import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
+import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 
 class AuthRepository {
   final ApiClient apiClient;
@@ -32,7 +34,7 @@ class AuthRepository {
   }
 
 
-  Future<dynamic> generateMobileOtp({required String phone}) async {
+  Future<dynamic> generateMobileOtp({required String phone,}) async {
     final response = await apiClient.post(ApiEndPoints.generateMobileOtp, {"phoneno" : phone});
     return response.data;
   }
@@ -45,5 +47,17 @@ class AuthRepository {
     });
     print('????????/////////////////////////////////////////$response');
     return ResponseModel<dynamic>.fromJson(response.data,(json) => json);
+  }
+
+  Future<ResponseModel<dynamic>>  updateProfile(UpdateProfileForm profile) async {
+    final form = await profile.toMap();
+   final response = await  apiClient.post(ApiEndPoints.updateProfile, form);
+    return ResponseModel<dynamic>.fromJson(response.data,(json) => json);
+  }
+
+
+  Future<ResponseModel<ProfileScreenModel>> getProfile() async {
+    final response = await apiClient.get(ApiEndPoints.getUserInfo);
+    return ResponseModel<ProfileScreenModel>.fromJson(response.data, (json) => ProfileScreenModel.fromJson(json));
   }
 }

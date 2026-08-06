@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/controllers/pincode_profile_controllers.dart';
+import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/selected_location_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
@@ -32,7 +34,8 @@ import 'package:lost_and_found/screens/otp_screen_shared.dart';
 class ProfileScreen extends StatefulWidget {
   final ProfileScreenModel profileModel;
 
-  const ProfileScreen({super.key, required this.profileModel});
+
+  const ProfileScreen({super.key, required this.profileModel, });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -62,6 +65,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   StreamController<File?> imageStream = StreamController.broadcast();
   File? choosenImage;
 
+  String? latitude;
+  String? longitude;
   final _formKey = GlobalKey<FormState>();
 
   final List<TextEditingController> _controller = List.generate(
@@ -90,7 +95,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     nameController.text = widget.profileModel.name ?? '';
     mobileController.text = widget.profileModel.mobile ?? '';
+    alternativeController.text = widget.profileModel.altMobile ?? '';
+    pinController.text = widget.profileModel.pincode ?? '';
+    countryController.text = widget.profileModel.country ?? '';
+    stateController.text = widget.profileModel.state ?? '';
+    cityController.text = widget.profileModel.city ?? '';
+    addressController.text = widget.profileModel.address ?? '';
+    landmarkController.text = widget.profileModel.landmark ?? '';
+    latitude = widget.profileModel.latitude;
+    longitude = widget.profileModel.longitude;
 
+    if (widget.profileModel.altMobileVerified) {
+      verifyMobileStream.add(true);
+    }
+    if (widget.profileModel.pincode != null) {
+      isPinCodeValid = AppUtils.validatePincode(widget.profileModel.pincode!) == null;
+    }
     countryCodeController.text = '+91';
     countryCodeController2.text = '+91';
   }
@@ -196,7 +216,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : null,
                           radius: 50,
                           child: selectedImage == null
-                              ? Icon(Icons.person)
+                              ? (widget.profileModel.profileImageUrl != null ? ClipOval(
+                    child: CachedNetworkImage(
+                    imageUrl: widget.profileModel.profileImageUrl!,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    ),
+                    ) : Icon(Icons.person))
                               : null,
                         ),
 
@@ -417,6 +444,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       return GestureDetector(
                                         onTap: () {
                                           if (isVerified) return;
+
                                           if (AppUtils.validateMobileNumber(
                                                 alternativeController.text,
                                               ) ==
@@ -425,15 +453,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               context: context,
                                               content: OtpSharedScreen(
                                                 isAlternateNumber: true,
-                                                mobileNumber:
-                                                    alternativeController.text,
-                                                onVerified: (phone, otp) async{
-
-                                                  await authController.verifyMobileOtp(phone: phone, otp: otp, userId: widget.profileModel.userId!,);
-                                                  verifyMobileStream.add(true);
-                                                  AppRoutes.pop();
+                                                mobileNumber: alternativeController.text,
+                                                onVerifyOtp: (String otp) async {
+                                                  final response = await authController.verifyMobileOtp(
+                                                      phone: alternativeController.text,
+                                                      otp: otp,
+                                                      userId:  widget.profileModel.userId!,
+                                                  );
+                                                  if(response.status == 1){
+                                                    verifyMobileStream.add(true);
+                                                    AppRoutes.pop();
+                                                    return null;
+                                                  }
+                                                  return response.message ;
                                                 },
-                                                authController: authController,
+                                                onSendOtp:  () => authController.generateMobileOtp(alternativeController.text),
+
                                               ),
                                             );
                                           }
@@ -744,12 +779,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: AppButton(
             title: widget.profileModel.isFromEdit ? 'Save' : 'Save & Next',
             radius: BorderRadius.circular(7),
-            onTap: () {
-              if (!_formKey.currentState!.validate()) {
-                widget.profileModel.isFromEdit
-                    ? AppRoutes.pop()
-                    : AppRoutes.pushNamed(AppRoutes.firstHomeScreen);
-              }
+            onTap: () async {
+              if (!_formKey.currentState!.validate()) return ;
+
+
               if (choosenImage == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -759,8 +792,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 );
-              } else {
+              }
+
+             final profile =  UpdateProfileForm(
+                id: widget.profileModel.userId,
+                  profileImg: choosenImage!,
+                  name: nameController.text,
+                  phoneNo:mobileController.text,
+               altNo: alternativeController.text.isNotEmpty ? alternativeController.text : null,
+                  pinCode: pinController.text,
+                  country: countryController.text,
+                  state: stateController.text,
+                  city:  cityController.text,
+                  address:  addressController.text,
+                  landMark: landmarkController.text,
+               lat: latitude,
+               log: longitude,
+
+              );
+              final response = await authController.updateProfileForm(profile);
+              if (!mounted) return;
+              if(response.status == 1){
+                widget.profileModel.isFromEdit
+                    ? AppRoutes.pop()
+                    : AppRoutes.pushNamed(AppRoutes.firstHomeScreen);
+              }else {
                 print('**************************************************');
+                AppDialogue.showPopup(context: context, content: AppText(text: response.message ?? 'Something went wrong'),);
+
               }
             },
 

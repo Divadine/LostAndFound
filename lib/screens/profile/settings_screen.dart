@@ -2,7 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/authentication/profile_screen.dart';
 import 'package:lost_and_found/screens/profile/webView.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
@@ -27,6 +30,12 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+
+  final authController = AuthControllers(
+    authRepository: AuthRepository(
+      apiClient: ApiClient(),
+    ),
+  );
   bool isEnable = false;
 
   getEmoji(int ratingsEmoji) {
@@ -70,11 +79,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               AppButton(
                 title: "Edit Profile",
-                onTap: () {
-                  AppRoutes.pushNamed(
-                    AppRoutes.profileScreen,
-                    arguments: ProfileScreenModel(isFromEdit: true, ),
-                  );
+                onTap: () async {
+                  final result = await authController.getProfile();
+                  if (!mounted) return;
+
+                  if (result.status == 1 && result.data != null) {
+                    context.pushNamed(
+                      AppRoutes.profileScreen,
+                      extra: result.data!.copyWith(isFromEdit: true),
+                    );
+                  } else {
+                    AppDialogue.showPopup(
+                      context: context,
+                      content: AppText(text: result.message ),
+                    );
+                  }
+                  // final result = await authController.getProfile();
+                  // if (result.status == 1 && result.data != null) {
+                  //   final p = result.data!;
+                  //   context.pushNamed(
+                  //     AppRoutes.profileScreen,
+                  //     extra: ProfileScreenModel(
+                  //       isFromEdit: true,
+                  //       userId: p.userId,
+                  //       name: p.name,
+                  //       mobile: p.mobile,
+                  //       altMobile: p.altMobile,
+                  //       altMobileVerified: p.altMobileVerified == 1,
+                  //       pincode: p.pincode,
+                  //       country: p.country,
+                  //       state: p.state,
+                  //       city: p.city,
+                  //       address: p.address,
+                  //       landmark: p.landmark,
+                  //       latitude: p.latitude,
+                  //       longitude: p.longitude,
+                  //       profileImageUrl: p.profileImageUrl,
+                  //     ),
+                  //   );
+                  // }
+                  // AppRoutes.pushNamed(
+                  //   AppRoutes.profileScreen,
+                  //   arguments: ProfileScreenModel(isFromEdit: true, altMobileVerified: true, ),
+                  // );
                 },
                 height: 35,
                 fontSize: 12,

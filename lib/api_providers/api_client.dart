@@ -22,4 +22,9 @@ class ApiClient {
     return await dio.post(path,data: data);
   }
 
+  Future<Response> get(String path, { Map<String, dynamic>? queryParameters,  }) async {
+    return await dio.get( path,queryParameters: queryParameters,);
+  }
+
+
 }

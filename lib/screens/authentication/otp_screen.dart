@@ -13,8 +13,9 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/screens/otp_screen_shared.dart';
 
 class OtpScreen extends StatefulWidget {
+  final String mobileNo;
 
-  const OtpScreen({super.key, });
+  const OtpScreen({super.key, required this.mobileNo});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -22,7 +23,7 @@ class OtpScreen extends StatefulWidget {
 
 class _OtpScreenState extends State<OtpScreen> {
 
-  TextEditingController mobileNumberController = TextEditingController();
+  // TextEditingController mobileNoNumberController = TextEditingController();
   late final AuthControllers authController;
 
 
@@ -48,18 +49,22 @@ class _OtpScreenState extends State<OtpScreen> {
         child: AppContainer(
           widget:  OtpSharedScreen(
             isAlternateNumber: false,
-            onVerified: (phone, otp)async {
-           final v=  await authController.verifyOtp(phone: phone, otp: otp);
-           if(v) {
-             AppRoutes.pushNamed(AppRoutes.bottomScreen);
-           }
-           else{
-             AppSnackBar.show(context: context, message: 'not loged in');
-           }
-
+            mobileNumber: widget.mobileNo,
+            onVerifyOtp: (otp) async {
+              final response = await authController.verifyOtp(
+                  phone: widget.mobileNo,
+                  otp: otp,
+                  type: 2,
+              );
+              print(response);
+              if(response.status == 1){
+                AppRoutes.pushNamed(AppRoutes.bottomScreen);
+                return null;
+              }
+              return response.message;
             },
-            authController: authController,
-            mobileNumber: mobileNumberController.text,
+            onSendOtp: () =>authController.sendOtp(widget.mobileNo,type: 2),
+
 
           ).pad(),
         ).padHorizontal(18),

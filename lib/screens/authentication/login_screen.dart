@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.white,
       appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
 
@@ -161,14 +161,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       numberStream.add(errorText);
                       if (errorText == null &&
                           phoneController.text.isNotEmpty) {
-                        final success = await authController.sendOtp(phoneController.text,);
+                        print('________________________________________________');
+                        print(phoneController.text);
+                        final success = await authController.sendOtp(phoneController.text, type: 2,);
+                        print(success);
                         if(success){
-                          AppRoutes.pushNamed(AppRoutes.otpScreen,arguments: {"phone" : phoneController.text});
+                          AppRoutes.pushNamed(AppRoutes.otpScreen, arguments: phoneController.text);
                         }else{
-                          AppDialogue.showPopup(context: context, content:AppText(text: 'OTP generation failed'));
+                          AppDialogue.showPopup(context: context, content: AppText(text: 'OTP generation failed'));
                         }
-
                       }
+
+
+
                     },
                   ).padHorizontal(30),
                   SizedBox(height: 15),
