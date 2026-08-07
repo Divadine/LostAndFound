@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:dio/dio.dart' as dio;
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/api_providers/api_endpoints.dart';
 import 'package:lost_and_found/models/api_model/response_model.dart';
@@ -50,14 +52,30 @@ class AuthRepository {
   }
 
   Future<ResponseModel<dynamic>>  updateProfile(UpdateProfileForm profile) async {
-    final form = await profile.toMap();
-   final response = await  apiClient.post(ApiEndPoints.updateProfile, form);
+    final map  =  profile.toMap();
+    final file = map.remove('profileImg') as File?;
+    final formData =  dio.FormData.fromMap({
+      ...map,
+      if (file != null)
+        'profileImg': await dio.MultipartFile.fromFile(
+          file.path,
+          filename: file.path.split('/').last,
+        ),
+    });
+   final response = await  apiClient.post(ApiEndPoints.updateProfile,formData);
+   print('response is **********************************$response');
     return ResponseModel<dynamic>.fromJson(response.data,(json) => json);
   }
 
 
-  Future<ResponseModel<ProfileScreenModel>> getProfile() async {
-    final response = await apiClient.get(ApiEndPoints.getUserInfo);
-    return ResponseModel<ProfileScreenModel>.fromJson(response.data, (json) => ProfileScreenModel.fromJson(json));
+  Future<ResponseModel<ProfileScreenModel>> getProfile({required int userId}) async {
+    final response = await apiClient.post(ApiEndPoints.getUserInfo, {"id": userId});
+    return ResponseModel<ProfileScreenModel>.fromJson(
+      response.data,
+          (json) {
+        final list = json as List;
+        return ProfileScreenModel.fromJson(list.first as Map<String, dynamic>);
+      },
+    );
   }
 }

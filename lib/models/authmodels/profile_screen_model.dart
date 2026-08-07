@@ -35,7 +35,7 @@ class ProfileScreenModel {
       landmark: json['landmark'],
       latitude: json['latitude']?.toString(),
       longitude: json['longitude']?.toString(),
-      profileImageUrl: json['profileimg'],
+      profileImageUrl: json['profile_image'],
 
     );
 

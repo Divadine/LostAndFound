@@ -31,6 +31,7 @@ class AuthControllers {
 
     if (response.status == 1 && response.data?.token != null) {
       await AppPreferences.saveToken(response.data!.token);
+      await AppPreferences.saveUserId(response.data!.userId);
       await AppPreferences.setIsLoggedIn(true);
     }
     return response;
@@ -54,6 +55,6 @@ class AuthControllers {
   }
 
 
-  Future<ResponseModel<ProfileScreenModel>> getProfile() => authRepository.getProfile();
+  Future<ResponseModel<ProfileScreenModel>> getProfile({required int userId}) => authRepository.getProfile(userId: userId);
 
 }

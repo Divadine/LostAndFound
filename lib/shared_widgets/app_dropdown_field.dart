@@ -140,6 +140,8 @@ class _AppDropdownFieldState<T>
             controller: controller,
             focusNode: focusNode,
             requestFocusOnTap: false,
+            enableSearch: false,
+            enableFilter: false,
             initialSelection: widget.value,
             trailingIcon:AppIconWidget(assetPath: AssetImages.dropDown),
             selectedTrailingIcon: AppIconWidget(assetPath: AssetImages.dropUp),

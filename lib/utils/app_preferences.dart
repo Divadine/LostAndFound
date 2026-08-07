@@ -78,4 +78,14 @@ class AppPreferences {
     await _prefs.remove(_tokenKey);
   }
 
+  static const String _userIdKey = "user_id";
+
+  static Future<void> saveUserId(int userId) async {
+    await _prefs.setInt(_userIdKey, userId);
+  }
+
+  static int? getUserId() {
+    return _prefs.getInt(_userIdKey);
+  }
+
 }

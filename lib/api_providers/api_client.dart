@@ -18,13 +18,14 @@ class ApiClient {
     dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true,));
   }
 
-  Future<Response> post(String path, Map<String,dynamic>data,) async {
-    return await dio.post(path,data: data);
+  Future<Response> post(String path, dynamic  data,) async {
+    return await dio.post(
+      path,data: data,
+
+    );
   }
 
-  Future<Response> get(String path, { Map<String, dynamic>? queryParameters,  }) async {
-    return await dio.get( path,queryParameters: queryParameters,);
-  }
+
 
 
 }

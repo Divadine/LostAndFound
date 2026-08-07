@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/controllers/pincode_profile_controllers.dart';
+import 'package:lost_and_found/models/authmodels/pincode_details_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/selected_location_model.dart';
@@ -34,8 +35,7 @@ import 'package:lost_and_found/screens/otp_screen_shared.dart';
 class ProfileScreen extends StatefulWidget {
   final ProfileScreenModel profileModel;
 
-
-  const ProfileScreen({super.key, required this.profileModel, });
+  const ProfileScreen({super.key, required this.profileModel});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -47,7 +47,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     authRepository: AuthRepository(apiClient: ApiClient()),
   );
 
-   final addressControllers = AddressControllers(authRepository: AuthRepository(apiClient: ApiClient()));
+  final addressControllers = AddressControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
   bool isNotFromSetUp = false;
   bool isAlternativeNumberValid = false;
   bool isPinCodeValid = false;
@@ -63,8 +65,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   StreamController<bool?> verifyMobileStream = StreamController.broadcast();
   StreamController<String?> pinStream = StreamController.broadcast();
   StreamController<File?> imageStream = StreamController.broadcast();
-  File? choosenImage;
 
+  bool _isAltVerified = false;
   String? latitude;
   String? longitude;
   final _formKey = GlobalKey<FormState>();
@@ -86,6 +88,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController countryCodeController2 = TextEditingController();
 
   final ImagePicker picker = ImagePicker();
+  File? choosenImage;
+  List<AreaModel> cityOptions = [];
+  String? selectedCityName;
+  bool _isFormValid = false;
 
   final AppLocationPermission _appPermissions = AppLocationPermission();
 
@@ -105,15 +111,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     latitude = widget.profileModel.latitude;
     longitude = widget.profileModel.longitude;
 
+    _isAltVerified = widget.profileModel.altMobileVerified;
     if (widget.profileModel.altMobileVerified) {
       verifyMobileStream.add(true);
     }
     if (widget.profileModel.pincode != null) {
-      isPinCodeValid = AppUtils.validatePincode(widget.profileModel.pincode!) == null;
+      isPinCodeValid =
+          AppUtils.validatePincode(widget.profileModel.pincode!) == null;
     }
     countryCodeController.text = '+91';
     countryCodeController2.text = '+91';
+
+    if (widget.profileModel.city != null &&
+        widget.profileModel.city!.isNotEmpty) {
+      selectedCityName = widget.profileModel.city;
+      cityOptions = [AreaModel(id: 0, name: widget.profileModel.city!)];
+    }
   }
+
   Future<void> _openMapForAddress() async {
     final granted = await _appPermissions.requestLocationPermission(context);
     if (!granted) return;
@@ -126,8 +141,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (singleLocation != null) {
       final locations = singleLocation as SelectedLocationModel;
-        addressController.text = locations.address;
+      addressController.text = locations.address;
+    }
+  }
 
+  void _checkFormValidity() {
+    final valid =
+        (_formKey.currentState?.validate() ?? false) && choosenImage != null;
+    if (valid != _isFormValid) {
+      setState(() => _isFormValid = valid);
     }
   }
 
@@ -142,11 +164,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (pic != null) {
       choosenImage = File(pic.path);
-
       imageStream.add(File(pic.path));
+      _checkFormValidity();
     }
-
-    // checkFormValidation();
   }
 
   void deleteProfilePicture() {
@@ -155,8 +175,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     imageStream.add(null);
     AppRoutes.pop();
-
-    // checkFormValidation();
+    _checkFormValidity();
   }
 
   @override
@@ -216,14 +235,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : null,
                           radius: 50,
                           child: selectedImage == null
-                              ? (widget.profileModel.profileImageUrl != null ? ClipOval(
-                    child: CachedNetworkImage(
-                    imageUrl: widget.profileModel.profileImageUrl!,
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                    ),
-                    ) : Icon(Icons.person))
+                              ? (widget.profileModel.profileImageUrl != null
+                                    ? ClipOval(
+                                        child: CachedNetworkImage(
+                                          imageUrl: widget
+                                              .profileModel
+                                              .profileImageUrl!,
+                                          width: 100,
+                                          height: 100,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      )
+                                    : Icon(Icons.person))
                               : null,
                         ),
 
@@ -352,16 +375,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     hintText: 'enter name',
                     textController: nameController,
                     readOnly: !widget.profileModel.isFromEdit,
-                    // onChange: (v) {
-                    //   nameStream.add(AppUtils.validateName(v));
-                    //   // checkFormValidation();
-                    // },
                     onSubmit: (v) {},
-                    // validator: (e) {
-                    //   if (e == null) return null;
-                    //   return AppUtils.validateName(e);
-                    // },
-                    onChange: (String p1) {},
+                    onChange: (v) => _checkFormValidity(),
                   ),
                 ),
                 // Mobile Number
@@ -386,12 +401,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         flex: 8,
                         child: AppTextField(
                           maxLength: 10,
-                          readOnly:  !widget.profileModel.isFromEdit,
+                          readOnly: !widget.profileModel.isFromEdit,
                           hintText: 'Enter a mobile number',
                           textController: mobileController,
-                          onChange: (v) {
-                            // errorText = AppUtils.validateMobileNumber(v);
-                          },
+                          onChange: (v) => _checkFormValidity(),
+
                           onSubmit: (v) {},
                           textInputType: TextInputType.phone,
                         ),
@@ -433,6 +447,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     mobileStream.add(
                                       AppUtils.validateMobileNumber(v),
                                     );
+                                    if (_isAltVerified) {
+                                      setState(() => _isAltVerified = false);
+                                      verifyMobileStream.add(false);
+                                    }
                                   },
                                   onSubmit: (v) {},
                                   textInputType: TextInputType.phone,
@@ -453,22 +471,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               context: context,
                                               content: OtpSharedScreen(
                                                 isAlternateNumber: true,
-                                                mobileNumber: alternativeController.text,
+                                                mobileNumber:
+                                                    alternativeController.text,
                                                 onVerifyOtp: (String otp) async {
-                                                  final response = await authController.verifyMobileOtp(
-                                                      phone: alternativeController.text,
-                                                      otp: otp,
-                                                      userId:  widget.profileModel.userId!,
-                                                  );
-                                                  if(response.status == 1){
-                                                    verifyMobileStream.add(true);
+                                                  final response =
+                                                      await authController
+                                                          .verifyMobileOtp(
+                                                            phone:
+                                                                alternativeController
+                                                                    .text,
+                                                            otp: otp,
+                                                            userId: widget
+                                                                .profileModel
+                                                                .userId!,
+                                                          );
+                                                  if (response.status == 1) {
+                                                    _isAltVerified = true;
+                                                    verifyMobileStream.add(
+                                                      true,
+                                                    );
                                                     AppRoutes.pop();
                                                     return null;
                                                   }
-                                                  return response.message ;
+                                                  return response.message;
                                                 },
-                                                onSendOtp:  () => authController.generateMobileOtp(alternativeController.text),
-
+                                                onSendOtp: () => authController
+                                                    .generateMobileOtp(
+                                                      alternativeController
+                                                          .text,
+                                                    ),
                                               ),
                                             );
                                           }
@@ -531,21 +562,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     return buildTextFieldWithHeading(
                       title: ' PinCode',
                       fieldWidget: AppTextField(
+                        hintText: 'Enter Pincode',
+                        textController: pinController,
+                        textInputType: TextInputType.phone,
+                        maxLength: 6,
+                        validator: (e) {
+                          if (e == null) return null;
+
+                          return AppUtils.validatePincode(e);
+                        },
+                        onChange: (v) {
+                          // _validatePinCode(v);
+                          pinStream.add(_validatePinCode(v));
+                          _checkFormValidity();
+                          // checkFormValidation();
+                        },
+
+                        onSubmit: (v) {},
                         suffixIcon: GestureDetector(
                           onTap: isPinCodeValid
                               ? () async {
-                                 final result =  await addressControllers.getAddressByPincode(pinController.text);
-                                  if(result != null){
-                                    setState(()  {
-                                      countryController.text = result.country;
-                                      stateController.text = result.state;
-                                      cityController.text = result.city;
-                                      // result.areas is available too if you want to show a dropdown
-                                    });
-                                  }else{
-                                    AppDialogue.showPopup(context: context, content: AppText(text: 'Could not fetch location details'));
-                                  }
-                                }
+                            final result = await addressControllers
+                                .getAddressByPincode(pinController.text);
+                            if (result != null) {
+                              setState(() {
+                                countryController.text = result.country;
+                                stateController.text = result.state;
+                                cityOptions = result.areas;
+                                selectedCityName = cityOptions.isNotEmpty
+                                    ? cityOptions.first.name
+                                    : null;
+                                cityController.text =
+                                    selectedCityName ?? '';
+                                latitude = result.latitude;
+                                longitude = result.longitude;
+                              });
+                              _checkFormValidity();
+                            } else {
+                              AppDialogue.showPopup(
+                                context: context,
+                                content: AppText(
+                                  text:
+                                  'Could not fetch location details',
+                                ),
+                              );
+                            }
+                          }
                               : null,
                           child: SizedBox(
                             width: 100,
@@ -574,23 +636,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
-                        hintText: 'Enter Pincode',
-                        textController: pinController,
-                        textInputType: TextInputType.phone,
-                        maxLength: 6,
-                        validator: (e) {
-                          if (e == null) return null;
+                      )
 
-                          return AppUtils.validatePincode(e);
-                        },
-                        onChange: (v) {
-                          // _validatePinCode(v);
-                          pinStream.add(_validatePinCode(v));
-                          // checkFormValidation();
-                        },
-
-                        onSubmit: (v) {},
-                      ),
                     );
                   },
                 ),
@@ -639,20 +686,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
 
                       //city
+                      //city
                       buildTextFieldWithHeading(
                         title: 'City',
-                        fieldWidget: AppTextField(
-                          hintText: 'Enter city',
-                          readOnly: true,
-
-                          textController: cityController,
-                          onChange: (v) {
-                            // checkFormValidation();
-                          },
-                          onSubmit: (v) {},
-                          // validator: (v) {
-                          //   return AppUtils.required(v);
-                          // },
+                        fieldWidget: DropdownButtonFormField<String>(
+                          value: selectedCityName,
+                          items: cityOptions
+                              .map(
+                                (a) => DropdownMenuItem(
+                                  value: a.name,
+                                  child: Text(a.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: cityOptions.isEmpty
+                              ? null
+                              : (v) {
+                                  setState(() {
+                                    selectedCityName = v;
+                                    cityController.text = v ?? '';
+                                  });
+                                  _checkFormValidity();
+                                },
+                          decoration: InputDecoration(
+                            hintText: cityOptions.isEmpty
+                                ? 'Fetch pincode first'
+                                : 'Select city',
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'City is required'
+                              : null,
                         ),
                       ),
                     ],
@@ -736,7 +800,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     hintText: 'Enter Full Address',
                     textController: addressController,
                     onChange: (v) {
-                      // checkFormValidation();
+                      _checkFormValidity();
                     },
                     onSubmit: (v) {},
                     // validator: (v) {
@@ -752,7 +816,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     hintText: 'Enter landmark',
                     textController: landmarkController,
                     onChange: (v) {
-                      // checkFormValidation();
+                      _checkFormValidity();
                     },
                     onSubmit: (v) {},
                     validator: (v) {
@@ -780,58 +844,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: widget.profileModel.isFromEdit ? 'Save' : 'Save & Next',
             radius: BorderRadius.circular(7),
             onTap: () async {
-              if (!_formKey.currentState!.validate()) return ;
+              if (!_formKey.currentState!.validate()) return;
 
-
-              if (choosenImage == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: AppText(
-                      text: 'choose an Image',
-                      color: AppColors.white,
-                    ),
-                  ),
-                );
-              }
-
-             final profile =  UpdateProfileForm(
+              final profile = UpdateProfileForm(
                 id: widget.profileModel.userId,
-                  profileImg: choosenImage!,
-                  name: nameController.text,
-                  phoneNo:mobileController.text,
-               altNo: alternativeController.text.isNotEmpty ? alternativeController.text : null,
-                  pinCode: pinController.text,
-                  country: countryController.text,
-                  state: stateController.text,
-                  city:  cityController.text,
-                  address:  addressController.text,
-                  landMark: landmarkController.text,
-               lat: latitude,
-               log: longitude,
-
+                //profileImg: choosenImage,
+                name: nameController.text,
+                phoneNo: mobileController.text,
+                altNo: alternativeController.text.isNotEmpty
+                    ? alternativeController.text
+                    : null,
+                pinCode: pinController.text,
+                country: countryController.text,
+                state: stateController.text,
+                city: cityController.text,
+                address: addressController.text,
+                landMark: landmarkController.text,
+                lat: latitude,
+                log: longitude,
+                altVerified: _isAltVerified,
               );
               final response = await authController.updateProfileForm(profile);
               if (!mounted) return;
-              if(response.status == 1){
+              if (response.status == 1) {
                 widget.profileModel.isFromEdit
                     ? AppRoutes.pop()
                     : AppRoutes.pushNamed(AppRoutes.firstHomeScreen);
-              }else {
+              } else {
                 print('**************************************************');
-                AppDialogue.showPopup(context: context, content: AppText(text: response.message ?? 'Something went wrong'),);
-
+                AppDialogue.showPopup(
+                  context: context,
+                  content: AppText(
+                    text: response.message ?? 'Something went wrong',
+                  ),
+                );
               }
             },
 
-            bgColor:( _formKey.currentState?.validate() ?? false)&&choosenImage != null
+            bgColor: _isFormValid
                 ? AppColors.primaryColor
                 : AppColors.idCardColor,
-            textColor: ( _formKey.currentState?.validate() ?? false)&&choosenImage != null ? AppColors.white : AppColors.black,
+
+            textColor: _isFormValid ? AppColors.white : AppColors.black,
           ).pad(16),
         ),
       ),
     );
   }
 }
-
-

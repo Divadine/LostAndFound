@@ -6,6 +6,7 @@ class UpdateProfileForm {
   final String name;
   final String phoneNo;
   final String? altNo;
+  final bool altVerified;
   final String pinCode;
   final String country;
   final String state;
@@ -18,7 +19,7 @@ class UpdateProfileForm {
   final int? status;
   final String? message;
 
-  UpdateProfileForm({ this.id, required this.profileImg, required this.name, required this.phoneNo, this.altNo, required this.pinCode, required this.country, required this.state, required this.city, required this.address, required this.landMark, this.lat, this.log, this.status, this.message});
+  UpdateProfileForm({ this.id,  this.profileImg, required this.name, required this.phoneNo, this.altNo, required this.pinCode, required this.country, required this.state, required this.city, required this.address, required this.landMark, this.lat, this.log, this.status, this.message, required this.altVerified});
 
 
   Map<String ,dynamic> toMap() {
@@ -27,7 +28,8 @@ class UpdateProfileForm {
       'id' : id,
       'name': name,
       'phoneno': phoneNo,
-      'alt_status': (altNo != null && altNo!.isNotEmpty) ? 1 : 0,
+      'altno': altNo,
+      'alt_status': altVerified ? 1 : 0,
       'profile_status': 1,
       'pincode': pinCode,
       'country': country,
@@ -37,6 +39,7 @@ class UpdateProfileForm {
       'landmark': landMark,
       'latitude': lat,
       'longitude': log,
+      'profileimg':profileImg,
 
     };
   }

@@ -16,6 +16,7 @@ import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_urls.dart';
@@ -38,6 +39,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   );
   bool isEnable = false;
 
+  ProfileScreenModel? profile;
+  Future<void> _loadProfile() async {
+    final userId = AppPreferences.getUserId();
+    if (userId == null) return;
+    final result = await authController.getProfile(userId: userId);
+    if (!mounted) return;
+    if (result.status == 1 && result.data != null) {
+      setState(() => profile = result.data);
+    }
+  }
   getEmoji(int ratingsEmoji) {
     switch (ratingsEmoji) {
       case 1:
@@ -56,6 +67,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   @override
+  void initState()  {
+    super.initState();
+    _loadProfile();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -69,59 +86,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               CircleAvatar(
                 radius: 40,
-                backgroundImage: NetworkImage(''
-                  //'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRLEWjC-Hd4WpPkUHnFslUH-qp_VENqS3vYvZJUGoxMU5Zb-Ar3EXKq3c6&s=10',
-                ),
+                backgroundImage:profile?.profileImageUrl != null ? CachedNetworkImageProvider(profile!.profileImageUrl!) : null,
+                // NetworkImage(''
+                //   //'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRLEWjC-Hd4WpPkUHnFslUH-qp_VENqS3vYvZJUGoxMU5Zb-Ar3EXKq3c6&s=10',
+                // ),
+                child: profile?.profileImageUrl == null ? Icon(Icons.person) : null,
               ),
-              AppText(text: 'name', fontWeight: FontWeight.w500, fontSize: 16),
+
+              AppText(text: profile?.name ?? '', fontWeight: FontWeight.w500, fontSize: 16),
 
               SizedBox(height: 10),
 
               AppButton(
                 title: "Edit Profile",
                 onTap: () async {
-                  final result = await authController.getProfile();
+                  final userId = AppPreferences.getUserId();
+                  if (userId == null) return;
+
+                  final result = await authController.getProfile(userId: userId);
                   if (!mounted) return;
 
                   if (result.status == 1 && result.data != null) {
-                    context.pushNamed(
+                    await context.pushNamed(
                       AppRoutes.profileScreen,
                       extra: result.data!.copyWith(isFromEdit: true),
                     );
+                    if (!mounted) return;
+                    await _loadProfile();
                   } else {
                     AppDialogue.showPopup(
                       context: context,
-                      content: AppText(text: result.message ),
+                      content: AppText(text: result.message),
                     );
                   }
-                  // final result = await authController.getProfile();
-                  // if (result.status == 1 && result.data != null) {
-                  //   final p = result.data!;
-                  //   context.pushNamed(
-                  //     AppRoutes.profileScreen,
-                  //     extra: ProfileScreenModel(
-                  //       isFromEdit: true,
-                  //       userId: p.userId,
-                  //       name: p.name,
-                  //       mobile: p.mobile,
-                  //       altMobile: p.altMobile,
-                  //       altMobileVerified: p.altMobileVerified == 1,
-                  //       pincode: p.pincode,
-                  //       country: p.country,
-                  //       state: p.state,
-                  //       city: p.city,
-                  //       address: p.address,
-                  //       landmark: p.landmark,
-                  //       latitude: p.latitude,
-                  //       longitude: p.longitude,
-                  //       profileImageUrl: p.profileImageUrl,
-                  //     ),
-                  //   );
-                  // }
-                  // AppRoutes.pushNamed(
-                  //   AppRoutes.profileScreen,
-                  //   arguments: ProfileScreenModel(isFromEdit: true, altMobileVerified: true, ),
-                  // );
+
                 },
                 height: 35,
                 fontSize: 12,
