@@ -11,6 +11,9 @@ import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/models/authmodels/pincode_details_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/models/categories_model/category_model.dart';
+import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
+import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
 
 class AuthRepository {
   final ApiClient apiClient;
@@ -77,5 +80,24 @@ class AuthRepository {
         return ProfileScreenModel.fromJson(list.first as Map<String, dynamic>);
       },
     );
+  }
+
+  Future <ResponseModel<CategoryListModel>> getCategories({required int page, required int limit, String? search}) async {
+   final response = await  apiClient.get(ApiEndPoints.getCategory,queryParams: {'page': page,  'limit': limit,if (search != null && search.isNotEmpty) 'search': search,});
+   return ResponseModel<CategoryListModel>.fromJson(response.data, (json) => CategoryListModel.fromJson(json));
+  }
+
+  Future<ResponseModel<List<SubCategoryModel>>> getSubCategories({required int catId, String? search}) async {
+    final response = await apiClient.get(ApiEndPoints.getSubCategory,queryParams: {
+      'category_id' : catId, if (search != null && search.isNotEmpty) 'search': search,
+    }
+    );
+
+    return ResponseModel<List<SubCategoryModel>>.fromJson(response.data,(json) => (json as List).map((e) => SubCategoryModel.fromJson(e as Map<String,dynamic>)).toList());
+  }
+  
+  Future <ResponseModel<List<DynamicFieldsModel>>> getDynamicFields({required int subCategoryId}) async{
+   final response =  await apiClient.get(ApiEndPoints.getDynamicFields,queryParams: {'subcategory_id': subCategoryId});
+    return ResponseModel<List<DynamicFieldsModel>>.fromJson(response.data, (json) =>(json as List).map((e) =>DynamicFieldsModel.fromJson(e as Map<String, dynamic>)).toList() );
   }
 }

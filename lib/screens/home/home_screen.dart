@@ -285,7 +285,7 @@ filterStateStream.add(state);
                                 onTap: () {
                                   AppUiHelper.showBottomSheet(
                                     context: context,
-                                    child: ReceiveHandoverSheet(title: 'gold'),
+                                    child: ReceiveHandoverSheet(title: 'gold', isReceiver: false,),
                                   );
                                 },
                                 showPostId: true,

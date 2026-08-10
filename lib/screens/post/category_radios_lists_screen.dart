@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/models/categories_model/category_model.dart';
+import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -22,80 +26,40 @@ class CategoryRadiosListsScreen extends StatefulWidget {
 }
 
 class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
-  final List<Map<String, dynamic>> products = [
-    {
-      "id": 1,
-      "category": "Electronics",
-      "image":
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvM3NbtpQg4MM517dpJ8SzhyEhQ0ZNTlS-bO79XfrZhA&s",
-      "subCategories": [
-        {
-          "name": "Mobile",
-          "fields": [
-            {
-              "key": "brand",
-              "title": "Brand",
-              "type": "dropdown",
-              "options": ["Samsung", "Apple", "Redmi", "Realme"]
-            },
-            {"key": "model", "title": "Model", "type": "text"},
-            {
-              "key": "color",
-              "title": "Color",
-              "type": "dropdown",
-              "options": ["Black", "White", "Blue"]
-            },
-            {"key": "image", "title": "Upload Image", "type": "image"}
-          ]
-        },
-        {
-          "name": "Laptop",
-          "fields": [
-            {
-              "key": "brand",
-              "title": "Brand",
-              "type": "dropdown",
-              "options": ["HP", "Dell", "Lenovo"]
-            },
-            {
-              "key": "ram",
-              "title": "RAM",
-              "type": "dropdown",
-              "options": ["8 GB", "16 GB", "32 GB"]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "category": "Documents",
-      "image":
-      "https://digitalinspiration.com/static/d15fbd06120f76d62fd4eb1a55a8d52c/file-upload-forms.png",
-      "subCategories": [
-        {
-          "name": "Aadhar Card",
-          "fields": [
-            {"key": "holderName", "title": "Holder Name", "type": "text"},
-            {"key": "lastFour", "title": "Last 4 Digits", "type": "number"}
-          ]
-        }
-      ]
-    }
-  ];
+
+  List<CategoryModel> categories = [];
+  final AuthControllers authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
 
   final TextEditingController searchController = TextEditingController();
   int? selectedIndex;
 
+  Timer? _debounce;
   List<Map<String, dynamic>> filteredCategory = [];
 
   final StreamController<List<Map<String, dynamic>>> mainCategoryStream = StreamController.broadcast();
   StreamController<int?> selectedCategoryStream = StreamController.broadcast();
+  StreamController<List<CategoryModel>> mainApiCategoryStream = StreamController.broadcast();
 
+
+
+  Future<void> _fetchCategories({ int? limit,  int? page, String? search}) async {
+    final response = await authController.getCategories(page: page ?? 0, limit: limit ?? 0, search: search);
+
+    if( response.data!= null){
+       categories = response.data!.categories;
+      mainApiCategoryStream.add(categories);
+    }else{
+      categories = [];
+      mainCategoryStream.add([]);
+    }
+  }
   @override
   void initState() {
     super.initState();
-    filteredCategory = products;
+    _fetchCategories();
+
     mainCategoryStream.add(filteredCategory);
     print('*********************filteredcategory ---> $filteredCategory');
   }
@@ -104,22 +68,17 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
   void dispose() {
     mainCategoryStream.close();
     searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
   void searchCategory(String value) {
     selectedIndex = null;
-    setState(() {
-
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _fetchCategories(search: value.trim().isEmpty ? null : value.trim());
     });
-    final result = products
-        .where((item) => (item['category'] as String)
-        .toLowerCase()
-        .contains(value.toLowerCase()))
-        .toList();
 
-    filteredCategory = result;
-    mainCategoryStream.add(result);
   }
 
   @override
@@ -160,9 +119,9 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
               ),
             ),
             const SizedBox(height: 5),
-            StreamBuilder<List<Map<String, dynamic>>>(
-              stream: mainCategoryStream.stream,
-              initialData: filteredCategory,
+            StreamBuilder<List<CategoryModel>>(
+              stream: mainApiCategoryStream.stream,
+              initialData: categories,
               builder: (context, snapshot) {
                 final catData = snapshot.data ?? [];
                 if (catData.isEmpty) {
@@ -174,8 +133,8 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
                   itemBuilder: (context, index) {
                     final cat = catData[index];
                     return buildTile(
-                      categoryName: cat['category'] ?? '',
-                      img: cat['image'] ?? '',
+                      categoryName: cat.name ?? '',
+                      img: cat.imageUrl ?? '',
                       isSelected: selectedIndex == index,
                       value: index,
                     );
@@ -192,7 +151,7 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
 
           title: 'Next',
           onTap: () {
-            final selectedCategory = filteredCategory[selectedIndex!];
+            final selectedCategory = categories[selectedIndex!];
             context.pushNamed(
               AppRoutes.subCategoryScreen,
               extra: selectedCategory,

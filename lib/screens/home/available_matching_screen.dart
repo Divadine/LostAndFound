@@ -113,7 +113,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                     context: context,
                     child: ReceivedDetails(isReceivedFromPolice: false, isReceivedFromFounder: false, isReceivedFromOthers: false,),
                   );
-                },
+                }, isReceiver: false,
               ).pad(),
             )
           : SafeArea(
@@ -139,7 +139,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
             
                         AppUiHelper.showBottomSheet(
                           context: context,
-                          child: ReceiveHandoverSheet(title: '',),
+                          child: ReceiveHandoverSheet(title: '', isReceiver: false,),
                         );
                       },
                       radius: BorderRadius.circular(14),

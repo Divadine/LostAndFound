@@ -3,6 +3,9 @@ import 'package:lost_and_found/models/authmodels/login_otp_response_model.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/models/categories_model/category_model.dart';
+import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
+import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/device_info_helper.dart';
@@ -57,4 +60,16 @@ class AuthControllers {
 
   Future<ResponseModel<ProfileScreenModel>> getProfile({required int userId}) => authRepository.getProfile(userId: userId);
 
+  Future<ResponseModel<CategoryListModel>> getCategories({required int page,required int limit, String? search }) async {
+    return await authRepository.getCategories(page: page, limit: limit,search: search);
+  }
+
+  Future<ResponseModel<List<SubCategoryModel>>> getSubCategories({required int catId, String? search}) async {
+    return await authRepository.getSubCategories(catId: catId,search: search);
+  }
+
+  Future<ResponseModel<List<DynamicFieldsModel>>> getDynamicFields({required int subCatId}) async {
+
+    return await authRepository.getDynamicFields(subCategoryId: subCatId);
+  }
 }

@@ -9,7 +9,7 @@ import 'app_text.dart';
 Widget SucessCard({
   required String name,
   required String location,
-
+  required bool isReceiver,
   required VoidCallback onTap,
 }) {
   return Container(
@@ -35,10 +35,11 @@ Widget SucessCard({
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AppText(
-              text: 'Received to ',
+              text: isReceiver ?  'Received to ' : 'Hand Over to' ,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
+
             AppText(
               text: name,
               fontSize: 12,

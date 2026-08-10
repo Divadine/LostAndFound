@@ -14,6 +14,16 @@ class ApiEndPoints {
   static const String updateProfile = 'user/update';
   static const String getUserInfo = 'user/getUserInfo';
 
+  //category
+  static const String getCategory = 'categories/getCategory';
+
+  //sub-category
+  static const String getSubCategory = 'subcategories/getSubCategory';
+  static const String getDynamicFields = 'subcategories/getDynamicFields';
+
+
+
+
 
 
 

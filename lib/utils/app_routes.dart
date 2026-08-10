@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/screens/bottomsheets/filter_screen.dart';
 import 'package:lost_and_found/screens/chat/individual_chat_screen.dart';
 import 'package:lost_and_found/screens/home/available_matching_screen.dart';
@@ -211,7 +212,7 @@ class AppRoutes {
         path: '/subCategoryScreen',
         name: subCategoryScreen,
         builder: (context, state) {
-          return SubCategoryScreen(category: state.extra as Map<String,dynamic>,);
+          return SubCategoryScreen(category: state.extra as CategoryModel,);
         },
       ),
 

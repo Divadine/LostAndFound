@@ -14,8 +14,9 @@ import '../../shared_widgets/app_button.dart';
 
 class ReceiveHandoverSheet extends StatefulWidget {
   final String title;
+  final bool isReceiver;
 
-  const ReceiveHandoverSheet({super.key,  required this.title});
+  const ReceiveHandoverSheet({super.key,  required this.title, required this.isReceiver});
 
   @override
   State<ReceiveHandoverSheet> createState() => _ReceiveHandoverSheetState();
@@ -41,7 +42,7 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
         spacing: 10,
         children: [
           AppText(
-            text: 'How would you like to hand Over?',
+            text: widget.isReceiver ? 'How would you like to Receive?' :'How would you like to hand Over?',
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -54,8 +55,8 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
 
           if (!isGold)
           BottomSheetHandOver(
-            title: 'Receive from found Person',
-            subtitle: 'Receive the item from the person who found it.',
+            title:  widget.isReceiver ? 'Receive from found Person' : 'Hand Over to Owner directly',
+            subtitle: widget.isReceiver ?'Receive the item from the person who found it.' : 'Select the owner from the suggested Profiles.',
             image: AssetImages.userIcon,
             isSelected: selectedIndex == 1,
             onTap: () {
@@ -65,8 +66,8 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
             },
           ),
           BottomSheetHandOver(
-            title: 'Receive from Police Station',
-            subtitle: 'Receive the item from the police station.',
+            title:widget.isReceiver ? 'Receive from Police Station' : 'Hand Over to Police Station',
+            subtitle:widget.isReceiver ? 'Receive the item from the police station.' : 'Provide the Police station details.',
             image: AssetImages.police,
             isSelected: selectedIndex == 2,
             onTap: () {
@@ -77,8 +78,8 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
           ),
           if (!isGold)
           BottomSheetHandOver(
-            title: 'Received to others',
-            subtitle: 'Provide the others details.',
+            title: widget.isReceiver ?'Received to others' : 'Hand Over to others',
+            subtitle:widget.isReceiver ? 'Provide the others details.' : 'Provide the others details.',
             image: AssetImages.threeDotsHorizontal,
             isSelected: selectedIndex == 3,
             onTap: () {

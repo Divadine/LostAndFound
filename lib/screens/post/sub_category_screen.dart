@@ -2,6 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/models/categories_model/category_model.dart';
+import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
+import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -14,7 +19,7 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/category_not_found.dart';
 
 class SubCategoryScreen extends StatefulWidget {
-  final Map<String, dynamic> category;
+  final CategoryModel category;
 
   const SubCategoryScreen({super.key, required this.category});
 
@@ -27,17 +32,19 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
 
   TextEditingController searchController = TextEditingController();
   int? selectedIndex;
-
+  Timer? _debounce;
+  List<SubCategoryModel> subCategories = [];
+  final AuthControllers authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
   StreamController<int?> selectedIndexStream = StreamController.broadcast();
+  StreamController<List<SubCategoryModel>> subCategoryStream = StreamController.broadcast();
 
   @override
   void initState() {
     super.initState();
-    filteredCategory = List<Map<String, dynamic>>.from(
-      widget.category["subCategories"] ?? [],
-    );
+    _fetchSubCategories();
     print(widget.category);
-    print('filtered Category ------------>>>>>>>>>>>>>>>>>>>>>>>>>>>${filteredCategory}');
   }
 
   @override
@@ -50,20 +57,24 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
   void searchCategory(String value) {
     setState(() {
       selectedIndex = null;
-      selectedIndexStream.add(null);
-      filteredCategory =
-          List<Map<String, dynamic>>.from(
-                widget.category["subCategories"] ?? [],
-              )
-              .where(
-                (item) =>
-                    item['name']!.toLowerCase().contains(value.toLowerCase()),
-              )
-              .toList();
+      _debounce?.cancel();
+      _debounce = Timer(const Duration(milliseconds: 400), () {
+        _fetchSubCategories(search: value.trim().isEmpty ? null : value.trim());
+      });
       print("fffffffffff ${filteredCategory.length}");
     });
   }
 
+  Future<void> _fetchSubCategories({String? search}) async {
+    final response = await authController.getSubCategories(catId: widget.category.id,search: search);
+    if(response.status == 1 && response.data != null){
+     subCategories = response.data!;
+      subCategoryStream.add(subCategories);
+    }else {
+      subCategories = [];
+      subCategoryStream.add([]);
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,41 +118,48 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
             ),
             SizedBox(height: 5),
 
-            filteredCategory.isEmpty
-                ? CategoryNotFound()
-                : ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: widget.category["subCategories"].length,
-                    itemBuilder: (context, index) {
-                      final cat = widget.category["subCategories"][index];
-                      return StreamBuilder(
-                        stream: selectedIndexStream.stream,
-                        builder: (context, asyncSnapshot) {
-                          final selectedValue = asyncSnapshot.data;
-                          return buildTile(
-                            categoryName: cat['name']!,
-                            img: cat['image'] ?? '',
-                            isSelected: selectedValue == index,
-                            onTap: () {
-                              setState(() {
-
-                              });
-                              selectedIndex = index;
-                              print("jjjjjjjjjj$selectedIndex");
-                              selectedIndexStream.add(selectedIndex);
-
-                            },
-
-                            value: index,
-                            onChange: (int? value) {
-                              selectedIndex = value;
-                              selectedIndexStream.add(selectedIndex);
+            StreamBuilder(
+              stream: subCategoryStream.stream,
+              initialData:subCategories,
+              builder: (context, asyncSnapshot) {
+                final subCat = asyncSnapshot.data ?? [];
+                return subCat.isEmpty
+                    ? CategoryNotFound()
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: subCat.length,
+                        itemBuilder: (context, index) {
+                          final cat = subCat[index];
+                          return StreamBuilder(
+                            stream: selectedIndexStream.stream,
+                            builder: (context, asyncSnapshot) {
+                              final selectedValue = asyncSnapshot.data;
+                              return buildTile(
+                                categoryName: cat.name,
+                                img: cat.subCategoryImg ?? '',
+                                isSelected: selectedValue == index,
+                                onTap: () {
+                                  setState(() {
+                
+                                  });
+                                  selectedIndex = index;
+                                  print("jjjjjjjjjj$selectedIndex");
+                                  selectedIndexStream.add(selectedIndex);
+                
+                                },
+                
+                                value: index,
+                                onChange: (int? value) {
+                                  selectedIndex = value;
+                                  selectedIndexStream.add(selectedIndex);
+                                },
+                              );
                             },
                           );
                         },
                       );
-                    },
-                  ),
+              }
+            ),
           ],
         ).pad(16),
       ),
@@ -152,7 +170,7 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
                 title: 'Next',
                 onTap: () {
                   final selectedSubCategory =
-                      widget.category["subCategories"][selectedIndex!];
+                      subCategories[selectedIndex!];
                   context.pushNamed(
                     AppRoutes.firstStepperScreen,
                     extra: {
