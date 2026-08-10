@@ -7,6 +7,16 @@ class DynamicFieldsModel {
 
   DynamicFieldsModel({required this.id, required this.displayName, required this.fieldType, required this.dropdownMaster, required this.isRequired});
 
+  @override
+  String toString() {
+    return 'DynamicFieldsModel('
+        'id: $id, '
+        'displayName: $displayName, '
+        'fieldType: $fieldType, '
+        'dropdownMaster: $dropdownMaster, '
+        'isRequired: $isRequired'
+        ')';
+  }
   factory DynamicFieldsModel.fromJson(Map<String,dynamic> json) {
     return DynamicFieldsModel(
         id: json['id'],
@@ -32,4 +42,6 @@ DynamicFieldType _parseFieldType(String? raw) {
     default:
       return DynamicFieldType.unknown;
   }
+
+
 }

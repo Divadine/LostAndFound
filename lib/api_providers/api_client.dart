@@ -15,7 +15,7 @@ class ApiClient {
       receiveTimeout: Duration(seconds: 30),
     ));
 
-    dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true,));
+    //dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true,));
   }
 
   Future<Response> post(String path, dynamic  data,) async {

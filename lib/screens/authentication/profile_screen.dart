@@ -42,6 +42,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+
   final TextEditingController alternativeController = TextEditingController();
   final AuthControllers authController = AuthControllers(
     authRepository: AuthRepository(apiClient: ApiClient()),
@@ -864,6 +865,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 log: longitude,
                 altVerified: _isAltVerified,
               );
+
               final response = await authController.updateProfileForm(profile);
               if (!mounted) return;
               if (response.status == 1) {
