@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/controllers/pincode_profile_controllers.dart';
+import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/models/authmodels/pincode_details_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
@@ -496,11 +497,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                   }
                                                   return response.message;
                                                 },
-                                                onSendOtp: () => authController
-                                                    .generateMobileOtp(
-                                                      alternativeController
-                                                          .text,
-                                                    ),
+                                                onSendOtp: () async {
+                                                  final response = await authController.generateMobileOtp(alternativeController.text);
+                                                  if (response.isSuccess) return null;
+                                                  if (response.currentState == CurrentState.noInternet) {
+                                                    return 'No internet connection. Please check your network.';
+                                                  }
+                                                  return response.message.isNotEmpty ? response.message : 'Failed to send OTP';
+                                                },
                                               ),
                                             );
                                           }

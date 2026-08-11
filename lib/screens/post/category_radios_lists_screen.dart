@@ -37,14 +37,19 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
 
   Timer? _debounce;
   List<Map<String, dynamic>> filteredCategory = [];
+  bool isLoading = false;
 
-  final StreamController<List<Map<String, dynamic>>> mainCategoryStream = StreamController.broadcast();
+  //final StreamController<List<Map<String, dynamic>>> mainCategoryStream = StreamController.broadcast();
   StreamController<int?> selectedCategoryStream = StreamController.broadcast();
   StreamController<List<CategoryModel>> mainApiCategoryStream = StreamController.broadcast();
 
 
 
   Future<void> _fetchCategories({ int? limit,  int? page, String? search}) async {
+    setState(() {
+      isLoading = true;
+    });
+
     final response = await authController.getCategories(page: page ?? 0, limit: limit ?? 0, search: search);
 
     if( response.data!= null){
@@ -52,21 +57,24 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
       mainApiCategoryStream.add(categories);
     }else{
       categories = [];
-      mainCategoryStream.add([]);
+      mainApiCategoryStream.add([]);
     }
+
+    setState(() {
+      isLoading = false;
+    });
   }
   @override
   void initState() {
     super.initState();
     _fetchCategories();
 
-    mainCategoryStream.add(filteredCategory);
     print('*********************filteredcategory ---> $filteredCategory');
   }
 
   @override
   void dispose() {
-    mainCategoryStream.close();
+    mainApiCategoryStream.close();
     searchController.dispose();
     _debounce?.cancel();
     super.dispose();
@@ -86,50 +94,58 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: 10,
-          children: [
-            AppText(
-              text: 'Select Category',
-              fontWeight: FontWeight.w600,
-              fontSize: 20,
-              color: AppColors.primaryColor,
-            ),
-            AppText(
-              text: 'Choose the Category that best matches your item',
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-            const SizedBox(height: 5),
-            AppContainer(
-              widget: TextField(
-                onChanged: searchCategory,
-                controller: searchController,
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.only(top: 12),
-                  hintText: "Search categories",
-                  border: InputBorder.none,
-                  prefixIcon: AppIconWidget(
-                    assetPath: AssetImages.searchIcon,
-                    size: 10,
-                  ).pad(12),
-                ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 10,
+        children: [
+          AppText(
+            text: 'Select Category',
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+            color: AppColors.primaryColor,
+          ),
+          AppText(
+            text: 'Choose the Category that best matches your item',
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+          const SizedBox(height: 5),
+          AppContainer(
+            widget: TextField(
+              onChanged: searchCategory,
+              controller: searchController,
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.only(top: 12),
+                hintText: "Search categories",
+                border: InputBorder.none,
+                prefixIcon: AppIconWidget(
+                  assetPath: AssetImages.searchIcon,
+                  size: 10,
+                ).pad(12),
               ),
             ),
-            const SizedBox(height: 5),
-            StreamBuilder<List<CategoryModel>>(
+          ),
+          const SizedBox(height: 5),
+          Expanded(
+            child: StreamBuilder<List<CategoryModel>>(
               stream: mainApiCategoryStream.stream,
               initialData: categories,
               builder: (context, snapshot) {
                 final catData = snapshot.data ?? [];
-                if (catData.isEmpty) {
-                  return  CategoryNotFound();
+                // API is still loading
+                if (isLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
                 }
+                // API finished but no categories found
+                if (catData.isEmpty) {
+                  return  CategoryNotFound(isFromCategory: true,);
+                }
+                // Data available
                 return ListView.builder(
                   itemCount: catData.length,
-                  shrinkWrap: true,
+                  //shrinkWrap: true,
                   itemBuilder: (context, index) {
                     final cat = catData[index];
                     return buildTile(
@@ -142,9 +158,9 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
                 );
               },
             ),
-          ],
-        ).pad(16),
-      ),
+          ),
+        ],
+      ).pad(16),
       bottomNavigationBar: SafeArea(
         child: (selectedIndex != null)
             ? AppButton(

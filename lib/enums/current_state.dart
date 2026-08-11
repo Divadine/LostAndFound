@@ -1,7 +1,3 @@
-enum OtpFlow {
-  login,
-  alternateMobile,
-}
 
 enum CurrentState{
   success,
@@ -10,6 +6,8 @@ enum CurrentState{
   loading,
   loadingMore,
 }
+
+
 
 
 

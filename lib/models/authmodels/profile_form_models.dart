@@ -29,7 +29,7 @@ class UpdateProfileForm {
       'name': name,
       'phoneno': phoneNo,
       'altno': altNo,
-      //'alt_status': altVerified ? 1 : 0,
+      'alt_status': altVerified ? 1 : 0,
       'profile_status': 1,
       'pincode': pinCode,
       'country': country,

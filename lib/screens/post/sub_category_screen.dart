@@ -34,6 +34,7 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
   int? selectedIndex;
   Timer? _debounce;
   List<SubCategoryModel> subCategories = [];
+  bool isLoading = false;
   final AuthControllers authController = AuthControllers(
     authRepository: AuthRepository(apiClient: ApiClient()),
   );
@@ -66,6 +67,9 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
   }
 
   Future<void> _fetchSubCategories({String? search}) async {
+    setState(() {
+      isLoading= true;
+    });
     final response = await authController.getSubCategories(catId: widget.category.id,search: search);
     if(response.status == 1 && response.data != null){
      subCategories = response.data!;
@@ -74,6 +78,9 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
       subCategories = [];
       subCategoryStream.add([]);
     }
+    setState(() {
+      isLoading= false;
+    });
   }
   @override
   Widget build(BuildContext context) {
@@ -81,52 +88,69 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
       backgroundColor: AppColors.white,
       appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
 
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: 10,
-          children: [
-            AppText(
-              text: 'Select Sub-Category',
-              fontWeight: FontWeight.w600,
-              fontSize: 20,
-              color: AppColors.primaryColor,
-            ),
-            AppText(
-              text: 'Choose the Sub-Category that best matches your item',
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-            SizedBox(height: 5),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 10,
+        children: [
+          AppText(
+            text: 'Select Sub-Category',
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+            color: AppColors.primaryColor,
+          ),
+          AppText(
+            text: 'Choose the Sub-Category that best matches your item',
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+          SizedBox(height: 5),
 
-            AppContainer(
-              widget: TextField(
-                onChanged: (v) {
-                  searchCategory(v);
-                },
-                controller: searchController,
-                decoration: InputDecoration(
-                  contentPadding: EdgeInsets.only(top: 12),
-                  hintText: "Search categories",
-                  border: InputBorder.none,
-                  prefixIcon: AppIconWidget(
-                    assetPath: AssetImages.searchIcon,
-                    size: 10,
-                  ).pad(12),
-                ),
+          AppContainer(
+            widget: TextField(
+              onChanged: (v) {
+                searchCategory(v);
+              },
+              controller: searchController,
+              decoration: InputDecoration(
+                contentPadding: EdgeInsets.only(top: 12),
+                hintText: "Search categories",
+                border: InputBorder.none,
+                prefixIcon: AppIconWidget(
+                  assetPath: AssetImages.searchIcon,
+                  size: 10,
+                ).pad(12),
               ),
             ),
-            SizedBox(height: 5),
+          ),
+          SizedBox(height: 5),
 
-            StreamBuilder(
-              stream: subCategoryStream.stream,
-              initialData:subCategories,
-              builder: (context, asyncSnapshot) {
-                final subCat = asyncSnapshot.data ?? [];
-                return subCat.isEmpty
-                    ? CategoryNotFound()
-                    : ListView.builder(
-                        shrinkWrap: true,
+          StreamBuilder(
+            stream: subCategoryStream.stream,
+            initialData:subCategories,
+            builder: (context, asyncSnapshot) {
+              final subCat = asyncSnapshot.data ?? [];
+              // API/search is still loading
+              if (isLoading) {
+                return const Expanded(
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              // API finished but no data
+              if (subCat.isEmpty) {
+                return const Expanded(
+                  child: CategoryNotFound(
+                    isFromCategory: false,
+                  ),
+                );
+              }
+              return
+
+                Expanded(
+                    child: ListView.builder(
+
                         itemCount: subCat.length,
                         itemBuilder: (context, index) {
                           final cat = subCat[index];
@@ -140,14 +164,14 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
                                 isSelected: selectedValue == index,
                                 onTap: () {
                                   setState(() {
-                
+
                                   });
                                   selectedIndex = index;
                                   print("jjjjjjjjjj$selectedIndex");
                                   selectedIndexStream.add(selectedIndex);
-                
+
                                 },
-                
+
                                 value: index,
                                 onChange: (int? value) {
                                   selectedIndex = value;
@@ -157,12 +181,12 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
                             },
                           );
                         },
-                      );
-              }
-            ),
-          ],
-        ).pad(16),
-      ),
+                      ),
+                  );
+            }
+          ),
+        ],
+      ).pad(16),
 
       bottomNavigationBar: SafeArea(
         child: (selectedIndex != null)

@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/authentication/profile_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
@@ -163,12 +164,22 @@ class _LoginScreenState extends State<LoginScreen> {
                           phoneController.text.isNotEmpty) {
                         print('________________________________________________');
                         print(phoneController.text);
-                        final success = await authController.sendOtp(phoneController.text, type: 2,);
-                        print(success);
-                        if(success){
+                        //AppUiHelper.showLoadingDialog(context);
+                        final response = await authController.sendOtp(phoneController.text, type: 2,);
+                        if (!mounted) return;
+                        AppRoutes.pop();
+
+                        if(response.isSuccess){
                           AppRoutes.pushNamed(AppRoutes.otpScreen, arguments: phoneController.text);
-                        }else{
-                          AppDialogue.showPopup(context: context, content: AppText(text: 'OTP generation failed'));
+                        }else if (response.currentState == CurrentState.noInternet) {
+                          AppDialogue.showPopup(
+                            context: context,
+                            content: AppText(text: 'No internet connection. Please check your network and try again.'),
+                          );
+                        }
+
+                        else{
+                          AppDialogue.showPopup(context: context, content: AppText(text:  response.message.isNotEmpty ? response.message  : 'OTP generation failed'));
                         }
                       }
 

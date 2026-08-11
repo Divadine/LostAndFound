@@ -20,7 +20,12 @@ class ApiEndPoints {
   //sub-category
   static const String getSubCategory = 'subcategories/getSubCategory';
   static const String getDynamicFields = 'subcategories/getDynamicFields';
+  static const String getDynamicValues = 'subcategories/getDynamicValues';
+  static const String getDynamicNestedValues = 'subcategories/getDynamicNestedValues';
 
+
+  //image
+  static const String createImage = 'Post/createImage';
 
 
 

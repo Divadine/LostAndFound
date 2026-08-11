@@ -5,6 +5,7 @@ import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
+import 'package:lost_and_found/models/categories_model/dynamic_value_model.dart';
 import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
@@ -16,11 +17,10 @@ class AuthControllers {
   AuthControllers({required this.authRepository});
 
 
-  Future<bool> sendOtp(String phone, {required int type}) async {
-    final result = await authRepository.generateOtp(phone: phone, type: type);
-    return result["status"] == 1;
-  }
+  Future<ResponseModel> sendOtp(String phone, {required int type}) async {
+    return await authRepository.generateOtp(phone: phone, type: type);
 
+  }
 
 
   Future<ResponseModel<LoginOtpResponseModel>> verifyOtp({ required String phone,required String otp,required int type, String? name,}) async {
@@ -32,27 +32,37 @@ class AuthControllers {
     final verify = LoginOtpVerifyModel(phoneno: phone,otp: otp,type: type,name: name ?? '',deviceId: deviceId, deviceType: deviceType, deviceToken:deviceToken, appVersion: appVersion );
     final response = await authRepository.verifyOtp(verify: verify);
 
-    if (response.status == 1 && response.data?.token != null) {
-      await AppPreferences.saveToken(response.data!.token);
-      await AppPreferences.saveUserId(response.data!.userId);
+    if(response.isSuccess && response.data != null){
+      final user = response.data!;
+
+      if (user.token.isNotEmpty) {
+        await AppPreferences.saveToken(user.token);
+      }
+
+      await AppPreferences.saveUserId(user.userId);
       await AppPreferences.setIsLoggedIn(true);
     }
+    // if (response.status == 1 && response.data?.token != null) {
+    //   await AppPreferences.saveToken(response.data!.token);
+    //   await AppPreferences.saveUserId(response.data!.userId);
+    //   await AppPreferences.setIsLoggedIn(true);
+    // }
     return response;
   }
 
 
 
-  Future<bool> generateMobileOtp(String phone) async {
-    final result = await authRepository.generateMobileOtp(phone: phone,);
-    return result["status"] == 1;
+  Future<ResponseModel> generateMobileOtp(String phone) async {
+    return  await authRepository.generateMobileOtp(phone: phone,);
+
   }
 
-  Future<ResponseModel<dynamic>> verifyMobileOtp({required String phone, required String otp, required int userId}) async {
+  Future<ResponseModel> verifyMobileOtp({required String phone, required String otp, required int userId}) async {
 
     return await authRepository.verifyMobileOtp(phone: phone, userId: userId, otp: otp);
   }
 
-  Future<ResponseModel<dynamic>> updateProfileForm(UpdateProfileForm profile) async {
+  Future<ResponseModel> updateProfileForm(UpdateProfileForm profile) async {
     return await authRepository.updateProfile(profile);
 
   }
@@ -72,4 +82,13 @@ class AuthControllers {
 
     return await authRepository.getDynamicFields(subCategoryId: subCatId);
   }
+
+
+  Future<ResponseModel<List<DynamicValueModel>>> getDynamicValues({required String brandMasterName}) async {
+    return await authRepository.getDynamicValues(brandMasterName: brandMasterName);
+  }
+
+  Future<ResponseModel<List<DynamicValueModel>>> getDynamicNestedValues({required String brandMasterName, required String parentValue}) async {
+    return await authRepository.getDynamicNestedValues(brandMasterName: brandMasterName, parentValue: parentValue);
+}
 }

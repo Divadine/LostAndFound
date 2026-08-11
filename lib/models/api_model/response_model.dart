@@ -1,17 +1,19 @@
+import 'package:lost_and_found/enums/current_state.dart';
+
 class ResponseModel<R> {
   final int status;
   final String message;
   final R? data;
+  final CurrentState? currentState;
 
-  ResponseModel({required this.status, required this.message, this.data});
 
-  factory ResponseModel.fromJson(
-      Map<String, dynamic> json,
-      R Function(dynamic) fromJson,
-      ) {
+  ResponseModel({required this.status, required this.message, this.data,this.currentState});
+
+  bool get isSuccess => status == 1;
+
+  factory ResponseModel.fromJson(Map<String, dynamic> json, R Function(dynamic) fromJson,) {
     final status = json["status"];
     final message = json["message"];
-
     return ResponseModel(
       status: status,
       message: message,

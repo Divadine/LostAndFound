@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/screens/authentication/otp_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/screens/otp_screen_shared.dart';
@@ -282,7 +283,14 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                           }
                           return response.message;
                         },
-                        onSendOtp: () =>authController.sendOtp(phoneController.text,type: 0),
+                        onSendOtp: () async {
+                          final response = await authController.sendOtp(phoneController.text, type: 0);
+                          if (response.isSuccess) return null;
+                          if (response.currentState == CurrentState.noInternet) {
+                            return 'No internet connection. Please check your network.';
+                          }
+                          return response.message.isNotEmpty ? response.message : 'Failed to send OTP';
+                        },
 
                       ),
                     );

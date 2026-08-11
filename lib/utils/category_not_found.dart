@@ -6,8 +6,15 @@ import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
-class CategoryNotFound extends StatelessWidget {
-  const CategoryNotFound({super.key});
+class CategoryNotFound extends StatefulWidget {
+  final bool isFromCategory;
+  const CategoryNotFound({super.key, required this.isFromCategory});
+
+  @override
+  State<CategoryNotFound> createState() => _CategoryNotFoundState();
+}
+
+class _CategoryNotFoundState extends State<CategoryNotFound> {
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +25,7 @@ class CategoryNotFound extends StatelessWidget {
 
       children: [
         AppIconWidget(assetPath: AssetImages.noSubCategoryFound,),
-        AppText(text: 'No Sub Categories Found',fontWeight: FontWeight.w500,fontSize: 18,color: AppColors.primaryColor,),
+        AppText(text: widget.isFromCategory ? 'No Categories Found': 'No Sub Categories Found',fontWeight: FontWeight.w500,fontSize: 18,color: AppColors.primaryColor,),
         SizedBox(height: 10,),
         AppText(text: 'We couldn’t find any sub category matching your search. Try a different keyword.',fontSize: 14,fontWeight: FontWeight.w400,textAlign: TextAlign.center,),
         SizedBox(height: 10,),
