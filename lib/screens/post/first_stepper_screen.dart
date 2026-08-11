@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/enums/current_state.dart';
+import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_value_model.dart';
 import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
@@ -18,11 +19,12 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 class FirstStepperScreen extends StatefulWidget {
 
+  final CategoryModel category;
   final SubCategoryModel subCategory;
 
   const FirstStepperScreen({
     super.key,
-    required this.subCategory,
+    required this.subCategory, required this.category,
 
   });
 

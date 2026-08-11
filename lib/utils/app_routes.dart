@@ -230,7 +230,9 @@ class AppRoutes {
         builder: (context, state) {
           final data = state.extra as Map<String,dynamic>;
 
-          return FirstStepperScreen(subCategory : data['subCategory'], );
+          return FirstStepperScreen(
+            category : data['category'],
+            subCategory : data['subCategory'], );
         },
       ),
 
