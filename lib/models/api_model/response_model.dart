@@ -20,4 +20,18 @@ class ResponseModel<R> {
       data: status == 1 ? fromJson(json['data']) : null,
     );
   }
+
+  ResponseModel<T> asFailure<T>() {
+    return ResponseModel<T>(
+      status: status,
+      message: message,
+      currentState: currentState,
+    );
+  }
+
+
+  @override
+  String toString() {
+    return 'ResponseModel(status: $status, message: $message, currentState: $currentState, data: $data)';
+  }
 }

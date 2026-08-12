@@ -1,15 +1,15 @@
 class CategoryModel {
   final int id;
   final String name;
-  final String imageUrl;
+  final String? imageUrl;
 
-  CategoryModel({required this.id, required this.name, required this.imageUrl});
+  CategoryModel({required this.id, required this.name,  this.imageUrl});
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
-        id: json['id'],
-        name: json['name'],
-        imageUrl: json['category_image']
+        id: json['id']as int,
+        name: json['name']?.toString() ?? '',
+        imageUrl: json['category_image']?.toString(),
     );
   }
 }

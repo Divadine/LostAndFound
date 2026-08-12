@@ -1,12 +1,17 @@
+import 'dart:io';
+
 import 'package:lost_and_found/models/api_model/response_model.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_response_model.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/models/posts_model/audio_video_model.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_value_model.dart';
 import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
+import 'package:lost_and_found/models/posts_model/create_post1_response_model.dart';
+import 'package:lost_and_found/models/posts_model/post_list_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/device_info_helper.dart';
@@ -90,5 +95,67 @@ class AuthControllers {
 
   Future<ResponseModel<List<DynamicValueModel>>> getDynamicNestedValues({required String brandMasterName, required String parentValue}) async {
     return await authRepository.getDynamicNestedValues(brandMasterName: brandMasterName, parentValue: parentValue);
+  }
+
+  Future<ResponseModel<List<PostImageModel>>> createImage({required List<File> images}) async {
+    return await authRepository.createImage(images: images);
+  }
+
+  Future<ResponseModel<PostAudioModel>> createAudio({required File audio}) async {
+    return await authRepository.createAudio(audio: audio);
+  }
+
+  Future<ResponseModel<PostVideoModel>> createVideo({required File video}) async {
+    return await authRepository.createVideo(video: video);
+  }
+
+  Future<ResponseModel<CreatePostStep1Response>> createPostStep1({
+    int? id,
+    required int userId,
+    required int postType,
+    required int categoryId,
+    required int subcategoryId,
+    required String itemName,
+    required String postImages,
+    required List<Map<String, String>> postValues,
+  }) async {
+    return await authRepository.createPostStep1(
+      id: id,
+      userId: userId,
+      postType: postType,
+      categoryId: categoryId,
+      subcategoryId: subcategoryId,
+      itemName: itemName,
+      postImages: postImages,
+      postValues: postValues,
+    );
+  }
+
+  Future<ResponseModel> completePostStep2({
+    required int postId,
+    required String location,
+    required String address,
+    required List<Map<String, String>> coordinates,
+    required DateTime postDate,
+    required String description,
+    int? audioId,
+    int? videoId,
+  }) async {
+    return await authRepository.completePostStep2(
+      postId: postId,
+      location: location,
+      address: address,
+      coordinates: coordinates,
+      postDate: postDate,
+      description: description,
+      audioId: audioId,
+      videoId: videoId,
+    );
+  }
+
+  Future<ResponseModel<PostListModel>> getPost({required int userId,  required int postType,int? page, int? limit}) async {
+
+    return await authRepository.getPosts(userId: userId, postType: postType,limit: limit,page: page);
 }
+
 }

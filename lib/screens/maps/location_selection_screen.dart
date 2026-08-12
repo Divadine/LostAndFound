@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lost_and_found/services/place_service.dart';
-import 'package:lost_and_found/models/selected_location_model.dart';
+import 'package:lost_and_found/models/posts_model/selected_location_model.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';

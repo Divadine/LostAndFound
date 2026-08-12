@@ -134,6 +134,8 @@ class AssetImages {
   static const String dropDown = "assets/images/dropDown.svg";
   static const String dropUp = "assets/images/dropUp.svg";
   static const String sucessTick = "assets/images/sucessTick.svg";
+  static const String blueTick = "assets/images/blueTick.svg";
+
 
 
 

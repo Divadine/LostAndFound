@@ -14,9 +14,8 @@ class AppDropdownField<T> extends StatefulWidget {
 
   final String Function(T) itemLabel;
 
-  final Function(T?) onChanged;
-
-
+  //final Function(T?) onChanged;
+  final void Function(T?)? onChanged;
   final Color? backgroundColor;
 
   final Color? borderColor;
@@ -244,7 +243,8 @@ class _AppDropdownFieldState<T>
 
             onSelected: (value){
               focusNode.unfocus();
-              widget.onChanged(value);
+              //widget.onChanged(value);
+              widget.onChanged?.call(value);
             },
 
           ),

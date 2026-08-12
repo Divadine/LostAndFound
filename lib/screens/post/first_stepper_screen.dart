@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/enums/current_state.dart';
@@ -7,66 +10,71 @@ import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart
 import 'package:lost_and_found/models/categories_model/dynamic_value_model.dart';
 import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
-import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_dropdown_field.dart';
+import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
+import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
+import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 class FirstStepperScreen extends StatefulWidget {
-
   final CategoryModel category;
   final SubCategoryModel subCategory;
 
   const FirstStepperScreen({
     super.key,
-    required this.subCategory, required this.category,
-
+    required this.category,
+    required this.subCategory,
   });
 
   @override
-  State<FirstStepperScreen> createState() =>
-      _FirstStepperScreenState();
+  State<FirstStepperScreen> createState() => _FirstStepperScreenState();
 }
 
-class _FirstStepperScreenState
-    extends State<FirstStepperScreen> {
+class _FirstStepperScreenState extends State<FirstStepperScreen> {
   final authController = AuthControllers(
-    authRepository: AuthRepository(
-      apiClient: ApiClient(),
-    ),
+    authRepository: AuthRepository(apiClient: ApiClient()),
   );
 
   List<DynamicFieldsModel> dynamicFields = [];
 
   bool isLoading = true;
+  bool isSubmitting = false;
   String? errorMessage;
+  bool _isPickingImage = false;
 
+  final TextEditingController itemNameController = TextEditingController();
 
-
-  final Map<int, TextEditingController>textControllers = {};
-
+  final Map<int, TextEditingController> textControllers = {};
   final Map<int, String?> selectedDropdownValues = {};
   final Map<int, List<DynamicValueModel>> dropdownItems = {};
-  final Map<int, bool> dropdownLoading = {}; // fieldId -> is fetching options
-  final Map<int, String?> dropdownError = {}; // fieldId -> load error message
-
+  final Map<int, bool> dropdownLoading = {};
+  final Map<int, String?> dropdownError = {};
   final Map<int, int?> dropdownParent = {};
+
+  final List<File> selectedImages = [];
+  final ImagePicker _picker = ImagePicker();
+  static const int maxImages = 4;
 
   @override
   void initState() {
     super.initState();
-
-    print(
-      'FIRST STEPPER SUBCATEGORY ID: '
-          '${widget.subCategory.id}',
-    );
-
     _fetchDynamicFields();
+  }
+
+  @override
+  void dispose() {
+    itemNameController.dispose();
+    for (final controller in textControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _fetchDynamicFields() async {
@@ -97,8 +105,6 @@ class _FirstStepperScreenState
       }
     }
 
-    // Work out dropdown chain: each dropdown's parent is the nearest
-    // preceding dropdown field in the list (or null if it's first).
     int? lastDropdownFieldId;
     for (final field in fields) {
       if (field.fieldType == DynamicFieldType.dropdown) {
@@ -115,7 +121,6 @@ class _FirstStepperScreenState
       isLoading = false;
     });
 
-    // Fetch options for every root dropdown (no parent) right away.
     for (final field in fields) {
       if (field.fieldType == DynamicFieldType.dropdown && dropdownParent[field.id] == null) {
         _loadDropdownValues(field);
@@ -123,15 +128,13 @@ class _FirstStepperScreenState
     }
   }
 
-
-  /// Root dropdown loader — uses /getDynamicValues.
   Future<void> _loadDropdownValues(DynamicFieldsModel field) async {
     setState(() {
       dropdownLoading[field.id] = true;
       dropdownError[field.id] = null;
     });
 
-    final response = await authController.getDynamicValues( brandMasterName: field.displayName);
+    final response = await authController.getDynamicValues(brandMasterName: field.displayName);
 
     if (!mounted) return;
 
@@ -148,9 +151,6 @@ class _FirstStepperScreenState
     });
   }
 
-
-
-  /// Chained dropdown loader — uses /getDynamicNestedValues.
   Future<void> _loadNestedDropdownValues(DynamicFieldsModel field, String parentValue) async {
     setState(() {
       dropdownLoading[field.id] = true;
@@ -158,7 +158,8 @@ class _FirstStepperScreenState
     });
 
     final response = await authController.getDynamicNestedValues(
-      parentValue: parentValue, brandMasterName: field.displayName,
+      parentValue: parentValue,
+      brandMasterName: field.displayName,
     );
 
     if (!mounted) return;
@@ -176,20 +177,16 @@ class _FirstStepperScreenState
     });
   }
 
-
-  /// Recursively clears + reloads every dropdown that (transitively)
-  /// depends on [changedFieldId], since its parent value just changed.
   void _resetDescendantsOf(int changedFieldId) {
     for (final field in dynamicFields) {
       if (field.fieldType == DynamicFieldType.dropdown && dropdownParent[field.id] == changedFieldId) {
         selectedDropdownValues[field.id] = null;
         dropdownItems[field.id] = [];
         dropdownError[field.id] = null;
-        _resetDescendantsOf(field.id); // clear grandchildren too
+        _resetDescendantsOf(field.id);
       }
     }
   }
-
 
   void _onDropdownChanged(DynamicFieldsModel field, String? value) {
     setState(() {
@@ -199,7 +196,6 @@ class _FirstStepperScreenState
 
     if (value == null) return;
 
-    // Find the immediate child dropdown (if any) and load its nested values.
     for (final childField in dynamicFields) {
       if (childField.fieldType == DynamicFieldType.dropdown && dropdownParent[childField.id] == field.id) {
         _loadNestedDropdownValues(childField, value);
@@ -208,35 +204,107 @@ class _FirstStepperScreenState
   }
 
 
-  @override
-  void dispose() {
-    for (final controller
-    in textControllers.values) {
-      controller.dispose();
+  Future<void> _pickImage() async {
+    if (_isPickingImage) return;
+    if (selectedImages.length >= maxImages) return;
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked != null) {
+      setState(() => selectedImages.add(File(picked.path)));
+    }
+  }
+
+
+
+  void _removeImage(int index) {
+    setState(() => selectedImages.removeAt(index));
+  }
+
+  Future<void> _onSubmit() async {
+
+    if (selectedImages.isEmpty) {
+      AppDialogue.showPopup(context: context, content: AppText(text: 'Please upload at least one image'));
+      return;
     }
 
-    super.dispose();
+    setState(() => isSubmitting = true);
+
+    // Step A: upload images
+    final imageResponse = await authController.createImage(images: selectedImages);
+
+    if (!mounted) return;
+
+    if (!imageResponse.isSuccess || imageResponse.data == null) {
+      setState(() => isSubmitting = false);
+      final msg = imageResponse.currentState == CurrentState.noInternet
+          ? 'No internet connection. Please check your network.'
+          : (imageResponse.message.isNotEmpty ? imageResponse.message : 'Failed to upload images');
+      AppDialogue.showPopup(context: context, content: AppText(text: msg));
+      return;
+    }
+
+    final imageIds = imageResponse.data!.map((e) => e.id).join(',');
+
+    // Step B: gather dynamic field values as post_values
+    final postValues = <Map<String, String>>[];
+
+    for (final field in dynamicFields) {
+      String? value;
+
+      if (field.fieldType == DynamicFieldType.text || field.fieldType == DynamicFieldType.textarea) {
+        value = textControllers[field.id]?.text.trim();
+      } else if (field.fieldType == DynamicFieldType.dropdown) {
+        value = selectedDropdownValues[field.id];
+      }
+      if (value != null && value.isNotEmpty) {
+        postValues.add({'field': field.displayName, 'value': value});
+      }
+    }
+
+    final userId = await AppPreferences.getUserId();
+
+    final postResponse = await authController.createPostStep1(
+      userId: userId ?? 0,
+      postType: 1,
+      categoryId: widget.category.id,
+      subcategoryId: widget.subCategory.id,
+      itemName: itemNameController.text.trim(),
+      postImages: imageIds,
+      postValues: postValues,
+    );
+
+    if (!mounted) return;
+    setState(() => isSubmitting = false);
+
+    if (postResponse.isSuccess && postResponse.data != null) {
+      AppRoutes.pushNamed(
+        AppRoutes.secondStepperScreen,
+        arguments: postResponse.data!.id, // pass postId forward
+      );
+    } else {
+      final msg = postResponse.currentState == CurrentState.noInternet
+          ? 'No internet connection. Please check your network.'
+          : (postResponse.message.isNotEmpty ? postResponse.message : 'Failed to create post');
+      AppDialogue.showPopup(context: context, content: AppText(text: msg));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
-
       appBar: CustomAppBar(
         title: 'Post Lost Item',
         centerTitle: true,
         leadingSvg: AssetImages.backArrow,
-        leadingIconColor:
-        AppColors.primaryColor,
+        leadingIconColor: AppColors.primaryColor,
         onLeadingTap: () {
           AppRoutes.pop();
         },
       ),
-
       body: isLoading
-          ? const Center(child:CircularProgressIndicator(), )  : errorMessage != null ?
-      Center(
+          ? const Center(child: CircularProgressIndicator())
+          : errorMessage != null
+          ? Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -244,70 +312,148 @@ class _FirstStepperScreenState
             children: [
               Text(errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: _fetchDynamicFields,
-                child: const Text('Retry'),
-              ),
+              ElevatedButton(onPressed: _fetchDynamicFields, child: const Text('Retry')),
             ],
           ),
         ),
       )
-          : dynamicFields.isEmpty
-          ? const Center(
-        child: Text(
-          'No dynamic fields available',
-        ),
-      )
-          : ListView.builder(
-        padding:
-        const EdgeInsets.all(16),
-        itemCount:
-        dynamicFields.length,
-        itemBuilder:
-            (context, index) {
-          final field =
-          dynamicFields[index];
+          : ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
 
-          return _buildField(
-            field,
-          );
-        },
+          // Category / Subcategory — auto-filled, read-only display
+          buildTextFieldWithHeading(
+            title: 'Category',
+            fieldWidget: AppTextField(
+              suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick,size: 20,).pad(),
+              readOnly: true,
+              borderColor: AppColors.fieldGrey,
+              borderRadius: BorderRadius.circular(5),
+              hintText: '',
+              textController: TextEditingController(text: widget.category.name ?? ''),
+              onChange: (v) {},
+              onSubmit: (v) {},
+            ).pad(),
+          ).pad(),
+          buildTextFieldWithHeading(
+            title: 'Sub-Category',
+            fieldWidget: AppTextField(
+              suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick,size: 20,).pad(),
+              readOnly: true,
+              borderColor: AppColors.fieldGrey,
+              borderRadius: BorderRadius.circular(5),
+              hintText: '',
+              textController: TextEditingController(text: widget.subCategory.name),
+              onChange: (v) {},
+              onSubmit: (v) {},
+            ).pad(),
+          ).pad(),
+
+          // Dynamic fields
+          ...dynamicFields.map((field) => _buildField(field)),
+
+          // Image upload — always shown, at the end
+          _buildImageUploadSection(),
+        ],
       ),
-
-      bottomNavigationBar:
-      AppButton(
-        radius:
-        BorderRadius.circular(5),
-        title: 'Next',
-        onTap: () {
-          AppRoutes.pushNamed(
-            AppRoutes.secondStepperScreen,
-          );
-        },
+      bottomNavigationBar: isLoading || errorMessage != null
+          ? null
+          : AppButton(
+        radius: BorderRadius.circular(5),
+        title: isSubmitting ? 'Please wait...' : 'Next',
+        onTap: isSubmitting ? () {} : _onSubmit,
       ).pad(16),
     );
   }
 
-  Widget _buildField(
-      DynamicFieldsModel field,
-      ) {
+  Widget _buildImageUploadSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppText(
+          text: 'Upload Image ${selectedImages.length}/$maxImages',
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: selectedImages.length < maxImages ? selectedImages.length + 1 : maxImages,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
+            childAspectRatio: 1.50,
+          ),
+          itemBuilder: (context, index) {
+            // Existing image tile
+            if (index < selectedImages.length) {
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.file(
+                      selectedImages[index],
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    top: 2,
+                    right: 5,
+                    child: GestureDetector(
+                      onTap: () => _removeImage(index),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: AppColors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: AppIconWidget(
+                          assetPath: AssetImages.delete,
+                          size: 10,
+                          color: AppColors.red,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            // "+" add tile — only shows when under maxImages
+            return GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.fieldGrey),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Center(
+                  child: Icon(Icons.add, color: AppColors.primaryColor, size: 28),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    ).pad();
+  }
+
+  Widget _buildField(DynamicFieldsModel field) {
     switch (field.fieldType) {
       case DynamicFieldType.text:
         return buildTextFieldWithHeading(
           title: field.displayName,
           fieldWidget: AppTextField(
-            borderColor:
-            AppColors.fieldGrey,
-            borderRadius:
-            BorderRadius.circular(5),
-            hintText: '',
-            textController:
-            textControllers[field.id]!,
-            onChange: (value) {
-              print(
-                '${field.displayName}: $value',
-              );
-            },
+            borderColor: AppColors.fieldGrey,
+            borderRadius: BorderRadius.circular(5),
+            hintText: 'Enter ${field.displayName.toLowerCase()}',
+            textController: textControllers[field.id]!,
+            onChange: (value) {},
             onSubmit: (value) {},
           ).pad(),
         ).pad();
@@ -317,13 +463,10 @@ class _FirstStepperScreenState
           title: field.displayName,
           fieldWidget: AppTextField(
             maxLines: 4,
-            borderColor:
-            AppColors.fieldGrey,
-            borderRadius:
-            BorderRadius.circular(5),
+            borderColor: AppColors.fieldGrey,
+            borderRadius: BorderRadius.circular(5),
             hintText: '',
-            textController:
-            textControllers[field.id]!,
+            textController: textControllers[field.id]!,
             onChange: (value) {},
             onSubmit: (value) {},
           ).pad(),
@@ -350,37 +493,15 @@ class _FirstStepperScreenState
 
         return buildTextFieldWithHeading(
           title: field.displayName,
-          fieldWidget:
-          AppDropdownField<String>(
-            borderColor:
-            AppColors.fieldGrey,
-
-            value:
-            selectedDropdownValues[
-            field.id],
-
-            hintText:
-            'Select ${field.displayName}',
-
-            // We will populate this
-            // using dropdown_master API.
+          fieldWidget: AppDropdownField<String>(
+            borderColor: AppColors.fieldGrey,
+            value: selectedDropdownValues[field.id],
+            hintText: hint,
             items: options.map((e) => e.value).toList(),
-
             itemLabel: (value) => value,
-
-            selectedItemColor:
-            AppColors.primaryColor
-                .withAlpha(30),
-
-            selectedItemTextColor:
-            AppColors.primaryColor,
-
-            onChanged: (value) {
-              setState(() {
-                selectedDropdownValues[
-                field.id] = value;
-              });
-            },
+            selectedItemColor: AppColors.primaryColor.withAlpha(30),
+            selectedItemTextColor: AppColors.primaryColor,
+            onChanged: (isLockedByParent || isLoadingOptions) ? null : (value) => _onDropdownChanged(field, value),
           ).pad(),
         ).pad();
 
@@ -388,4 +509,18 @@ class _FirstStepperScreenState
         return const SizedBox();
     }
   }
+}
+
+Widget buildTextFieldWithHeading({
+  required String title,
+  required Widget fieldWidget,
+}) {
+  return Column(
+    spacing: 10,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      AppText(text: title, fontSize: 16, fontWeight: FontWeight.w600),
+      fieldWidget,
+    ],
+  );
 }

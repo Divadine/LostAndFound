@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/services/app_recorder_service.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
+import 'package:lost_and_found/shared_widgets/app_container.dart';
+import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
+import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
-import 'app_container.dart';
-import 'app_icon_widget.dart';
-import '../services/app_recorder_service.dart';
-import 'app_text.dart';
+
 
 class AppRecorder extends StatefulWidget {
-  const AppRecorder({super.key});
+  final AppRecorderService service;
+
+  const AppRecorder({super.key, required this.service});
 
   @override
   State<AppRecorder> createState() => _AppRecorderState();
 }
 
 class _AppRecorderState extends State<AppRecorder> {
-  final AppRecorderService _service = AppRecorderService.instance;
+  late final AppRecorderService _service = widget.service;
 
   @override
   void initState() {
@@ -29,7 +32,7 @@ class _AppRecorderState extends State<AppRecorder> {
   @override
   void dispose() {
     _service.removeListener(_onServiceChanged);
-    _service.dispose();
+
     super.dispose();
   }
 
@@ -60,13 +63,7 @@ class _AppRecorderState extends State<AppRecorder> {
             color: AppColors.grey,
           ),
           GestureDetector(
-            onTap: () async {
-              print("Function called");
-              final v = await _service.startRecording();
-              print("Function returned");
-
-
-            },
+            onTap: _service.startRecording,
             child: AppIconWidget(assetPath: AssetImages.mic),
           ),
         ],
@@ -118,7 +115,12 @@ class _AppRecorderState extends State<AppRecorder> {
                 ),
               ),
               GestureDetector(
-                onTap: _service.saveRecording,
+                onTap: ()async{
+                  print("Function Called");
+                  final a = await _service.saveRecording();
+                  print('================');
+                  print(a);
+                },
                 child: AppIconWidget(assetPath: AssetImages.recordTick),
               ),
             ],
@@ -193,20 +195,20 @@ class _AppRecorderState extends State<AppRecorder> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child:
-                AppButton(
-                  prefixIcon: AssetImages.delete,
-                  size: 17,
-                  bgColor: AppColors.white,
-                  title: 'Delete',
-                  textColor: AppColors.red,
-                  fontSize: 12,
-                  border: Border.all(color: AppColors.fieldGrey),
-                  height: 35,
-                  onTap: () {
-                    _service.deleteRecording();
-                  },
-                )
+                  child:
+                  AppButton(
+                    prefixIcon: AssetImages.delete,
+                    size: 17,
+                    bgColor: AppColors.white,
+                    title: 'Delete',
+                    textColor: AppColors.red,
+                    fontSize: 12,
+                    border: Border.all(color: AppColors.fieldGrey),
+                    height: 35,
+                    onTap: () {
+                      _service.deleteRecording();
+                    },
+                  )
               ),
             ],
           ).pad(),

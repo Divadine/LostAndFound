@@ -11,10 +11,13 @@ import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/models/authmodels/pincode_details_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/models/posts_model/audio_video_model.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_value_model.dart';
 import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
+import 'package:lost_and_found/models/posts_model/create_post1_response_model.dart';
+import 'package:lost_and_found/models/posts_model/post_list_model.dart';
 
 class AuthRepository {
   final ApiClient apiClient;
@@ -327,5 +330,148 @@ class AuthRepository {
     );
   }
 
+  Future<ResponseModel<List<PostImageModel>>> createImage({required List<File> images}) async {
+    final formData = dio.FormData();
+    for (final img in images) {
+      formData.files.add(
+          MapEntry(
+        'images',
+        await dio.MultipartFile.fromFile(img.path, filename: img.path.split('/').last),
+      ));
+    }
+
+    final response = await apiClient.post(ApiEndPoints.createImage, data: formData, addToken: false);
+
+    if (!response.isSuccess) {
+      return response.asFailure<List<PostImageModel>>();
+    }
+    final list = response.data as List;
+    return ResponseModel<List<PostImageModel>>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: list.map((e) => PostImageModel.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
+
+  Future<ResponseModel<PostAudioModel>> createAudio({required File audio}) async {
+    final formData = dio.FormData.fromMap({
+      'audio': await dio.MultipartFile.fromFile(audio.path, filename: audio.path.split('/').last),
+    });
+
+    final response = await apiClient.post(ApiEndPoints.createAudio, data: formData, addToken: false);
+
+    if (!response.isSuccess) {
+      return response.asFailure<PostAudioModel>();
+    }
+    return ResponseModel<PostAudioModel>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: PostAudioModel.fromJson(response.data as Map<String, dynamic>),
+    );
+  }
+
+  Future<ResponseModel<PostVideoModel>> createVideo({required File video}) async {
+    final formData = dio.FormData.fromMap({
+      'video': await dio.MultipartFile.fromFile(video.path, filename: video.path.split('/').last),
+    });
+
+    final response = await apiClient.post(ApiEndPoints.createVideo, data: formData, addToken: false);
+
+    if (!response.isSuccess) {
+      return response.asFailure<PostVideoModel>();
+    }
+    return ResponseModel<PostVideoModel>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: PostVideoModel.fromJson(response.data as Map<String, dynamic>),
+    );
+  }
+
+  Future<ResponseModel<CreatePostStep1Response>> createPostStep1({
+    int? id,
+    required int userId,
+    required int postType,
+    required int categoryId,
+    required int subcategoryId,
+    required String itemName,
+    required String postImages, // comma-separated image ids, e.g. "1,2,3"
+    required List<Map<String, String>> postValues, // [{"field": "color", "value": "red"}]
+  }) async {
+    final body = {
+      if (id != null) 'id': id,
+      'userid': userId,
+      'post_type': postType,
+      'category_id': categoryId,
+      'subcategory_id': subcategoryId,
+      'item_name': itemName,
+      'postimages': postImages,
+      'post_values': postValues,
+    };
+
+    final response = await apiClient.post(ApiEndPoints.createPostStep1, data: body, addToken: false);
+
+    if (!response.isSuccess) {
+      return response.asFailure<CreatePostStep1Response>();
+    }
+    return ResponseModel<CreatePostStep1Response>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: CreatePostStep1Response.fromJson(response.data as Map<String, dynamic>),
+    );
+  }
+
+  Future<ResponseModel> completePostStep2({
+    required int postId,
+    required String location,
+    required String address,
+    required List<Map<String, String>> coordinates, // [{"latitude": "..", "longitude": ".."}]
+    required DateTime postDate,
+    required String description,
+    int? audioId,
+    int? videoId,
+  }) async {
+    final body = {
+      'postId': postId,
+      'location': location,
+      'address': address,
+      'coordinates': coordinates,
+      'post_date': postDate.toIso8601String(),
+      'description': description,
+      if (audioId != null) 'audio_id': audioId,
+      if (videoId != null) 'video_id': videoId,
+    };
+
+    return await apiClient.post(ApiEndPoints.completePostStep2, data: body, addToken: false);
+  }
+
+
+  //postType = 0->lost, 1=> found
+  Future<ResponseModel<PostListModel>> getPosts({required int userId,required int postType,  int? page ,int? limit,}) async {
+
+    final response = await apiClient.get(ApiEndPoints.getPost,queryParams: {
+      'user_id': userId,
+      'post_type': postType,
+      if (page != null) 'page': page,
+      if (limit != null) 'limit': limit,
+    },
+      addToken: false,
+    );
+
+    if (!response.isSuccess) {
+      return response.asFailure<PostListModel>();
+    }
+
+    return ResponseModel<PostListModel>(
+      message: response.message,
+      status: response.status,
+      currentState: response.currentState,
+      data: PostListModel.fromJson(response.data as Map<String,dynamic>),
+    );
+
+  }
 
 }

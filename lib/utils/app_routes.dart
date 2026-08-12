@@ -196,7 +196,8 @@ class AppRoutes {
         path: '/secondStepperScreen',
         name: secondStepperScreen,
         builder: (context, state) {
-          return SecondStepperScreen();
+          final postId = state.extra as int;
+          return SecondStepperScreen(postId: postId,);
         },
       ),
       GoRoute(

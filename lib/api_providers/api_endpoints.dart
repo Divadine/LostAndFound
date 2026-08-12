@@ -26,6 +26,17 @@ class ApiEndPoints {
 
   //image
   static const String createImage = 'Post/createImage';
+  static const String createAudio = 'Post/createAudio';
+  static const String createVideo = 'Post/createVideo';
+
+
+  //postForm
+  static const String createPostStep1 = 'PostForm/createPostStep1';
+  static const String completePostStep2 = 'PostForm/completePostStep2';
+  static const String getPost  = 'PostForm/getPost';
+
+
+
 
 
 
