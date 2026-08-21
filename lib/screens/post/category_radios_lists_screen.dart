@@ -18,7 +18,8 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/category_not_found.dart';
 
 class CategoryRadiosListsScreen extends StatefulWidget {
-  const CategoryRadiosListsScreen({super.key});
+  final int postType;
+  const CategoryRadiosListsScreen({super.key, required this.postType});
 
   @override
   State<CategoryRadiosListsScreen> createState() =>
@@ -170,7 +171,8 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
             final selectedCategory = categories[selectedIndex!];
             context.pushNamed(
               AppRoutes.subCategoryScreen,
-              extra: selectedCategory,
+              extra: {'category': selectedCategory,'postType': widget.postType,},
+
             );
           },
           icon: AssetImages.arrow_forward,

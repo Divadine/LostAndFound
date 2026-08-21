@@ -44,6 +44,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
 
             AppContainer(
               widget: Column(
+                spacing: 15,
                 children: [
                   AppCachedNetworkImage(
                     imageUrl:

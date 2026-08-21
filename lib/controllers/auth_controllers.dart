@@ -5,6 +5,7 @@ import 'package:lost_and_found/models/authmodels/login_otp_response_model.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
 import 'package:lost_and_found/models/posts_model/audio_video_model.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
@@ -12,6 +13,8 @@ import 'package:lost_and_found/models/categories_model/dynamic_value_model.dart'
 import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
 import 'package:lost_and_found/models/posts_model/create_post1_response_model.dart';
 import 'package:lost_and_found/models/posts_model/post_list_model.dart';
+import 'package:lost_and_found/models/posts_model/post_match_item.dart';
+import 'package:lost_and_found/models/posts_model/single_match_item.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/device_info_helper.dart';
@@ -155,7 +158,45 @@ class AuthControllers {
 
   Future<ResponseModel<PostListModel>> getPost({required int userId,  required int postType,int? page, int? limit}) async {
 
+
     return await authRepository.getPosts(userId: userId, postType: postType,limit: limit,page: page);
-}
+  }
+
+  Future<ResponseModel<List<DeletePostReasons>>> getDeleteReasons() async {
+      return await authRepository.getDeleteReasons();
+  }
+
+  Future<ResponseModel> deletePost({required int postId, required String reason}) async {
+    return await authRepository.deletePost(postId: postId, reason: reason);
+  }
+
+  Future<ResponseModel<PostListModel>> filterPosts({
+    required int userId,
+    required int postType,
+    String? dateFilter,
+    String? startDate,
+    String? endDate,
+    int? page,
+    int? limit,
+  }) async {
+    return await authRepository.filterPosts(
+      userId: userId,
+      postType: postType,
+      dateFilter: dateFilter,
+      startDate: startDate,
+      endDate: endDate,
+      page: page,
+      limit: limit,
+    );
+  }
+
+  Future<ResponseModel<PostMatchesModel>> getPostMatches({required int postId}) async {
+    return await authRepository.getPostMatches(postId: postId);
+  }
+
+  Future<ResponseModel<SingleMatchModel>> getSingleMatch({required int postId, required int userId}) async {
+    return await authRepository.getSingleMatch(postId: postId, userId: userId);
+  }
+
 
 }

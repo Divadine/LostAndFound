@@ -11,6 +11,7 @@ import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/models/authmodels/pincode_details_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
 import 'package:lost_and_found/models/posts_model/audio_video_model.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
@@ -18,6 +19,8 @@ import 'package:lost_and_found/models/categories_model/dynamic_value_model.dart'
 import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
 import 'package:lost_and_found/models/posts_model/create_post1_response_model.dart';
 import 'package:lost_and_found/models/posts_model/post_list_model.dart';
+import 'package:lost_and_found/models/posts_model/post_match_item.dart';
+import 'package:lost_and_found/models/posts_model/single_match_item.dart';
 
 class AuthRepository {
   final ApiClient apiClient;
@@ -474,4 +477,99 @@ class AuthRepository {
 
   }
 
+
+  Future<ResponseModel<List<DeletePostReasons>>> getDeleteReasons() async {
+    final response = await apiClient.get(ApiEndPoints.getReasonsDeletePost,);
+    if(!response.isSuccess){
+      return response.asFailure<List<DeletePostReasons>>();
+    }
+
+    final list = response.data as List;
+    
+    return ResponseModel<List<DeletePostReasons>>(
+        status: response.status,
+        message: response.message,
+      currentState: response.currentState,
+      data: list.map((e) => DeletePostReasons.fromJson(e as Map<String, dynamic> )).toList(),
+    );
+
+  }
+
+  Future<ResponseModel> deletePost({required int postId, required String reason}) async {
+   return  await  apiClient.delete(ApiEndPoints.deletePost,
+      data: {
+        'postId': postId,
+        'reason': reason,
+    },
+    addToken: false,
+    );
+  }
+
+
+  Future<ResponseModel<PostListModel>> filterPosts({
+    required int userId,
+    required int postType,
+    String? dateFilter,
+    String? startDate,
+    String? endDate,
+    int? page,
+    int? limit,
+  }) async {
+    final response = await apiClient.get(
+      ApiEndPoints.filterPost,
+      queryParams: {
+        'user_id': userId,
+        'post_type': postType,
+        if (dateFilter != null) 'date_filter': dateFilter,
+        if (startDate != null) 'start_date': startDate,
+        if (endDate != null) 'end_date': endDate,
+        if (page != null) 'page': page,
+        if (limit != null) 'limit': limit,
+      },
+      addToken: false,
+    );
+
+    if (!response.isSuccess) {
+      return response.asFailure<PostListModel>();
+    }
+
+    return ResponseModel<PostListModel>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: PostListModel.fromJson(response.data as Map<String, dynamic>),
+    );
+  }
+
+  Future<ResponseModel<PostMatchesModel>> getPostMatches({required int postId}) async {
+    final response = await apiClient.get('${ApiEndPoints.matchingPost}/$postId',);
+
+    if (!response.isSuccess) {
+      return response.asFailure<PostMatchesModel>();
+    }
+
+    return ResponseModel<PostMatchesModel>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: PostMatchesModel.fromJson(response.data as Map<String, dynamic>)
+    );
+  }
+
+  Future<ResponseModel<SingleMatchModel>> getSingleMatch({required int postId, required int userId}) async {
+    final response= await apiClient.get( '${ApiEndPoints.viewSingleMatch}/$postId/$userId',addToken: false);
+
+
+    if (!response.isSuccess) {
+      return response.asFailure<SingleMatchModel>();
+    }
+
+
+    return ResponseModel<SingleMatchModel>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: SingleMatchModel.fromJson(response.data as Map<String, dynamic>),
+    );
+  }
 }

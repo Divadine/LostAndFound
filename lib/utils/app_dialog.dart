@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
+import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
 import 'package:lost_and_found/screens/profile/webView.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
@@ -1023,7 +1027,9 @@ class PostLive extends StatelessWidget {
 }
 
 class DeletePostReasonsDialog extends StatefulWidget {
-  const DeletePostReasonsDialog({super.key});
+  final int postId;
+  final VoidCallback? onDeleted;
+  const DeletePostReasonsDialog({super.key, required this.postId, this.onDeleted});
 
   @override
   State<DeletePostReasonsDialog> createState() =>
@@ -1031,20 +1037,52 @@ class DeletePostReasonsDialog extends StatefulWidget {
 }
 
 class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
+
+  final authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
+
   int presentIndex = 0;
-  String? selectedReason;
   PageController pageController = PageController();
 
   TextEditingController reasonController = TextEditingController();
-  List<String> items = [
-    'Item found',
-    'Post Created by Mistake',
-    'Duplicate Post',
-    'Privacy Concern',
-    'Item no longer available',
-    'Others',
-  ];
+  List<DeletePostReasons> reasons = [];
+  DeletePostReasons? selectedReason;
 
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchReasons();
+  }
+
+  Future<void> fetchReasons() async {
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    final response = await authController.getDeleteReasons();
+    if (!mounted) return;
+
+    if(response.isSuccess && response.data != null){
+      setState(() {
+        reasons = response.data!;
+        isLoading = false;
+      });
+    }else{
+      setState(() {
+        errorMessage = response.message.isNotEmpty ? response.message : 'Failed to load reasons';
+        isLoading = false;
+      });
+    }
+
+
+  }
+  bool get _isOthersSelected =>selectedReason?.text.toLowerCase() == 'others';
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -1066,7 +1104,25 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
             fontSize: 14,
           ),
 
-          ...items.map((item) {
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                children: [
+                  AppText(text: errorMessage!, textAlign: TextAlign.center),
+                  const SizedBox(height: 8),
+                  AppButton(title: 'Retry', onTap: fetchReasons),
+                ],
+              ),
+            )
+          else
+
+          ...reasons.map((item) {
             return Padding(
               padding: const EdgeInsets.all(8.0),
               child: GestureDetector(
@@ -1081,21 +1137,17 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
                     SizedBox(
                       height: 20,
                       width: 20,
-                      child: Radio<String>(
+                      child: Radio<DeletePostReasons>(
                         hoverColor: AppColors.primaryColor,
                         groupValue: selectedReason,
                         activeColor: AppColors.primaryColor,
-                        onChanged: (value) {
-                          setState(() {
-                            selectedReason = value;
-                          });
-                        },
+                        onChanged:(value) => setState(() => selectedReason = value),
                         value: item,
                       ),
                     ),
                     Expanded(
                       child: AppText(
-                        text: item,
+                        text: item.text,
                         fontSize: 14,
                         color: AppColors.black,
                       ),
@@ -1106,7 +1158,7 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
             );
           }),
 
-          if (selectedReason == 'Others') ...[
+          if (_isOthersSelected) ...[
             AppText(
               text: 'Please tell us the reason',
               fontWeight: FontWeight.w400,
@@ -1144,11 +1196,26 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
                 child: AppButton(
                   title: 'Next',
                   onTap: () {
+                    if (selectedReason == null) {
+                      AppSnackBar.show(context: context, message: 'Please select a reason');
+                      return;
+                    }
+                    final finalReason = _isOthersSelected
+                        ? reasonController.text.trim()
+                        : selectedReason!.text;
+                    if (finalReason.isEmpty) {
+                      AppSnackBar.show(context: context, message: 'Please enter a reason');
+                      return;
+                    }
                     AppRoutes.pop();
 
                     AppDialogue.showPopup(
                       context: context,
-                      content: DeletePostDialog(),
+                      content: DeletePostDialog(
+                        postId: widget.postId,
+                        reason: finalReason,
+                        onDeleted: widget.onDeleted,
+                      ),
                     );
                   },
                   textColor: AppColors.white,
@@ -1165,13 +1232,41 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
 }
 
 class DeletePostDialog extends StatefulWidget {
-  const DeletePostDialog({super.key});
+  final int postId;
+  final String reason;
+  final VoidCallback? onDeleted;
+  const DeletePostDialog({super.key, required this.postId, required this.reason, this.onDeleted});
 
   @override
   State<DeletePostDialog> createState() => _DeletePostDialogState();
 }
 
 class _DeletePostDialogState extends State<DeletePostDialog> {
+
+  final authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
+
+  bool isDeleting = false;
+
+  Future<void> confirmDelete() async {
+    print('CONFIRM DELETE CALLED — postId: ${widget.postId}, reason: ${widget.reason}');
+    setState(() => isDeleting = true);
+    final response = await authController.deletePost(postId: widget.postId, reason: widget.reason);
+
+    if (!mounted) return;
+    setState(() => isDeleting = false);
+
+    if(response.isSuccess) {
+      AppRoutes.pop();
+      widget.onDeleted?.call();
+    }else {
+      AppDialogue.showPopup(context: context, content: AppText(text: response.message.isNotEmpty ? response.message : 'Failed to delete post',),);
+    }
+
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1198,9 +1293,7 @@ class _DeletePostDialogState extends State<DeletePostDialog> {
             Expanded(
               child: AppButton(
                 title: 'Cancel',
-                onTap: () {
-                  //Navigator.pop(context);
-                },
+                onTap: isDeleting ? () {} : () => AppRoutes.pop(),
                 fontSize: 14,
                 bgColor: Colors.transparent,
                 border: Border.all(color: AppColors.black),
@@ -1210,10 +1303,8 @@ class _DeletePostDialogState extends State<DeletePostDialog> {
             ),
             Expanded(
               child: AppButton(
-                title: 'Delete Post',
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                title: isDeleting ? 'Deleting...' : 'Delete Post',
+                onTap: isDeleting ? () {} : confirmDelete,
                 fontSize: 14,
                 bgColor: AppColors.red,
                 textColor: AppColors.white,

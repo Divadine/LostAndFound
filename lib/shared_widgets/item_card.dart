@@ -31,6 +31,8 @@ class ItemCard extends StatelessWidget {
   final bool showPostId;
   final bool isTopAvailabilityCard;
   final double? imageWidth;
+    final int? postIntId;        // NEW — numeric id for API calls
+  final VoidCallback? onDeleted; // NEW — refresh trigger after successful delete
 
   const ItemCard({
     super.key,
@@ -55,6 +57,8 @@ class ItemCard extends StatelessWidget {
     required this.showPostId,
     this.isTopAvailabilityCard = false,
     this.imageWidth,
+    this.postIntId,
+   this.onDeleted,
   });
 
   @override
@@ -197,7 +201,7 @@ class ItemCard extends StatelessWidget {
                   ),
                 ),
 
-                if (profileUrl == null && !isFromEnquiry)
+                if (profileUrl == null && !isFromEnquiry  && postIntId != null)
                   PopupMenuButton(
                     color: AppColors.white,
                     icon: AppIconWidget(assetPath: AssetImages.more),
@@ -231,9 +235,13 @@ class ItemCard extends StatelessWidget {
                     ],
                     onSelected: (value) {
                       if (value == 'delete') {
+                        print('DELETE TAPPED — postIntId: $postIntId');
                         AppDialogue.showPopup(
                           context: context,
-                          content: const DeletePostReasonsDialog(),
+                          content: DeletePostReasonsDialog(
+                            postId: postIntId!,
+                            onDeleted: onDeleted,
+                          ),
                         );
                       }
                     },
@@ -259,43 +267,46 @@ class ItemCard extends StatelessWidget {
               ),
             SizedBox(height: 10),
             if (foundCount != null)
-              Container(
-                height: 35,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  //border: Border.all(color: AppColors.primaryColor),
-                  color: AppColors.lightBlue,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  spacing: 20,
-                  children: [
-                    Flexible(
-                      child: AppText(
-                        text: 'Available Matching item - $foundCount founded',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+              GestureDetector(
+                onTap: (){},
+                child: Container(
+                  height: 35,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    //border: Border.all(color: AppColors.primaryColor),
+                    color: AppColors.lightBlue,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    spacing: 20,
+                    children: [
+                      Flexible(
+                        child: AppText(
+                          text: 'Available Matching item - $foundCount founded',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () {},
-                      child: Row(
-                        spacing: 10,
-                        children: [
-                          AppText(
-                            text: 'view All',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.primaryColor,
-                          ),
-                          AppIconWidget(assetPath: AssetImages.iosForward),
-                        ],
+                      GestureDetector(
+                        onTap: () {},
+                        child: Row(
+                          spacing: 10,
+                          children: [
+                            AppText(
+                              text: 'view All',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.primaryColor,
+                            ),
+                            AppIconWidget(assetPath: AssetImages.iosForward),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ).padHorizontal(),
-              ).pad(),
+                    ],
+                  ).padHorizontal(),
+                ).pad(),
+              ),
 
             if (enquiredProfile != null && newMessageCount != null)
               Container(

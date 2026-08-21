@@ -26,11 +26,12 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 class FirstStepperScreen extends StatefulWidget {
   final CategoryModel category;
   final SubCategoryModel subCategory;
+  final int postType;
 
   const FirstStepperScreen({
     super.key,
     required this.category,
-    required this.subCategory,
+    required this.subCategory, required this.postType,
   });
 
   @override
@@ -264,7 +265,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
     final postResponse = await authController.createPostStep1(
       userId: userId ?? 0,
-      postType: 1,
+      postType: widget.postType,
       categoryId: widget.category.id,
       subcategoryId: widget.subCategory.id,
       itemName: itemNameController.text.trim(),

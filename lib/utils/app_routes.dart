@@ -122,11 +122,7 @@ class AppRoutes {
         name: firstHomeScreen,
         builder: (context, state) => const FirstHomeScreen(),
       ),
-      GoRoute(
-        path: '/categoryRadioScreen',
-        name: categoryRadioScreen,
-        builder: (context, state) => const CategoryRadiosListsScreen(),
-      ),
+
 
       GoRoute(
         path: '/settingsScreen',
@@ -161,12 +157,16 @@ class AppRoutes {
         path: '/availableMatchingScreen',
         name: availableMatchingScreen,
         builder: (context, state) {
-          final model = state.extra as AvailableScreenModel;
+          final data = state.extra as Map<String, dynamic>;
           return AvailableMatchingScreen(
-            availableScreenModel: AvailableScreenModel(
-              foundCount: 8,
-              isReceived: false,
-            ),
+            postId: data['postId'] as int,
+            imgUrl: data['imgUrl'] as String? ?? '',
+            title: data['title'] as String? ?? '',
+            location: data['location'] as String? ?? '',
+            date: data['date'] as String? ?? '',
+            postUid: data['postUid'] as String? ?? '',
+            foundCount: data['foundCount'] as int?,
+            isReceived: data['isReceived'] as bool? ?? false,
           );
         },
       ),
@@ -174,7 +174,10 @@ class AppRoutes {
         path: '/lostItemsDetailsScreen',
         name: lostItemsDetailsScreen,
         builder: (context, state) {
-          return LostItemsDetailsScreen();
+          final data = state.extra as Map<String, dynamic>;
+          return LostItemsDetailsScreen(
+
+          );
         },
       ),
 
@@ -210,10 +213,22 @@ class AppRoutes {
       ),
 
       GoRoute(
+        path: '/categoryRadioScreen',
+        name: categoryRadioScreen,
+        builder: (context, state){
+          final postType = state.extra as int;
+          return  CategoryRadiosListsScreen(postType: postType);
+        }
+      ),
+      GoRoute(
         path: '/subCategoryScreen',
         name: subCategoryScreen,
         builder: (context, state) {
-          return SubCategoryScreen(category: state.extra as CategoryModel,);
+          final data = state.extra as Map<String, dynamic>;
+          return SubCategoryScreen(
+            category: data['category'] as CategoryModel,
+            postType: data['postType'] as int,
+          );
         },
       ),
 
@@ -233,7 +248,8 @@ class AppRoutes {
 
           return FirstStepperScreen(
             category : data['category'],
-            subCategory : data['subCategory'], );
+            subCategory : data['subCategory'],
+            postType: data['postType'] as int, );
         },
       ),
 

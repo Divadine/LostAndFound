@@ -53,7 +53,7 @@ class _BottomScreenState extends State<BottomScreen> {
 
                 AppRoutes.pushNamed(
                   AppRoutes.categoryRadioScreen,
-                  arguments: true,
+                  arguments: 0,
                 );
               },
               child: buildHomeBottomSheet(
@@ -80,7 +80,7 @@ class _BottomScreenState extends State<BottomScreen> {
 
                 AppRoutes.pushNamed(
                   AppRoutes.categoryRadioScreen,
-                  arguments: true,
+                  arguments: 1,
                 );
               },
               child: buildHomeBottomSheet(

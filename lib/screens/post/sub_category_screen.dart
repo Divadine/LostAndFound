@@ -20,8 +20,9 @@ import 'package:lost_and_found/utils/category_not_found.dart';
 
 class SubCategoryScreen extends StatefulWidget {
   final CategoryModel category;
+  final int postType;
 
-  const SubCategoryScreen({super.key, required this.category});
+  const SubCategoryScreen({super.key, required this.category, required this.postType});
 
   @override
   State<SubCategoryScreen> createState() => _SubCategoryScreenState();
@@ -200,6 +201,7 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
                     extra: {
                       'category': widget.category,
                       'subCategory': selectedSubCategory,
+                      'postType': widget.postType,
                     },
                   );
                 },

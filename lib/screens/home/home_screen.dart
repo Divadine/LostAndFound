@@ -67,6 +67,20 @@ filterStateStream.add(state);
     _emitFilter(HomeFilterState.cleared());
   }
 
+
+
+  String? _mapRangeToApiFilter(String? label) {
+    switch (label) {
+      case 'Today': return 'today';
+      case 'Last 7 Days': return 'last_7_days';
+      case 'Last 30 Days': return 'last_30_days';
+      case 'Last 3 Months': return 'last_3_months';
+      case 'Last Year': return 'last_year';
+      case 'Custom Range': return 'custom';
+      default: return null;
+    }
+  }
+
   Future<void> _fetchLostPosts() async {
     setState(() {
       isLoadingLost = true;
@@ -74,7 +88,20 @@ filterStateStream.add(state);
     });
 
     final userId = await AppPreferences.getUserId();
-    final response = await authController.getPost(userId: userId ?? 0, postType: 0);
+
+    final response = filterState.filterApplied
+        ? await authController.filterPosts(
+      userId: userId ?? 0,
+      postType: 0,
+      dateFilter: filterState.dateFilter,
+      startDate: filterState.customRange != null
+          ? DateFormat('yyyy-MM-dd').format(filterState.customRange!.start)
+          : null,
+      endDate: filterState.customRange != null
+          ? DateFormat('yyyy-MM-dd').format(filterState.customRange!.end)
+          : null,
+    )
+        : await authController.getPost(userId: userId ?? 0, postType: 0);
 
     if (!mounted) return;
 
@@ -100,7 +127,21 @@ filterStateStream.add(state);
     });
 
     final userId = await AppPreferences.getUserId();
-    final response = await authController.getPost(userId: userId ?? 0, postType: 1);
+
+    final response = filterState.filterApplied
+        ? await authController.filterPosts(
+      userId: userId ?? 0,
+      postType: 1,
+      dateFilter: filterState.dateFilter,
+      //_mapRangeToApiFilter(filterState.selectedRange),
+      startDate: filterState.customRange != null
+          ? DateFormat('yyyy-MM-dd').format(filterState.customRange!.start)
+          : null,
+      endDate: filterState.customRange != null
+          ? DateFormat('yyyy-MM-dd').format(filterState.customRange!.end)
+          : null,
+    )
+        : await authController.getPost(userId: userId ?? 0, postType: 1);
 
     if (!mounted) return;
 
@@ -242,16 +283,34 @@ filterStateStream.add(state);
 
                           SizedBox(width: 5),
                           GestureDetector(
-                            onTap: () async{
-
+                            onTap: () async {
                               final filterData = await AppUiHelper.showBottomSheet(context: context, child: FilterScreen());
 
-                              if(filterData == 'clear'){
+                              if (filterData == 'clear') {
                                 _emitFilter(HomeFilterState.cleared());
-                              }else if(filterData is Map){
-                                _emitFilter(HomeFilterState(customRange: filterData['customRange'],filterApplied: true,selectedRange: filterData['range']));
+                                _fetchLostPosts();
+                                _fetchFoundPosts();
+                              } else if (filterData is Map) {
+                                _emitFilter(HomeFilterState(
+                                  customRange: filterData['customRange'],
+                                  filterApplied: true,
+                                  selectedRange: filterData['range'],
+                                  dateFilter: filterData['dateFilter'],
+                                ));
+                                _fetchLostPosts();
+                                _fetchFoundPosts();
                               }
                             },
+                            // onTap: () async{
+                            //
+                            //   final filterData = await AppUiHelper.showBottomSheet(context: context, child: FilterScreen());
+                            //
+                            //   if(filterData == 'clear'){
+                            //     _emitFilter(HomeFilterState.cleared());
+                            //   }else if(filterData is Map){
+                            //     _emitFilter(HomeFilterState(customRange: filterData['customRange'],filterApplied: true,selectedRange: filterData['range']));
+                            //   }
+                            // },
                             child: Container(
                               height: 40,
                               width: 40,
@@ -286,7 +345,7 @@ filterStateStream.add(state);
                           _buildLostTab(),
 
                           _buildFoundTab(),
-                          //for lost if they filter should show the filtered text..
+
 
                           // StreamBuilder(
                           //   stream: filterStateStream.stream,
@@ -321,7 +380,8 @@ filterStateStream.add(state);
                           //           GestureDetector(
                           //             onTap: () {
                           //               _clearFilter();
-                          //               //AppRoutes.pop();},
+                          //               AppRoutes.pop();
+                          //               // },
                           //             },
                           //             child:AppIconWidget(assetPath: AssetImages.crossIcon,color: AppColors.black,),
                           //           ),
@@ -330,7 +390,7 @@ filterStateStream.add(state);
                           //     ).padHorizontal();
                           //   }
                           // ),
-                          //foundItems
+                          // foundItems
                           // ListView.builder(
                           //   itemCount: 2,
                           //   itemBuilder: (context, index) {
@@ -453,13 +513,16 @@ filterStateStream.add(state);
                     AppIconWidget(assetPath: AssetImages.filterTick),
                     SizedBox(width: 15),
                     AppText(
-                      text: 'Showing results : ${filterData.selectedRange ?? " "}  ',
+                      text: 'Showing results : ${filterData.displayText}',
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
                     Spacer(),
                     GestureDetector(
-                      onTap: _clearFilter,
+                      onTap: () {
+                        _clearFilter();
+                        _fetchLostPosts();
+                      },
                       child: AppIconWidget(assetPath: AssetImages.crossIcon, color: AppColors.black),
                     ),
                   ],
@@ -476,6 +539,8 @@ filterStateStream.add(state);
               location: post.location,
               date: _formatDate(post.postDate),
               postId: post.postUid,
+              postIntId: post.id,
+              onDeleted: _fetchLostPosts,
               newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
               enquiredProfile: post.enquirerAvatars.isNotEmpty
                   ? post.enquirerAvatars.map((e) => e.imageUrl).toList()
@@ -483,7 +548,16 @@ filterStateStream.add(state);
               onTap: () {
                 AppRoutes.pushNamed(
                   AppRoutes.availableMatchingScreen,
-                  arguments: AvailableScreenModel(foundCount: post.enquiriesCount, isReceived: false),
+                  arguments: {
+                    'postId': post.id,
+                    'imgUrl': post.images.isNotEmpty ? post.images.first : '',
+                    'title': post.name,
+                    'location': post.location,
+                    'date': _formatDate(post.postDate),
+                    'postUid': post.postUid,
+                    'foundCount': post.enquiriesCount,
+                    'isReceived': false,
+                  }
                 );
               },
               showPostId: true,
@@ -505,7 +579,6 @@ filterStateStream.add(state);
             AppText(text: foundErrorMessage!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
             AppButton(title: 'Retry', onTap: _fetchFoundPosts),
-            //ElevatedButton(onPressed: _fetchFoundPosts, child: const Text('Retry')),
           ],
         ),
       );
@@ -516,29 +589,118 @@ filterStateStream.add(state);
 
     return RefreshIndicator(
       onRefresh: _fetchFoundPosts,
-      child: ListView.builder(
-        itemCount: foundPosts.length,
-        itemBuilder: (context, index) {
-          final post = foundPosts[index];
-          return ItemCard(
-            imgUrl: post.images.isNotEmpty ? post.images.first : '',
-            title: post.name,
-            location: post.location,
-            date: _formatDate(post.postDate),
-            postId: post.postUid,
-            newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
-            enquiredProfile: post.enquirerAvatars.isNotEmpty
-                ? post.enquirerAvatars.map((e) => e.imageUrl).toList()
-                : null,
-            onTap: () {
-              AppRoutes.pushNamed(AppRoutes.enquiryListScreen);
+      child: ListView(
+        children: [
+
+          StreamBuilder(
+            stream: filterStateStream.stream,
+            builder: (context, asyncSnapshot) {
+              final filterData = asyncSnapshot.data ?? HomeFilterState();
+              if (!filterData.filterApplied) return const SizedBox.shrink();
+              return Container(
+                height: 35,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.lightBlue,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    AppIconWidget(assetPath: AssetImages.filterTick),
+                    SizedBox(width: 15),
+                    AppText(
+                      text: 'Showing results : ${filterData.displayText}',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    Spacer(),
+                    GestureDetector(
+                      onTap: () {
+                        _clearFilter();
+                        _fetchFoundPosts();
+                      },
+                      child: AppIconWidget(assetPath: AssetImages.crossIcon, color: AppColors.black),
+                    ),
+                  ],
+                ).padHorizontal(16),
+              ).padHorizontal();
             },
-            showPostId: true,
-          ).pad();
-        },
+          ),
+
+
+          for (final post in foundPosts)
+            ItemCard(
+              imgUrl: post.images.isNotEmpty ? post.images.first : '',
+              title: post.name,
+              location: post.location,
+              date: _formatDate(post.postDate),
+              postId: post.postUid,
+              postIntId: post.id,
+              onDeleted: _fetchFoundPosts,
+              newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
+              enquiredProfile: post.enquirerAvatars.isNotEmpty
+                  ? post.enquirerAvatars.map((e) => e.imageUrl).toList()
+                  : null,
+              onTap: () {
+                AppRoutes.pushNamed(AppRoutes.enquiryListScreen);
+              },
+              showPostId: true,
+            ).pad(),
+        ],
       ),
     );
   }
+  // Widget _buildFoundTab() {
+  //   if (isLoadingFound) {
+  //     return const Center(child: CircularProgressIndicator());
+  //   }
+  //   if (foundErrorMessage != null) {
+  //     return Center(
+  //       child: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //
+  //           AppText(text: foundErrorMessage!, textAlign: TextAlign.center),
+  //           const SizedBox(height: 12),
+  //           AppButton(title: 'Retry', onTap: _fetchFoundPosts),
+  //           //ElevatedButton(onPressed: _fetchFoundPosts, child: const Text('Retry')),
+  //         ],
+  //       ),
+  //     );
+  //   }
+  //   if (foundPosts.isEmpty) {
+  //     return const Center(child: AppText(text: 'No found items posted yet'));
+  //   }
+  //
+  //   return RefreshIndicator(
+  //     onRefresh: _fetchFoundPosts,
+  //     child: ListView.builder(
+  //       itemCount: foundPosts.length,
+  //       itemBuilder: (context, index) {
+  //         final post = foundPosts[index];
+  //         return ItemCard(
+  //           imgUrl: post.images.isNotEmpty ? post.images.first : '',
+  //           title: post.name,
+  //           location: post.location,
+  //           date: _formatDate(post.postDate),
+  //           postId: post.postUid,
+  //           postIntId: post.id,
+  //           onDeleted: _fetchFoundPosts,
+  //           newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
+  //           enquiredProfile: post.enquirerAvatars.isNotEmpty
+  //               ? post.enquirerAvatars.map((e) => e.imageUrl).toList()
+  //               : null,
+  //           onTap: () {
+  //             AppRoutes.pushNamed(AppRoutes.enquiryListScreen);
+  //           },
+  //           showPostId: true,
+  //         ).pad();
+  //       },
+  //     ),
+  //   );
+  // }
 
   Widget buildTabBarView({
     required String image,
@@ -569,14 +731,25 @@ filterStateStream.add(state);
 
 class HomeFilterState {
   final bool filterApplied;
-  final String? selectedRange;
+  final String? selectedRange;   // e.g. "Last 7 Days" or "Custom Range"
+  final String? dateFilter;      // API value, e.g. "last_7_days" or "custom"
   final DateTimeRange? customRange;
 
   const HomeFilterState({
     this.filterApplied = false,
     this.selectedRange,
+    this.dateFilter,
     this.customRange,
   });
 
   factory HomeFilterState.cleared() => const HomeFilterState();
+
+  String get displayText {
+    if (selectedRange == 'Custom Range' && customRange != null) {
+      final start = DateFormat('MMMM d').format(customRange!.start);
+      final end = DateFormat('MMMM d').format(customRange!.end);
+      return '$start - $end';
+    }
+    return selectedRange ?? '';
+  }
 }

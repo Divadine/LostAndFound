@@ -8,10 +8,10 @@ class PostListModel {
 
   factory PostListModel.fromJson(Map<String,dynamic> json){
     return PostListModel(
-        posts: (json['posts'] as List?  ?? []).map((e) => PostModel.fromJson(e as Map<String,dynamic>)).toList(),
-        page: json['page'],
-        limit: json['limit'],
-        total: json['total']
+        posts: (json['data'] as List?  ?? []).map((e) => PostModel.fromJson(e as Map<String,dynamic>)).toList(),
+        page: json['page'] as int? ?? 1,
+        limit: json['limit']as int? ?? 10,
+        total: json['total'] as int? ?? 0,
     );
   }
 }
@@ -31,17 +31,19 @@ class PostModel{
 
   factory PostModel.fromJson(Map<String,dynamic> json) {
     return PostModel(
-        id: json['id'],
-        postUid: json['postUid'],
-        name: json['name'],
-        userUid: json['userUid'],
-        location: json['location'],
+        id: json['id'] ?? 0,
+        name: json['name']?.toString() ?? '',
+      postUid: json['post_uid']?.toString() ?? '',
+      userUid: json['user_uid']?.toString() ?? '',
+        location: json['location']?.toString() ?? '',
+        postDate: json['post_date'] != null ? DateTime.tryParse(json['post_date'].toString())  : null,
         images: (json['images'] as List? ?? []).map((e) => e.toString()).toList(),
-        status: json['status'],
-        enquiriesCount: json['enquiriesCount'],
-        enquirerAvatars: (json['enquirerAvatars'] as List? ?? []).map((e) => EnquirerAvatarModel.fromJson(e as Map<String,dynamic>)).toList(),
+        status:  json['status'] ?? 0,
+        enquiriesCount: json['enquiries_count'] ?? 0,
+        enquirerAvatars: (json['enquirer_avatars'] as List? ?? []).map((e) => EnquirerAvatarModel.fromJson(e as Map<String,dynamic>)).toList(),
     );
   }
+
 }
 
 class EnquirerAvatarModel {
