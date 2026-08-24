@@ -10,6 +10,8 @@ import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/app_audio_player.dart';
+import 'package:lost_and_found/shared_widgets/app_video_player.dart';
 import 'package:lost_and_found/screens/bottomsheets/send_enquiry.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
@@ -17,58 +19,42 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 class LostItemsDetailsScreen extends StatefulWidget {
+  final int postId;
+  final int userId;
+  final int? percentageMatch;
+  final String posterName;
+  final String posterAvatar;
+
   const LostItemsDetailsScreen({
     super.key,
+    required this.postId,
+    required this.userId,
+    this.percentageMatch,
+    this.posterName = '',
+    this.posterAvatar = '',
   });
 
   @override
-  State<LostItemsDetailsScreen> createState() =>
-      _LostItemsDetailsScreenState();
+  State<LostItemsDetailsScreen> createState() => _LostItemsDetailsScreenState();
 }
 
-class _LostItemsDetailsScreenState
-    extends State<LostItemsDetailsScreen> {
-
+class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
   final authController = AuthControllers(
-    authRepository: AuthRepository(
-      apiClient: ApiClient(),
-    ),
+    authRepository: AuthRepository(apiClient: ApiClient()),
   );
 
   SingleMatchModel? postDetails;
-
   bool isLoading = true;
   String? errorMessage;
 
-  int? postId;
-  int? userId;
-  int? percentageMatch;
-
-  bool _argumentsRead = false;
-
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    if (_argumentsRead) return;
-
-    _argumentsRead = true;
-
-    final args = ModalRoute.of(context)?.settings.arguments;
-
-    if (args is Map) {
-      postId = args['postId'];
-      userId = args['userId'];
-      percentageMatch = args['percentageMatch'];
-    }
-
-    if (postId != null && userId != null) {
+  void initState() {
+    super.initState();
+    if (widget.postId != 0 && widget.userId != 0) {
       _fetchPostDetails();
     } else {
-      setState(() {
-        isLoading = false;
-        errorMessage = 'Invalid post details';
-      });
+      isLoading = false;
+      errorMessage = 'Invalid post details';
     }
   }
 
@@ -79,8 +65,8 @@ class _LostItemsDetailsScreenState
     });
 
     final response = await authController.getSingleMatch(
-      postId: postId!,
-      userId: userId!,
+      postId: widget.postId,
+      userId: widget.userId,
     );
 
     if (!mounted) return;
@@ -92,9 +78,7 @@ class _LostItemsDetailsScreenState
       });
     } else {
       setState(() {
-        errorMessage = response.message.isNotEmpty
-            ? response.message
-            : 'Failed to fetch post';
+        errorMessage = response.message.isNotEmpty ? response.message : 'Failed to fetch post';
         isLoading = false;
       });
     }
@@ -102,30 +86,28 @@ class _LostItemsDetailsScreenState
 
   String _formatDate(DateTime? date) {
     if (date == null) return '';
-
     return DateFormat('d MMM yyyy').format(date);
   }
+
+  // Prefer the value forwarded from AvailableMatchingScreen; fall back to
+  // whatever the single-match API itself returned.
+  String get _posterName =>
+      widget.posterName.isNotEmpty ? widget.posterName : (postDetails?.posterName ?? '');
+
+  String get _posterAvatar =>
+      widget.posterAvatar.isNotEmpty ? widget.posterAvatar : (postDetails?.posterAvatar ?? '');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryColor,
-        toolbarHeight: 0,
-      ),
+      appBar: AppBar(backgroundColor: AppColors.primaryColor, toolbarHeight: 0),
       body: isLoading
-          ? const Center(
-        child: CircularProgressIndicator(),
-      )
+          ? const Center(child: CircularProgressIndicator())
           : errorMessage != null
           ? _buildError()
           : postDetails == null
-          ? const Center(
-        child: AppText(
-          text: 'No details found',
-        ),
-      )
+          ? const Center(child: AppText(text: 'No details found'))
           : _buildDetails(),
     );
   }
@@ -135,15 +117,9 @@ class _LostItemsDetailsScreenState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppText(
-            text: errorMessage!,
-            textAlign: TextAlign.center,
-          ),
+          AppText(text: errorMessage!, textAlign: TextAlign.center),
           const SizedBox(height: 15),
-          AppButton(
-            title: 'Retry',
-            onTap: _fetchPostDetails,
-          ),
+          AppButton(title: 'Retry', onTap: _fetchPostDetails),
         ],
       ),
     );
@@ -152,254 +128,221 @@ class _LostItemsDetailsScreenState
   Widget _buildDetails() {
     final post = postDetails!;
 
-    return SingleChildScrollView(
-      child: Column(
-        spacing: 20,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    debugPrint('POST color: "${post.color}"');
+    debugPrint('POST values count: ${post.values.length}');
+    for (final v in post.values) {
+      debugPrint('  -> name="${v.fieldName}" value="${v.fieldValue}" step=${v.step}');
+    }
+    final stepOneFields = post.values.where((v) => v.step == 1).toList();
 
-          CustomAppBar(
-            title: 'Lost Items',
-            leadingIconColor: AppColors.primaryColor,
-            leadingSvg: AssetImages.backArrow,
-            onLeadingTap: () {
-              AppRoutes.pop();
-            },
-            titleColor: AppColors.primaryColor,
-            centerTitle: true,
-          ),
+    final stepOneNames = stepOneFields.map((v) => v.fieldName.toLowerCase()).toSet();
 
-          AppContainer(
-            widget: Column(
-              spacing: 15,
+    final stepTwoFields = post.values
+        .where((v) => v.step != 1 && !stepOneNames.contains(v.fieldName.toLowerCase()))
+        .toList();
+
+    return Column(
+      children: [
+        CustomAppBar(
+          title: 'Found Items',
+          leadingIconColor: AppColors.primaryColor,
+          leadingSvg: AssetImages.backArrow,
+          onLeadingTap: () => AppRoutes.pop(),
+          titleColor: AppColors.primaryColor,
+          centerTitle: true,
+        ),
+
+        // Scrollable body — grows/shrinks with however many fields this post has.
+        Expanded
+          (
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 16,
               children: [
-
-                // IMAGE
+                // 1. UPLOADED ITEM IMAGE
                 if (post.imageUrl.isNotEmpty)
-                  AppCachedNetworkImage(
-                    imageUrl: post.imageUrl,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 150,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AppCachedNetworkImage(
+                      imageUrl: post.imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 180,
+                    ),
                   ),
 
-                // BASIC DETAILS
-                _buildBasicDetails(post),
-
-                // MATCH
-                AppContainer(
-                  widget: Row(
-                    mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
+                // 2. NAME + PROFILE IMAGE (no box, sits directly on background)
+                if (_posterName.isNotEmpty)
+                  Row(
+                    spacing: 10,
                     children: [
-                      AppText(
-                        text: 'Match',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
+                      ClipOval(
+                        child: _posterAvatar.isNotEmpty
+                            ? AppCachedNetworkImage(
+                          imageUrl: _posterAvatar,
+                          width: 34,
+                          height: 34,
+                          fit: BoxFit.cover,
+                        )
+                            : CircleAvatar(
+                          radius: 17,
+                          backgroundColor: AppColors.grey.withAlpha(60),
                         ),
+                      ),
+                      AppText(
+                        text: _posterName,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryColor,
+                      ),
+                    ],
+                  ).padHorizontal(),
+
+                // 3. STEP ONE FORM: ITEM TYPE / BRAND / MODEL / SUBCATEGORY / COLOR
+                AppContainer(
+                  widget: Column(
+                    children: [
+                      for (final field in stepOneFields)
+                        _buildInfoRow(
+                          field.fieldName.toLowerCase() == 'subcategory' ? 'Item Type' : field.fieldName,
+                          field.fieldValue,
+                        ),
+                      _buildInfoRow('Color', post.color),
+                    ],
+                  ),
+                ),
+
+                // 4. MATCH
+                AppContainer(
+                  height: 40,
+                  widget: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      AppText(text: 'matches', fontSize: 14, fontWeight: FontWeight.w500),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppColors.green.withAlpha(50),
-                          borderRadius:
-                          BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: AppText(
-                          text:
-                          '${percentageMatch ?? 0}% match',
+                          text: '${widget.percentageMatch ?? 0}% match',
                           fontWeight: FontWeight.w500,
                           fontSize: 10,
                           color: AppColors.green,
                         ),
                       ),
                     ],
-                  ),
+                  ).padHorizontal(),
                 ),
 
-                // DYNAMIC VALUES
-                _buildDynamicValues(post),
+                // 5. STEP TWO FORM: LANDMARK / MATERIAL / SPECIAL MARKS / LOCATION / DATE / DESCRIPTION / AUDIO / VIDEO
+                AppContainer(
+                  widget: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 14,
+                    children: [
+                      // for (final field in stepTwoFields)
+                      //   _buildLabeledBlock(field.fieldName, field.fieldValue),
 
-                // DESCRIPTION
-                if (post.description.isNotEmpty)
-                  _buildDescription(post),
+                      if (post.location.isNotEmpty)
+                        _buildLabeledBlock('Location', post.location),
 
-                // VOICE
-                if (post.audioUrl!.isNotEmpty)
-                  _buildVoiceDescription(post),
+                      if (post.postDate != null)
+                        _buildLabeledBlock('Date', _formatDate(post.postDate)),
+
+                      if (post.description.isNotEmpty)
+                        _buildLabeledBlock('Description', post.description),
+
+                      if (post.audioUrl?.isNotEmpty == true)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 8,
+                          children: [
+                            AppText(
+                              text: 'Voice Description',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                              color: AppColors.primaryColor,
+                            ),
+                            AppAudioPlayer(url: post.audioUrl!),
+                          ],
+                        ),
+
+                      if (post.videoUrl?.isNotEmpty == true)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 8,
+                          children: [
+                            AppText(
+                              text: 'Video Description',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                              color: AppColors.primaryColor,
+                            ),
+                            AppVideoPlayer(url: post.videoUrl!),
+                          ],
+                        ),
+                    ],
+                  ).padHorizontal(16),
+                ),
               ],
-            ),
-          ),
+            ).pad(16),
+          ).padBottom(20),
+        ),
 
-          AppButton(
-            title: 'Send Enquiry',
-            onTap: () {
-              AppUiHelper.showBottomSheet(
-                showHandle: false,
-                showCloseIcon: false,
-                context: context,
-                child: SendEnquiry(),
-              );
-            },
-            fontSize: 14,
-            radius: BorderRadius.circular(10),
-          ),
-        ],
-      ).pad(16),
+        // Send Enquiry stays pinned below the scroll area.
+
+        AppButton(
+          title: 'Send Enquiry',
+          onTap: () {
+            AppUiHelper.showBottomSheet(
+              showHandle: false,
+              showCloseIcon: false,
+              context: context,
+              child: SendEnquiry(
+                // name: _posterName,
+                // description: post.description,
+              ),
+            );
+          },
+          fontSize: 14,
+          radius: BorderRadius.circular(10),
+        ).pad(16),
+      ],
+
     );
   }
 
-  Widget _buildBasicDetails(SingleMatchModel post) {
-    return AppContainer(
-      widget: Column(
-        children: [
-
-          _buildInfoRow(
-            'Item',
-            post.itemName,
-          ),
-
-          _buildInfoRow(
-            'Color',
-            post.color,
-          ),
-
-          _buildInfoRow(
-            'Location',
-            post.location,
-          ),
-
-          _buildInfoRow(
-            'Date',
-            _formatDate(post.postDate),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(
-      String title,
-      String value,
-      ) {
-    if (value.trim().isEmpty) {
-      return const SizedBox.shrink();
-    }
-
+  Widget _buildInfoRow(String title, String value) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 90,
-            child: AppText(
-              text: title,
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-            ),
+            child: AppText(text: title, fontWeight: FontWeight.w500, fontSize: 14),
           ),
-
           Expanded(
-            child: AppText(
-              text: value,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-            ),
+            child: AppText(text: value, fontSize: 12, fontWeight: FontWeight.w400),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDynamicValues(
-      SingleMatchModel post,
-      ) {
-    if (post.values.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return AppContainer(
-      widget: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
-        children: [
-
-          for (final field in post.values) ...[
-            AppText(
-              text: field.fieldName,
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-            ),
-
-            const SizedBox(height: 4),
-
-            AppText(
-              text: field.fieldValue,
-              fontWeight: FontWeight.w400,
-              fontSize: 12,
-            ),
-
-            const Divider(),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDescription(
-      SingleMatchModel post,
-      ) {
-    return AppContainer(
-      widget: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
-        children: [
-          AppText(
-            text: 'Description',
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
-
-          const SizedBox(height: 5),
-
-          AppText(
-            text: post.description,
-            fontWeight: FontWeight.w400,
-            fontSize: 12,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVoiceDescription(
-      SingleMatchModel post,
-      ) {
-    return AppContainer(
-      widget: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
-        children: [
-          AppText(
-            text: 'Voice Description',
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
-
-          const SizedBox(height: 10),
-
-          AppText(
-            text: post.audioUrl!,
-            fontSize: 11,
-          ),
-        ],
-      ),
+  Widget _buildLabeledBlock(String title, String value) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 4,
+      children: [
+        AppText(text:title, fontWeight: FontWeight.w500, fontSize: 14, color: AppColors.primaryColor,textAlign: TextAlign.left,),
+        AppText(text:value , fontWeight: FontWeight.w400, fontSize: 12),
+      ],
     );
   }
 }

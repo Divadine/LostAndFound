@@ -31,7 +31,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
         ),
         buildTextFieldWithHeading(title: 'Name*', fieldWidget: AppTextField(hintText: '', textController: TextEditingController(), onChange: (v){}, onSubmit: (v){})),
         buildTextFieldWithHeading(title: 'Description', fieldWidget: AppTextField(hintText: '', textController: TextEditingController(), onChange: (v){}, onSubmit: (v){},maxLines: 5,)),
-        
+
         AppButton(title: 'Send Enquiry', onTap: (){
           AppRoutes.pushNamed(AppRoutes.individualChatScreen);
         })

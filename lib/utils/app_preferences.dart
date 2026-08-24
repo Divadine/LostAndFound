@@ -88,4 +88,15 @@ class AppPreferences {
     return _prefs.getInt(_userIdKey);
   }
 
+  // NEW: user name storage
+  static const String _userNameKey = "user_name";
+
+  static Future<void> saveUserName(String name) async {
+    await _prefs.setString(_userNameKey, name);
+  }
+
+  static String? getUserName() {
+    return _prefs.getString(_userNameKey);
+  }
+
 }

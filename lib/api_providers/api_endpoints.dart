@@ -42,6 +42,13 @@ class ApiEndPoints {
   static const String matchingPost  = 'Match/post';
   static const String viewSingleMatch  = 'Match/viewSingleMatch';
 
+  //handover
+  static const String getHandoverOwnerList  = 'handover/getHandoverOwnerList';
+
+  static const String generateHandoverOtp = '/handover/generateOtp';
+  static const String verifyHandoverOtp = '/handover/verifyhandoverotp';
+  static const String createHandover = '/handover/createHandover';
+
 
 
 

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
@@ -176,7 +177,11 @@ class AppRoutes {
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>;
           return LostItemsDetailsScreen(
-
+            postId: data['postId'] as int,
+            userId: data['userId'] as int,
+            percentageMatch: data['percentageMatch'] as int?,
+            posterName: data['posterName'] as String? ?? '',
+            posterAvatar: data['posterAvatar'] as String? ?? '',
           );
         },
       ),

@@ -90,14 +90,16 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
   }
 
   Future<void> _onMatchTap(MatchItemModel match) async {
-    final userId = await AppPreferences.getUserId();
     if (!mounted) return;
 
     AppRoutes.pushNamed(
       AppRoutes.lostItemsDetailsScreen,
       arguments: {
         'postId': match.postId,
-        'userId': userId ?? 0,
+        'userId': match.userId,
+        'percentageMatch': match.matchPercentage,
+        'posterName': match.posterName,       // NEW
+        'posterAvatar': match.posterAvatar,   // NEW
       },
     );
   }
@@ -173,6 +175,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                     onTap: () => _onMatchTap(match),
                     percentageMatch: match.matchPercentage,
                     showPostId: false,
+                    profileId: match.userUid,
                     profileUrl: match.posterAvatar.isNotEmpty ? match.posterAvatar : null,
                     profileName: match.posterName,
                   ).padBottom(10);
@@ -212,7 +215,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                 onTap: () {
                   AppUiHelper.showBottomSheet(
                     context: context,
-                    child: ReceiveHandoverSheet(title: '', isReceiver: false),
+                    child: ReceiveHandoverSheet(title:widget.title,  isReceiver: true, postId:  widget.postId, ),
                   );
                 },
                 radius: BorderRadius.circular(14),

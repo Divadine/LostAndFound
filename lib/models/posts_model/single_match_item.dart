@@ -14,6 +14,8 @@ class SingleMatchModel {
   final String imageUrl;
   final String? audioUrl;
   final String? videoUrl;
+  final String posterName;      // NEW
+  final String posterAvatar;    // NEW
   final List<SingleMatchValue> values;
 
   SingleMatchModel({
@@ -32,6 +34,8 @@ class SingleMatchModel {
     required this.imageUrl,
     this.audioUrl,
     this.videoUrl,
+    this.posterName = '',
+    this.posterAvatar = '',
     required this.values,
   });
 
@@ -49,9 +53,14 @@ class SingleMatchModel {
       location: json['location']?.toString() ?? '',
       postDate: json['post_date'] != null ? DateTime.tryParse(json['post_date'].toString()) : null,
       status: json['status'] as int? ?? 0,
-      imageUrl: json['imageUrl']?.toString() ?? '',
-      audioUrl: (json['audioUrl'] as String?)?.isNotEmpty == true ? json['audioUrl'] as String : null,
-      videoUrl: (json['videoUrl'] as String?)?.isNotEmpty == true ? json['videoUrl'] as String : null,
+      imageUrl: json['imageUrl']?.toString() ?? json['image_url']?.toString() ?? '',
+      audioUrl: json['audioUrl']?.toString() ?? json['audio_url']?.toString(),
+      videoUrl: (json['videoUrl'] as String?)?.isNotEmpty == true
+          ? json['videoUrl'] as String
+          : (json['video_url'] as String?),
+
+      posterName: json['poster_name']?.toString() ?? json['user_name']?.toString() ?? '',
+      posterAvatar: json['poster_avatar']?.toString() ?? json['user_avatar']?.toString() ?? '',
       values: (json['values'] as List? ?? [])
           .map((e) => SingleMatchValue.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -62,13 +71,19 @@ class SingleMatchModel {
 class SingleMatchValue {
   final String fieldName;
   final String fieldValue;
+  final int step; // NEW — 1 = item details box, 2 = location/landmark box. Defaults to 2.
 
-  SingleMatchValue({required this.fieldName, required this.fieldValue});
+  SingleMatchValue({
+    required this.fieldName,
+    required this.fieldValue,
+    this.step = 2,
+  });
 
   factory SingleMatchValue.fromJson(Map<String, dynamic> json) {
     return SingleMatchValue(
       fieldName: json['field_name']?.toString() ?? '',
       fieldValue: json['field_value']?.toString() ?? '',
+      step: json['step'] as int? ?? 2,
     );
   }
 }

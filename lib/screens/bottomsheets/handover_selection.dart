@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/models/posts_model/post_match_item.dart';
 import 'package:lost_and_found/screens/bottomsheets/owner_selection_screen.dart';
 import 'package:lost_and_found/screens/bottomsheets/others_submission.dart';
 import 'package:lost_and_found/screens/bottomsheets/police_station_selection.dart';
@@ -15,8 +16,10 @@ import '../../shared_widgets/app_button.dart';
 class ReceiveHandoverSheet extends StatefulWidget {
   final String title;
   final bool isReceiver;
+  final int postId;
 
-  const ReceiveHandoverSheet({super.key,  required this.title, required this.isReceiver});
+
+  const ReceiveHandoverSheet({super.key,  required this.title, required this.isReceiver,  required this.postId});
 
   @override
   State<ReceiveHandoverSheet> createState() => _ReceiveHandoverSheetState();
@@ -98,7 +101,7 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                 AppUiHelper.showBottomSheet(
                   showHandle: false,
                   context: context,
-                  child: HandoverMatchedPersons(),
+                  child: HandoverMatchedPersons(postId: widget.postId),
                 );
               }
               if (selectedIndex == 2) {

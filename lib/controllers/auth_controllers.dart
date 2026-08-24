@@ -6,6 +6,7 @@ import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
+import 'package:lost_and_found/models/handover/handover_owner.dart';
 import 'package:lost_and_found/models/posts_model/audio_video_model.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
@@ -198,5 +199,53 @@ class AuthControllers {
     return await authRepository.getSingleMatch(postId: postId, userId: userId);
   }
 
+  Future<ResponseModel<List<HandoverOwnerModel>>> getHandoverOwnerLists({
+    required int postId,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    return await authRepository.getOwnersList(postId: postId, page: page, pageSize: pageSize);
+  }
+
+  Future<ResponseModel> generateHandoverOtp({required String phone}) async {
+    return await authRepository.generateHandoverOtp(phone: phone);
+  }
+
+
+  Future<ResponseModel> verifyHandoverOtp({required String phone, required String otp}) async {
+    return await authRepository.verifyHandoverOtp(phone: phone, otp: otp);
+  }
+
+  Future<ResponseModel> createHandover({
+    int? enquiryId,
+    required int type,
+    required int userId,
+    required int postId,
+    int? receiverId,
+    int? receiverPostId,
+    String? handoverImg,
+    String? stationName,
+    String? stationAddress,
+    String? name,
+    required String description,
+    required String phoneno,
+    required int handoverType,
+  }) async {
+    return await authRepository.createHandover(
+      enquiryId: enquiryId,
+      type: type,
+      userId: userId,
+      postId: postId,
+      receiverId: receiverId,
+      receiverPostId: receiverPostId,
+      handoverImg: handoverImg,
+      stationName: stationName,
+      stationAddress: stationAddress,
+      name: name,
+      description: description,
+      phoneno: phoneno,
+      handoverType: handoverType,
+    );
+  }
 
 }

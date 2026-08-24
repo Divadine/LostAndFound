@@ -13,6 +13,7 @@ import 'package:lost_and_found/models/authmodels/pincode_details_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
+import 'package:lost_and_found/models/handover/handover_owner.dart';
 import 'package:lost_and_found/models/posts_model/audio_video_model.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
@@ -572,5 +573,88 @@ class AuthRepository {
       currentState: response.currentState,
       data: SingleMatchModel.fromJson(response.data as Map<String, dynamic>),
     );
+  }
+
+  Future<ResponseModel<List<HandoverOwnerModel>>> getOwnersList({
+    required int postId,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final response = await apiClient.get(
+      '${ApiEndPoints.getHandoverOwnerList}/$postId',
+      queryParams: {
+        'page': page,
+        'pageSize': pageSize,
+      },
+      addToken: false,
+    );
+
+    if (!response.isSuccess) {
+      return response.asFailure<List<HandoverOwnerModel>>();
+    }
+
+    final outer = response.data as Map<String, dynamic>;
+    final list = outer['data'] as List;
+
+    return ResponseModel<List<HandoverOwnerModel>>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: list
+          .map((e) => HandoverOwnerModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+
+
+  Future<ResponseModel> generateHandoverOtp({required String phone}) async {
+    return await apiClient.post(
+      ApiEndPoints.generateHandoverOtp,
+      data: {"phoneno": phone},
+      addToken: false,
+    );
+  }
+
+  Future<ResponseModel> verifyHandoverOtp({required String phone, required String otp}) async {
+    return await apiClient.post(
+      ApiEndPoints.verifyHandoverOtp,
+      data: {"phoneno": phone, "otp": otp},
+      addToken: false,
+    );
+  }
+
+  Future<ResponseModel> createHandover({
+    int? enquiryId,
+    required int type,
+    required int userId,
+    required int postId,
+    int? receiverId,
+    int? receiverPostId,
+    String? handoverImg,
+    String? stationName,
+    String? stationAddress,
+    String? name,
+    required String description,
+    required String phoneno,
+    required int handoverType,
+  }) async {
+    final body = {
+      if (enquiryId != null) 'enquiry_id': enquiryId,
+      'type': type,
+      'user_id': userId,
+      'post_id': postId,
+      if (receiverId != null) 'receiver_id': receiverId,
+      if (receiverPostId != null) 'receiver_postid': receiverPostId,
+      if (handoverImg != null) 'handover_img': handoverImg,
+      if (stationName != null) 'station_name': stationName,
+      if (stationAddress != null) 'station_address': stationAddress,
+      if (name != null) 'name': name,
+      'description': description,
+      'phoneno': phoneno,
+      'handover_type': handoverType,
+    };
+
+    return await apiClient.post(ApiEndPoints.createHandover, data: body, addToken: false);
   }
 }
