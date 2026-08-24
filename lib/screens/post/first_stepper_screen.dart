@@ -135,7 +135,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       dropdownError[field.id] = null;
     });
 
-    final response = await authController.getDynamicValues(brandMasterName: field.displayName);
+    final response = await authController.getDynamicValues(brandMasterName: field.dropdownMaster);
 
     if (!mounted) return;
 

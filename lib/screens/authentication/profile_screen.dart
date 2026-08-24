@@ -21,6 +21,7 @@ import 'package:lost_and_found/screens/permissions/location_permission.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
+import 'package:lost_and_found/shared_widgets/app_dropdown_field.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
@@ -692,38 +693,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       //city
                       //city
+                      // city
                       buildTextFieldWithHeading(
                         title: 'City',
-                        fieldWidget: DropdownButtonFormField<String>(
+                        fieldWidget: AppDropdownField<String>(
                           value: selectedCityName,
-                          items: cityOptions
-                              .map(
-                                (a) => DropdownMenuItem(
-                                  value: a.name,
-                                  child: Text(a.name),
-                                ),
-                              )
-                              .toList(),
+                          borderColor: AppColors.fieldGrey,
+                          hintText: cityOptions.isEmpty ? 'Fetch pincode first' : 'Select city',
+                          items: cityOptions.map((a) => a.name).toList(),
+                          itemLabel: (value) => value,
+                          selectedItemColor: AppColors.primaryColor.withAlpha(30),
+                          selectedItemTextColor: AppColors.primaryColor,
                           onChanged: cityOptions.isEmpty
                               ? null
                               : (v) {
-                                  setState(() {
-                                    selectedCityName = v;
-                                    cityController.text = v ?? '';
-                                  });
-                                  _checkFormValidity();
-                                },
-                          decoration: InputDecoration(
-                            hintText: cityOptions.isEmpty
-                                ? 'Fetch pincode first'
-                                : 'Select city',
-                            border: const OutlineInputBorder(),
-                          ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? 'City is required'
-                              : null,
+                            setState(() {
+                              selectedCityName = v;
+                              cityController.text = v ?? '';
+                            });
+                            _checkFormValidity();
+                          },
                         ),
                       ),
+                      // buildTextFieldWithHeading(
+                      //   title: 'City',
+                      //   fieldWidget: DropdownButtonFormField<String>(
+                      //     value: selectedCityName,
+                      //     items: cityOptions
+                      //         .map(
+                      //           (a) => DropdownMenuItem(
+                      //             value: a.name,
+                      //             child: Text(a.name),
+                      //           ),
+                      //         )
+                      //         .toList(),
+                      //     onChanged: cityOptions.isEmpty
+                      //         ? null
+                      //         : (v) {
+                      //             setState(() {
+                      //               selectedCityName = v;
+                      //               cityController.text = v ?? '';
+                      //             });
+                      //             _checkFormValidity();
+                      //           },
+                      //     decoration: InputDecoration(
+                      //       hintText: cityOptions.isEmpty
+                      //           ? 'Fetch pincode first'
+                      //           : 'Select city',
+                      //       border: const OutlineInputBorder(),
+                      //     ),
+                      //     validator: (v) => v == null || v.isEmpty
+                      //         ? 'City is required'
+                      //         : null,
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),

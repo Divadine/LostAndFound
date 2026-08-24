@@ -29,7 +29,6 @@ class _AppRecorderState extends State<AppRecorder> {
   @override
   void dispose() {
     _service.removeListener(_onServiceChanged);
-    _service.dispose();
     super.dispose();
   }
 

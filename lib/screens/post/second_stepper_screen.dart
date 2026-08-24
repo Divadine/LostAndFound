@@ -74,6 +74,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   void initState() {
     super.initState();
     locationController.add(loc);
+    _recorderService.deleteRecording();
     print('##########################--$loc');
   }
   @override
@@ -193,6 +194,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     );
 
     if (picked != null) {
+      selectedDate = DateTime(picked.year, picked.month, picked.day);
       selectedDate = picked;
       dateController.text = DateFormat('dd/MM/yyyy').format(picked);
       dateStreamController.add(picked);

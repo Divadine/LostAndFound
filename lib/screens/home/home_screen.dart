@@ -41,6 +41,9 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> details = [
     {'imageUrl': ''},
   ];
+
+  final Map<int, int> matchingCounts = {};
+
   HomeFilterState  filterState = const HomeFilterState();
 
   StreamController<HomeFilterState> filterStateStream = StreamController.broadcast();
@@ -68,6 +71,15 @@ filterStateStream.add(state);
   }
 
 
+  Future<void> _fetchMatchCounts(List<PostModel> posts) async {
+    for (final post in posts) {
+      final response = await authController.getPostMatches(postId: post.id);
+      if (!mounted) return;
+      if (response.isSuccess && response.data != null && response.data!.matchingCount > 0) {
+        setState(() => matchingCounts[post.id] = response.data!.matchingCount);
+      }
+    }
+  }
 
   String? _mapRangeToApiFilter(String? label) {
     switch (label) {
@@ -79,6 +91,22 @@ filterStateStream.add(state);
       case 'Custom Range': return 'custom';
       default: return null;
     }
+  }
+
+  void _openAvailableMatching(PostModel post) {
+    AppRoutes.pushNamed(
+      AppRoutes.availableMatchingScreen,
+      arguments: {
+        'postId': post.id,
+        'imgUrl': post.images.isNotEmpty ? post.images.first : '',
+        'title': post.name,
+        'location': post.location,
+        'date': _formatDate(post.postDate),
+        'postUid': post.postUid,
+        'foundCount': matchingCounts[post.id] ?? 0,
+        'isReceived': false,
+      },
+    );
   }
 
   Future<void> _fetchLostPosts() async {
@@ -110,6 +138,7 @@ filterStateStream.add(state);
         lostPosts = response.data!.posts;
         isLoadingLost = false;
       });
+      _fetchMatchCounts(lostPosts);
     } else {
       setState(() {
         lostErrorMessage = response.currentState == CurrentState.noInternet
@@ -539,13 +568,16 @@ filterStateStream.add(state);
               location: post.location,
               date: _formatDate(post.postDate),
               postId: post.postUid,
+              foundCount: matchingCounts[post.id],
               postIntId: post.id,
               onDeleted: _fetchLostPosts,
               newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
               enquiredProfile: post.enquirerAvatars.isNotEmpty
                   ? post.enquirerAvatars.map((e) => e.imageUrl).toList()
                   : null,
+              onViewAll: () => _openAvailableMatching(post),
               onTap: () {
+
                 AppRoutes.pushNamed(
                   AppRoutes.availableMatchingScreen,
                   arguments: {

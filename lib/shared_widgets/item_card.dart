@@ -6,6 +6,7 @@ import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 
@@ -33,6 +34,8 @@ class ItemCard extends StatelessWidget {
   final double? imageWidth;
     final int? postIntId;        // NEW — numeric id for API calls
   final VoidCallback? onDeleted; // NEW — refresh trigger after successful delete
+  final VoidCallback? onViewAll;
+
 
   const ItemCard({
     super.key,
@@ -58,7 +61,7 @@ class ItemCard extends StatelessWidget {
     this.isTopAvailabilityCard = false,
     this.imageWidth,
     this.postIntId,
-   this.onDeleted,
+   this.onDeleted, this.onViewAll,
   });
 
   @override
@@ -72,11 +75,13 @@ class ItemCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            if (percentageMatch != null &&
-                profileName != null &&
-                profileUrl != null) ...[
+
+            if (percentageMatch != null ||
+                profileName != null ||
+                profileUrl != null ||
+                profileId != null) ...[
               Container(
-                // padding: EdgeInsets.all(10),
+                padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: AppColors.grey.withAlpha(20),
                   borderRadius: BorderRadius.only(
@@ -90,6 +95,7 @@ class ItemCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    if (profileUrl != null && profileUrl!.trim().isNotEmpty)
                     CircleAvatar(
                       radius: 20,
                       child: AppCachedNetworkImage(
@@ -100,12 +106,14 @@ class ItemCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ).padVertical(5),
+                    if (profileName != null && profileName!.trim().isNotEmpty)
                     AppText(
                       text: profileName!,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                       color: AppColors.primaryColor,
                     ),
+                    if (profileId != null && profileId!.trim().isNotEmpty)
                     Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 10,
@@ -116,7 +124,7 @@ class ItemCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: AppText(
-                        text: 'ID : LF2098',
+                        text: 'ID : ${profileId ?? '-'}',
                         fontWeight: FontWeight.w500,
                         fontSize: 10,
                         color: AppColors.primaryColor,
@@ -124,6 +132,7 @@ class ItemCard extends StatelessWidget {
                     ),
                     Spacer(),
 
+                    if (percentageMatch != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -268,7 +277,7 @@ class ItemCard extends StatelessWidget {
             SizedBox(height: 10),
             if (foundCount != null)
               GestureDetector(
-                onTap: (){},
+                onTap:onViewAll,
                 child: Container(
                   height: 35,
                   width: double.infinity,
@@ -277,20 +286,20 @@ class ItemCard extends StatelessWidget {
                     color: AppColors.lightBlue,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    spacing: 20,
-                    children: [
-                      Flexible(
-                        child: AppText(
-                          text: 'Available Matching item - $foundCount founded',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                  child: GestureDetector(
+                    onTap: onViewAll,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      spacing: 20,
+                      children: [
+                        Flexible(
+                          child: AppText(
+                            text: 'Available Matching item - $foundCount founded',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      GestureDetector(
-                        onTap: () {},
-                        child: Row(
+                        Row(
                           spacing: 10,
                           children: [
                             AppText(
@@ -302,9 +311,9 @@ class ItemCard extends StatelessWidget {
                             AppIconWidget(assetPath: AssetImages.iosForward),
                           ],
                         ),
-                      ),
-                    ],
-                  ).padHorizontal(),
+                      ],
+                    ).padHorizontal(),
+                  ),
                 ).pad(),
               ),
 

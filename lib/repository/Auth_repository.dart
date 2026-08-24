@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart' as dio;
+import 'package:intl/intl.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/api_providers/api_endpoints.dart';
 import 'package:lost_and_found/models/api_model/response_model.dart';
@@ -442,7 +443,7 @@ class AuthRepository {
       'location': location,
       'address': address,
       'coordinates': coordinates,
-      'post_date': postDate.toIso8601String(),
+      'post_date':  DateFormat('yyyy-MM-dd').format(postDate),
       'description': description,
       if (audioId != null) 'audio_id': audioId,
       if (videoId != null) 'video_id': videoId,
