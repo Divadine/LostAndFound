@@ -6,6 +6,7 @@ import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
+import 'package:lost_and_found/models/categories_model/color_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_value_model.dart';
 import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
@@ -25,13 +26,14 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 class FirstStepperScreen extends StatefulWidget {
   final CategoryModel category;
-  final SubCategoryModel subCategory;
+  final SubCategoryModel? subCategory; // nullable — null when category = "Others"
   final int postType;
 
   const FirstStepperScreen({
     super.key,
     required this.category,
-    required this.subCategory, required this.postType,
+    this.subCategory,
+    required this.postType,
   });
 
   @override
@@ -51,6 +53,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   bool _isPickingImage = false;
 
   final TextEditingController itemNameController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController(); // generic mode only
 
   final Map<int, TextEditingController> textControllers = {};
   final Map<int, String?> selectedDropdownValues = {};
@@ -59,23 +62,65 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   final Map<int, String?> dropdownError = {};
   final Map<int, int?> dropdownParent = {};
 
+  // Dedicated color dropdown — always from getColors, never from
+  // getDynamicFields/getDynamicNestedValues, in every mode.
+  List<ColorModel> colorOptions = [];
+  bool isLoadingColors = false;
+  String? selectedColor;
+
   final List<File> selectedImages = [];
   final ImagePicker _picker = ImagePicker();
   static const int maxImages = 4;
 
+  // True for: (1) top-level category = "Others" (no subcategory step at all),
+  // or (2) a real category was chosen but subcategory = "Not Sure"/"Others".
+  bool get _isGenericMode {
+    final catName = widget.category.name?.toLowerCase().trim() ?? '';
+    if (catName == 'others') return true;
+    final subName = widget.subCategory?.name.toLowerCase().trim() ?? '';
+    return subName == 'not sure' || subName == 'others';
+  }
+
+  bool _isColorField(DynamicFieldsModel field) {
+    final name = field.displayName.toLowerCase().trim();
+    return name == 'color' || name == 'colour';
+  }
+
   @override
   void initState() {
     super.initState();
-    _fetchDynamicFields();
+    _fetchColors();
+    if (_isGenericMode) {
+      // No subcategory-driven fields to load in generic mode.
+      setState(() => isLoading = false);
+    } else {
+      _fetchDynamicFields();
+    }
   }
 
   @override
   void dispose() {
     itemNameController.dispose();
+    descriptionController.dispose();
     for (final controller in textControllers.values) {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _fetchColors() async {
+    setState(() => isLoadingColors = true);
+
+    final response = await authController.getColors();
+
+    if (!mounted) return;
+
+    setState(() {
+      isLoadingColors = false;
+      if (response.isSuccess && response.data != null) {
+        colorOptions = response.data!;
+      }
+    });
   }
 
   Future<void> _fetchDynamicFields() async {
@@ -84,7 +129,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       errorMessage = null;
     });
 
-    final response = await authController.getDynamicFields(subCatId: widget.subCategory.id);
+    final response = await authController.getDynamicFields(subCatId: widget.subCategory!.id);
 
     if (!mounted) return;
 
@@ -98,7 +143,10 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       return;
     }
 
-    final fields = response.data!;
+    // Color is always handled by the dedicated getColors dropdown —
+    // strip any "Color"/"Colour" field the subcategory's dynamic fields
+    // API returns, so it's never shown twice.
+    final fields = response.data!.where((f) => !_isColorField(f)).toList();
 
     for (final field in fields) {
       if (field.fieldType == DynamicFieldType.text || field.fieldType == DynamicFieldType.textarea) {
@@ -204,7 +252,6 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     }
   }
 
-
   Future<void> _pickImage() async {
     if (_isPickingImage) return;
     if (selectedImages.length >= maxImages) return;
@@ -214,14 +261,11 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     }
   }
 
-
-
   void _removeImage(int index) {
     setState(() => selectedImages.removeAt(index));
   }
 
   Future<void> _onSubmit() async {
-
     if (selectedImages.isEmpty) {
       AppDialogue.showPopup(context: context, content: AppText(text: 'Please upload at least one image'));
       return;
@@ -245,19 +289,22 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
     final imageIds = imageResponse.data!.map((e) => e.id).join(',');
 
-    // Step B: gather dynamic field values as post_values
+    // Step B: gather dynamic field values — only relevant in normal mode.
+    // Color is deliberately excluded here; it's sent as its own top-level field.
     final postValues = <Map<String, String>>[];
 
-    for (final field in dynamicFields) {
-      String? value;
+    if (!_isGenericMode) {
+      for (final field in dynamicFields) {
+        String? value;
 
-      if (field.fieldType == DynamicFieldType.text || field.fieldType == DynamicFieldType.textarea) {
-        value = textControllers[field.id]?.text.trim();
-      } else if (field.fieldType == DynamicFieldType.dropdown) {
-        value = selectedDropdownValues[field.id];
-      }
-      if (value != null && value.isNotEmpty) {
-        postValues.add({'field': field.displayName, 'value': value});
+        if (field.fieldType == DynamicFieldType.text || field.fieldType == DynamicFieldType.textarea) {
+          value = textControllers[field.id]?.text.trim();
+        } else if (field.fieldType == DynamicFieldType.dropdown) {
+          value = selectedDropdownValues[field.id];
+        }
+        if (value != null && value.isNotEmpty) {
+          postValues.add({'field': field.displayName, 'value': value});
+        }
       }
     }
 
@@ -267,8 +314,9 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       userId: userId ?? 0,
       postType: widget.postType,
       categoryId: widget.category.id,
-      subcategoryId: widget.subCategory.id,
-      itemName: itemNameController.text.trim(),
+      subcategoryId: widget.subCategory?.id ?? 0,
+      itemName: _isGenericMode ? itemNameController.text.trim() : '',
+      color: selectedColor ?? '',
       postImages: imageIds,
       postValues: postValues,
     );
@@ -279,12 +327,15 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     if (postResponse.isSuccess && postResponse.data != null) {
       AppRoutes.pushNamed(
         AppRoutes.secondStepperScreen,
-        arguments: postResponse.data!.id, // pass postId forward
+        arguments: {
+          'postId': postResponse.data!.id,
+          if (_isGenericMode) 'prefillDescription': descriptionController.text.trim(),
+        },
       );
     } else {
       final msg = postResponse.currentState == CurrentState.noInternet
           ? 'No internet connection. Please check your network.'
-          : (postResponse.message.isNotEmpty ? postResponse.message : 'Failed to create post');
+          : (postResponse.message.isNotEmpty ? postResponse.message : 'Failed to complete post');
       AppDialogue.showPopup(context: context, content: AppText(text: msg));
     }
   }
@@ -321,12 +372,11 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
           : ListView(
         padding: const EdgeInsets.all(16),
         children: [
-
-          // Category / Subcategory — auto-filled, read-only display
+          // Category — always shown, auto-filled, read-only
           buildTextFieldWithHeading(
             title: 'Category',
             fieldWidget: AppTextField(
-              suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick,size: 20,).pad(),
+              suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad(),
               readOnly: true,
               borderColor: AppColors.fieldGrey,
               borderRadius: BorderRadius.circular(5),
@@ -336,24 +386,63 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
               onSubmit: (v) {},
             ).pad(),
           ).pad(),
-          buildTextFieldWithHeading(
-            title: 'Sub-Category',
-            fieldWidget: AppTextField(
-              suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick,size: 20,).pad(),
-              readOnly: true,
-              borderColor: AppColors.fieldGrey,
-              borderRadius: BorderRadius.circular(5),
-              hintText: '',
-              textController: TextEditingController(text: widget.subCategory.name),
-              onChange: (v) {},
-              onSubmit: (v) {},
+
+          // Sub-Category — only shown when one was actually chosen
+          // (skipped when Category = "Others" was picked at the top level).
+          if (widget.subCategory != null)
+            buildTextFieldWithHeading(
+              title: 'Sub-Category',
+              fieldWidget: AppTextField(
+                suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad(),
+                readOnly: true,
+                borderColor: AppColors.fieldGrey,
+                borderRadius: BorderRadius.circular(5),
+                hintText: '',
+                textController: TextEditingController(text: widget.subCategory!.name),
+                onChange: (v) {},
+                onSubmit: (v) {},
+              ).pad(),
             ).pad(),
-          ).pad(),
 
-          // Dynamic fields
-          ...dynamicFields.map((field) => _buildField(field)),
+          // Item Name — ONLY in generic mode ("Others" / "Not Sure").
+          // Hidden entirely for a normal category+subcategory selection.
+          if (_isGenericMode)
+            buildTextFieldWithHeading(
+              title: 'Item Name',
+              fieldWidget: AppTextField(
+                borderColor: AppColors.fieldGrey,
+                borderRadius: BorderRadius.circular(5),
+                hintText: 'Enter item name',
+                textController: itemNameController,
+                onChange: (v) {},
+                onSubmit: (v) {},
+              ).pad(),
+            ).pad(),
 
-          // Image upload — always shown, at the end
+          // Color — ALWAYS shown, ALWAYS from the dedicated getColors API,
+          // in every mode.
+          _buildColorDropdown(),
+
+          // Normal mode: subcategory-driven dynamic fields (Brand, Model, etc,
+          // with Color already filtered out).
+          // Generic mode: no dynamic fields — description instead.
+          if (_isGenericMode)
+            buildTextFieldWithHeading(
+              title: 'Item Description',
+              fieldWidget: AppTextField(
+                maxLines: 4,
+                borderColor: AppColors.fieldGrey,
+                borderRadius: BorderRadius.circular(5),
+                hintText: 'Write a item description',
+                textController: descriptionController,
+                onChange: (v) {},
+                onSubmit: (v) {},
+              ).pad(),
+            ).pad()
+          else
+            ...dynamicFields.map((field) => _buildField(field)),
+
+          // Image upload — ALWAYS shown, at the end, in every mode.
           _buildImageUploadSection(),
         ],
       ),
@@ -365,6 +454,22 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         onTap: isSubmitting ? () {} : _onSubmit,
       ).pad(16),
     );
+  }
+
+  Widget _buildColorDropdown() {
+    return buildTextFieldWithHeading(
+      title: 'Color',
+      fieldWidget: AppDropdownField<String>(
+        borderColor: AppColors.fieldGrey,
+        value: selectedColor,
+        hintText: isLoadingColors ? 'Loading...' : 'Select color',
+        items: colorOptions.map((c) => c.colorName).toList(),
+        itemLabel: (value) => value,
+        selectedItemColor: AppColors.primaryColor.withAlpha(30),
+        selectedItemTextColor: AppColors.primaryColor,
+        onChanged: isLoadingColors ? null : (value) => setState(() => selectedColor = value),
+      ).pad(),
+    ).pad();
   }
 
   Widget _buildImageUploadSection() {
@@ -388,7 +493,6 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
             childAspectRatio: 1.50,
           ),
           itemBuilder: (context, index) {
-            // Existing image tile
             if (index < selectedImages.length) {
               return Stack(
                 clipBehavior: Clip.none,
@@ -425,7 +529,6 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
               );
             }
 
-            // "+" add tile — only shows when under maxImages
             return GestureDetector(
               onTap: _pickImage,
               child: Container(

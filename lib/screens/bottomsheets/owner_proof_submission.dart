@@ -30,11 +30,12 @@ import '../post/first_stepper_screen.dart';
 class HandoverProofDocuments extends StatefulWidget {
   final HandoverOwnerModel selectedOwner;
   final int postId;
+  final int enquiryId;
 
   const HandoverProofDocuments({
     super.key,
     required this.selectedOwner,
-    required this.postId,
+    required this.postId, required this.enquiryId,
   });
 
   @override
@@ -106,6 +107,9 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
     try {
       // 1. Upload proof photo
       final imageResponse = await authController.createImage(images: [selectedImage!]);
+      debugPrint('[Handover] createImage -> status=${imageResponse.status}, '
+          'message=${imageResponse.message}, data=${imageResponse.data}');
+
       if (!imageResponse.isSuccess || imageResponse.data == null || imageResponse.data!.isEmpty) {
         _showError(imageResponse.message.isNotEmpty ? imageResponse.message : 'Failed to upload photo');
         return;
@@ -113,16 +117,35 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
       final imageIds = imageResponse.data!.map((img) => img.id.toString()).join(',');
 
       final currentUserId = await AppPreferences.getUserId();
+      debugPrint('[Handover] currentUserId=$currentUserId (${currentUserId.runtimeType})');
 
       if (currentUserId == null) {
         _showError('User ID not found. Please login again.');
         return;
       }
+
+      if (widget.enquiryId == 0) {
+        _showError('Missing enquiry reference. Please try again.');
+        return;
+      }
+
+      // Log the exact payload being sent — compare this against a manual
+      // Swagger "Try it out" call if something fails.
+      debugPrint('[Handover] Submitting with: '
+          'type=1, userId=$currentUserId, postId=${widget.postId}, '
+          'receiverId=${widget.selectedOwner.userId}, '
+          'receiverPostId=${widget.selectedOwner.postId}, '
+          'handoverImg=$imageIds, '
+          'description="${textController.text.trim()}",'
+          'phoneno=${_phoneFormatter.actualValue}, '
+          'handoverType=1');
+
       // 2. Create the handover record
       final handoverResponse = await authController.createHandover(
         type: 1,
-        userId: currentUserId ,
+        userId: currentUserId,
         postId: widget.postId,
+        enquiryId: widget.enquiryId,
         receiverId: widget.selectedOwner.userId,
         receiverPostId: widget.selectedOwner.postId,
         handoverImg: imageIds,
@@ -131,11 +154,26 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
         handoverType: 1,
       );
 
+      debugPrint('[Handover] createHandover -> status=${handoverResponse.status}, '
+          'message=${handoverResponse.message}, '
+          'currentState=${handoverResponse.currentState}');
+
       if (handoverResponse.isSuccess) {
         AppRoutes.pop();
         AppRoutes.pushNamed(AppRoutes.bottomScreen);
       } else {
-        _showError(handoverResponse.message.isNotEmpty ? handoverResponse.message : 'Failed to create handover');
+        _showError(handoverResponse.message.isNotEmpty
+            ? handoverResponse.message
+            : 'Failed to create handover');
+      }
+    } catch (e, st) {
+      // Without this catch block, any exception (network error, cast error,
+      // null field, etc.) was silently swallowed and you'd never see why
+      // the handover actually failed.
+      debugPrint('[Handover] Exception: $e');
+      debugPrint('[Handover] StackTrace: $st');
+      if (mounted) {
+        _showError('Something went wrong while creating the handover.\n$e');
       }
     } finally {
       if (mounted) setState(() => isSubmitting = false);

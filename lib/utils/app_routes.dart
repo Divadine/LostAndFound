@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
@@ -182,6 +183,7 @@ class AppRoutes {
             percentageMatch: data['percentageMatch'] as int?,
             posterName: data['posterName'] as String? ?? '',
             posterAvatar: data['posterAvatar'] as String? ?? '',
+            originalPostId: data['originalPostId'] as int? ?? 0,   // NEW
           );
         },
       ),
@@ -190,7 +192,14 @@ class AppRoutes {
         path: '/enquiryListScreen',
         name: enquiryListScreen,
         builder: (context, state) {
-          return EnquiryListScreen();
+          final data = state.extra as Map<String, dynamic>?;
+          final postId = data?['postId'] as int?;
+          if (postId == null) {
+            return const Scaffold(
+              body: Center(child: Text('Missing post reference')),
+            );
+          }
+          return EnquiryListScreen(postId: postId);
         },
       ),
       GoRoute(
@@ -204,8 +213,11 @@ class AppRoutes {
         path: '/secondStepperScreen',
         name: secondStepperScreen,
         builder: (context, state) {
-          final postId = state.extra as int;
-          return SecondStepperScreen(postId: postId,);
+          final data = state.extra as Map<String, dynamic>;
+          return SecondStepperScreen(
+            postId: data['postId'] as int,
+            prefillDescription: data['prefillDescription'] as String?,
+          );
         },
       ),
       GoRoute(

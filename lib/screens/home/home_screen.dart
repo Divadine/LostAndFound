@@ -676,7 +676,7 @@ filterStateStream.add(state);
                   ? post.enquirerAvatars.map((e) => e.imageUrl).toList()
                   : null,
               onTap: () {
-                AppRoutes.pushNamed(AppRoutes.enquiryListScreen);
+                AppRoutes.pushNamed(AppRoutes.enquiryListScreen,arguments: {'postId': post.id},);
               },
               showPostId: true,
             ).pad(),

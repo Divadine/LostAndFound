@@ -33,7 +33,8 @@ import 'package:video_player/video_player.dart';
 
 class SecondStepperScreen extends StatefulWidget {
   final int postId;
-  const SecondStepperScreen({super.key, required this.postId});
+  final String? prefillDescription;
+  const SecondStepperScreen({super.key, required this.postId, this.prefillDescription});
 
   @override
   State<SecondStepperScreen> createState() => _SecondStepperScreenState();
@@ -75,8 +76,11 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     super.initState();
     locationController.add(loc);
     _recorderService.deleteRecording();
-    print('##########################--$loc');
+    if (widget.prefillDescription != null && widget.prefillDescription!.isNotEmpty) {
+      descriptionController.text = widget.prefillDescription!;
+    }
   }
+
   @override
   void dispose() {
     _videoController?.dispose();

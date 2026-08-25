@@ -24,6 +24,7 @@ class LostItemsDetailsScreen extends StatefulWidget {
   final int? percentageMatch;
   final String posterName;
   final String posterAvatar;
+  final int originalPostId;
 
   const LostItemsDetailsScreen({
     super.key,
@@ -32,6 +33,7 @@ class LostItemsDetailsScreen extends StatefulWidget {
     this.percentageMatch,
     this.posterName = '',
     this.posterAvatar = '',
+     this.originalPostId = 0,
   });
 
   @override
@@ -136,7 +138,9 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
     final stepOneFields = post.values.where((v) => v.step == 1).toList();
 
     final stepOneNames = stepOneFields.map((v) => v.fieldName.toLowerCase()).toSet();
-
+    final displayFields = post.values
+        .where((v) => v.fieldName.toLowerCase() != 'color' && v.fieldValue.trim().isNotEmpty)
+        .toList();
     final stepTwoFields = post.values
         .where((v) => v.step != 1 && !stepOneNames.contains(v.fieldName.toLowerCase()))
         .toList();
@@ -203,7 +207,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                 AppContainer(
                   widget: Column(
                     children: [
-                      for (final field in stepOneFields)
+                      for (final field in displayFields)
                         _buildInfoRow(
                           field.fieldName.toLowerCase() == 'subcategory' ? 'Item Type' : field.fieldName,
                           field.fieldValue,
@@ -302,8 +306,10 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
               showCloseIcon: false,
               context: context,
               child: SendEnquiry(
-                // name: _posterName,
-                // description: post.description,
+                name: _posterName,
+                description: post.description,
+                postId: widget.originalPostId,   // the enquirer's own lost post
+                matchedPostId: post.id,
               ),
             );
           },

@@ -5,14 +5,18 @@ import 'package:lost_and_found/models/authmodels/login_otp_response_model.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/models/categories_model/color_model.dart';
 import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
 import 'package:lost_and_found/models/handover/handover_owner.dart';
+import 'package:lost_and_found/models/handover/location_suggestion.dart';
+import 'package:lost_and_found/models/handover/police_station.dart';
 import 'package:lost_and_found/models/posts_model/audio_video_model.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_value_model.dart';
 import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
 import 'package:lost_and_found/models/posts_model/create_post1_response_model.dart';
+import 'package:lost_and_found/models/posts_model/enquiry_model.dart';
 import 'package:lost_and_found/models/posts_model/post_list_model.dart';
 import 'package:lost_and_found/models/posts_model/post_match_item.dart';
 import 'package:lost_and_found/models/posts_model/single_match_item.dart';
@@ -120,6 +124,8 @@ class AuthControllers {
     required int categoryId,
     required int subcategoryId,
     required String itemName,
+    required String color,
+
     required String postImages,
     required List<Map<String, String>> postValues,
   }) async {
@@ -132,6 +138,7 @@ class AuthControllers {
       itemName: itemName,
       postImages: postImages,
       postValues: postValues,
+      color: color,
     );
   }
 
@@ -248,4 +255,47 @@ class AuthControllers {
     );
   }
 
+  Future<ResponseModel<List<LocationSuggestionModel>>> searchLocation({
+    required String query,
+    int limit = 5,
+  }) async {
+    return await authRepository.searchLocation(query: query, limit: limit);
+  }
+
+  Future<ResponseModel<List<PoliceStationModel>>> getNearbyPoliceStations({
+    required double latitude,
+    required double longitude,
+    double radiusKm = 15,
+  }) async {
+    return await authRepository.getNearByPoliceStations(
+      latitude: latitude,
+      longitude: longitude,
+      radiusKm: radiusKm,
+    );
+  }
+
+  Future<ResponseModel<List<ColorModel>>> getColors() async {
+    return await authRepository.getColors();
+  }
+
+  Future<ResponseModel> createEnquiry({
+    required int userId,
+    required int postId,
+    required int matchedPostId,
+    required String name,
+    required String description,
+  }) async {
+    return await authRepository.createEnquiry(
+      userId: userId,
+      postId: postId,
+      matchedPostId: matchedPostId,
+      name: name,
+      description: description,
+    );
+  }
+
+
+  Future<ResponseModel<PostEnquiriesModel>> viewEnquiry({required int postId}) async {
+    return await authRepository.viewEnquiry(postId: postId);
+  }
 }

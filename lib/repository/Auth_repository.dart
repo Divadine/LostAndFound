@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart' as dio;
+import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/api_providers/api_endpoints.dart';
@@ -12,14 +13,18 @@ import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/models/authmodels/pincode_details_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/models/categories_model/color_model.dart';
 import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
 import 'package:lost_and_found/models/handover/handover_owner.dart';
+import 'package:lost_and_found/models/handover/location_suggestion.dart';
+import 'package:lost_and_found/models/handover/police_station.dart';
 import 'package:lost_and_found/models/posts_model/audio_video_model.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_value_model.dart';
 import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
 import 'package:lost_and_found/models/posts_model/create_post1_response_model.dart';
+import 'package:lost_and_found/models/posts_model/enquiry_model.dart';
 import 'package:lost_and_found/models/posts_model/post_list_model.dart';
 import 'package:lost_and_found/models/posts_model/post_match_item.dart';
 import 'package:lost_and_found/models/posts_model/single_match_item.dart';
@@ -402,6 +407,7 @@ class AuthRepository {
     required int categoryId,
     required int subcategoryId,
     required String itemName,
+    required String color,
     required String postImages, // comma-separated image ids, e.g. "1,2,3"
     required List<Map<String, String>> postValues, // [{"field": "color", "value": "red"}]
   }) async {
@@ -412,6 +418,7 @@ class AuthRepository {
       'category_id': categoryId,
       'subcategory_id': subcategoryId,
       'item_name': itemName,
+      'color': color,
       'postimages': postImages,
       'post_values': postValues,
     };
@@ -655,6 +662,118 @@ class AuthRepository {
       'handover_type': handoverType,
     };
 
-    return await apiClient.post(ApiEndPoints.createHandover, data: body, addToken: false);
+    debugPrint('[Handover] JSON body: ${jsonEncode(body)}');
+    debugPrint('[Handover] Request body: $body'); // <-- add this
+
+    final response = await apiClient.post(ApiEndPoints.createHandover, data: body, addToken: false);
+
+    debugPrint('[Handover] Raw response: status=${response.status}, '
+        'message=${response.message}, data=${response.data}'); // <-- and this
+
+    return response;
   }
+
+  Future<ResponseModel<List<LocationSuggestionModel>>> searchLocation({required String query, int limit = 5,}) async {
+    final response = await apiClient.get(ApiEndPoints.searchLocation,queryParams: {
+      'query': query,
+      'limit': limit,
+    },
+      addToken: false
+    );
+
+    if (!response.isSuccess) {
+      return response.asFailure<List<LocationSuggestionModel>>();
+    }
+
+    final list = response.data as List;
+    return ResponseModel<List<LocationSuggestionModel>> (
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: list.map((e) => LocationSuggestionModel.fromJson(e as Map<String,dynamic>)).toList(),
+    );
+  }
+
+  Future<ResponseModel<List<PoliceStationModel>>> getNearByPoliceStations({required double latitude, required double longitude,double radiusKm = 15,}) async {
+
+    final response = await apiClient.get(ApiEndPoints.nearbyPoliceStations,addToken: false,queryParams: {
+      'latitude': latitude.toString(),
+      'longitude': longitude.toString(),
+      'radiusKm': radiusKm,
+    });
+
+    if (!response.isSuccess) {
+      return response.asFailure<List<PoliceStationModel>>();
+    }
+
+    final list = response.data as List;
+    return ResponseModel<List<PoliceStationModel>>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: list
+          .map((e) => PoliceStationModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+
+  Future<ResponseModel<List<ColorModel>>> getColors() async {
+    final response = await apiClient.post(ApiEndPoints.getColors, data: {}, addToken: false);
+
+    if (!response.isSuccess) {
+      return response.asFailure<List<ColorModel>>();
+    }
+
+    final list = response.data as List;
+    return ResponseModel<List<ColorModel>>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: list.map((e) => ColorModel.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
+
+
+  Future<ResponseModel> createEnquiry({
+    required int userId,
+    required int postId,
+    required int matchedPostId,
+    required String name,
+    required String description,
+  }) async {
+    final response = await apiClient.post(
+      ApiEndPoints.createEnquiry,
+      data: {
+        'user_id': userId,
+        'post_id': postId,
+        'matched_postid': matchedPostId,
+        'name': name,
+        'description': description,
+      },
+      addToken: false,
+    );
+
+    debugPrint('[Enquiry] status=${response.status}, message=${response.message}, data=${response.data}');
+
+    return response;
+  }
+
+
+  Future<ResponseModel<PostEnquiriesModel>> viewEnquiry({required int postId}) async {
+    final response = await apiClient.get('${ApiEndPoints.viewEnquiry}/$postId', addToken: false);
+
+    if (!response.isSuccess) {
+      return response.asFailure<PostEnquiriesModel>();
+    }
+
+    return ResponseModel<PostEnquiriesModel>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: PostEnquiriesModel.fromJson(response.data as Map<String, dynamic>),
+    );
+  }
+
+
 }

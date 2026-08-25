@@ -9,6 +9,7 @@ import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
+import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
@@ -30,45 +31,97 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
 
   int? selectedIndex;
   List<HandoverOwnerModel> owners = [];
+
+  // matched_postid -> enquiry_id, built from viewEnquiry so we know which
+  // enquiry a given owner's match corresponds to. createHandover requires
+  // enquiry_id (the backend marks that enquiry resolved), but
+  // getHandoverOwnerList doesn't return it — so we cross-reference here.
+  Map<int, int> enquiryIdByMatchedPostId = {};
+
   bool isLoading = true;
   String? errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _fetchOwners();
+    _fetchData();
   }
 
-  Future<void> _fetchOwners() async {
+  Future<void> _fetchData() async {
     setState(() {
       isLoading = true;
       errorMessage = null;
     });
 
     try {
-      final response = await authController.getHandoverOwnerLists(postId: widget.postId);
+      final ownersFuture = authController.getHandoverOwnerLists(postId: widget.postId);
+      final enquiryFuture = authController.viewEnquiry(postId: widget.postId);
+
+      final ownersResponse = await ownersFuture;
+      final enquiryResponse = await enquiryFuture;
 
       if (!mounted) return;
 
-      if (response.isSuccess && response.data != null) {
+      if (!ownersResponse.isSuccess || ownersResponse.data == null) {
         setState(() {
-          owners = response.data!;
+          errorMessage = ownersResponse.message.isNotEmpty ? ownersResponse.message : 'Failed to fetch owners';
           isLoading = false;
         });
-      } else {
-        setState(() {
-          errorMessage = response.message.isNotEmpty ? response.message : 'Failed to fetch owners';
-          isLoading = false;
-        });
+        return;
       }
+
+      final map = <int, int>{};
+      if (enquiryResponse.isSuccess && enquiryResponse.data != null) {
+        for (final e in enquiryResponse.data!.enquiries) {
+          // If a matched post has multiple enquiries, keep the most recent
+          // one (list order from API is assumed chronological; adjust if not).
+          map[e.matchedPostId] = e.enquiryId;
+        }
+      } else {
+        debugPrint('[Handover] viewEnquiry failed: ${enquiryResponse.message}');
+      }
+
+      setState(() {
+        owners = (ownersResponse.data as List<HandoverOwnerModel>);
+        enquiryIdByMatchedPostId = map;
+        isLoading = false;
+      });
     } catch (e, st) {
-      debugPrint('Error fetching owners: $e\n$st');
+      debugPrint('Error fetching owners/enquiries: $e\n$st');
       if (!mounted) return;
       setState(() {
         errorMessage = 'Something went wrong: $e';
         isLoading = false;
       });
     }
+  }
+
+  void _onNext() {
+    if (selectedIndex == null) return;
+    final selectedOwner = owners[selectedIndex!];
+
+    final enquiryId = enquiryIdByMatchedPostId[selectedOwner.postId];
+    if (enquiryId == null) {
+      AppDialogue.showPopup(
+        context: context,
+        content: const AppText(
+          text: 'No enquiry found for this match yet. Please send an enquiry first.',
+          textAlign: TextAlign.center,
+        ),
+      );
+      return;
+    }
+
+    AppRoutes.pop();
+    AppUiHelper.showBottomSheet(
+      maxHeightFactor: 0.7,
+      context: context,
+      child: HandoverProofDocuments(
+        selectedOwner: selectedOwner,
+        postId: widget.postId,
+        enquiryId: enquiryId,
+      ),
+    );
   }
 
   @override
@@ -89,7 +142,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
               children: [
                 AppText(text: errorMessage!, textAlign: TextAlign.center),
                 const SizedBox(height: 12),
-                AppButton(title: 'Retry', onTap: _fetchOwners),
+                AppButton(title: 'Retry', onTap: _fetchData),
               ],
             ),
           )
@@ -113,16 +166,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
         SizedBox(height: 7),
         AppButton(
           title: 'Next',
-          onTap: () {
-            if (selectedIndex == null) return;
-            final selectedOwner = owners[selectedIndex!];
-            AppRoutes.pop();
-            AppUiHelper.showBottomSheet(
-              maxHeightFactor: 0.7,
-              context: context,
-              child: HandoverProofDocuments(selectedOwner: selectedOwner, postId: widget.postId,),
-            );
-          },
+          onTap: selectedIndex == null ? () {} : _onNext,
           fontSize: 14,
           bgColor: selectedIndex == null ? AppColors.idCardColor : AppColors.primaryColor,
           textColor: selectedIndex == null ? AppColors.black : AppColors.white,

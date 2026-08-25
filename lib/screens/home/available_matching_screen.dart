@@ -98,8 +98,9 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
         'postId': match.postId,
         'userId': match.userId,
         'percentageMatch': match.matchPercentage,
-        'posterName': match.posterName,       // NEW
-        'posterAvatar': match.posterAvatar,   // NEW
+        'posterName': match.posterName,
+        'posterAvatar': match.posterAvatar,
+        'originalPostId': widget.postId,   // NEW — needed for creating an enquiry later
       },
     );
   }

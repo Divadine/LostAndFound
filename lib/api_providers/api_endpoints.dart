@@ -45,16 +45,22 @@ class ApiEndPoints {
   //handover
   static const String getHandoverOwnerList  = 'handover/getHandoverOwnerList';
 
-  static const String generateHandoverOtp = '/handover/generateOtp';
-  static const String verifyHandoverOtp = '/handover/verifyhandoverotp';
-  static const String createHandover = '/handover/createHandover';
+  static const String generateHandoverOtp = 'handover/generateOtp';
+  static const String verifyHandoverOtp = 'handover/verifyhandoverotp';
+  static const String createHandover = 'handover/createHandover';
 
 
+  //nearby policestation
+  static const String searchLocation = 'handover/searchLocation';
+  static const String nearbyPoliceStations = 'handover/nearbyPoliceStations';
 
 
+  //color
+  static const String getColors = 'admin/getColors';
 
-
-
+  //enquiry
+  static const createEnquiry = 'enquiry/createEnquiry';
+  static const viewEnquiry = 'enquiry/viewEnquiry';
 
 
 
