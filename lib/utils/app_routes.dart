@@ -176,14 +176,21 @@ class AppRoutes {
         path: '/lostItemsDetailsScreen',
         name: lostItemsDetailsScreen,
         builder: (context, state) {
-          final data = state.extra as Map<String, dynamic>;
+          final data = state.extra as Map<String, dynamic>?;
+          final postId = data?['postId'] as int?;
+          final userId = data?['userId'] as int?;
+          if (postId == null || userId == null) {
+            return const Scaffold(
+              body: Center(child: Text('Missing item reference')),
+            );
+          }
           return LostItemsDetailsScreen(
-            postId: data['postId'] as int,
-            userId: data['userId'] as int,
-            percentageMatch: data['percentageMatch'] as int?,
-            posterName: data['posterName'] as String? ?? '',
-            posterAvatar: data['posterAvatar'] as String? ?? '',
-            originalPostId: data['originalPostId'] as int? ?? 0,   // NEW
+            postId: postId,
+            userId: userId,
+            percentageMatch: data?['percentageMatch'] as int?,
+            posterName: data?['posterName'] as String? ?? '',
+            posterAvatar: data?['posterAvatar'] as String? ?? '',
+            originalPostId: data?['originalPostId'] as int? ?? 0,
           );
         },
       ),

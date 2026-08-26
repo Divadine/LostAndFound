@@ -1,5 +1,6 @@
 class EnquiryPostModel {
   final int id;
+  final int userId;          // NEW
   final String postUid;
   final String name;
   final List<String> images;
@@ -8,6 +9,7 @@ class EnquiryPostModel {
 
   EnquiryPostModel({
     required this.id,
+    required this.userId,     // NEW
     required this.postUid,
     required this.name,
     required this.images,
@@ -18,11 +20,10 @@ class EnquiryPostModel {
   factory EnquiryPostModel.fromJson(Map<String, dynamic> json) {
     return EnquiryPostModel(
       id: json['id'] as int? ?? 0,
+      userId: json['user_id'] as int? ?? 0,   // NEW
       postUid: json['post_uid']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
-      images: (json['images'] as List? ?? [])
-          .map((e) => e.toString())
-          .toList(),
+      images: (json['images'] as List? ?? []).map((e) => e.toString()).toList(),
       location: json['location']?.toString() ?? '',
       postDate: json['post_date'] != null
           ? DateTime.tryParse(json['post_date'].toString())
@@ -58,6 +59,7 @@ class PostEnquiriesModel {
 class EnquiryItem {
   final int enquiryId;
   final int matchedPostId;
+  final int enquirerUserId;      // NEW
   final String postUid;
   final String enquirerName;
   final String enquirerProfileImg;
@@ -68,6 +70,7 @@ class EnquiryItem {
   EnquiryItem({
     required this.enquiryId,
     required this.matchedPostId,
+    required this.enquirerUserId,   // NEW
     required this.postUid,
     required this.enquirerName,
     required this.enquirerProfileImg,
@@ -80,6 +83,7 @@ class EnquiryItem {
     return EnquiryItem(
       enquiryId: json['enquiry_id'] as int? ?? 0,
       matchedPostId: json['matched_postid'] as int? ?? 0,
+      enquirerUserId: json['user_id'] as int? ?? 0,   // NEW — clean, no fallback needed
       postUid: json['post_uid']?.toString() ?? '',
       enquirerName: json['enquirer_name']?.toString() ?? '',
       enquirerProfileImg: json['enquirer_profile_img']?.toString() ?? '',

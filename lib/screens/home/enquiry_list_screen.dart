@@ -219,7 +219,18 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                     // needs e.enquiryId / enquirer identity once chat route is confirmed
                   },
                   detailOnTap: () {
-                    AppRoutes.pushNamed(AppRoutes.lostItemsDetailsScreen);
+                   // AppRoutes.pushNamed(AppRoutes.lostItemsDetailsScreen);
+                    AppRoutes.pushNamed(
+                      AppRoutes.lostItemsDetailsScreen,
+                      arguments: {
+                        'postId': e.matchedPostId,
+                        'userId': e.enquirerUserId,
+                        'percentageMatch': e.matchPercentage,
+                        'posterName': e.enquirerName,
+                        'posterAvatar': e.enquirerProfileImg,
+                        'originalPostId': widget.postId,
+                      },
+                    );
                   },
                 );
               },

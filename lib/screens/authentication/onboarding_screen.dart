@@ -66,7 +66,7 @@ class OnboardingScreenState extends State<OnboardingScreen> {
           spacing: 20,
           children: [
             Container(
-              height:MediaQuery.of(context).size.height * 0.75,
+              height:MediaQuery.of(context).size.height * 0.85,
               decoration: BoxDecoration(),
               child: PageView.builder(
                 controller: pageController,
