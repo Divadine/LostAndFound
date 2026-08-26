@@ -1,4 +1,3 @@
-// lib/models/handover/location_suggestion_model.dart
 class LocationSuggestionModel {
   final int id;
   final String description;
@@ -12,12 +11,17 @@ class LocationSuggestionModel {
     required this.longitude,
   });
 
-  factory LocationSuggestionModel.fromJson(Map<String, dynamic> json) {
+  factory LocationSuggestionModel.fromJson(
+      Map<String, dynamic> json,
+      ) {
     return LocationSuggestionModel(
       id: json['id'] ?? 0,
-      description: json['description'] ?? '',
-      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
-      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      description:
+      json['description']?.toString() ?? '',
+      latitude:
+      (json['latitude'] as num?)?.toDouble() ?? 0,
+      longitude:
+      (json['longitude'] as num?)?.toDouble() ?? 0,
     );
   }
 }

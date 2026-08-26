@@ -317,7 +317,8 @@ class ItemCard extends StatelessWidget {
                 ).pad(),
               ),
 
-            if (enquiredProfile != null && newMessageCount != null)
+           // if (enquiredProfile != null && newMessageCount != null)
+            if (newMessageCount != null)
               Container(
                 height: 35,
                 width: double.infinity,
@@ -336,6 +337,7 @@ class ItemCard extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                       color: AppColors.secondaryBlack,
                     ),
+                    if (enquiredProfile != null && enquiredProfile!.isNotEmpty)
                     EnquiredPersonsAvatar(images: enquiredProfile!),
                     GestureDetector(
                       onTap: () {},

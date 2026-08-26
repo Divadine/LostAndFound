@@ -5,6 +5,7 @@ import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/models/posts_model/enquiry_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
+import 'package:lost_and_found/screens/bottomsheets/handover_selection.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
@@ -132,8 +133,17 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                 ),
               ),
               AppButton(
-                title: 'Receive',
-                onTap: () {},
+                title: 'Hand Over',
+                onTap: () {
+                  AppUiHelper.showBottomSheet(
+                    context: context,
+                    child: ReceiveHandoverSheet(
+                      title: enquiryData?.post?.name ?? '',
+                      isReceiver: false,   // this is the Found-item post -> hand over flow
+                      postId: widget.postId,
+                    ),
+                  );
+                },
                 radius: BorderRadius.circular(14),
               ),
             ],

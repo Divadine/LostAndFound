@@ -459,55 +459,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   textInputType: TextInputType.phone,
                                   suffixIcon: StreamBuilder(
                                     stream: verifyMobileStream.stream,
+                                    initialData: _isAltVerified,
                                     builder: (context, asyncSnapshot) {
                                       final isVerified =
                                           asyncSnapshot.data ?? false;
                                       return GestureDetector(
-                                        onTap: () {
-                                          if (isVerified) return;
+                                        onTap: isVerified ? null : () {
+                                          if
+                                           (AppUtils.validateMobileNumber(alternativeController.text) == null) {
+                                            if (isVerified) return;
 
-                                          if (AppUtils.validateMobileNumber(
-                                                alternativeController.text,
-                                              ) ==
-                                              null) {
-                                            AppDialogue.showPopup(
-                                              context: context,
-                                              content: OtpSharedScreen(
-                                                isAlternateNumber: true,
-                                                mobileNumber:
-                                                    alternativeController.text,
-                                                onVerifyOtp: (String otp) async {
-                                                  final response =
-                                                      await authController
-                                                          .verifyMobileOtp(
-                                                            phone:
-                                                                alternativeController
-                                                                    .text,
-                                                            otp: otp,
-                                                            userId: widget
-                                                                .profileModel
-                                                                .userId!,
-                                                          );
-                                                  if (response.status == 1) {
-                                                    _isAltVerified = true;
-                                                    verifyMobileStream.add(
-                                                      true,
+                                            if (AppUtils.validateMobileNumber(
+                                              alternativeController.text,
+                                            ) ==
+                                                null) {
+                                              AppDialogue.showPopup(
+                                                context: context,
+                                                content: OtpSharedScreen(
+                                                  isAlternateNumber: true,
+                                                  mobileNumber:
+                                                  alternativeController.text,
+                                                  onVerifyOtp: (
+                                                      String otp) async {
+                                                    final response =
+                                                    await authController
+                                                        .verifyMobileOtp(
+                                                      phone:
+                                                      alternativeController
+                                                          .text,
+                                                      otp: otp,
+                                                      userId: widget
+                                                          .profileModel
+                                                          .userId!,
                                                     );
-                                                    AppRoutes.pop();
-                                                    return null;
-                                                  }
-                                                  return response.message;
-                                                },
-                                                onSendOtp: () async {
-                                                  final response = await authController.generateMobileOtp(alternativeController.text);
-                                                  if (response.isSuccess) return null;
-                                                  if (response.currentState == CurrentState.noInternet) {
-                                                    return 'No internet connection. Please check your network.';
-                                                  }
-                                                  return response.message.isNotEmpty ? response.message : 'Failed to send OTP';
-                                                },
-                                              ),
-                                            );
+                                                    if (response.status == 1) {
+                                                      _isAltVerified = true;
+                                                      verifyMobileStream.add(
+                                                        true,
+                                                      );
+                                                      AppRoutes.pop();
+                                                      return null;
+                                                    }
+                                                    return response.message;
+                                                  },
+                                                  onSendOtp: () async {
+                                                    final response = await authController
+                                                        .generateMobileOtp(
+                                                        alternativeController
+                                                            .text);
+                                                    if (response.isSuccess)
+                                                      return null;
+                                                    if (response.currentState ==
+                                                        CurrentState
+                                                            .noInternet) {
+                                                      return 'No internet connection. Please check your network.';
+                                                    }
+                                                    return response.message
+                                                        .isNotEmpty
+                                                        ? response.message
+                                                        : 'Failed to send OTP';
+                                                  },
+                                                ),
+                                              );
+                                            }
                                           }
                                         },
                                         child: SizedBox(

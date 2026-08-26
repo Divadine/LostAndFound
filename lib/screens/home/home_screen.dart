@@ -671,15 +671,46 @@ filterStateStream.add(state);
               postId: post.postUid,
               postIntId: post.id,
               onDeleted: _fetchFoundPosts,
-              newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
-              enquiredProfile: post.enquirerAvatars.isNotEmpty
-                  ? post.enquirerAvatars.map((e) => e.imageUrl).toList()
+
+              newMessageCount: post.enquiriesCount > 0
+                  ? post.enquiriesCount.toString()
                   : null,
+
+              enquiredProfile: post.enquirerAvatars.isNotEmpty
+                  ? post.enquirerAvatars
+                  .map((e) => e.imageUrl)
+                  .where((url) => url.isNotEmpty)
+                  .toList()
+                  : null,
+
               onTap: () {
-                AppRoutes.pushNamed(AppRoutes.enquiryListScreen,arguments: {'postId': post.id},);
+                AppRoutes.pushNamed(
+                  AppRoutes.enquiryListScreen,
+                  arguments: {
+                    'postId': post.id,
+                  },
+                );
               },
+
               showPostId: true,
             ).pad(),
+            // ItemCard(
+            //   imgUrl: post.images.isNotEmpty ? post.images.first : '',
+            //   title: post.name,
+            //   location: post.location,
+            //   date: _formatDate(post.postDate),
+            //   postId: post.postUid,
+            //   postIntId: post.id,
+            //   onDeleted: _fetchFoundPosts,
+            //   newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
+            //   enquiredProfile: post.enquirerAvatars.isNotEmpty
+            //       ? post.enquirerAvatars.map((e) => e.imageUrl).toList()
+            //       : null,
+            //   onTap: () {
+            //     AppRoutes.pushNamed(AppRoutes.enquiryListScreen,arguments: {'postId': post.id},);
+            //   },
+            //   showPostId: true,
+            // ).pad(),
         ],
       ),
     );

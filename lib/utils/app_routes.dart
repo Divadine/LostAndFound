@@ -239,11 +239,17 @@ class AppRoutes {
       GoRoute(
         path: '/categoryRadioScreen',
         name: categoryRadioScreen,
-        builder: (context, state){
-          final postType = state.extra as int;
-          return  CategoryRadiosListsScreen(postType: postType);
-        }
+        builder: (context, state) {
+          final postType = state.extra as int?;
+          if (postType == null) {
+            return const Scaffold(
+              body: Center(child: Text('Missing post type')),
+            );
+          }
+          return CategoryRadiosListsScreen(postType: postType);
+        },
       ),
+
       GoRoute(
         path: '/subCategoryScreen',
         name: subCategoryScreen,

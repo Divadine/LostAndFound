@@ -39,27 +39,24 @@ class _FirstHomeScreenState extends State<FirstHomeScreen> {
           buildLostContainer(
             leftImg: AssetImages.bag,
             title: 'I lost Something',
-
             description:
-                'Post details about the item you lost and let others help you find it.',
+            'Post details about the item you lost and let others help you find it.',
             rightImg: AssetImages.right_arrow,
             onTap: () {
-              AppRoutes.pushNamed(AppRoutes.categoryRadioScreen);
+              AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 0); // lost
             },
           ),
 
           buildLostContainer(
             leftImg: AssetImages.box_image,
             title: 'I Found Something',
-
             description:
-                'Share details about the item. you found and help it reach its owner.',
+            'Share details about the item. you found and help it reach its owner.',
             rightImg: AssetImages.right_arrow,
             onTap: () {
-              AppRoutes.pushNamed(AppRoutes.categoryRadioScreen);
+              AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 1); // found
             },
           ),
-
           SizedBox(height: 10),
 
           GestureDetector(

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:dotted_border/dotted_border.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
@@ -22,8 +24,6 @@ import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
-import 'package:dotted_border/dotted_border.dart';
-import 'package:flutter/services.dart';
 
 import '../post/first_stepper_screen.dart';
 
@@ -35,7 +35,8 @@ class HandoverProofDocuments extends StatefulWidget {
   const HandoverProofDocuments({
     super.key,
     required this.selectedOwner,
-    required this.postId, required this.enquiryId,
+    required this.postId,
+    required this.enquiryId,
   });
 
   @override
@@ -59,7 +60,6 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
   @override
   void initState() {
     super.initState();
-    // Autofill from the selected owner — number stays masked, not user-editable
     _phoneFormatter.setInitialValue(widget.selectedOwner.phoneno);
     phoneController.text = _phoneFormatter.maskedValue;
     checkFormValidation();
@@ -79,9 +79,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
     );
 
     if (image != null) {
-      setState(() {
-        selectedImage = File(image.path);
-      });
+      setState(() => selectedImage = File(image.path));
       checkFormValidation();
     }
   }
@@ -99,13 +97,13 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
     );
   }
 
+  // Called only after OTP verification succeeds.
   Future<void> _submitHandover() async {
     if (selectedImage == null) return;
 
     setState(() => isSubmitting = true);
 
     try {
-      // 1. Upload proof photo
       final imageResponse = await authController.createImage(images: [selectedImage!]);
       debugPrint('[Handover] createImage -> status=${imageResponse.status}, '
           'message=${imageResponse.message}, data=${imageResponse.data}');
@@ -117,8 +115,6 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
       final imageIds = imageResponse.data!.map((img) => img.id.toString()).join(',');
 
       final currentUserId = await AppPreferences.getUserId();
-      debugPrint('[Handover] currentUserId=$currentUserId (${currentUserId.runtimeType})');
-
       if (currentUserId == null) {
         _showError('User ID not found. Please login again.');
         return;
@@ -129,18 +125,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
         return;
       }
 
-      // Log the exact payload being sent — compare this against a manual
-      // Swagger "Try it out" call if something fails.
-      debugPrint('[Handover] Submitting with: '
-          'type=1, userId=$currentUserId, postId=${widget.postId}, '
-          'receiverId=${widget.selectedOwner.userId}, '
-          'receiverPostId=${widget.selectedOwner.postId}, '
-          'handoverImg=$imageIds, '
-          'description="${textController.text.trim()}",'
-          'phoneno=${_phoneFormatter.actualValue}, '
-          'handoverType=1');
-
-      // 2. Create the handover record
+      // NOTE: `type` / `handoverType` values — confirm exact enum with backend.
       final handoverResponse = await authController.createHandover(
         type: 1,
         userId: currentUserId,
@@ -158,18 +143,26 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
           'message=${handoverResponse.message}, '
           'currentState=${handoverResponse.currentState}');
 
+      if (!mounted) return;
+
       if (handoverResponse.isSuccess) {
+        // Backend marks the post as completed as part of createHandover —
+        // no separate "complete post" call needed.
         AppRoutes.pop();
-        AppRoutes.pushNamed(AppRoutes.bottomScreen);
+        AppDialogue.showPopup(
+          context: context,
+          content: HandOverToOwner(
+            name: widget.selectedOwner.name,
+            avatarUrl: widget.selectedOwner.profileImageUrl ?? '',
+            matchPercentage: widget.selectedOwner.matchPercentage,
+          ),
+        );
       } else {
         _showError(handoverResponse.message.isNotEmpty
             ? handoverResponse.message
             : 'Failed to create handover');
       }
     } catch (e, st) {
-      // Without this catch block, any exception (network error, cast error,
-      // null field, etc.) was silently swallowed and you'd never see why
-      // the handover actually failed.
       debugPrint('[Handover] Exception: $e');
       debugPrint('[Handover] StackTrace: $st');
       if (mounted) {
@@ -204,9 +197,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                   )
                       : Icon(Icons.person, color: AppColors.primaryColor),
                 ),
-
                 const SizedBox(width: 15),
-
                 AppText(
                   text: widget.selectedOwner.name,
                   fontSize: 13,
@@ -214,7 +205,6 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                   fontWeight: FontWeight.w600,
                 ),
                 Spacer(),
-
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
@@ -252,9 +242,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
               maxLines: 4,
               hintText: 'Write a describe',
               textController: textController,
-              onChange: (v) {
-                checkFormValidation();
-              },
+              onChange: (v) => checkFormValidation(),
               onSubmit: (v) {},
             ),
           ),
@@ -288,9 +276,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                   if (e == null) return null;
                   return AppUtils.validateMobileNumber(_phoneFormatter.actualValue);
                 },
-                onChange: (value) {
-                  checkFormValidation();
-                },
+                onChange: (value) => checkFormValidation(),
                 onSubmit: (v) {},
               ),
             ),

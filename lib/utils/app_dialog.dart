@@ -486,7 +486,16 @@ class LogoutPopUp extends StatelessWidget {
 }
 
 class HandOverToOwner extends StatelessWidget {
-  const HandOverToOwner({super.key});
+  final String name;
+  final String avatarUrl;
+  final int matchPercentage;
+
+  const HandOverToOwner({
+    super.key,
+    required this.name,
+    required this.avatarUrl,
+    required this.matchPercentage,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -516,37 +525,33 @@ class HandOverToOwner extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 26,
-                child: AppCachedNetworkImage(
-                  imageUrl: "https://i.pravatar.cc/150?img=1",
+                child: avatarUrl.isNotEmpty
+                    ? AppCachedNetworkImage(
+                  imageUrl: avatarUrl,
                   fit: BoxFit.cover,
                   borderRadius: BorderRadius.circular(30),
-                ),
+                )
+                    : Icon(Icons.person, color: AppColors.primaryColor),
               ),
-
               const SizedBox(width: 15),
-
               AppText(
-                text: "Rahul Sharma",
+                text: name,
                 fontSize: 13,
                 color: AppColors.primaryColor,
                 fontWeight: FontWeight.w600,
               ),
               Spacer(),
-
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppUtils.getMatchColor(98).withAlpha(70),
+                  color: AppUtils.getMatchColor(matchPercentage).withAlpha(70),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: AppText(
-                  text: '${98}% match',
+                  text: '$matchPercentage% match',
                   fontWeight: FontWeight.w500,
                   fontSize: 10,
-                  color: AppUtils.getMatchColor(98),
+                  color: AppUtils.getMatchColor(matchPercentage),
                 ),
               ),
             ],
