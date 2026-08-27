@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +8,7 @@ import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/models/posts_model/enquiry_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/bottomsheets/handover_selection.dart';
+import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
@@ -14,6 +17,7 @@ import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/item_card.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
@@ -41,6 +45,122 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     _fetchEnquiries();
   }
 
+  Future<void> _openChat(
+      dynamic enquiry,
+      EnquiryPostModel? post,
+      ) async {
+    try {
+      final currentUserId =
+      AppPreferences.getUserId();
+
+      if (currentUserId == null) {
+        debugPrint(
+          '[Chat] Current user ID is null',
+        );
+        return;
+      }
+
+      final otherUserId =
+          enquiry.enquirerUserId;
+
+      if (otherUserId == null) {
+        debugPrint(
+          '[Chat] Enquirer user ID is null',
+        );
+        return;
+      }
+
+      debugPrint(
+        '[Chat] Current user: $currentUserId',
+      );
+
+      debugPrint(
+        '[Chat] Other user: $otherUserId',
+      );
+
+      debugPrint(
+        '[Chat] Enquiry sender: $otherUserId',
+      );
+
+      final roomId =
+      await ChatService.createChatRoom(
+        currentUserId:
+        currentUserId.toString(),
+
+        otherUserId:
+        otherUserId.toString(),
+
+        /// The enquirer is the person who
+        /// sent the enquiry.
+        enquirySenderId:
+        otherUserId.toString(),
+      );
+
+      if (!mounted) return;
+
+      AppRoutes.pushNamed(
+        AppRoutes.individualChatScreen,
+        arguments: {
+          'roomId': roomId,
+
+          'currentUserId':
+          currentUserId.toString(),
+
+          'otherUserId':
+          otherUserId.toString(),
+
+          'otherUserName':
+          enquiry.enquirerName,
+
+          'otherUserAvatar':
+          enquiry.enquirerProfileImg,
+
+          'otherUserPhone': '',
+
+          'itemName':
+          post?.name ?? '',
+
+          'itemImage':
+          post != null &&
+              post.images.isNotEmpty
+              ? post.images.first
+              : '',
+
+          'itemLocation':
+          post?.location ?? '',
+
+          'itemPostDate':
+          post?.postDate != null
+              ? DateFormat(
+            'd MMM yyyy',
+          ).format(
+            post!.postDate!,
+          )
+              : '',
+        },
+      );
+    } catch (e, stackTrace) {
+      debugPrint(
+        '[Chat] Error: $e',
+      );
+
+      debugPrint(
+        '$stackTrace',
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to open chat',
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _fetchEnquiries() async {
     setState(() {
       isLoading = true;
@@ -48,35 +168,35 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     });
 
     debugPrint('================ ENQUIRY LIST ================');
-    debugPrint('EnquiryListScreen postId: ${widget.postId}');
-    debugPrint('Calling: /enquiry/viewEnquiry/${widget.postId}');
+    print('EnquiryListScreen postId: ${widget.postId}');
+    print('Calling: /enquiry/viewEnquiry/${widget.postId}');
 
     final response = await authController.viewEnquiry(
       postId: widget.postId,
     );
 
-    debugPrint('Response success: ${response.isSuccess}');
-    debugPrint('Response message: ${response.message}');
-    debugPrint(
+    print('Response success: ${response.isSuccess}');
+    print('Response message: ${response.message}');
+    print(
       'Enquiries count: ${response.data?.enquiriesCount}',
     );
 
     for (final e in response.data?.enquiries ?? []) {
-      debugPrint(
+      print(
         'Enquiry ID: ${e.enquiryId}',
       );
-      debugPrint(
+      print(
         'Matched Post ID: ${e.matchedPostId}',
       );
-      debugPrint(
+      print(
         'Enquirer: ${e.enquirerName}',
       );
-      debugPrint(
+      print(
         'Description: ${e.description}',
       );
     }
 
-    debugPrint('==============================================');
+    print('==============================================');
 
     if (!mounted) return;
 
@@ -224,7 +344,8 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                   time: _timeAgo(e.createdAt),
                   matchPercentage: '${e.matchPercentage}%',
                   description: e.description,
-                  messageOnTap: () {
+                  messageOnTap: () async {
+                     await _openChat(e, post);
                     // TODO: navigate to chat screen for this enquiry
                     // needs e.enquiryId / enquirer identity once chat route is confirmed
                   },
@@ -278,7 +399,10 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                   borderRadius: BorderRadius.circular(20),
                   imageUrl: profileImage,
                 )
-                    : Icon(Icons.person, color: AppColors.primaryColor),
+                    : Icon(
+                  Icons.person,
+                  color: AppColors.primaryColor,
+                ),
               ),
 
               Flexible(
@@ -291,7 +415,8 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                       fontSize: 12,
                       color: AppColors.primaryColor,
                     ),
-                    SizedBox(height: 2),
+
+                    const SizedBox(height: 2),
 
                     AppText(
                       text: 'Enquired $time',
@@ -300,7 +425,8 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                       color: AppColors.grey,
                     ),
 
-                    SizedBox(height: 5),
+                    const SizedBox(height: 5),
+
                     AppText(
                       text: description,
                       fontWeight: FontWeight.w400,
@@ -312,7 +438,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               ),
 
               Container(
-                padding: EdgeInsets.all(5),
+                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
                   color: AppColors.purple.withAlpha(30),
                   borderRadius: BorderRadius.circular(15),
@@ -335,8 +461,10 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                   title: 'Message',
                   fontSize: 14,
                   height: 30,
-                  onTap: messageOnTap,
-                  border: Border.all(color: AppColors.primaryColor),
+                  onTap: messageOnTap, // FIX
+                  border: Border.all(
+                    color: AppColors.primaryColor,
+                  ),
                   radius: BorderRadius.circular(10),
                   prefixIcon: AssetImages.message_icon,
                   bgColor: Colors.transparent,
@@ -350,7 +478,9 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                   height: 30,
                   fontSize: 14,
                   onTap: detailOnTap,
-                  border: Border.all(color: AppColors.primaryColor),
+                  border: Border.all(
+                    color: AppColors.primaryColor,
+                  ),
                   radius: BorderRadius.circular(10),
                   bgColor: AppColors.primaryColor,
                   textColor: AppColors.white,

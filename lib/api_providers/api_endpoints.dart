@@ -13,6 +13,9 @@ class ApiEndPoints {
   //profile
   static const String updateProfile = 'user/update';
   static const String getUserInfo = 'user/getUserInfo';
+  static const String getReasonsDeleteAccount = '/user/getReasonsDeleteAccount';
+  static const String deleteAccount = '/user/deleteAccount';
+  static const String deleteProfileImage = '/user/deleteProfileImage';
 
   //category
   static const String getCategory = 'categories/getCategory';
@@ -63,6 +66,12 @@ class ApiEndPoints {
   static const viewEnquiry = 'enquiry/viewEnquiry';
 
 
+  //logout
+  static const String logout = '/user/Logout';
+
+
+  //report
+  static const String createReport = 'handover/createReport';
 
 
 

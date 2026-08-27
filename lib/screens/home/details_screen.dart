@@ -308,8 +308,15 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
               child: SendEnquiry(
                 name: _posterName,
                 description: post.description,
-                postId: widget.originalPostId,   // the enquirer's own lost post
+                postId: widget.originalPostId,      // the enquirer's own lost post
                 matchedPostId: post.id,
+                otherUserId: widget.userId,         // owner of the matched post
+                otherUserName: _posterName,
+                otherUserAvatar: _posterAvatar,
+                itemName: post.itemName,            // adjust field name if different on SingleMatchModel
+                itemImage: post.imageUrl,
+                itemLocation: post.location,
+                itemPostDate: _formatDate(post.postDate),
               ),
             );
           },

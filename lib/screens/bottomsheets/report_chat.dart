@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
@@ -7,7 +8,22 @@ import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 
 class ReportChat extends StatefulWidget {
-  const ReportChat({super.key});
+  final int userId;
+  final String userName;
+  final String userMobile;
+  final String userEmail;
+  final String roomId;
+  final AuthControllers authControllers;
+
+  const ReportChat({
+    super.key,
+    required this.userId,
+    required this.userName,
+    required this.userMobile,
+    required this.userEmail,
+    required this.roomId,
+    required this.authControllers,
+  });
 
   @override
   State<ReportChat> createState() => _ReportChatState();
@@ -24,6 +40,12 @@ class _ReportChatState extends State<ReportChat> {
     'Scam',
     'Others',
   ];
+
+  @override
+  void dispose() {
+    reasonController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,20 +115,32 @@ class _ReportChatState extends State<ReportChat> {
         AppButton(
           title: 'Submit',
           onTap: () {
-            AppRoutes.pop();
-            if(selectedReason != null ){
-              AppDialogue.showPopup(
-                context: context,
-                content: ReportChatDialog(),
-              );
-            }else{
+            final reason = selectedReason == 'Others'
+                ? reasonController.text.trim()
+                : selectedReason;
+
+            if (reason == null || reason.isEmpty) {
               AppSnackBar.show(
                 context: context,
                 message: "Please choose a reason",
               );
+              return;
             }
 
+            AppRoutes.pop();
 
+            AppDialogue.showPopup(
+              context: context,
+              content: ReportChatDialog(
+                reason: reason,
+                userId: widget.userId,
+                userName: widget.userName,
+                userMobile: widget.userMobile,
+                userEmail: widget.userEmail,
+                roomId: widget.roomId,
+                authControllers: widget.authControllers,
+              ),
+            );
           },
           fontSize: 14,
           bgColor: AppColors.primaryColor,

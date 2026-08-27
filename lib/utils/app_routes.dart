@@ -266,7 +266,11 @@ class AppRoutes {
         path: '/individualChatScreen',
         name: individualChatScreen,
         builder: (context, state) {
-          return IndividualChatScreen();
+          final data = state.extra as Map<String, dynamic>?;
+          if (data == null || data['roomId'] == null) {
+            return const Scaffold(body: Center(child: Text('Missing chat reference')));
+          }
+          return IndividualChatScreen.fromArgs(data);
         },
       ),
 

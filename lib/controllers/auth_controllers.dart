@@ -298,4 +298,42 @@ class AuthControllers {
   Future<ResponseModel<PostEnquiriesModel>> viewEnquiry({required int postId}) async {
     return await authRepository.viewEnquiry(postId: postId);
   }
+
+  Future<ResponseModel> logout({required int userId}) async {
+    return await authRepository.logout(userId: userId);
+  }
+
+
+  Future<ResponseModel<List<DeletePostReasons>>> getDeleteAccountReasons() async {
+    return await authRepository.getDeleteAccountReasons();
+  }
+
+  Future<ResponseModel> deleteAccount({required int userId, required String reason}) async {
+    return await authRepository.deleteAccount(userId: userId, reason: reason);
+  }
+
+  Future<ResponseModel> deleteProfileImage({required int userId}) async {
+    return await authRepository.deleteProfileImage(userId: userId);
+  }
+
+
+  Future<ResponseModel> createReport({
+    required int userId,
+    required String name,
+    required String mobileno,
+    required String email,
+    required String description,
+    String? imageId,
+  }) async {
+    return await authRepository.createReport(
+      userId: userId,
+      name: name,
+      mobileno: mobileno,
+      email: email,
+      description: description,
+      imageId: imageId,
+    );
+  }
+
+
 }

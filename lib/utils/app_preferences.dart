@@ -99,4 +99,11 @@ class AppPreferences {
     return _prefs.getString(_userNameKey);
   }
 
+  static Future<void> clearAll() async {
+    await _prefs.remove(_tokenKey);
+    await _prefs.remove(_userIdKey);
+    await _prefs.remove(_userNameKey);
+    await _prefs.setBool(_isLoggedIn, false);
+  }
+
 }

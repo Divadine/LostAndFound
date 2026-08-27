@@ -5,6 +5,7 @@ import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
+import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
 import 'package:lost_and_found/screens/profile/webView.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
@@ -16,6 +17,7 @@ import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'app_images.dart';
+import 'app_preferences.dart';
 import 'app_routes.dart';
 import 'app_ui_helper.dart';
 import 'app_urls.dart';
@@ -111,8 +113,54 @@ class AppSnackBar {
   }
 }
 
-class DeletePopUp extends StatelessWidget {
-  const DeletePopUp({super.key});
+class DeletePopUp extends StatefulWidget {
+  final String reason;
+
+  const DeletePopUp({super.key, required this.reason});
+
+  @override
+  State<DeletePopUp> createState() => _DeletePopUpState();
+}
+
+class _DeletePopUpState extends State<DeletePopUp> {
+  final authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
+
+  bool isDeleting = false;
+
+  Future<void> _onConfirmDelete() async {
+    final userId = AppPreferences.getUserId();
+    if (userId == null) {
+      AppRoutes.pop();
+      return;
+    }
+
+    setState(() => isDeleting = true);
+
+    final response = await authController.deleteAccount(
+      userId: userId,
+      reason: widget.reason,
+    );
+
+    if (!mounted) return;
+    setState(() => isDeleting = false);
+
+    if (response.isSuccess) {
+      await AppPreferences.clearAll();
+      if (!mounted) return;
+      AppRoutes.pop();
+      AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
+    } else {
+      AppRoutes.pop();
+      AppDialogue.showPopup(
+        context: context,
+        content: AppText(
+          text: response.message.isNotEmpty ? response.message : 'Failed to delete account',
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,30 +168,28 @@ class DeletePopUp extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         AppIconWidget(assetPath: AssetImages.information),
-        SizedBox(height: 7),
-        AppText(
+        const SizedBox(height: 7),
+        const AppText(
           text: 'Permanently Delete Account ?',
           fontWeight: FontWeight.w600,
           fontSize: 16,
         ),
-        SizedBox(height: 7),
-        AppText(
+        const SizedBox(height: 7),
+        const AppText(
           text:
-              'This will erase your account and all data permanently. you can’t undo this. But you can still reactivate it if you log in within 15 days.',
+          'This will erase your account and all data permanently. you can’t undo this. But you can still reactivate it if you log in within 15 days.',
           fontSize: 12,
           fontWeight: FontWeight.w400,
-          textAlign: .center,
+          textAlign: TextAlign.center,
         ).padHorizontal(20),
-        SizedBox(height: 15),
+        const SizedBox(height: 15),
         Row(
           spacing: 10,
           children: [
             Expanded(
               child: AppButton(
                 title: 'No, Cancel',
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                onTap: isDeleting ? () {} : () => AppRoutes.pop(),
                 fontSize: 14,
                 bgColor: Colors.transparent,
                 border: Border.all(color: AppColors.grey),
@@ -153,10 +199,8 @@ class DeletePopUp extends StatelessWidget {
             ),
             Expanded(
               child: AppButton(
-                title: 'Yes, Delete',
-                onTap: () {
-                  AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
-                },
+                title: isDeleting ? 'Deleting...' : 'Yes, Delete',
+                onTap: isDeleting ? () {} : _onConfirmDelete,
                 fontSize: 14,
                 bgColor: AppColors.primaryColor,
                 textColor: AppColors.white,
@@ -423,8 +467,51 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
   }
 }
 
-class LogoutPopUp extends StatelessWidget {
+
+
+class LogoutPopUp extends StatefulWidget {
   const LogoutPopUp({super.key});
+
+  @override
+  State<LogoutPopUp> createState() => _LogoutPopUpState();
+}
+
+class _LogoutPopUpState extends State<LogoutPopUp> {
+  final authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
+
+  bool isLoggingOut = false;
+
+  Future<void> _onConfirmLogout() async {
+    final userId = AppPreferences.getUserId();
+    if (userId == null) {
+      AppRoutes.pop();
+      return;
+    }
+
+    setState(() => isLoggingOut = true);
+
+    final response = await authController.logout(userId: userId);
+
+    if (!mounted) return;
+    setState(() => isLoggingOut = false);
+
+    if (response.isSuccess) {
+      await AppPreferences.clearAll();
+      if (!mounted) return;
+      AppRoutes.pop(); // close popup
+      AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
+    } else {
+      AppRoutes.pop();
+      AppDialogue.showPopup(
+        context: context,
+        content: AppText(
+          text: response.message.isNotEmpty ? response.message : 'Failed to logout',
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -433,35 +520,31 @@ class LogoutPopUp extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         AppIconWidget(assetPath: AssetImages.logout),
-        SizedBox(height: 7),
-        AppText(
+        const SizedBox(height: 7),
+        const AppText(
           text: 'Do you really want to log out?',
           fontWeight: FontWeight.w600,
           fontSize: 14,
         ),
-        SizedBox(height: 7),
-        AppText(
+        const SizedBox(height: 7),
+        const AppText(
           text:
-              'Your journey isn’t over yet ! but it’s ok you can login anytime you want',
+          'Your journey isn’t over yet ! but it’s ok you can login anytime you want',
           fontSize: 12,
           fontWeight: FontWeight.w400,
-          textAlign: .center,
+          textAlign: TextAlign.center,
           color: AppColors.grey,
         ).padHorizontal(20),
-
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Row(
           spacing: 10,
           children: [
             Expanded(
               child: AppButton(
-                title: 'Yes',
+                title: isLoggingOut ? 'Please wait...' : 'Yes',
                 fontSize: 14,
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                onTap: isLoggingOut ? () {} : _onConfirmLogout,
                 bgColor: AppColors.grey.withAlpha(50),
-
                 textColor: AppColors.grey,
                 radius: BorderRadius.circular(7),
               ),
@@ -470,9 +553,7 @@ class LogoutPopUp extends StatelessWidget {
               child: AppButton(
                 title: 'No',
                 fontSize: 14,
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                onTap: () => AppRoutes.pop(),
                 textColor: AppColors.white,
                 bgColor: AppColors.primaryColor,
                 radius: BorderRadius.circular(7),
@@ -1460,61 +1541,186 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
 }
 
 class BlockChat extends StatefulWidget {
-  const BlockChat({super.key});
+  final Future<void> Function()? onUnblock;
+  final Future<void> Function()? onDeleteChat;
+
+  const BlockChat({
+    super.key,
+    this.onUnblock,
+    this.onDeleteChat,
+  });
 
   @override
   State<BlockChat> createState() => _BlockChatState();
 }
 
 class _BlockChatState extends State<BlockChat> {
+  bool _isUnblocking = false;
+  bool _isDeleting = false;
+
+  // ============================================================
+  // UNBLOCK
+  // ============================================================
+
+  Future<void> _handleUnblock() async {
+    if (_isUnblocking || _isDeleting) return;
+
+    setState(() {
+      _isUnblocking = true;
+    });
+
+    try {
+      if (widget.onUnblock != null) {
+        await widget.onUnblock!();
+      }
+
+      if (!mounted) return;
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isUnblocking = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst(
+              'Exception: ',
+              '',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // DELETE CHAT
+  // ============================================================
+
+  Future<void> _handleDeleteChat() async {
+    if (_isUnblocking || _isDeleting) return;
+
+    setState(() {
+      _isDeleting = true;
+    });
+
+    try {
+      if (widget.onDeleteChat != null) {
+        await widget.onDeleteChat!();
+      }
+
+      if (!mounted) return;
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isDeleting = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst(
+              'Exception: ',
+              '',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
-      spacing: 5,
       mainAxisSize: MainAxisSize.min,
       children: [
-        AppIconWidget(assetPath: AssetImages.blockChatBorder),
+        // ========================================================
+        // ICON
+        // ========================================================
 
-        SizedBox(height: 7),
-        AppText(
+        AppIconWidget(
+          assetPath: AssetImages.blockChatBorder,
+        ),
+
+        const SizedBox(height: 12),
+
+        // ========================================================
+        // TITLE
+        // ========================================================
+
+        const AppText(
           text: 'This chat has been blocked',
           fontWeight: FontWeight.w500,
           fontSize: 20,
         ),
-        SizedBox(height: 7),
+
+        const SizedBox(height: 10),
+
+        // ========================================================
+        // DESCRIPTION
+        // ========================================================
+
         AppText(
           text:
-              'Lorem ipsum is Lorem ipsum isLorem ipsum is Lorem ipsum is Lorem ipsum',
+          'You cannot send or receive messages in this chat while it is blocked.',
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          textAlign: .center,
+          textAlign: TextAlign.center,
           color: AppColors.fieldGrey,
         ).padHorizontal(10),
-        SizedBox(height: 15),
+
+        const SizedBox(height: 20),
+
+        // ========================================================
+        // BUTTONS
+        // ========================================================
+
         Row(
-          spacing: 10,
           children: [
+            // ====================================================
+            // DELETE CHAT
+            // ====================================================
+
             Expanded(
               child: AppButton(
-                title: 'Delete chat',
-                onTap: () {
-                  Navigator.pop(context);
-                },
+                title: _isDeleting
+                    ? 'Deleting...'
+                    : 'Delete chat',
+                onTap: _isUnblocking || _isDeleting
+                    ? () {}
+                    : _handleDeleteChat,
                 fontSize: 14,
                 bgColor: Colors.transparent,
-                border: Border.all(color: AppColors.black),
+                border: Border.all(
+                  color: AppColors.black,
+                ),
                 textColor: AppColors.black,
                 radius: BorderRadius.circular(7),
               ),
             ),
+
+            const SizedBox(width: 10),
+
+            // ====================================================
+            // UNBLOCK CHAT
+            // ====================================================
+
             Expanded(
               child: AppButton(
-                title: 'Unblock chat',
-                onTap: () async {
-                  Navigator.pop(context);
-                },
+                title: _isUnblocking
+                    ? 'Unblocking...'
+                    : 'Unblock chat',
+                onTap: _isUnblocking || _isDeleting
+                    ? () {}
+                    : _handleUnblock,
                 fontSize: 16,
-
                 radius: BorderRadius.circular(7),
               ),
             ),
@@ -1525,8 +1731,161 @@ class _BlockChatState extends State<BlockChat> {
   }
 }
 
+class ReportChatReasonSheet extends StatefulWidget {
+  final int userId;
+  final String userName;
+  final String userMobile;
+  final String userEmail;
+  final String roomId;
+  final AuthControllers authControllers;
+
+  const ReportChatReasonSheet({
+    super.key,
+    required this.userId,
+    required this.userName,
+    required this.userMobile,
+    required this.userEmail,
+    required this.roomId,
+    required this.authControllers,
+  });
+
+  @override
+  State<ReportChatReasonSheet> createState() => _ReportChatReasonSheetState();
+}
+
+class _ReportChatReasonSheetState extends State<ReportChatReasonSheet> {
+  // TODO: swap for a real reasons API if you have one (like getReasonsDeletePost)
+  final List<String> reasons = const [
+    'Spam or scam',
+    'Inappropriate content',
+    'Harassment or abuse',
+    'Fake item / listing',
+  ];
+
+  String? selectedReason;
+  bool isOthers = false;
+  final TextEditingController othersController = TextEditingController();
+
+  bool get isSubmitEnabled {
+    if (selectedReason == null) return false;
+    if (isOthers) return othersController.text.trim().isNotEmpty;
+    return true;
+  }
+
+  @override
+  void dispose() {
+    othersController.dispose();
+    super.dispose();
+  }
+
+  void _onSubmit() {
+    final reason = isOthers ? othersController.text.trim() : selectedReason!;
+
+    AppRoutes.pop(); // close this sheet
+
+    AppDialogue.showPopup(
+      context: context,
+      content: ReportChatDialog(
+        reason: reason,
+        userId: widget.userId,
+        userName: widget.userName,
+        userMobile: widget.userMobile,
+        userEmail: widget.userEmail,
+        roomId: widget.roomId,
+        authControllers: widget.authControllers,
+      ),
+
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppText(text: 'Report this chat', fontWeight: FontWeight.w600, fontSize: 18),
+        const SizedBox(height: 12),
+        AppText(text: 'Why are you reporting this review?', fontSize: 14),
+        const SizedBox(height: 8),
+
+        for (final r in reasons)
+          RadioListTile<String>(
+            contentPadding: EdgeInsets.zero,
+            value: r,
+            groupValue: selectedReason,
+            title: AppText(text: r, fontSize: 14),
+            onChanged: (v) => setState(() {
+              selectedReason = v;
+              isOthers = false;
+            }),
+          ),
+
+        RadioListTile<String>(
+          contentPadding: EdgeInsets.zero,
+          value: 'Others',
+          groupValue: selectedReason,
+          title: AppText(text: 'Others', fontSize: 14),
+          onChanged: (v) => setState(() {
+            selectedReason = v;
+            isOthers = true;
+          }),
+        ),
+
+        if (isOthers) ...[
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.fieldGrey),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextField(
+              controller: othersController,
+              maxLines: 3,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                hintText: 'Type here',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.all(10),
+              ),
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: AppButton(
+            title: 'Submit',
+            onTap: isSubmitEnabled ? _onSubmit : () {}, // was: null
+            bgColor: isSubmitEnabled ? AppColors.primaryColor : AppColors.fieldGrey,
+            radius: BorderRadius.circular(8),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class ReportChatDialog extends StatefulWidget {
-  const ReportChatDialog({super.key});
+  final String reason;
+  final int userId;
+  final String userName;
+  final String userMobile;
+  final String userEmail;
+  final String roomId;
+  final AuthControllers authControllers;
+
+  const ReportChatDialog({
+    super.key,
+    required this.reason,
+    required this.userId,
+    required this.userName,
+    required this.userMobile,
+    required this.userEmail,
+    required this.roomId,
+    required this.authControllers,
+  });
 
   @override
   State<ReportChatDialog> createState() => _ReportChatDialogState();
@@ -1534,6 +1893,36 @@ class ReportChatDialog extends StatefulWidget {
 
 class _ReportChatDialogState extends State<ReportChatDialog> {
   bool isChecked = false;
+  bool isSubmitting = false;
+
+  Future<void> _submitReport() async {
+    setState(() => isSubmitting = true);
+
+    final response = await widget.authControllers.createReport(
+      userId: widget.userId,
+      name: widget.userName,
+      mobileno: widget.userMobile,
+      email: widget.userEmail,
+      description: widget.reason, // <-- the reason picked in step 1
+    );
+
+    if (isChecked) {
+      await ChatService.blockChat(
+        roomId: widget.roomId,
+        userId: widget.userId.toString(),
+      );
+    }
+
+    if (!mounted) return;
+    setState(() => isSubmitting = false);
+
+    if (response.isSuccess) {
+      AppSnackBar.show(context: context, message: response.message ?? 'Chat reported');
+      AppRoutes.pop();
+    } else {
+      AppSnackBar.show(context: context, message: response.message ?? 'Failed to report chat');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1541,39 +1930,24 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
       spacing: 5,
       mainAxisSize: MainAxisSize.min,
       children: [
+        AppText(text: 'Report This Chat?', fontWeight: FontWeight.w500, fontSize: 20),
+        const SizedBox(height: 7),
         AppText(
-          text: 'Report This Chat?',
-          fontWeight: FontWeight.w500,
-          fontSize: 20,
-        ),
-        SizedBox(height: 7),
-        AppText(
-          text:
-              'Lorem ipsum is Lorem ipsum isLorem ipsum is Lorem ipsum is Lorem ipsum',
+          text: widget.reason,
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          textAlign: .center,
+          textAlign: TextAlign.center,
           color: AppColors.fieldGrey,
         ).padHorizontal(10),
-        SizedBox(height: 15),
+        const SizedBox(height: 15),
 
         Row(
-          crossAxisAlignment: .start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           spacing: 5,
           children: [
             Checkbox(
               value: isChecked,
-              onChanged: (e) {
-                setState(() {
-                  isChecked = e!;
-                  if (isChecked) {
-                    AppSnackBar.show(
-                      context: context,
-                      message: "Confirm for deletion",
-                    );
-                  }
-                });
-              },
+              onChanged: (e) => setState(() => isChecked = e!),
               hoverColor: AppColors.grey,
               focusColor: AppColors.fieldGrey,
               fillColor: WidgetStateProperty.resolveWith((states) {
@@ -1584,31 +1958,26 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
               }),
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
               side: BorderSide(color: AppColors.fieldGrey, width: 2),
             ),
-            Flexible(
+            const Flexible(
               child: AppText(
                 text: "Report and Block this chat",
                 fontWeight: FontWeight.w400,
-                textAlign: .start,
                 fontSize: 14,
               ),
             ),
           ],
         ),
+
         Row(
           spacing: 10,
           children: [
             Expanded(
               child: AppButton(
                 title: 'Cancel',
-                onTap: () {
-                  Navigator.pop(context);
-                },
+                onTap: isSubmitting ? () {} : () => AppRoutes.pop(),
                 fontSize: 14,
                 bgColor: Colors.transparent,
                 border: Border.all(color: AppColors.black),
@@ -1618,19 +1987,9 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
             ),
             Expanded(
               child: AppButton(
-                title: 'Report',
-                onTap: () async {
-                  if (isChecked) {
-                    AppRoutes.pop();
-                  } else {
-                    AppSnackBar.show(
-                      context: context,
-                      message: "Please choose a reason",
-                    );
-                  }
-                },
+                title: isSubmitting ? 'Reporting...' : 'Report',
+                onTap: isSubmitting ? () {} : _submitReport,
                 fontSize: 16,
-
                 radius: BorderRadius.circular(7),
               ),
             ),

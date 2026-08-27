@@ -775,5 +775,85 @@ class AuthRepository {
     );
   }
 
+  Future<ResponseModel> logout({required int userId}) async {
+    final response = await apiClient.post(
+      ApiEndPoints.logout,
+      data: {'userId': userId},
+      addToken: false,
+    );
 
+    debugPrint('[Logout] status=${response.status}, message=${response.message}');
+
+    return response;
+  }
+
+
+
+  Future<ResponseModel<List<DeletePostReasons>>> getDeleteAccountReasons() async {
+    final response = await apiClient.get(ApiEndPoints.getReasonsDeleteAccount, addToken: false);
+
+    if (!response.isSuccess) {
+      return response.asFailure<List<DeletePostReasons>>();
+    }
+
+    final list = response.data as List;
+    return ResponseModel<List<DeletePostReasons>>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: list.map((e) => DeletePostReasons.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
+
+  Future<ResponseModel> deleteAccount({required int userId, required String reason}) async {
+    final response = await apiClient.delete(
+      ApiEndPoints.deleteAccount,
+      data: {
+        'userId': userId,
+        'reason': reason,
+      },
+      addToken: false,
+    );
+
+    debugPrint('[DeleteAccount] status=${response.status}, message=${response.message}');
+
+    return response;
+  }
+
+  Future<ResponseModel> deleteProfileImage({required int userId}) async {
+    return await apiClient.delete(
+      ApiEndPoints.deleteProfileImage,
+      data: {'userId': userId},
+      addToken: false,
+    );
+  }
+
+
+  Future<ResponseModel> createReport({
+    required int userId,
+    required String name,
+    required String mobileno,
+    required String email,
+    required String description,
+    String? imageId,
+  }) async {
+    final body = {
+      'user_id': userId,
+      'name': name,
+      'mobileno': mobileno,
+      'email': email,
+      'description': description,
+      if (imageId != null) 'image_id': imageId,
+    };
+
+    final response = await apiClient.post(
+      ApiEndPoints.createReport,
+      data: body,
+      addToken: false,
+    );
+
+    print('[Report] status=${response.status}, message=${response.message}, data=${response.data}');
+
+    return response;
+  }
 }
