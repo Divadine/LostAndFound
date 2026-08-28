@@ -10,6 +10,25 @@ class ChatService {
   // ============================================================
   // CREATE / GET CHAT ROOM
   // ============================================================
+  //
+  // Room:
+  //
+  // user 56 + user 57 + post 144
+  //
+  // => 56_57_144
+  //
+  // Phone numbers are stored inside:
+  //
+  // participants
+  //   56
+  //     phone
+  //   57
+  //     phone
+  //
+  // IMPORTANT:
+  // Existing participant phone numbers are NEVER overwritten
+  // with an empty string.
+  // ============================================================
 
   static Future<String> createChatRoom({
     required String currentUserId,
@@ -17,9 +36,11 @@ class ChatService {
 
     String currentUserName = '',
     String currentUserAvatar = '',
+    String currentUserPhone = '',
 
     String otherUserName = '',
     String otherUserAvatar = '',
+    String otherUserPhone = '',
 
     String? enquirySenderId,
 
@@ -27,31 +48,43 @@ class ChatService {
     String itemImage = '',
     String itemLocation = '',
     String itemPostDate = '',
+
+    String postId = '',
   }) async {
     final users = [
-      currentUserId,
-      otherUserId,
+      currentUserId.trim(),
+      otherUserId.trim(),
     ]..sort();
 
-    final roomId = '${users[0]}_${users[1]}';
+    final trimmedPostId = postId.trim();
+
+    final roomId = trimmedPostId.isNotEmpty
+        ? '${users[0]}_${users[1]}_$trimmedPostId'
+        : '${users[0]}_${users[1]}';
 
     final roomRef = _rooms.doc(roomId);
 
     final snapshot = await roomRef.get();
 
-    final participants = {
+    // ============================================================
+    // CREATE PARTICIPANT DATA
+    // ============================================================
+
+    final newParticipants = <String, dynamic>{
       currentUserId: {
-        'name': currentUserName,
-        'avatar': currentUserAvatar,
+        'name': currentUserName.trim(),
+        'avatar': currentUserAvatar.trim(),
+        'phone': currentUserPhone.trim(),
       },
       otherUserId: {
-        'name': otherUserName,
-        'avatar': otherUserAvatar,
+        'name': otherUserName.trim(),
+        'avatar': otherUserAvatar.trim(),
+        'phone': otherUserPhone.trim(),
       },
     };
 
     // ============================================================
-    // CREATE ROOM
+    // CREATE NEW ROOM
     // ============================================================
 
     if (!snapshot.exists) {
@@ -60,15 +93,18 @@ class ChatService {
 
         'users': users,
 
-        'participants': participants,
+        'participants': newParticipants,
 
-        'enquirySenderId': enquirySenderId,
+        'enquirySenderId':
+        enquirySenderId?.trim() ?? '',
 
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdAt':
+        FieldValue.serverTimestamp(),
 
         'lastMessage': '',
 
-        'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastMessageTime':
+        FieldValue.serverTimestamp(),
 
         'lastMessageSenderId': '',
 
@@ -88,17 +124,30 @@ class ChatService {
         'blockedBy': <String>[],
 
         // ========================================================
-        // ITEM DATA
+        // CONTACT REQUEST
         // ========================================================
 
-        'itemName': itemName,
+        'contactRequestStatus': 'none',
+        'contactRequestSenderId': '',
+        'contactRequestReceiverId': '',
+        'contactRequestCreatedAt': null,
+        'contactRequestUpdatedAt': null,
 
-        'itemImage': itemImage,
+        // ========================================================
+        // ITEM
+        // ========================================================
 
-        'itemLocation': itemLocation,
+        'itemName': itemName.trim(),
+        'itemImage': itemImage.trim(),
+        'itemLocation': itemLocation.trim(),
+        'itemPostDate': itemPostDate.trim(),
 
-        'itemPostDate': itemPostDate,
+        'postId': trimmedPostId,
       });
+
+      print(
+        '[ChatService] CHAT ROOM CREATED: $roomId',
+      );
     }
 
     // ============================================================
@@ -106,55 +155,156 @@ class ChatService {
     // ============================================================
 
     else {
-      final updateData = <String, dynamic>{
-        'users': users,
-        'participants': participants,
-      };
+      final roomData =
+          snapshot.data() ?? <String, dynamic>{};
 
-      if (enquirySenderId != null &&
-          enquirySenderId.isNotEmpty) {
-        updateData['enquirySenderId'] =
-            enquirySenderId;
+      // ----------------------------------------------------------
+      // IMPORTANT:
+      // Read existing participants first.
+      // Do NOT replace them blindly.
+      // ----------------------------------------------------------
+
+      final existingParticipants =
+      Map<String, dynamic>.from(
+        roomData['participants'] ?? {},
+      );
+
+      // ==========================================================
+      // CURRENT USER PARTICIPANT
+      // ==========================================================
+
+      final currentParticipant =
+      Map<String, dynamic>.from(
+        existingParticipants[currentUserId] ?? {},
+      );
+
+      if (currentUserName.trim().isNotEmpty) {
+        currentParticipant['name'] =
+            currentUserName.trim();
       }
 
+      if (currentUserAvatar.trim().isNotEmpty) {
+        currentParticipant['avatar'] =
+            currentUserAvatar.trim();
+      }
+
+      // NEVER overwrite existing phone with empty value.
+      if (currentUserPhone.trim().isNotEmpty) {
+        currentParticipant['phone'] =
+            currentUserPhone.trim();
+      }
+
+      currentParticipant['phone'] ??= '';
+
+      existingParticipants[currentUserId] =
+          currentParticipant;
+
+      // ==========================================================
+      // OTHER USER PARTICIPANT
+      // ==========================================================
+
+      final otherParticipant =
+      Map<String, dynamic>.from(
+        existingParticipants[otherUserId] ?? {},
+      );
+
+      if (otherUserName.trim().isNotEmpty) {
+        otherParticipant['name'] =
+            otherUserName.trim();
+      }
+
+      if (otherUserAvatar.trim().isNotEmpty) {
+        otherParticipant['avatar'] =
+            otherUserAvatar.trim();
+      }
+
+      // NEVER overwrite existing phone with empty value.
+      if (otherUserPhone.trim().isNotEmpty) {
+        otherParticipant['phone'] =
+            otherUserPhone.trim();
+      }
+
+      otherParticipant['phone'] ??= '';
+
+      existingParticipants[otherUserId] =
+          otherParticipant;
+
+      final updateData =
+      <String, dynamic>{
+        'users': users,
+
+        'participants':
+        existingParticipants,
+      };
+
+      // ==========================================================
+      // ENQUIRY SENDER
+      // ==========================================================
+
+      if (enquirySenderId != null &&
+          enquirySenderId.trim().isNotEmpty) {
+        updateData['enquirySenderId'] =
+            enquirySenderId.trim();
+      }
+
+      // ==========================================================
+      // ITEM DATA
+      // ==========================================================
+
       if (itemName.trim().isNotEmpty) {
-        updateData['itemName'] = itemName;
+        updateData['itemName'] =
+            itemName.trim();
       }
 
       if (itemImage.trim().isNotEmpty) {
-        updateData['itemImage'] = itemImage;
+        updateData['itemImage'] =
+            itemImage.trim();
       }
 
       if (itemLocation.trim().isNotEmpty) {
         updateData['itemLocation'] =
-            itemLocation;
+            itemLocation.trim();
       }
 
       if (itemPostDate.trim().isNotEmpty) {
         updateData['itemPostDate'] =
-            itemPostDate;
+            itemPostDate.trim();
       }
 
-      // IMPORTANT:
-      // Do not overwrite blockedBy.
+      if (trimmedPostId.isNotEmpty) {
+        updateData['postId'] =
+            trimmedPostId;
+      }
 
       await roomRef.set(
         updateData,
-        SetOptions(
-          merge: true,
-        ),
+        SetOptions(merge: true),
+      );
+
+      print(
+        '[ChatService] CHAT ROOM UPDATED: $roomId',
       );
     }
 
     // ============================================================
-    // CREATE ITEM CARD MESSAGE
+    // ITEM CARD
     // ============================================================
 
-    if (itemName.trim().isNotEmpty) {
+    final hasAnyItemData =
+        itemName.trim().isNotEmpty ||
+            itemImage.trim().isNotEmpty ||
+            itemLocation.trim().isNotEmpty ||
+            itemPostDate.trim().isNotEmpty;
+
+    if (hasAnyItemData) {
       await ensureItemCardMessage(
         roomId: roomId,
+
         senderId:
-        enquirySenderId ?? currentUserId,
+        enquirySenderId?.trim().isNotEmpty == true
+            ? enquirySenderId!.trim()
+            : currentUserId,
+
         itemName: itemName,
         itemImage: itemImage,
         itemLocation: itemLocation,
@@ -166,17 +316,135 @@ class ChatService {
   }
 
   // ============================================================
-  // ENSURE ITEM CARD MESSAGE
+  // GET ROOM
+  // ============================================================
+
+  static Future<Map<String, dynamic>?> getRoom(
+      String roomId,
+      ) async {
+    if (roomId.trim().isEmpty) {
+      return null;
+    }
+
+    final snapshot =
+    await _rooms.doc(roomId).get();
+
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    return snapshot.data();
+  }
+
+  // ============================================================
+  // GET PARTICIPANT
+  // ============================================================
+
+  static Future<Map<String, dynamic>?>
+  getParticipant({
+    required String roomId,
+    required String userId,
+  }) async {
+    if (roomId.trim().isEmpty ||
+        userId.trim().isEmpty) {
+      return null;
+    }
+
+    final snapshot =
+    await _rooms.doc(roomId).get();
+
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    final data =
+        snapshot.data() ??
+            <String, dynamic>{};
+
+    final participants =
+    Map<String, dynamic>.from(
+      data['participants'] ?? {},
+    );
+
+    final participant =
+    participants[userId];
+
+    if (participant == null) {
+      return null;
+    }
+
+    return Map<String, dynamic>.from(
+      participant,
+    );
+  }
+
+  // ============================================================
+  // GET PARTICIPANT PHONE
+  // ============================================================
+
+  static Future<String> getParticipantPhone({
+    required String roomId,
+    required String userId,
+  }) async {
+    final participant =
+    await getParticipant(
+      roomId: roomId,
+      userId: userId,
+    );
+
+    if (participant == null) {
+      return '';
+    }
+
+    return participant['phone']
+        ?.toString()
+        .trim() ??
+        '';
+  }
+
+  // ============================================================
+  // UPDATE PARTICIPANT PHONE
   // ============================================================
   //
-  // The document ID is always:
+  // This updates only:
   //
-  // itemCard
+  // participants/{userId}/phone
   //
-  // Therefore it can only exist once inside a room.
-  //
-  // Both users read the same document.
-  //
+  // It does NOT destroy name/avatar.
+  // ============================================================
+
+  static Future<void> updateParticipantPhone({
+    required String roomId,
+    required String userId,
+    required String phone,
+  }) async {
+    final cleanPhone = phone.trim();
+
+    if (roomId.trim().isEmpty ||
+        userId.trim().isEmpty ||
+        cleanPhone.isEmpty) {
+      return;
+    }
+
+    await _rooms.doc(roomId).set(
+      {
+        'participants': {
+          userId: {
+            'phone': cleanPhone,
+          },
+        },
+      },
+      SetOptions(merge: true),
+    );
+
+    print(
+      '[ChatService] PHONE UPDATED '
+          'room=$roomId user=$userId',
+    );
+  }
+
+  // ============================================================
+  // ENSURE ITEM CARD MESSAGE
   // ============================================================
 
   static Future<void> ensureItemCardMessage({
@@ -191,7 +459,13 @@ class ChatService {
       return;
     }
 
-    if (itemName.trim().isEmpty) {
+    final hasAnyItemData =
+        itemName.trim().isNotEmpty ||
+            itemImage.trim().isNotEmpty ||
+            itemLocation.trim().isNotEmpty ||
+            itemPostDate.trim().isNotEmpty;
+
+    if (!hasAnyItemData) {
       return;
     }
 
@@ -200,54 +474,49 @@ class ChatService {
         .collection('messages')
         .doc('itemCard');
 
-    final existing =
-    await itemCardRef.get();
+    await itemCardRef.set(
+      {
+        'messageType': 'item',
 
-    // Already exists.
-    if (existing.exists) {
-      return;
-    }
+        'senderId': senderId,
 
-    await itemCardRef.set({
-      'messageType': 'item',
+        'message': '',
 
-      'senderId': senderId,
+        'itemName':
+        itemName.trim(),
 
-      'message': '',
+        'itemImage':
+        itemImage.trim(),
 
-      'itemName': itemName,
+        'itemLocation':
+        itemLocation.trim(),
 
-      'itemImage': itemImage,
+        'itemPostDate':
+        itemPostDate.trim(),
 
-      'itemLocation': itemLocation,
+        'createdAt':
+        FieldValue.serverTimestamp(),
 
-      'itemPostDate': itemPostDate,
+        'isDeleted': false,
 
-      'createdAt':
-      FieldValue.serverTimestamp(),
+        'deletedFor': <String>[],
 
-      'isDeleted': false,
+        'delivered': true,
 
-      'deletedFor': <String>[],
+        'read': true,
 
-      'delivered': true,
+        'readBy': <String>[],
+      },
+      SetOptions(merge: true),
+    );
 
-      'read': true,
-
-      'readBy': <String>[],
-    });
+    print(
+      '[ChatService] ITEM CARD CREATED/UPDATED: $roomId',
+    );
   }
 
   // ============================================================
   // ENSURE ITEM CARD FROM EXISTING ROOM
-  // ============================================================
-  //
-  // Used when opening an already-created room.
-  //
-  // Example:
-  //
-  // chatRooms/48_49
-  //
   // ============================================================
 
   static Future<void> ensureItemCardFromRoom({
@@ -258,28 +527,22 @@ class ChatService {
       return;
     }
 
-    final roomSnapshot =
+    final snapshot =
     await _rooms.doc(roomId).get();
 
-    if (!roomSnapshot.exists) {
+    if (!snapshot.exists) {
       return;
     }
 
     final roomData =
-        roomSnapshot.data() ?? {};
+        snapshot.data() ??
+            <String, dynamic>{};
 
     final itemName =
         roomData['itemName']
             ?.toString()
             .trim() ??
             '';
-
-    // There is no item information in
-    // this room, so there is nothing
-    // to create.
-    if (itemName.isEmpty) {
-      return;
-    }
 
     final itemImage =
         roomData['itemImage']
@@ -295,6 +558,16 @@ class ChatService {
         roomData['itemPostDate']
             ?.toString() ??
             '';
+
+    final hasAnyItemData =
+        itemName.isNotEmpty ||
+            itemImage.trim().isNotEmpty ||
+            itemLocation.trim().isNotEmpty ||
+            itemPostDate.trim().isNotEmpty;
+
+    if (!hasAnyItemData) {
+      return;
+    }
 
     final enquirySenderId =
         roomData['enquirySenderId']
@@ -332,32 +605,12 @@ class ChatService {
         'enquirySenderId':
         enquirySenderId,
       },
-      SetOptions(
-        merge: true,
-      ),
+      SetOptions(merge: true),
     );
   }
 
   // ============================================================
-  // GET ROOM
-  // ============================================================
-
-  static Future<Map<String, dynamic>?>
-  getRoom(
-      String roomId,
-      ) async {
-    final snapshot =
-    await _rooms.doc(roomId).get();
-
-    if (!snapshot.exists) {
-      return null;
-    }
-
-    return snapshot.data();
-  }
-
-  // ============================================================
-  // CHECK BLOCKED
+  // BLOCKED
   // ============================================================
 
   static Future<bool> isChatBlocked({
@@ -372,7 +625,8 @@ class ChatService {
     }
 
     final data =
-        snapshot.data() ?? {};
+        snapshot.data() ??
+            <String, dynamic>{};
 
     final blockedBy =
     List<String>.from(
@@ -381,10 +635,6 @@ class ChatService {
 
     return blockedBy.isNotEmpty;
   }
-
-  // ============================================================
-  // BLOCK
-  // ============================================================
 
   static Future<void> blockChat({
     required String roomId,
@@ -397,15 +647,9 @@ class ChatService {
           userId,
         ]),
       },
-      SetOptions(
-        merge: true,
-      ),
+      SetOptions(merge: true),
     );
   }
-
-  // ============================================================
-  // UNBLOCK
-  // ============================================================
 
   static Future<void> unblockChat({
     required String roomId,
@@ -418,15 +662,9 @@ class ChatService {
           userId,
         ]),
       },
-      SetOptions(
-        merge: true,
-      ),
+      SetOptions(merge: true),
     );
   }
-
-  // ============================================================
-  // BLOCKED STREAM
-  // ============================================================
 
   static Stream<bool> chatBlockedStream({
     required String roomId,
@@ -440,7 +678,8 @@ class ChatService {
       }
 
       final data =
-          snapshot.data() ?? {};
+          snapshot.data() ??
+              <String, dynamic>{};
 
       final blockedBy =
       List<String>.from(
@@ -477,11 +716,8 @@ class ChatService {
     }
 
     final roomData =
-        roomSnapshot.data() ?? {};
-
-    // ============================================================
-    // CHECK BLOCK
-    // ============================================================
+        roomSnapshot.data() ??
+            <String, dynamic>{};
 
     final blockedBy =
     List<String>.from(
@@ -490,13 +726,10 @@ class ChatService {
 
     if (blockedBy.isNotEmpty) {
       throw Exception(
-        'This chat is blocked. Unblock the chat to continue.',
+        'This chat is blocked. '
+            'Unblock the chat to continue.',
       );
     }
-
-    // ============================================================
-    // USERS
-    // ============================================================
 
     final users =
     List<String>.from(
@@ -515,52 +748,31 @@ class ChatService {
       );
     }
 
-    // ============================================================
-    // CREATE MESSAGE
-    // ============================================================
-
     final messageRef = roomRef
         .collection('messages')
         .doc();
 
     await messageRef.set({
       'messageType': 'text',
-
       'senderId': senderId,
-
-      'message':
-      message.trim(),
-
+      'message': message.trim(),
       'createdAt':
       FieldValue.serverTimestamp(),
-
       'isDeleted': false,
-
-      'deletedFor':
-      <String>[],
-
+      'deletedFor': <String>[],
       'delivered': false,
-
       'read': false,
-
-      'readBy':
-      <String>[],
+      'readBy': <String>[],
     });
-
-    // ============================================================
-    // UNREAD
-    // ============================================================
 
     final currentUnread =
     Map<String, dynamic>.from(
-      roomData['unreadCounts'] ??
-          {},
+      roomData['unreadCounts'] ?? {},
     );
 
     int receiverUnread =
         int.tryParse(
-          currentUnread[
-          receiverId]
+          currentUnread[receiverId]
               ?.toString() ??
               '0',
         ) ??
@@ -568,13 +780,8 @@ class ChatService {
 
     receiverUnread++;
 
-    currentUnread[
-    receiverId] =
+    currentUnread[receiverId] =
         receiverUnread;
-
-    // ============================================================
-    // UPDATE ROOM
-    // ============================================================
 
     await roomRef.set(
       {
@@ -587,8 +794,7 @@ class ChatService {
         'lastMessageSenderId':
         senderId,
 
-        'lastMessageRead':
-        false,
+        'lastMessageRead': false,
 
         'lastMessageDelivered':
         true,
@@ -602,9 +808,7 @@ class ChatService {
         'unreadCounts':
         currentUnread,
       },
-      SetOptions(
-        merge: true,
-      ),
+      SetOptions(merge: true),
     );
 
     await messageRef.update({
@@ -669,12 +873,12 @@ class ChatService {
     }
 
     final roomData =
-        roomSnapshot.data() ?? {};
+        roomSnapshot.data() ??
+            <String, dynamic>{};
 
     final unreadCounts =
     Map<String, dynamic>.from(
-      roomData['unreadCounts'] ??
-          {},
+      roomData['unreadCounts'] ?? {},
     );
 
     unreadCounts[userId] = 0;
@@ -684,9 +888,7 @@ class ChatService {
         'unreadCounts':
         unreadCounts,
       },
-      SetOptions(
-        merge: true,
-      ),
+      SetOptions(merge: true),
     );
 
     final messagesSnapshot =
@@ -698,8 +900,7 @@ class ChatService {
     )
         .get();
 
-    if (messagesSnapshot
-        .docs.isEmpty) {
+    if (messagesSnapshot.docs.isEmpty) {
       return;
     }
 
@@ -708,11 +909,9 @@ class ChatService {
 
     for (final doc
     in messagesSnapshot.docs) {
-      final data =
-      doc.data();
+      final data = doc.data();
 
-      if (data['isDeleted'] ==
-          true) {
+      if (data['isDeleted'] == true) {
         continue;
       }
 
@@ -721,9 +920,7 @@ class ChatService {
         data['readBy'] ?? [],
       );
 
-      if (!readBy.contains(
-        userId,
-      )) {
+      if (!readBy.contains(userId)) {
         readBy.add(userId);
 
         batch.update(
@@ -743,7 +940,7 @@ class ChatService {
 
     final latestData =
         latestRoomSnapshot.data() ??
-            {};
+            <String, dynamic>{};
 
     final lastSender =
         latestData[
@@ -757,9 +954,7 @@ class ChatService {
         {
           'lastMessageRead': true,
         },
-        SetOptions(
-          merge: true,
-        ),
+        SetOptions(merge: true),
       );
     }
   }
@@ -768,8 +963,7 @@ class ChatService {
   // DELETE FOR EVERYONE
   // ============================================================
 
-  static Future<void>
-  deleteForEveryone({
+  static Future<void> deleteForEveryone({
     required String roomId,
     required String messageId,
     required String currentUserId,
@@ -777,29 +971,27 @@ class ChatService {
     final roomRef =
     _rooms.doc(roomId);
 
-    final messageRef =
-    roomRef
+    final messageRef = roomRef
         .collection('messages')
         .doc(messageId);
 
-    final messageSnapshot =
+    final snapshot =
     await messageRef.get();
 
-    if (!messageSnapshot.exists) {
+    if (!snapshot.exists) {
       return;
     }
 
-    final messageData =
-        messageSnapshot.data() ??
-            {};
+    final data =
+        snapshot.data() ??
+            <String, dynamic>{};
 
     final senderId =
-        messageData['senderId']
+        data['senderId']
             ?.toString() ??
             '';
 
-    if (senderId !=
-        currentUserId) {
+    if (senderId != currentUserId) {
       throw Exception(
         'You can delete only your own messages.',
       );
@@ -807,7 +999,6 @@ class ChatService {
 
     await messageRef.update({
       'isDeleted': true,
-
       'message':
       'This message was deleted',
     });
@@ -822,32 +1013,20 @@ class ChatService {
         .limit(1)
         .get();
 
-    if (latestMessages
-        .docs.isEmpty) {
+    if (latestMessages.docs.isEmpty) {
       await roomRef.set(
         {
           'lastMessage': '',
-
           'lastMessageTime':
           FieldValue.serverTimestamp(),
-
           'lastMessageSenderId': '',
-
           'lastMessageRead': false,
-
-          'lastMessageDelivered':
-          false,
-
-          'lastMessageDeleted':
-          false,
-
+          'lastMessageDelivered': false,
+          'lastMessageDeleted': false,
           'lastMessageId': '',
-
           'unreadCounts': {},
         },
-        SetOptions(
-          merge: true,
-        ),
+        SetOptions(merge: true),
       );
 
       return;
@@ -873,8 +1052,7 @@ class ChatService {
     if (latestDeleted) {
       latestMessage =
       'This message was deleted';
-    } else if (latestType ==
-        'item') {
+    } else if (latestType == 'item') {
       latestMessage =
       'Item shared';
     } else {
@@ -903,9 +1081,7 @@ class ChatService {
         'lastMessageId':
         latestDoc.id,
       },
-      SetOptions(
-        merge: true,
-      ),
+      SetOptions(merge: true),
     );
   }
 
@@ -918,8 +1094,7 @@ class ChatService {
     required String messageId,
     required String currentUserId,
   }) async {
-    final messageRef =
-    _rooms
+    final messageRef = _rooms
         .doc(roomId)
         .collection('messages')
         .doc(messageId);
@@ -932,7 +1107,8 @@ class ChatService {
     }
 
     final data =
-        snapshot.data() ?? {};
+        snapshot.data() ??
+            <String, dynamic>{};
 
     final deletedFor =
     List<String>.from(
@@ -942,9 +1118,7 @@ class ChatService {
     if (!deletedFor.contains(
       currentUserId,
     )) {
-      deletedFor.add(
-        currentUserId,
-      );
+      deletedFor.add(currentUserId);
     }
 
     await messageRef.update({
@@ -968,8 +1142,7 @@ class ChatService {
         .collection('messages')
         .get();
 
-    if (messagesSnapshot
-        .docs.isNotEmpty) {
+    if (messagesSnapshot.docs.isNotEmpty) {
       WriteBatch batch =
       _firestore.batch();
 
@@ -983,8 +1156,7 @@ class ChatService {
 
         operationCount++;
 
-        if (operationCount ==
-            450) {
+        if (operationCount == 450) {
           await batch.commit();
 
           batch =
@@ -1002,27 +1174,143 @@ class ChatService {
     await roomRef.set(
       {
         'lastMessage': '',
-
         'lastMessageTime':
         FieldValue.serverTimestamp(),
-
         'lastMessageSenderId': '',
-
         'lastMessageRead': false,
-
-        'lastMessageDelivered':
-        false,
-
-        'lastMessageDeleted':
-        false,
-
+        'lastMessageDelivered': false,
+        'lastMessageDeleted': false,
         'lastMessageId': '',
-
         'unreadCounts': {},
       },
-      SetOptions(
-        merge: true,
-      ),
+      SetOptions(merge: true),
+    );
+  }
+
+  // ============================================================
+  // CONTACT REQUEST STREAM
+  // ============================================================
+
+  static Stream<
+      Map<String, dynamic>>
+  contactRequestStream({
+    required String roomId,
+  }) {
+    return _rooms
+        .doc(roomId)
+        .snapshots()
+        .map((snapshot) {
+      if (!snapshot.exists) {
+        return {
+          'status': 'none',
+          'senderId': '',
+          'receiverId': '',
+          'enquirySenderId': '',
+        };
+      }
+
+      final data =
+          snapshot.data() ??
+              <String, dynamic>{};
+
+      return {
+        'status':
+        data['contactRequestStatus']
+            ?.toString() ??
+            'none',
+
+        'senderId':
+        data['contactRequestSenderId']
+            ?.toString() ??
+            '',
+
+        'receiverId':
+        data['contactRequestReceiverId']
+            ?.toString() ??
+            '',
+
+        'enquirySenderId':
+        data['enquirySenderId']
+            ?.toString() ??
+            '',
+      };
+    });
+  }
+
+  // ============================================================
+  // SEND CONTACT REQUEST
+  // ============================================================
+
+  static Future<void> sendContactRequest({
+    required String roomId,
+    required String senderId,
+    required String receiverId,
+  }) async {
+    await _rooms.doc(roomId).set(
+      {
+        'contactRequestStatus':
+        'pending',
+
+        'contactRequestSenderId':
+        senderId,
+
+        'contactRequestReceiverId':
+        receiverId,
+
+        'contactRequestCreatedAt':
+        FieldValue.serverTimestamp(),
+
+        'contactRequestUpdatedAt':
+        FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    print(
+      '[ChatService] Contact request SENT '
+          'sender=$senderId receiver=$receiverId',
+    );
+  }
+
+  // ============================================================
+  // ACCEPT CONTACT REQUEST
+  // ============================================================
+
+  static Future<void> acceptContactRequest({
+    required String roomId,
+  }) async {
+    await _rooms.doc(roomId).set(
+      {
+        'contactRequestStatus':
+        'accepted',
+
+        'contactRequestUpdatedAt':
+        FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    print(
+      '[ChatService] Contact request = ACCEPTED',
+    );
+  }
+
+  // ============================================================
+  // DECLINE CONTACT REQUEST
+  // ============================================================
+
+  static Future<void> declineContactRequest({
+    required String roomId,
+  }) async {
+    await _rooms.doc(roomId).set(
+      {
+        'contactRequestStatus':
+        'declined',
+
+        'contactRequestUpdatedAt':
+        FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
     );
   }
 }

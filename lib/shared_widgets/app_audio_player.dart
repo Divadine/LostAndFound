@@ -1,152 +1,330 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:lost_and_found/utils/app_colors.dart';
 
-/// Read-only audio playback widget for voice descriptions attached to a post.
-/// Visual style (play button + waveform) matches AppRecorder's recorded-state
-/// UI so playback feels consistent with the recording experience elsewhere.
 class AppAudioPlayer extends StatefulWidget {
   final String url;
 
-  const AppAudioPlayer({super.key, required this.url});
+  const AppAudioPlayer({
+    super.key,
+    required this.url,
+  });
 
   @override
   State<AppAudioPlayer> createState() => _AppAudioPlayerState();
 }
 
 class _AppAudioPlayerState extends State<AppAudioPlayer> {
-  final AudioPlayer _player = AudioPlayer();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
-  bool isPlaying = false;
-  bool _isCompleted = false;
-  Duration duration = Duration.zero;
-  Duration position = Duration.zero;
-
-  StreamSubscription<Duration>? _positionSub;
-  StreamSubscription<PlayerState>? _playerStateSub;
-
-  static const List<double> _waveHeights = [
-    2, 5, 8, 10, 14, 18, 20, 25, 20, 14, 10, 14, 18, 20, 25, 20,
-    14, 10, 15, 18, 20, 25, 20, 14, 10, 8, 5, 2,
-  ];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _init();
+    _initializeAudio();
   }
 
-  Future<void> _init() async {
-    try {
-      duration = await _player.setUrl(widget.url) ?? Duration.zero;
-      if (mounted) setState(() {});
-    } catch (_) {
-      // TODO: surface a load error in the UI if needed
+  @override
+  void didUpdateWidget(covariant AppAudioPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.url != widget.url) {
+      _initializeAudio();
+    }
+  }
+
+  String _getAudioUrl(String url) {
+    final cleanUrl = url.trim();
+
+    if (cleanUrl.isEmpty) {
+      return '';
     }
 
-    _positionSub = _player.positionStream.listen((pos) {
-      if (!mounted) return;
-      setState(() => position = pos);
-    });
+    // Already complete URL
+    if (cleanUrl.startsWith('http://') ||
+        cleanUrl.startsWith('https://')) {
+      return cleanUrl;
+    }
 
-    _playerStateSub = _player.playerStateStream.listen((playerState) async {
-      if (!mounted) return;
-      setState(() => isPlaying = playerState.playing);
-
-      if (playerState.processingState == ProcessingState.completed) {
-        await _player.pause();
-        _isCompleted = true;
-        setState(() {
-          isPlaying = false;
-          position = Duration.zero;
-        });
-        await _player.seek(Duration.zero);
-      }
-    });
+    // API returns:
+    // uploads/audio/filename.m4a
+    return 'https://lost-and-found.skyraantech.com/backend/$cleanUrl';
   }
 
-  Future<void> _toggle() async {
-    if (_player.playing) {
-      await _player.pause();
+  Future<void> _initializeAudio() async {
+    final audioUrl = _getAudioUrl(widget.url);
+
+    if (audioUrl.isEmpty) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Audio URL is empty';
+      });
+
       return;
     }
 
-    if (_isCompleted) {
-      _isCompleted = false;
-      await _player.seek(Duration.zero);
+    debugPrint('AUDIO URL: $audioUrl');
+
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      await _audioPlayer.setUrl(audioUrl);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('AUDIO INITIALIZATION ERROR: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Unable to load audio';
+      });
+    }
+  }
+
+  Future<void> _toggleAudio() async {
+    if (_isLoading || _errorMessage != null) {
+      return;
     }
 
-    await _player.play();
+    try {
+      if (_audioPlayer.playing) {
+        await _audioPlayer.pause();
+      } else {
+        // If audio finished, start from beginning.
+        if (_audioPlayer.processingState == ProcessingState.completed) {
+          await _audioPlayer.seek(Duration.zero);
+        }
+
+        await _audioPlayer.play();
+      }
+
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('AUDIO PLAY ERROR: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = 'Unable to play audio';
+      });
+    }
   }
 
-  double get _progress {
-    if (duration.inMilliseconds == 0) return 0;
-    return (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
-  }
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
 
-  Widget _buildWave() {
-    final total = _waveHeights.length;
-    final filledCount = (_progress * total).floor();
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: List.generate(total, (i) {
-        final bool filled = i < filledCount;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          width: 3,
-          height: _waveHeights[i] + 6,
-          decoration: BoxDecoration(
-            color: filled ? AppColors.primaryColor : AppColors.grey.withAlpha(90),
-            borderRadius: BorderRadius.circular(5),
-          ),
-        );
-      }),
-    );
+    return '$minutes:$seconds';
   }
 
   @override
   void dispose() {
-    _positionSub?.cancel();
-    _playerStateSub?.cancel();
-    _player.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        GestureDetector(
-          onTap: _toggle,
-          child: Container(
-            width: 30,
-            height: 30,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isPlaying ? Icons.pause : Icons.play_arrow,
-              color: Colors.white,
-              size: 16,
-            ),
-          ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.shade300,
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const NeverScrollableScrollPhysics(),
-            child: _buildWave(),
-          ),
+      ),
+      child: _buildPlayer(),
+    );
+  }
+
+  Widget _buildPlayer() {
+    if (_isLoading) {
+      return const SizedBox(
+        height: 55,
+        child: Center(
+          child: CircularProgressIndicator(),
         ),
-      ],
+      );
+    }
+
+    if (_errorMessage != null) {
+      return SizedBox(
+        height: 55,
+        child: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.red,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: _initializeAudio,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return StreamBuilder<PlayerState>(
+      stream: _audioPlayer.playerStateStream,
+      builder: (context, snapshot) {
+        final playerState = snapshot.data;
+
+        final isPlaying = playerState?.playing ?? false;
+
+        final processingState =
+            playerState?.processingState ?? ProcessingState.idle;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                // PLAY BUTTON
+                GestureDetector(
+                  onTap: _toggleAudio,
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.blue,
+                    ),
+                    child: Icon(
+                      isPlaying
+                          ? Icons.pause
+                          : Icons.play_arrow,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                // PROGRESS
+                Expanded(
+                  child: StreamBuilder<Duration>(
+                    stream: _audioPlayer.positionStream,
+                    builder: (context, positionSnapshot) {
+                      final position =
+                          positionSnapshot.data ?? Duration.zero;
+
+                      return StreamBuilder<Duration?>(
+                        stream: _audioPlayer.durationStream,
+                        builder: (context, durationSnapshot) {
+                          final duration =
+                              durationSnapshot.data ?? Duration.zero;
+
+                          final max =
+                          duration.inMilliseconds > 0
+                              ? duration.inMilliseconds.toDouble()
+                              : 1.0;
+
+                          final value =
+                          position.inMilliseconds
+                              .clamp(0, duration.inMilliseconds)
+                              .toDouble();
+
+                          return Column(
+                            crossAxisAlignment:
+                            CrossAxisAlignment.stretch,
+                            children: [
+                              SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 3,
+                                  thumbShape:
+                                  const RoundSliderThumbShape(
+                                    enabledThumbRadius: 6,
+                                  ),
+                                  overlayShape:
+                                  const RoundSliderOverlayShape(
+                                    overlayRadius: 12,
+                                  ),
+                                ),
+                                child: Slider(
+                                  min: 0,
+                                  max: max,
+                                  value: value,
+                                  onChanged: duration.inMilliseconds <= 0
+                                      ? null
+                                      : (newValue) {
+                                    _audioPlayer.seek(
+                                      Duration(
+                                        milliseconds:
+                                        newValue.toInt(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+
+                              Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _formatDuration(position),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatDuration(duration),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            // BUFFERING / COMPLETED STATUS
+            if (processingState == ProcessingState.buffering)
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: LinearProgressIndicator(),
+              ),
+          ],
+        );
+      },
     );
   }
 }

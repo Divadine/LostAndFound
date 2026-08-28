@@ -2000,81 +2000,92 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
   }
 }
 
-class ChatSendRequest extends StatefulWidget {
-  const ChatSendRequest({super.key});
 
-  @override
-  State<ChatSendRequest> createState() => _ChatSendRequestState();
-}
 
-class _ChatSendRequestState extends State<ChatSendRequest> {
+/// Dialog content used when another user asks to share their phone number.
+///
+/// The actual Firestore update is intentionally handled by the parent chat
+/// screen through [onAccept] and [onDecline]. This widget only displays the
+/// dialog UI.
+class ChatSendRequest extends StatelessWidget {
+  final VoidCallback onDecline;
+  final VoidCallback onAccept;
+  final String senderName;
+
+  const ChatSendRequest({
+    super.key,
+    required this.onDecline,
+    required this.onAccept,
+    this.senderName = '',
+  });
+
   @override
   Widget build(BuildContext context) {
+    final displayName = senderName.trim().isNotEmpty
+        ? senderName.trim()
+        : 'This user';
+
     return Column(
       mainAxisSize: MainAxisSize.min,
-      spacing: 10,
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(backgroundColor: AppColors.idCardColor,
+            CircleAvatar(
+              backgroundColor: AppColors.idCardColor,
               radius: 20,
-              child: AppIconWidget(assetPath: AssetImages.phone),
+              child: AppIconWidget(
+                assetPath: AssetImages.phone,
+              ),
             ),
-
-            SizedBox(width: 7,),
-            Flexible(
+            const SizedBox(width: 7),
+            Expanded(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: .start,
-                //mainAxisAlignment: MainAxisAlignment.start,
-                spacing: 7,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppText(
+                  const AppText(
                     text: 'Contact Received',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
+                  const SizedBox(height: 7),
                   AppText(
                     text:
-                        'Varunesha Wants to share contact information with you.',
+                    '$displayName wants to share contact information with you.',
                     fontWeight: FontWeight.w400,
                     fontSize: 12,
-                    maxLine: 2,
+                    maxLine: 3,
                   ),
                 ],
               ),
             ),
-            AppText(
+            const SizedBox(width: 8),
+            const AppText(
               text: 'Just now',
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
               color: AppColors.primaryColor,
             ),
           ],
         ),
-
+        const SizedBox(height: 12),
         Row(
-          spacing: 10,
           children: [
             Expanded(
               child: AppButton(
                 title: 'Decline',
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                onTap: onDecline,
                 bgColor: AppColors.white,
                 border: Border.all(color: AppColors.red),
                 textColor: AppColors.red,
                 fontSize: 14,
               ),
             ),
+            const SizedBox(width: 10),
             Expanded(
               child: AppButton(
                 title: 'Accept',
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                onTap: onAccept,
                 bgColor: AppColors.primaryColor,
                 textColor: AppColors.white,
                 fontSize: 14,
@@ -2086,3 +2097,4 @@ class _ChatSendRequestState extends State<ChatSendRequest> {
     );
   }
 }
+

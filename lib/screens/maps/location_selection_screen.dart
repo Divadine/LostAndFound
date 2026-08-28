@@ -37,9 +37,9 @@ class LocationSelectionScreen extends StatefulWidget {
 
 class _LocationSelectionScreenState
     extends State<LocationSelectionScreen> {
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // CONTROLLER
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   final authController = AuthControllers(
     authRepository: AuthRepository(
@@ -47,9 +47,9 @@ class _LocationSelectionScreenState
     ),
   );
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // CONSTANTS
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   static const int kMaxLocations = 3;
 
@@ -66,16 +66,16 @@ class _LocationSelectionScreenState
   static const String _pinAssetPath =
       'assets/images/map_pin.svg';
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // SERVICES
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   final AppPermissions _appPermissions =
   AppPermissions();
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // SEARCH
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   final TextEditingController _searchController =
   TextEditingController();
@@ -88,9 +88,9 @@ class _LocationSelectionScreenState
 
   bool _searchFocused = false;
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // MAP
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   GoogleMapController? _mapController;
 
@@ -100,40 +100,60 @@ class _LocationSelectionScreenState
 
   bool _addingNewLocation = false;
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // LOCATION
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   SelectedLocationModel? _pendingLocation;
 
   List<SelectedLocationModel> _selectedLocations =
   [];
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // POLICE STATIONS
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   List<PoliceStationModel> _policeStations = [];
 
   bool _loadingPoliceStations = false;
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // ASYNC SELECTION CONTROL
+  //
+  // Every time the user selects a new location, this number changes.
+  // If an old reverse-geocoding request finishes later, it will not overwrite
+  // the newer selected location.
+  // ===========================================================================
+
+  int _locationRequestId = 0;
+
+  // ===========================================================================
   // INIT
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   @override
   void initState() {
     super.initState();
 
-    if (widget.mapScreenModel.selectedLocation !=
-        null) {
-      _selectedLocations =
-      List<SelectedLocationModel>.from(
-        widget.mapScreenModel.selectedLocation ?? [],
+    // -------------------------------------------------------------------------
+    // RESTORE PREVIOUS LOCATIONS
+    // -------------------------------------------------------------------------
+
+    if (widget.mapScreenModel.selectedLocation != null) {
+      _selectedLocations = List<SelectedLocationModel>.from(
+        widget.mapScreenModel.selectedLocation!,
       );
     }
 
+    // -------------------------------------------------------------------------
+    // LOAD CUSTOM MARKER
+    // -------------------------------------------------------------------------
+
     _loadPinIcon();
+
+    // -------------------------------------------------------------------------
+    // INITIALIZE LOCATION
+    // -------------------------------------------------------------------------
 
     _initLocation();
   }
@@ -154,17 +174,26 @@ class _LocationSelectionScreenState
   // ===========================================================================
 
   Future<void> _loadPinIcon() async {
-    final icon =
-    await MapPinIconLoader.load(
-      _pinAssetPath,
-      size: 110,
-    );
+    try {
+      final icon = await MapPinIconLoader.load(
+        _pinAssetPath,
+        size: 110,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _pinIcon = icon;
-    });
+      setState(() {
+        _pinIcon = icon;
+      });
+
+      debugPrint(
+        '[MapPin] Custom marker loaded successfully',
+      );
+    } catch (e) {
+      debugPrint(
+        '[MapPin] Failed to load custom marker: $e',
+      );
+    }
   }
 
   // ===========================================================================
@@ -173,20 +202,61 @@ class _LocationSelectionScreenState
 
   Future<void> _initLocation() async {
     final granted =
-    await _appPermissions
-        .requestLocationPermission(context);
+    await _appPermissions.requestLocationPermission(
+      context,
+    );
 
     if (!granted) return;
 
     final serviceOn =
-    await _appPermissions
-        .isLocationServiceEnabled();
+    await _appPermissions.isLocationServiceEnabled();
 
     if (!serviceOn) return;
 
     try {
+      // =======================================================================
+      // VERY IMPORTANT
+      //
+      // If we already have a selected location, NEVER replace it with GPS.
+      // =======================================================================
+
+      if (_selectedLocations.isNotEmpty) {
+        final selected =
+            _selectedLocations.first;
+
+        final selectedLatLng = LatLng(
+          selected.latitude,
+          selected.longitude,
+        );
+
+        // Map might not have been created yet.
+        if (_mapController != null) {
+          await _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              selectedLatLng,
+              15,
+            ),
+          );
+        }
+
+        // Make sure marker remains visible.
+        if (mounted) {
+          setState(() {});
+        }
+
+        return;
+      }
+
+      // =======================================================================
+      // NO PREVIOUS LOCATION
+      //
+      // Use current GPS location.
+      // =======================================================================
+
       final position =
       await Geolocator.getCurrentPosition();
+
+      if (!mounted) return;
 
       await _setPinFromLatLng(
         LatLng(
@@ -208,8 +278,9 @@ class _LocationSelectionScreenState
 
   Future<void> _useCurrentLocation() async {
     final granted =
-    await _appPermissions
-        .requestLocationPermission(context);
+    await _appPermissions.requestLocationPermission(
+      context,
+    );
 
     if (!granted) return;
 
@@ -230,8 +301,7 @@ class _LocationSelectionScreenState
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
               'Unable to fetch current location',
@@ -247,10 +317,19 @@ class _LocationSelectionScreenState
   // ===========================================================================
 
   void _startAddingAnotherLocation() {
+    if (_selectedLocations.length >= kMaxLocations) {
+      return;
+    }
+
     setState(() {
       _addingNewLocation = true;
+
       _pendingLocation = null;
     });
+
+    debugPrint(
+      '[Location] Started adding another location',
+    );
   }
 
   // ===========================================================================
@@ -261,7 +340,9 @@ class _LocationSelectionScreenState
     _debounce?.cancel();
 
     if (value.trim().isEmpty) {
-      _suggestionsController.add([]);
+      if (!_suggestionsController.isClosed) {
+        _suggestionsController.add([]);
+      }
 
       return;
     }
@@ -272,13 +353,15 @@ class _LocationSelectionScreenState
       ),
           () async {
         try {
+          final query = value.trim();
+
           debugPrint(
-            '[LocationSearch] Searching: ${value.trim()}',
+            '[LocationSearch] Searching: $query',
           );
 
           final response =
           await authController.searchLocation(
-            query: value.trim(),
+            query: query,
             limit: 5,
           );
 
@@ -289,19 +372,10 @@ class _LocationSelectionScreenState
 
           if (!response.isSuccess ||
               response.data == null) {
-            debugPrint(
-              '[LocationSearch] No results',
-            );
-
             _suggestionsController.add([]);
 
             return;
           }
-
-          debugPrint(
-            '[LocationSearch] Results: '
-                '${response.data!.length}',
-          );
 
           _suggestionsController.add(
             response.data!,
@@ -344,17 +418,18 @@ class _LocationSelectionScreenState
     _searchController.text =
         suggestion.description;
 
-    _suggestionsController.add([]);
+    if (!_suggestionsController.isClosed) {
+      _suggestionsController.add([]);
+    }
 
     FocusScope.of(context).unfocus();
 
-    setState(() {
-      _searchFocused = false;
-    });
+    if (mounted) {
+      setState(() {
+        _searchFocused = false;
+      });
+    }
 
-    // IMPORTANT:
-    // This calls _loadNearbyPoliceStations()
-    // automatically.
     await _setPinFromLatLng(
       LatLng(
         suggestion.latitude,
@@ -385,7 +460,7 @@ class _LocationSelectionScreenState
   }
 
   // ===========================================================================
-  // LOAD NEARBY POLICE STATIONS
+  // POLICE STATIONS
   // ===========================================================================
 
   Future<void> _loadNearbyPoliceStations({
@@ -394,38 +469,15 @@ class _LocationSelectionScreenState
   }) async {
     if (!mounted) return;
 
-    debugPrint(
-      '======================================',
-    );
-
-    debugPrint(
-      '[PoliceStations] Loading...',
-    );
-
-    debugPrint(
-      '[PoliceStations] Latitude: $latitude',
-    );
-
-    debugPrint(
-      '[PoliceStations] Longitude: $longitude',
-    );
-
-    debugPrint(
-      '[PoliceStations] Radius: '
-          '$_policeSearchRadiusKm km',
-    );
-
     setState(() {
       _loadingPoliceStations = true;
 
-      // Clear old police markers immediately.
       _policeStations = [];
     });
 
     try {
       final response =
-      await authController
-          .getNearbyPoliceStations(
+      await authController.getNearbyPoliceStations(
         latitude: latitude,
         longitude: longitude,
         radiusKm: _policeSearchRadiusKm,
@@ -435,47 +487,25 @@ class _LocationSelectionScreenState
 
       if (!response.isSuccess ||
           response.data == null) {
-        debugPrint(
-          '[PoliceStations] API failed',
-        );
-
-        debugPrint(
-          '[PoliceStations] Message: '
-              '${response.message}',
-        );
-
         setState(() {
           _policeStations = [];
+
           _loadingPoliceStations = false;
         });
 
         return;
       }
 
-      final stations = response.data!;
-
-      debugPrint(
-        '[PoliceStations] Found: '
-            '${stations.length}',
-      );
-
-      for (final station in stations) {
-        debugPrint(
-          '[PoliceStations] '
-              '${station.name} '
-              '${station.latitude}, '
-              '${station.longitude}',
-        );
-      }
-
       setState(() {
-        _policeStations = stations;
+        _policeStations =
+        response.data!;
 
         _loadingPoliceStations = false;
       });
 
       debugPrint(
-        '[PoliceStations] Markers updated',
+        '[PoliceStations] Found: '
+            '${_policeStations.length}',
       );
     } catch (e, stackTrace) {
       debugPrint(
@@ -490,17 +520,28 @@ class _LocationSelectionScreenState
 
       setState(() {
         _policeStations = [];
+
         _loadingPoliceStations = false;
       });
     }
-
-    debugPrint(
-      '======================================',
-    );
   }
 
   // ===========================================================================
   // SET PIN
+  //
+  // THIS IS THE MAIN FIX.
+  //
+  // For normal location selection:
+  //
+  //     selected coordinate -> _selectedLocations
+  //
+  // The marker therefore stays alive even while reverse-geocoding is running.
+  //
+  // For "Add Another":
+  //
+  //     selected coordinate -> _pendingLocation
+  //
+  // until the user confirms it.
   // ===========================================================================
 
   Future<void> _setPinFromLatLng(
@@ -510,76 +551,183 @@ class _LocationSelectionScreenState
       }) async {
     if (!mounted) return;
 
-    setState(() {
-      _resolvingPin = true;
+    // =========================================================================
+    // Generate unique request ID.
+    //
+    // This protects against old async reverse-geocoding responses.
+    // =========================================================================
 
-      _pendingLocation =
-          SelectedLocationModel(
-            address:
-            knownAddress ??
-                'Fetching address...',
-            latitude: latLng.latitude,
-            longitude: latLng.longitude,
-          );
-    });
+    final int requestId =
+    ++_locationRequestId;
 
-    // Move camera first.
-    if (moveCamera &&
-        _mapController != null) {
-      await _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          latLng,
-          15,
-        ),
-      );
-    }
+    final String temporaryAddress =
+        knownAddress ??
+            'Fetching address...';
 
-    // IMPORTANT:
-    // Every time the selected location changes,
-    // reload police stations around that location.
-    await _loadNearbyPoliceStations(
+    final immediateLocation =
+    SelectedLocationModel(
+      address: temporaryAddress,
       latitude: latLng.latitude,
       longitude: latLng.longitude,
     );
 
-    // Reverse geocode.
-    final address =
-        knownAddress ??
+    // =========================================================================
+    // IMMEDIATELY SHOW MARKER
+    //
+    // This is the critical part.
+    //
+    // Do NOT wait for reverse geocoding before putting the coordinate into
+    // _selectedLocations.
+    // =========================================================================
+
+    if (!_addingNewLocation) {
+      setState(() {
+        _resolvingPin = true;
+
+        if (_selectedLocations.isEmpty) {
+          _selectedLocations.add(
+            immediateLocation,
+          );
+        } else {
+          // For normal/single-location selection, replace the first location.
+          _selectedLocations[0] =
+              immediateLocation;
+        }
+
+        // There is no need for pending location in normal mode.
+        _pendingLocation = null;
+      });
+    } else {
+      setState(() {
+        _resolvingPin = true;
+
+        _pendingLocation =
+            immediateLocation;
+      });
+    }
+
+    debugPrint(
+      '[Marker] IMMEDIATELY added at '
+          '${latLng.latitude}, ${latLng.longitude}',
+    );
+
+    // =========================================================================
+    // MOVE CAMERA
+    // =========================================================================
+
+    if (moveCamera && _mapController != null) {
+      try {
+        await _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(
+            latLng,
+            15,
+          ),
+        );
+      } catch (e) {
+        debugPrint(
+          '[Map] Camera animation error: $e',
+        );
+      }
+    }
+
+    // =========================================================================
+    // POLICE STATIONS
+    // =========================================================================
+
+    if (widget.mapScreenModel.showPoliceStations) {
+      await _loadNearbyPoliceStations(
+        latitude: latLng.latitude,
+        longitude: latLng.longitude,
+      );
+    }
+
+    // =========================================================================
+    // REVERSE GEOCODE
+    // =========================================================================
+
+    String address = temporaryAddress;
+
+    if (knownAddress == null) {
+      try {
+        address =
             await PlacesService.reverseGeocode(
               latLng.latitude,
               latLng.longitude,
             ) ??
-            'Dropped pin '
-                '(${latLng.latitude.toStringAsFixed(5)}, '
-                '${latLng.longitude.toStringAsFixed(5)})';
+                'Dropped pin '
+                    '(${latLng.latitude.toStringAsFixed(5)}, '
+                    '${latLng.longitude.toStringAsFixed(5)})';
+      } catch (e) {
+        debugPrint(
+          '[Location] Reverse geocode error: $e',
+        );
 
-    if (!mounted) return;
+        address =
+        'Dropped pin '
+            '(${latLng.latitude.toStringAsFixed(5)}, '
+            '${latLng.longitude.toStringAsFixed(5)})';
+      }
+    }
 
-    final resolved =
+    // =========================================================================
+    // IGNORE OLD REQUEST
+    //
+    // Example:
+    //
+    // User selects A
+    // User quickly selects B
+    // A's reverse geocode finishes after B
+    //
+    // We don't allow A to overwrite B.
+    // =========================================================================
+
+    if (!mounted ||
+        requestId != _locationRequestId) {
+      return;
+    }
+
+    final resolvedLocation =
     SelectedLocationModel(
       address: address,
       latitude: latLng.latitude,
       longitude: latLng.longitude,
     );
 
+    // =========================================================================
+    // UPDATE ADDRESS WITHOUT REMOVING MARKER
+    // =========================================================================
+
     setState(() {
       _resolvingPin = false;
 
       if (!_addingNewLocation) {
         if (_selectedLocations.isEmpty) {
+          // Safety fallback.
           _selectedLocations.add(
-            resolved,
+            resolvedLocation,
           );
         } else {
+          // IMPORTANT:
+          // Update the existing selected location.
+          // The marker remains because _buildMarkers() uses this list.
           _selectedLocations[0] =
-              resolved;
+              resolvedLocation;
         }
 
+        // Keep this null in normal mode.
         _pendingLocation = null;
       } else {
-        _pendingLocation = resolved;
+        // Add Another mode.
+        _pendingLocation =
+            resolvedLocation;
       }
     });
+
+    debugPrint(
+      '[Marker] PERMANENT marker at '
+          '${resolvedLocation.latitude}, '
+          '${resolvedLocation.longitude}',
+    );
   }
 
   // ===========================================================================
@@ -597,26 +745,51 @@ class _LocationSelectionScreenState
       return;
     }
 
+    final pending =
+    _pendingLocation!;
+
     final exists =
     _selectedLocations.any(
-          (e) =>
-      e.latitude ==
-          _pendingLocation!.latitude &&
-          e.longitude ==
-              _pendingLocation!.longitude,
+          (location) =>
+          _isSameLocation(
+            location,
+            pending,
+          ),
     );
 
-    if (exists) return;
+    if (exists) {
+      return;
+    }
 
     setState(() {
+      // Move pending location into permanent list.
       _selectedLocations.add(
-        _pendingLocation!,
+        pending,
       );
 
       _pendingLocation = null;
 
       _addingNewLocation = false;
     });
+
+    debugPrint(
+      '[Marker] Added permanent location: '
+          '${pending.latitude}, ${pending.longitude}',
+    );
+  }
+
+  // ===========================================================================
+  // LOCATION COMPARISON
+  // ===========================================================================
+
+  bool _isSameLocation(
+      SelectedLocationModel first,
+      SelectedLocationModel second,
+      ) {
+    return first.latitude ==
+        second.latitude &&
+        first.longitude ==
+            second.longitude;
   }
 
   // ===========================================================================
@@ -631,6 +804,10 @@ class _LocationSelectionScreenState
         location,
       );
     });
+
+    debugPrint(
+      '[Marker] Removed selected location',
+    );
   }
 
   // ===========================================================================
@@ -640,6 +817,8 @@ class _LocationSelectionScreenState
   void _clearPendingPreview() {
     setState(() {
       _pendingLocation = null;
+
+      _resolvingPin = false;
     });
   }
 
@@ -652,8 +831,7 @@ class _LocationSelectionScreenState
       return;
     }
 
-    if (widget.mapScreenModel
-        .needSingleLocation) {
+    if (widget.mapScreenModel.needSingleLocation) {
       Navigator.pop(
         context,
         _selectedLocations.first,
@@ -680,19 +858,49 @@ class _LocationSelectionScreenState
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
+
       body: Stack(
         children: [
-          // -------------------------------------------------------------------
+          // ===================================================================
           // MAP
-          // -------------------------------------------------------------------
+          // ===================================================================
 
           GoogleMap(
             initialCameraPosition:
             _fallbackCamera,
 
-            onMapCreated: (controller) {
+            onMapCreated:
+                (controller) async {
               _mapController =
                   controller;
+
+              // ===============================================================
+              // Restore camera to existing selected location.
+              // ===============================================================
+
+              if (_selectedLocations.isNotEmpty) {
+                final location =
+                    _selectedLocations.first;
+
+                final target =
+                LatLng(
+                  location.latitude,
+                  location.longitude,
+                );
+
+                try {
+                  await controller.animateCamera(
+                    CameraUpdate.newLatLngZoom(
+                      target,
+                      15,
+                    ),
+                  );
+                } catch (e) {
+                  debugPrint(
+                    '[Map] Initial camera error: $e',
+                  );
+                }
+              }
             },
 
             onTap: _onMapTap,
@@ -703,12 +911,21 @@ class _LocationSelectionScreenState
             zoomControlsEnabled:
             false,
 
-            markers: _buildMarkers(),
+            // =================================================================
+            // IMPORTANT:
+            //
+            // Every rebuild gets markers from _selectedLocations.
+            //
+            // So changing address/loading state does NOT remove the marker.
+            // =================================================================
+
+            markers:
+            _buildMarkers(),
           ),
 
-          // -------------------------------------------------------------------
+          // ===================================================================
           // SEARCH BAR
-          // -------------------------------------------------------------------
+          // ===================================================================
 
           Positioned(
             top:
@@ -716,14 +933,18 @@ class _LocationSelectionScreenState
                 .padding
                 .top +
                 12,
+
             left: 16,
+
             right: 16,
-            child: _buildSearchBar(),
+
+            child:
+            _buildSearchBar(),
           ),
 
-          // -------------------------------------------------------------------
+          // ===================================================================
           // SEARCH DROPDOWN
-          // -------------------------------------------------------------------
+          // ===================================================================
 
           if (_searchFocused)
             Positioned(
@@ -732,36 +953,47 @@ class _LocationSelectionScreenState
                   .padding
                   .top +
                   68,
+
               left: 16,
+
               right: 16,
+
               child:
               _buildSuggestionsDropdown(),
             ),
 
-          // -------------------------------------------------------------------
-          // POLICE LOADING INDICATOR
-          // -------------------------------------------------------------------
+          // ===================================================================
+          // POLICE LOADING
+          // ===================================================================
 
-          if (_loadingPoliceStations)
+          if (widget
+              .mapScreenModel
+              .showPoliceStations &&
+              _loadingPoliceStations)
             Positioned(
               top:
               MediaQuery.of(context)
                   .padding
                   .top +
                   70,
+
               right: 16,
+
               child:
               _buildPoliceLoadingIndicator(),
             ),
 
-          // -------------------------------------------------------------------
+          // ===================================================================
           // BOTTOM SHEET
-          // -------------------------------------------------------------------
+          // ===================================================================
 
           Positioned(
             left: 0,
+
             right: 0,
+
             bottom: 0,
+
             child:
             _buildBottomSheet(
               canAddMore,
@@ -774,71 +1006,93 @@ class _LocationSelectionScreenState
 
   // ===========================================================================
   // MARKERS
+  //
+  // THIS FUNCTION IS NOW THE SINGLE SOURCE OF TRUTH FOR LOCATION MARKERS.
   // ===========================================================================
 
   Set<Marker> _buildMarkers() {
-    final Set<Marker> markers = {};
+    final Set<Marker> markers =
+    <Marker>{};
 
-    // -------------------------------------------------------------------------
+    // =========================================================================
     // POLICE STATION MARKERS
-    // -------------------------------------------------------------------------
+    // =========================================================================
+
+    if (widget.mapScreenModel.showPoliceStations) {
+      for (int i = 0;
+      i < _policeStations.length;
+      i++) {
+        final station =
+        _policeStations[i];
+
+        markers.add(
+          Marker(
+            markerId: MarkerId(
+              'police_station_$i',
+            ),
+
+            position: LatLng(
+              station.latitude,
+              station.longitude,
+            ),
+
+            icon:
+            BitmapDescriptor
+                .defaultMarkerWithHue(
+              BitmapDescriptor.hueBlue,
+            ),
+
+            infoWindow:
+            InfoWindow(
+              title:
+              station.name,
+              snippet:
+              station.address,
+            ),
+          ),
+        );
+      }
+    }
+
+    // =========================================================================
+    // PERMANENT SELECTED LOCATION MARKERS
+    //
+    // NEVER REMOVE THIS BASED ON _resolvingPin.
+    //
+    // Even while address is being fetched, the marker must remain.
+    // =========================================================================
 
     for (int i = 0;
-    i < _policeStations.length;
+    i < _selectedLocations.length;
     i++) {
-      final station =
-      _policeStations[i];
+      final location =
+      _selectedLocations[i];
 
       markers.add(
         Marker(
           markerId: MarkerId(
-            'police_station_$i',
+            'selected_location_$i',
           ),
 
           position: LatLng(
-            station.latitude,
-            station.longitude,
+            location.latitude,
+            location.longitude,
           ),
 
-          icon:
-          BitmapDescriptor
-              .defaultMarkerWithHue(
-            BitmapDescriptor
-                .hueBlue,
-          ),
-
-          infoWindow: InfoWindow(
-            title: station.name,
-            snippet:
-            station.address,
-          ),
-        ),
-      );
-    }
-
-    // -------------------------------------------------------------------------
-    // SELECTED/PENDING LOCATION MARKER
-    // -------------------------------------------------------------------------
-
-    if (_pendingLocation != null) {
-      markers.add(
-        Marker(
-          markerId:
-          const MarkerId(
-            'pending_pin',
-          ),
-
-          position: LatLng(
-            _pendingLocation!
-                .latitude,
-            _pendingLocation!
-                .longitude,
-          ),
+          // ===================================================================
+          // CUSTOM SVG MARKER
+          // ===================================================================
 
           icon:
           _pinIcon ??
               BitmapDescriptor
                   .defaultMarker,
+
+          // ===================================================================
+          // IMPORTANT
+          //
+          // The coordinate represents the bottom-center of your pin image.
+          // ===================================================================
 
           anchor:
           const Offset(
@@ -847,13 +1101,88 @@ class _LocationSelectionScreenState
           ),
 
           infoWindow:
-          const InfoWindow(
+          InfoWindow(
             title:
             'Selected location',
+            snippet:
+            location.address,
           ),
+
+          // Allows marker tap.
+          consumeTapEvents: false,
         ),
       );
     }
+
+    // =========================================================================
+    // PENDING LOCATION
+    //
+    // Only used for "Add Another Location".
+    // =========================================================================
+
+    if (_pendingLocation != null) {
+      final pending =
+      _pendingLocation!;
+
+      final alreadySelected =
+      _selectedLocations.any(
+            (location) =>
+            _isSameLocation(
+              location,
+              pending,
+            ),
+      );
+
+      if (!alreadySelected) {
+        markers.add(
+          Marker(
+            markerId:
+            const MarkerId(
+              'pending_pin',
+            ),
+
+            position: LatLng(
+              pending.latitude,
+              pending.longitude,
+            ),
+
+            icon:
+            _pinIcon ??
+                BitmapDescriptor
+                    .defaultMarker,
+
+            anchor:
+            const Offset(
+              0.5,
+              1.0,
+            ),
+
+            infoWindow:
+            const InfoWindow(
+              title:
+              'Selected location',
+            ),
+
+            consumeTapEvents:
+            false,
+          ),
+        );
+      }
+    }
+
+    debugPrint(
+      '[Markers] Total markers: ${markers.length}',
+    );
+
+    debugPrint(
+      '[Markers] Selected locations: '
+          '${_selectedLocations.length}',
+    );
+
+    debugPrint(
+      '[Markers] Pending: '
+          '${_pendingLocation != null}',
+    );
 
     return markers;
   }
@@ -867,9 +1196,11 @@ class _LocationSelectionScreenState
       children: [
         buildIconContainer(
           context,
+
           icon:
           AssetImages
               .iosBackArrow,
+
           onTap: () {
             context.pop();
           },
@@ -917,11 +1248,15 @@ class _LocationSelectionScreenState
                 _searchController
                     .clear();
 
-                _suggestionsController
-                    .add([]);
+                if (!_suggestionsController
+                    .isClosed) {
+                  _suggestionsController
+                      .add([]);
+                }
 
                 setState(() {});
               },
+
               child:
               AppIconWidget(
                 assetPath:
@@ -939,9 +1274,11 @@ class _LocationSelectionScreenState
 
         buildIconContainer(
           context,
+
           icon:
           AssetImages
               .currentLocation,
+
           onTap:
           _useCurrentLocation,
         ),
@@ -957,8 +1294,7 @@ class _LocationSelectionScreenState
     return StreamBuilder<
         List<LocationSuggestionModel>>(
       stream:
-      _suggestionsController
-          .stream,
+      _suggestionsController.stream,
 
       builder:
           (context, snapshot) {
@@ -978,10 +1314,12 @@ class _LocationSelectionScreenState
           decoration:
           BoxDecoration(
             color: Colors.white,
+
             borderRadius:
             BorderRadius.circular(
               16,
             ),
+
             boxShadow:
             const [
               BoxShadow(
@@ -999,8 +1337,7 @@ class _LocationSelectionScreenState
             shrinkWrap: true,
 
             padding:
-            const EdgeInsets
-                .symmetric(
+            const EdgeInsets.symmetric(
               vertical: 6,
             ),
 
@@ -1016,14 +1353,14 @@ class _LocationSelectionScreenState
             itemBuilder:
                 (context, index) {
               final suggestion =
-              suggestions[
-              index];
+              suggestions[index];
 
               return Material(
                 color:
                 AppColors.white,
 
-                child: ListTile(
+                child:
+                ListTile(
                   dense: true,
 
                   leading:
@@ -1033,7 +1370,8 @@ class _LocationSelectionScreenState
                         .mapIcon,
                   ).pad(),
 
-                  title: AppText(
+                  title:
+                  AppText(
                     text:
                     suggestion
                         .description,
@@ -1069,10 +1407,12 @@ class _LocationSelectionScreenState
       decoration:
       BoxDecoration(
         color: Colors.white,
+
         borderRadius:
         BorderRadius.circular(
           20,
         ),
+
         boxShadow:
         const [
           BoxShadow(
@@ -1086,20 +1426,26 @@ class _LocationSelectionScreenState
       child: const Row(
         mainAxisSize:
         MainAxisSize.min,
+
         children: [
           SizedBox(
             height: 16,
+
             width: 16,
+
             child:
             CircularProgressIndicator(
               strokeWidth: 2,
             ),
           ),
+
           SizedBox(
             width: 8,
           ),
+
           Text(
             'Finding police stations...',
+
             style: TextStyle(
               fontSize: 12,
             ),
@@ -1172,8 +1518,10 @@ class _LocationSelectionScreenState
             AppText(
               text:
               'Selected location',
+
               fontWeight:
               FontWeight.w600,
+
               fontSize: 15,
             ),
 
@@ -1181,9 +1529,9 @@ class _LocationSelectionScreenState
               height: 8,
             ),
 
-            // -----------------------------------------------------------------
+            // =================================================================
             // EMPTY
-            // -----------------------------------------------------------------
+            // =================================================================
 
             if (_selectedLocations
                 .isEmpty &&
@@ -1191,52 +1539,63 @@ class _LocationSelectionScreenState
               AppText(
                 text:
                 'Search or tap on the map to drop a pin.',
+
                 fontSize: 13,
+
                 color:
                 AppColors.grey,
               ),
 
-            // -----------------------------------------------------------------
+            // =================================================================
             // SELECTED LOCATIONS
-            // -----------------------------------------------------------------
+            // =================================================================
 
             ..._selectedLocations.map(
                   (loc) =>
                   _buildLocationCard(
                     loc,
-                    isLoading: false,
-                    isPending: false,
+
+                    isLoading:
+                    false,
+
+                    isPending:
+                    false,
                   ),
             ),
 
-            // -----------------------------------------------------------------
-            // PENDING LOCATION
-            // -----------------------------------------------------------------
+            // =================================================================
+            // PENDING
+            // =================================================================
 
             if (hasPendingPreview)
               _buildLocationCard(
                 _pendingLocation!,
+
                 isLoading:
                 _resolvingPin,
-                isPending: true,
+
+                isPending:
+                true,
               ),
 
-            // -----------------------------------------------------------------
+            // =================================================================
             // ADD ANOTHER
-            // -----------------------------------------------------------------
+            // =================================================================
 
             if (canAddMore &&
-                !widget.mapScreenModel
+                !widget
+                    .mapScreenModel
                     .needSingleLocation) ...[
               const SizedBox(
                 height: 8,
               ),
+
               _buildAddAnotherButton(),
             ],
 
-            // -----------------------------------------------------------------
+            // =================================================================
             // HINT
-            // -----------------------------------------------------------------
+            // =================================================================
 
             if ((_selectedLocations
                 .isNotEmpty ||
@@ -1248,6 +1607,7 @@ class _LocationSelectionScreenState
               const SizedBox(
                 height: 12,
               ),
+
               _buildHintBanner(),
             ],
 
@@ -1255,9 +1615,9 @@ class _LocationSelectionScreenState
               height: 16,
             ),
 
-            // -----------------------------------------------------------------
+            // =================================================================
             // CONFIRM
-            // -----------------------------------------------------------------
+            // =================================================================
 
             Opacity(
               opacity:
@@ -1266,13 +1626,17 @@ class _LocationSelectionScreenState
                   ? 0.5
                   : 1,
 
-              child: IgnorePointer(
+              child:
+              IgnorePointer(
                 ignoring:
                 _selectedLocations
                     .isEmpty,
 
-                child: AppButton(
-                  onTap: _confirm,
+                child:
+                AppButton(
+                  onTap:
+                  _confirm,
+
                   title:
                   'Confirm location',
                 ),
@@ -1324,6 +1688,10 @@ class _LocationSelectionScreenState
             .start,
 
         children: [
+          // ===================================================================
+          // LOADING / MAP ICON
+          // ===================================================================
+
           if (isLoading)
             const Padding(
               padding:
@@ -1333,6 +1701,7 @@ class _LocationSelectionScreenState
 
               child: SizedBox(
                 height: 16,
+
                 width: 16,
 
                 child:
@@ -1344,11 +1713,15 @@ class _LocationSelectionScreenState
           else
             buildIconContainer(
               context,
+
               size: 15,
+
               icon:
               AssetImages
                   .mapIcon,
+
               height: 28,
+
               width: 28,
             ),
 
@@ -1356,38 +1729,38 @@ class _LocationSelectionScreenState
             width: 10,
           ),
 
+          // ===================================================================
+          // ADDRESS
+          // ===================================================================
+
           Expanded(
             child: isLoading
-                ? Column(
-              crossAxisAlignment:
-              CrossAxisAlignment
-                  .start,
+                ? AppText(
+              text:
+              'Fetching address...',
 
-              mainAxisSize:
-              MainAxisSize.min,
+              fontSize:
+              13,
 
-              children: [
-                AppText(
-                  text:
-                  'Fetching address...',
-                  fontSize:
-                  13,
-                  color:
-                  AppColors
-                      .grey,
-                ),
-              ],
+              color:
+              AppColors
+                  .grey,
             )
                 : AppText(
               text:
-              location
-                  .address,
+              location.address,
+
               fontSize:
               13,
+
               color:
               Colors.black87,
             ),
           ),
+
+          // ===================================================================
+          // DELETE
+          // ===================================================================
 
           if (!isLoading)
             GestureDetector(
@@ -1406,8 +1779,10 @@ class _LocationSelectionScreenState
                 assetPath:
                 AssetImages
                     .delete,
+
                 color:
                 AppColors.black,
+
                 size: 20,
               ).pad(),
             ),
@@ -1447,7 +1822,8 @@ class _LocationSelectionScreenState
         prefixIcon:
         AssetImages.add,
 
-        border: Border.all(
+        border:
+        Border.all(
           color:
           AppColors.primaryColor,
         ),
@@ -1489,7 +1865,8 @@ class _LocationSelectionScreenState
 
       size: 20,
 
-      border: Border.all(
+      border:
+      Border.all(
         color:
         AppColors.primaryColor,
       ),
@@ -1535,7 +1912,9 @@ class _LocationSelectionScreenState
         children: [
           const Icon(
             Icons.lightbulb_outline,
+
             size: 18,
+
             color:
             AppColors
                 .primaryColor,
@@ -1549,7 +1928,9 @@ class _LocationSelectionScreenState
             child: AppText(
               text:
               'You can add up to $kMaxLocations locations. We\'ll search around all selected locations.',
+
               fontSize: 12,
+
               color:
               AppColors.grey,
             ),
@@ -1570,9 +1951,12 @@ class MapScreenModel {
   final List<SelectedLocationModel>?
   selectedLocation;
 
+  final bool showPoliceStations;
+
   MapScreenModel({
     required this.needSingleLocation,
     this.selectedLocation,
+    this.showPoliceStations = false,
   });
 }
 

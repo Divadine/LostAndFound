@@ -473,7 +473,7 @@ filterStateStream.add(state);
                       ),
                       GestureDetector(
                         onTap: () {
-                          AppDialogue.showPopup(context: context, content: ChatSendRequest());
+                          AppDialogue.showPopup(context: context, content: ChatSendRequest(onDecline: () {  }, onAccept: () {  },));
                           //AppRoutes.pushNamed(AppRoutes.loginScreen);
                         },
                         child: AppIconWidget(

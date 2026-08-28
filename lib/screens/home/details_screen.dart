@@ -60,6 +60,24 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
     }
   }
 
+  String _getMediaUrl(String? url) {
+    if (url == null || url.trim().isEmpty) {
+      return '';
+    }
+
+    final cleanUrl = url.trim();
+
+    // Already a complete URL
+    if (cleanUrl.startsWith('http://') ||
+        cleanUrl.startsWith('https://')) {
+      return cleanUrl;
+    }
+
+    // API returns relative paths such as:
+    // uploads/video/xxxxx.mp4
+    // uploads/audio/xxxxx.m4a
+    return 'https://lost-and-found.skyraantech.com/backend/$cleanUrl';
+  }
   Future<void> _fetchPostDetails() async {
     setState(() {
       isLoading = true;
@@ -270,7 +288,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                               fontSize: 14,
                               color: AppColors.primaryColor,
                             ),
-                            AppAudioPlayer(url: post.audioUrl!),
+                            AppAudioPlayer( url: _getMediaUrl(post.videoUrl),),
                           ],
                         ),
 
@@ -285,7 +303,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                               fontSize: 14,
                               color: AppColors.primaryColor,
                             ),
-                            AppVideoPlayer(url: post.videoUrl!),
+                            AppVideoPlayer(url: _getMediaUrl(post.videoUrl),),
                           ],
                         ),
                     ],

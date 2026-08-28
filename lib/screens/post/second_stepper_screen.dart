@@ -333,7 +333,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
     if (completeResponse.isSuccess) {
       AppDialogue.showPopup(context: context, content: PostLive());
-      AppRoutes.pushNamed(AppRoutes.bottomScreen);
+      //AppRoutes.pushNamed(AppRoutes.bottomScreen);
     } else {
       final msg = completeResponse.currentState == CurrentState.noInternet
           ? 'No internet connection. Please check your network.'

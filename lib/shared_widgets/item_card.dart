@@ -303,7 +303,7 @@ class ItemCard extends StatelessWidget {
                           spacing: 10,
                           children: [
                             AppText(
-                              text: 'view All',
+                              text: 'View All',
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                               color: AppColors.primaryColor,
