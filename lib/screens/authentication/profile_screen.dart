@@ -848,7 +848,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               final profile = UpdateProfileForm(
                 id: widget.profileModel.userId,
-                //profileImg: choosenImage,
+                profileImg: choosenImage,
                 name: nameController.text,
                 phoneNo: mobileController.text,
                 altNo: alternativeController.text.isNotEmpty
