@@ -6,6 +6,7 @@ import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 
@@ -31,6 +32,10 @@ class ItemCard extends StatelessWidget {
   final bool showPostId;
   final bool isTopAvailabilityCard;
   final double? imageWidth;
+    final int? postIntId;        // NEW — numeric id for API calls
+  final VoidCallback? onDeleted; // NEW — refresh trigger after successful delete
+  final VoidCallback? onViewAll;
+
 
   const ItemCard({
     super.key,
@@ -55,6 +60,8 @@ class ItemCard extends StatelessWidget {
     required this.showPostId,
     this.isTopAvailabilityCard = false,
     this.imageWidth,
+    this.postIntId,
+   this.onDeleted, this.onViewAll,
   });
 
   @override
@@ -68,11 +75,13 @@ class ItemCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            if (percentageMatch != null &&
-                profileName != null &&
-                profileUrl != null) ...[
+
+            if (percentageMatch != null ||
+                profileName != null ||
+                profileUrl != null ||
+                profileId != null) ...[
               Container(
-                // padding: EdgeInsets.all(10),
+                padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: AppColors.grey.withAlpha(20),
                   borderRadius: BorderRadius.only(
@@ -86,6 +95,7 @@ class ItemCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    if (profileUrl != null && profileUrl!.trim().isNotEmpty)
                     CircleAvatar(
                       radius: 20,
                       child: AppCachedNetworkImage(
@@ -96,12 +106,14 @@ class ItemCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ).padVertical(5),
+                    if (profileName != null && profileName!.trim().isNotEmpty)
                     AppText(
                       text: profileName!,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                       color: AppColors.primaryColor,
                     ),
+                    if (profileId != null && profileId!.trim().isNotEmpty)
                     Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 10,
@@ -112,7 +124,7 @@ class ItemCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: AppText(
-                        text: 'ID : LF2098',
+                        text: 'ID : ${profileId ?? '-'}',
                         fontWeight: FontWeight.w500,
                         fontSize: 10,
                         color: AppColors.primaryColor,
@@ -120,6 +132,7 @@ class ItemCard extends StatelessWidget {
                     ),
                     Spacer(),
 
+                    if (percentageMatch != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -197,7 +210,7 @@ class ItemCard extends StatelessWidget {
                   ),
                 ),
 
-                if (profileUrl == null && !isFromEnquiry)
+                if (profileUrl == null && !isFromEnquiry  && postIntId != null)
                   PopupMenuButton(
                     color: AppColors.white,
                     icon: AppIconWidget(assetPath: AssetImages.more),
@@ -231,9 +244,13 @@ class ItemCard extends StatelessWidget {
                     ],
                     onSelected: (value) {
                       if (value == 'delete') {
+                        print('DELETE TAPPED — postIntId: $postIntId');
                         AppDialogue.showPopup(
                           context: context,
-                          content: const DeletePostReasonsDialog(),
+                          content: DeletePostReasonsDialog(
+                            postId: postIntId!,
+                            onDeleted: onDeleted,
+                          ),
                         );
                       }
                     },
@@ -259,45 +276,49 @@ class ItemCard extends StatelessWidget {
               ),
             SizedBox(height: 10),
             if (foundCount != null)
-              Container(
-                height: 35,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  //border: Border.all(color: AppColors.primaryColor),
-                  color: AppColors.lightBlue,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  spacing: 20,
-                  children: [
-                    Flexible(
-                      child: AppText(
-                        text: 'Available Matching item - $foundCount founded',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {},
-                      child: Row(
-                        spacing: 10,
-                        children: [
-                          AppText(
-                            text: 'view All',
+              GestureDetector(
+                onTap:onViewAll,
+                child: Container(
+                  height: 35,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    //border: Border.all(color: AppColors.primaryColor),
+                    color: AppColors.lightBlue,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: GestureDetector(
+                    onTap: onViewAll,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      spacing: 20,
+                      children: [
+                        Flexible(
+                          child: AppText(
+                            text: 'Available Matching item - $foundCount founded',
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.primaryColor,
                           ),
-                          AppIconWidget(assetPath: AssetImages.iosForward),
-                        ],
-                      ),
-                    ),
-                  ],
-                ).padHorizontal(),
-              ).pad(),
+                        ),
+                        Row(
+                          spacing: 10,
+                          children: [
+                            AppText(
+                              text: 'View All',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.primaryColor,
+                            ),
+                            AppIconWidget(assetPath: AssetImages.iosForward),
+                          ],
+                        ),
+                      ],
+                    ).padHorizontal(),
+                  ),
+                ).pad(),
+              ),
 
-            if (enquiredProfile != null && newMessageCount != null)
+           // if (enquiredProfile != null && newMessageCount != null)
+            if (newMessageCount != null)
               Container(
                 height: 35,
                 width: double.infinity,
@@ -316,6 +337,7 @@ class ItemCard extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                       color: AppColors.secondaryBlack,
                     ),
+                    if (enquiredProfile != null && enquiredProfile!.isNotEmpty)
                     EnquiredPersonsAvatar(images: enquiredProfile!),
                     GestureDetector(
                       onTap: () {},

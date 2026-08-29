@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
-import 'package:lost_and_found/enums/otp_flow.dart';
+import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -63,7 +63,14 @@ class _OtpScreenState extends State<OtpScreen> {
               }
               return response.message;
             },
-            onSendOtp: () =>authController.sendOtp(widget.mobileNo,type: 2),
+            onSendOtp: () async {
+              final response = await authController.sendOtp(widget.mobileNo, type: 2);
+              if (response.isSuccess) return null;
+              if (response.currentState == CurrentState.noInternet) {
+                return 'No internet connection. Please check your network.';
+              }
+              return response.message.isNotEmpty ? response.message : 'Failed to send OTP';
+            },
 
 
           ).pad(),

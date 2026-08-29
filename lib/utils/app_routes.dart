@@ -1,6 +1,9 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
+import 'package:lost_and_found/models/categories_model/category_model.dart';
 import 'package:lost_and_found/screens/bottomsheets/filter_screen.dart';
 import 'package:lost_and_found/screens/chat/individual_chat_screen.dart';
 import 'package:lost_and_found/screens/home/available_matching_screen.dart';
@@ -121,11 +124,7 @@ class AppRoutes {
         name: firstHomeScreen,
         builder: (context, state) => const FirstHomeScreen(),
       ),
-      GoRoute(
-        path: '/categoryRadioScreen',
-        name: categoryRadioScreen,
-        builder: (context, state) => const CategoryRadiosListsScreen(),
-      ),
+
 
       GoRoute(
         path: '/settingsScreen',
@@ -160,12 +159,16 @@ class AppRoutes {
         path: '/availableMatchingScreen',
         name: availableMatchingScreen,
         builder: (context, state) {
-          final model = state.extra as AvailableScreenModel;
+          final data = state.extra as Map<String, dynamic>;
           return AvailableMatchingScreen(
-            availableScreenModel: AvailableScreenModel(
-              foundCount: 8,
-              isReceived: false,
-            ),
+            postId: data['postId'] as int,
+            imgUrl: data['imgUrl'] as String? ?? '',
+            title: data['title'] as String? ?? '',
+            location: data['location'] as String? ?? '',
+            date: data['date'] as String? ?? '',
+            postUid: data['postUid'] as String? ?? '',
+            foundCount: data['foundCount'] as int?,
+            isReceived: data['isReceived'] as bool? ?? false,
           );
         },
       ),
@@ -173,7 +176,22 @@ class AppRoutes {
         path: '/lostItemsDetailsScreen',
         name: lostItemsDetailsScreen,
         builder: (context, state) {
-          return LostItemsDetailsScreen();
+          final data = state.extra as Map<String, dynamic>?;
+          final postId = data?['postId'] as int?;
+          final userId = data?['userId'] as int?;
+          if (postId == null || userId == null) {
+            return const Scaffold(
+              body: Center(child: Text('Missing item reference')),
+            );
+          }
+          return LostItemsDetailsScreen(
+            postId: postId,
+            userId: userId,
+            percentageMatch: data?['percentageMatch'] as int?,
+            posterName: data?['posterName'] as String? ?? '',
+            posterAvatar: data?['posterAvatar'] as String? ?? '',
+            originalPostId: data?['originalPostId'] as int? ?? 0,
+          );
         },
       ),
 
@@ -181,7 +199,14 @@ class AppRoutes {
         path: '/enquiryListScreen',
         name: enquiryListScreen,
         builder: (context, state) {
-          return EnquiryListScreen();
+          final data = state.extra as Map<String, dynamic>?;
+          final postId = data?['postId'] as int?;
+          if (postId == null) {
+            return const Scaffold(
+              body: Center(child: Text('Missing post reference')),
+            );
+          }
+          return EnquiryListScreen(postId: postId);
         },
       ),
       GoRoute(
@@ -195,7 +220,11 @@ class AppRoutes {
         path: '/secondStepperScreen',
         name: secondStepperScreen,
         builder: (context, state) {
-          return SecondStepperScreen();
+          final data = state.extra as Map<String, dynamic>;
+          return SecondStepperScreen(
+            postId: data['postId'] as int,
+            prefillDescription: data['prefillDescription'] as String?,
+          );
         },
       ),
       GoRoute(
@@ -208,10 +237,28 @@ class AppRoutes {
       ),
 
       GoRoute(
+        path: '/categoryRadioScreen',
+        name: categoryRadioScreen,
+        builder: (context, state) {
+          final postType = state.extra as int?;
+          if (postType == null) {
+            return const Scaffold(
+              body: Center(child: Text('Missing post type')),
+            );
+          }
+          return CategoryRadiosListsScreen(postType: postType);
+        },
+      ),
+
+      GoRoute(
         path: '/subCategoryScreen',
         name: subCategoryScreen,
         builder: (context, state) {
-          return SubCategoryScreen(category: state.extra as Map<String,dynamic>,);
+          final data = state.extra as Map<String, dynamic>;
+          return SubCategoryScreen(
+            category: data['category'] as CategoryModel,
+            postType: data['postType'] as int,
+          );
         },
       ),
 
@@ -219,7 +266,11 @@ class AppRoutes {
         path: '/individualChatScreen',
         name: individualChatScreen,
         builder: (context, state) {
-          return IndividualChatScreen();
+          final data = state.extra as Map<String, dynamic>?;
+          if (data == null || data['roomId'] == null) {
+            return const Scaffold(body: Center(child: Text('Missing chat reference')));
+          }
+          return IndividualChatScreen.fromArgs(data);
         },
       ),
 
@@ -229,7 +280,10 @@ class AppRoutes {
         builder: (context, state) {
           final data = state.extra as Map<String,dynamic>;
 
-          return FirstStepperScreen(subCategory : data['subCategory']);
+          return FirstStepperScreen(
+            category : data['category'],
+            subCategory : data['subCategory'],
+            postType: data['postType'] as int, );
         },
       ),
 

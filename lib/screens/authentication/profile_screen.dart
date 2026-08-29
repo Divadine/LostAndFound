@@ -8,10 +8,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/controllers/pincode_profile_controllers.dart';
+import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/models/authmodels/pincode_details_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
-import 'package:lost_and_found/models/selected_location_model.dart';
+import 'package:lost_and_found/models/posts_model/selected_location_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/authentication/otp_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
@@ -20,6 +21,7 @@ import 'package:lost_and_found/screens/permissions/location_permission.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
+import 'package:lost_and_found/shared_widgets/app_dropdown_field.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
@@ -42,6 +44,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+
   final TextEditingController alternativeController = TextEditingController();
   final AuthControllers authController = AuthControllers(
     authRepository: AuthRepository(apiClient: ApiClient()),
@@ -456,52 +459,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   textInputType: TextInputType.phone,
                                   suffixIcon: StreamBuilder(
                                     stream: verifyMobileStream.stream,
+                                    initialData: _isAltVerified,
                                     builder: (context, asyncSnapshot) {
                                       final isVerified =
                                           asyncSnapshot.data ?? false;
                                       return GestureDetector(
-                                        onTap: () {
-                                          if (isVerified) return;
+                                        onTap: isVerified ? null : () {
+                                          if
+                                           (AppUtils.validateMobileNumber(alternativeController.text) == null) {
+                                            if (isVerified) return;
 
-                                          if (AppUtils.validateMobileNumber(
-                                                alternativeController.text,
-                                              ) ==
-                                              null) {
-                                            AppDialogue.showPopup(
-                                              context: context,
-                                              content: OtpSharedScreen(
-                                                isAlternateNumber: true,
-                                                mobileNumber:
-                                                    alternativeController.text,
-                                                onVerifyOtp: (String otp) async {
-                                                  final response =
-                                                      await authController
-                                                          .verifyMobileOtp(
-                                                            phone:
-                                                                alternativeController
-                                                                    .text,
-                                                            otp: otp,
-                                                            userId: widget
-                                                                .profileModel
-                                                                .userId!,
-                                                          );
-                                                  if (response.status == 1) {
-                                                    _isAltVerified = true;
-                                                    verifyMobileStream.add(
-                                                      true,
-                                                    );
-                                                    AppRoutes.pop();
-                                                    return null;
-                                                  }
-                                                  return response.message;
-                                                },
-                                                onSendOtp: () => authController
-                                                    .generateMobileOtp(
+                                            if (AppUtils.validateMobileNumber(
+                                              alternativeController.text,
+                                            ) ==
+                                                null) {
+                                              AppDialogue.showPopup(
+                                                context: context,
+                                                content: OtpSharedScreen(
+                                                  isAlternateNumber: true,
+                                                  mobileNumber:
+                                                  alternativeController.text,
+                                                  onVerifyOtp: (
+                                                      String otp) async {
+                                                    final response =
+                                                    await authController
+                                                        .verifyMobileOtp(
+                                                      phone:
                                                       alternativeController
                                                           .text,
-                                                    ),
-                                              ),
-                                            );
+                                                      otp: otp,
+                                                      userId: widget
+                                                          .profileModel
+                                                          .userId!,
+                                                    );
+                                                    if (response.status == 1) {
+                                                      _isAltVerified = true;
+                                                      verifyMobileStream.add(
+                                                        true,
+                                                      );
+                                                      AppRoutes.pop();
+                                                      return null;
+                                                    }
+                                                    return response.message;
+                                                  },
+                                                  onSendOtp: () async {
+                                                    final response = await authController
+                                                        .generateMobileOtp(
+                                                        alternativeController
+                                                            .text);
+                                                    if (response.isSuccess)
+                                                      return null;
+                                                    if (response.currentState ==
+                                                        CurrentState
+                                                            .noInternet) {
+                                                      return 'No internet connection. Please check your network.';
+                                                    }
+                                                    return response.message
+                                                        .isNotEmpty
+                                                        ? response.message
+                                                        : 'Failed to send OTP';
+                                                  },
+                                                ),
+                                              );
+                                            }
                                           }
                                         },
                                         child: SizedBox(
@@ -687,38 +707,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       //city
                       //city
+                      // city
                       buildTextFieldWithHeading(
                         title: 'City',
-                        fieldWidget: DropdownButtonFormField<String>(
+                        fieldWidget: AppDropdownField<String>(
                           value: selectedCityName,
-                          items: cityOptions
-                              .map(
-                                (a) => DropdownMenuItem(
-                                  value: a.name,
-                                  child: Text(a.name),
-                                ),
-                              )
-                              .toList(),
+                          borderColor: AppColors.fieldGrey,
+                          hintText: cityOptions.isEmpty ? 'Fetch pincode first' : 'Select city',
+                          items: cityOptions.map((a) => a.name).toList(),
+                          itemLabel: (value) => value,
+                          selectedItemColor: AppColors.primaryColor.withAlpha(30),
+                          selectedItemTextColor: AppColors.primaryColor,
                           onChanged: cityOptions.isEmpty
                               ? null
                               : (v) {
-                                  setState(() {
-                                    selectedCityName = v;
-                                    cityController.text = v ?? '';
-                                  });
-                                  _checkFormValidity();
-                                },
-                          decoration: InputDecoration(
-                            hintText: cityOptions.isEmpty
-                                ? 'Fetch pincode first'
-                                : 'Select city',
-                            border: const OutlineInputBorder(),
-                          ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? 'City is required'
-                              : null,
+                            setState(() {
+                              selectedCityName = v;
+                              cityController.text = v ?? '';
+                            });
+                            _checkFormValidity();
+                          },
                         ),
                       ),
+                      // buildTextFieldWithHeading(
+                      //   title: 'City',
+                      //   fieldWidget: DropdownButtonFormField<String>(
+                      //     value: selectedCityName,
+                      //     items: cityOptions
+                      //         .map(
+                      //           (a) => DropdownMenuItem(
+                      //             value: a.name,
+                      //             child: Text(a.name),
+                      //           ),
+                      //         )
+                      //         .toList(),
+                      //     onChanged: cityOptions.isEmpty
+                      //         ? null
+                      //         : (v) {
+                      //             setState(() {
+                      //               selectedCityName = v;
+                      //               cityController.text = v ?? '';
+                      //             });
+                      //             _checkFormValidity();
+                      //           },
+                      //     decoration: InputDecoration(
+                      //       hintText: cityOptions.isEmpty
+                      //           ? 'Fetch pincode first'
+                      //           : 'Select city',
+                      //       border: const OutlineInputBorder(),
+                      //     ),
+                      //     validator: (v) => v == null || v.isEmpty
+                      //         ? 'City is required'
+                      //         : null,
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),
@@ -864,6 +906,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 log: longitude,
                 altVerified: _isAltVerified,
               );
+
               final response = await authController.updateProfileForm(profile);
               if (!mounted) return;
               if (response.status == 1) {
@@ -875,7 +918,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 AppDialogue.showPopup(
                   context: context,
                   content: AppText(
-                    text: response.message ?? 'Something went wrong',
+                    text: response.message ,
                   ),
                 );
               }

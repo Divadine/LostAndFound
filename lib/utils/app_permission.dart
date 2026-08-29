@@ -55,23 +55,7 @@ class AppPermissions {
     return await Permission.camera.isGranted;
   }
 
-  // Future<bool> requestCameraPermission(BuildContext context) async {
-  //   final status = await Permission.camera.status;
-  //
-  //   if (status.isGranted) return true;
-  //
-  //   if (status.isDenied) {
-  //     final req = await Permission.camera.request();
-  //     return req.isGranted;
-  //   }
-  //
-  //   if (status.isPermanentlyDenied || status.isRestricted) {
-  //     await goToDeviceSettings(context, cameraPermissionContent);
-  //     return await Permission.camera.isGranted;
-  //   }
-  //
-  //   return false;
-  // }
+
 
 
   // -------- Storage / Photos --------
@@ -168,6 +152,7 @@ class AppPermissions {
 
   locationPermission(BuildContext context) async {
     await AppDialogue.showPopup(content: Column(
+      mainAxisSize: MainAxisSize.min,
         children: [
           Image.asset(AssetImages.location,height: 100,width: 100,),
           SizedBox(
@@ -183,7 +168,7 @@ class AppPermissions {
                 ),
 
                 AppText(text:
-                  "Location access is required to show nearby toilets. Please enable it in your device settings.",
+                  "Location access is required to show nearby Police Stations. Please enable it in your device settings.",
                   fontWeight: FontWeight.w400,
                   fontSize: 16,
                   color: AppColors.grey,

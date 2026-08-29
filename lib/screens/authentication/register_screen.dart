@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/otp_screen_shared.dart';
@@ -184,7 +185,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             }
                             return response.message ;
                           },
-                            onSendOtp: () => authController.sendOtp(phoneController.text, type: 1)
+                            onSendOtp: () async {
+                              final response = await authController.sendOtp(phoneController.text, type: 1);
+                              if (response.isSuccess) return null;
+                              if (response.currentState == CurrentState.noInternet) {
+                                return 'No internet connection. Please check your network.';
+                              }
+                              return response.message.isNotEmpty ? response.message : 'Failed to send OTP';
+                            },
                 
                           )
                           );

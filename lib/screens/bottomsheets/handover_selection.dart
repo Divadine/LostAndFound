@@ -7,15 +7,31 @@ import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 import '../../shared_widgets/app_button.dart';
 
+// Handover method enum — CONFIRM these exact integer values with the
+// backend team (Swagger doc for /handover/createHandover -> handover_type).
+class HandoverType {
+  static const int owner = 1;
+  static const int police = 2;
+  static const int others = 3;
+}
+
 class ReceiveHandoverSheet extends StatefulWidget {
   final String title;
+  final bool isReceiver;
+  final int postId;
 
-  const ReceiveHandoverSheet({super.key,  required this.title});
+  const ReceiveHandoverSheet({
+    super.key,
+    required this.title,
+    required this.isReceiver,
+    required this.postId,
+  });
 
   @override
   State<ReceiveHandoverSheet> createState() => _ReceiveHandoverSheetState();
@@ -24,16 +40,16 @@ class ReceiveHandoverSheet extends StatefulWidget {
 class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
   int selectedIndex = 0;
 
-  bool get isGold => widget.title!.toLowerCase() == 'gold';
+  bool get isGold => widget.title.toLowerCase() == 'gold';
 
   @override
   void initState() {
     super.initState();
-
     if (isGold) {
       selectedIndex = 2;
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -41,7 +57,9 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
         spacing: 10,
         children: [
           AppText(
-            text: 'How would you like to hand Over?',
+            text: widget.isReceiver
+                ? 'How would you like to Receive?'
+                : 'How would you like to hand Over?',
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -53,71 +71,92 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
           ),
 
           if (!isGold)
+            BottomSheetHandOver(
+              title: widget.isReceiver
+                  ? 'Receive from found Person'
+                  : 'Hand Over to Owner directly',
+              subtitle: widget.isReceiver
+                  ? 'Receive the item from the person who found it.'
+                  : 'Select the owner from the suggested Profiles.',
+              image: AssetImages.userIcon,
+              isSelected: selectedIndex == 1,
+              onTap: () => setState(() => selectedIndex = 1),
+            ),
           BottomSheetHandOver(
-            title: 'Receive from found Person',
-            subtitle: 'Receive the item from the person who found it.',
-            image: AssetImages.userIcon,
-            isSelected: selectedIndex == 1,
-            onTap: () {
-              setState(() {
-                selectedIndex = 1;
-              });
-            },
-          ),
-          BottomSheetHandOver(
-            title: 'Receive from Police Station',
-            subtitle: 'Receive the item from the police station.',
+            title: widget.isReceiver
+                ? 'Receive from Police Station'
+                : 'Hand Over to Police Station',
+            subtitle: widget.isReceiver
+                ? 'Receive the item from the police station.'
+                : 'Provide the Police station details.',
             image: AssetImages.police,
             isSelected: selectedIndex == 2,
-            onTap: () {
-              setState(() {
-                selectedIndex = 2;
-              });
-            },
+            onTap: () => setState(() => selectedIndex = 2),
           ),
           if (!isGold)
-          BottomSheetHandOver(
-            title: 'Received to others',
-            subtitle: 'Provide the others details.',
-            image: AssetImages.threeDotsHorizontal,
-            isSelected: selectedIndex == 3,
-            onTap: () {
-              setState(() {
-                selectedIndex = 3;
-              });
-            },
-          ),
+            BottomSheetHandOver(
+              title: widget.isReceiver ? 'Received to others' : 'Hand Over to others',
+              subtitle: 'Provide the others details.',
+              image: AssetImages.threeDotsHorizontal,
+              isSelected: selectedIndex == 3,
+              onTap: () => setState(() => selectedIndex = 3),
+            ),
           SizedBox(height: 5),
           AppButton(
             title: 'Continue',
-
-            onTap: () {
+            onTap: () async {
               AppRoutes.pop();
-              if (selectedIndex == 1) {
-                AppUiHelper.showBottomSheet(
-                  showHandle: false,
-                  context: context,
-                  child: HandoverMatchedPersons(),
-                );
-              }
-              if (selectedIndex == 2) {
-                AppUiHelper.showBottomSheet(
-                  showHandle: false,
 
+              // TODO: source the real logged-in user's phone number
+              // (e.g. from a Profile API call or AppPreferences) instead
+              // of the empty string below — createHandover needs it.
+              const phoneNumber = '';
+
+              if (selectedIndex == 1) {
+                final userId = await AppPreferences.getUserId() ?? 0;
+                if (!mounted) return;
+                AppUiHelper.showBottomSheet(
+                  showHandle: false,
                   context: context,
-                  child: PoliceStationHandOver(),
+                  child: HandoverMatchedPersons(
+                    postId: widget.postId,
+                    // Wire these into HandoverMatchedPersons' constructor
+                    // and forward to createHandover the same way the
+                    // police flow does below.
+                    // userId: userId,
+                    // phoneNumber: phoneNumber,
+                    // handoverType: HandoverType.owner,
+                  ),
                 );
               }
+
+              if (selectedIndex == 2) {
+                final userId = await AppPreferences.getUserId() ?? 0;
+                if (!mounted) return;
+                AppUiHelper.showBottomSheet(
+                  showHandle: false,
+                  context: context,
+                  child: PoliceStationHandOver(
+                    postId: widget.postId,
+                    userId: userId,
+                    phoneNumber: phoneNumber,
+                    handoverType: HandoverType.police,
+                  ),
+                );
+              }
+
               if (selectedIndex == 3) {
                 AppUiHelper.showBottomSheet(
                   showHandle: false,
-
                   context: context,
-                  child: OthersHandover(),
+                  child: OthersHandover(
+                    // Same as above — wire postId/userId/phoneNumber and
+                    // pass handoverType: HandoverType.others through to
+                    // createHandover inside OthersHandover.
+                  ),
                 );
               }
             },
-
             fontSize: 14,
             bgColor: selectedIndex == 0
                 ? AppColors.idCardColor
@@ -142,22 +181,19 @@ Widget BottomSheetHandOver({
     onTap: onTap,
     child: AppContainer(
       color: isSelected ? AppColors.primaryColor : Colors.transparent,
-      widget:
-      Row(
+      widget: Row(
         spacing: 10,
         mainAxisAlignment: MainAxisAlignment.start,
-        //crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
             radius: 30,
             child: AppIconWidget(assetPath: image),
           ).pad(),
-
           Flexible(
             child: Column(
               spacing: 10,
               mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: .start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AppText(text: title, fontWeight: FontWeight.w600, fontSize: 16),
                 AppText(

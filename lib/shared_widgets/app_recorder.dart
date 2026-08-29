@@ -16,7 +16,7 @@ class AppRecorder extends StatefulWidget {
 }
 
 class _AppRecorderState extends State<AppRecorder> {
-  final AppRecorderService _service = AppRecorderService();
+  final AppRecorderService _service = AppRecorderService.instance;
 
   @override
   void initState() {
@@ -29,7 +29,6 @@ class _AppRecorderState extends State<AppRecorder> {
   @override
   void dispose() {
     _service.removeListener(_onServiceChanged);
-    _service.dispose();
     super.dispose();
   }
 
@@ -60,7 +59,13 @@ class _AppRecorderState extends State<AppRecorder> {
             color: AppColors.grey,
           ),
           GestureDetector(
-            onTap: _service.startRecording,
+            onTap: () async {
+              print("Function called");
+              final v = await _service.startRecording();
+              print("Function returned");
+
+
+            },
             child: AppIconWidget(assetPath: AssetImages.mic),
           ),
         ],

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
+import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
+import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
 import 'package:lost_and_found/screens/profile/webView.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
@@ -12,6 +17,7 @@ import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'app_images.dart';
+import 'app_preferences.dart';
 import 'app_routes.dart';
 import 'app_ui_helper.dart';
 import 'app_urls.dart';
@@ -107,8 +113,54 @@ class AppSnackBar {
   }
 }
 
-class DeletePopUp extends StatelessWidget {
-  const DeletePopUp({super.key});
+class DeletePopUp extends StatefulWidget {
+  final String reason;
+
+  const DeletePopUp({super.key, required this.reason});
+
+  @override
+  State<DeletePopUp> createState() => _DeletePopUpState();
+}
+
+class _DeletePopUpState extends State<DeletePopUp> {
+  final authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
+
+  bool isDeleting = false;
+
+  Future<void> _onConfirmDelete() async {
+    final userId = AppPreferences.getUserId();
+    if (userId == null) {
+      AppRoutes.pop();
+      return;
+    }
+
+    setState(() => isDeleting = true);
+
+    final response = await authController.deleteAccount(
+      userId: userId,
+      reason: widget.reason,
+    );
+
+    if (!mounted) return;
+    setState(() => isDeleting = false);
+
+    if (response.isSuccess) {
+      await AppPreferences.clearAll();
+      if (!mounted) return;
+      AppRoutes.pop();
+      AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
+    } else {
+      AppRoutes.pop();
+      AppDialogue.showPopup(
+        context: context,
+        content: AppText(
+          text: response.message.isNotEmpty ? response.message : 'Failed to delete account',
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,30 +168,28 @@ class DeletePopUp extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         AppIconWidget(assetPath: AssetImages.information),
-        SizedBox(height: 7),
-        AppText(
+        const SizedBox(height: 7),
+        const AppText(
           text: 'Permanently Delete Account ?',
           fontWeight: FontWeight.w600,
           fontSize: 16,
         ),
-        SizedBox(height: 7),
-        AppText(
+        const SizedBox(height: 7),
+        const AppText(
           text:
-              'This will erase your account and all data permanently. you can’t undo this. But you can still reactivate it if you log in within 15 days.',
+          'This will erase your account and all data permanently. you can’t undo this. But you can still reactivate it if you log in within 15 days.',
           fontSize: 12,
           fontWeight: FontWeight.w400,
-          textAlign: .center,
+          textAlign: TextAlign.center,
         ).padHorizontal(20),
-        SizedBox(height: 15),
+        const SizedBox(height: 15),
         Row(
           spacing: 10,
           children: [
             Expanded(
               child: AppButton(
                 title: 'No, Cancel',
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                onTap: isDeleting ? () {} : () => AppRoutes.pop(),
                 fontSize: 14,
                 bgColor: Colors.transparent,
                 border: Border.all(color: AppColors.grey),
@@ -149,10 +199,8 @@ class DeletePopUp extends StatelessWidget {
             ),
             Expanded(
               child: AppButton(
-                title: 'Yes, Delete',
-                onTap: () {
-                  AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
-                },
+                title: isDeleting ? 'Deleting...' : 'Yes, Delete',
+                onTap: isDeleting ? () {} : _onConfirmDelete,
                 fontSize: 14,
                 bgColor: AppColors.primaryColor,
                 textColor: AppColors.white,
@@ -419,8 +467,51 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
   }
 }
 
-class LogoutPopUp extends StatelessWidget {
+
+
+class LogoutPopUp extends StatefulWidget {
   const LogoutPopUp({super.key});
+
+  @override
+  State<LogoutPopUp> createState() => _LogoutPopUpState();
+}
+
+class _LogoutPopUpState extends State<LogoutPopUp> {
+  final authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
+
+  bool isLoggingOut = false;
+
+  Future<void> _onConfirmLogout() async {
+    final userId = AppPreferences.getUserId();
+    if (userId == null) {
+      AppRoutes.pop();
+      return;
+    }
+
+    setState(() => isLoggingOut = true);
+
+    final response = await authController.logout(userId: userId);
+
+    if (!mounted) return;
+    setState(() => isLoggingOut = false);
+
+    if (response.isSuccess) {
+      await AppPreferences.clearAll();
+      if (!mounted) return;
+      AppRoutes.pop(); // close popup
+      AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
+    } else {
+      AppRoutes.pop();
+      AppDialogue.showPopup(
+        context: context,
+        content: AppText(
+          text: response.message.isNotEmpty ? response.message : 'Failed to logout',
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -429,35 +520,31 @@ class LogoutPopUp extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         AppIconWidget(assetPath: AssetImages.logout),
-        SizedBox(height: 7),
-        AppText(
+        const SizedBox(height: 7),
+        const AppText(
           text: 'Do you really want to log out?',
           fontWeight: FontWeight.w600,
           fontSize: 14,
         ),
-        SizedBox(height: 7),
-        AppText(
+        const SizedBox(height: 7),
+        const AppText(
           text:
-              'Your journey isn’t over yet ! but it’s ok you can login anytime you want',
+          'Your journey isn’t over yet ! but it’s ok you can login anytime you want',
           fontSize: 12,
           fontWeight: FontWeight.w400,
-          textAlign: .center,
+          textAlign: TextAlign.center,
           color: AppColors.grey,
         ).padHorizontal(20),
-
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Row(
           spacing: 10,
           children: [
             Expanded(
               child: AppButton(
-                title: 'Yes',
+                title: isLoggingOut ? 'Please wait...' : 'Yes',
                 fontSize: 14,
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                onTap: isLoggingOut ? () {} : _onConfirmLogout,
                 bgColor: AppColors.grey.withAlpha(50),
-
                 textColor: AppColors.grey,
                 radius: BorderRadius.circular(7),
               ),
@@ -466,9 +553,7 @@ class LogoutPopUp extends StatelessWidget {
               child: AppButton(
                 title: 'No',
                 fontSize: 14,
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                onTap: () => AppRoutes.pop(),
                 textColor: AppColors.white,
                 bgColor: AppColors.primaryColor,
                 radius: BorderRadius.circular(7),
@@ -482,7 +567,16 @@ class LogoutPopUp extends StatelessWidget {
 }
 
 class HandOverToOwner extends StatelessWidget {
-  const HandOverToOwner({super.key});
+  final String name;
+  final String avatarUrl;
+  final int matchPercentage;
+
+  const HandOverToOwner({
+    super.key,
+    required this.name,
+    required this.avatarUrl,
+    required this.matchPercentage,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -512,37 +606,33 @@ class HandOverToOwner extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 26,
-                child: AppCachedNetworkImage(
-                  imageUrl: "https://i.pravatar.cc/150?img=1",
+                child: avatarUrl.isNotEmpty
+                    ? AppCachedNetworkImage(
+                  imageUrl: avatarUrl,
                   fit: BoxFit.cover,
                   borderRadius: BorderRadius.circular(30),
-                ),
+                )
+                    : Icon(Icons.person, color: AppColors.primaryColor),
               ),
-
               const SizedBox(width: 15),
-
               AppText(
-                text: "Rahul Sharma",
+                text: name,
                 fontSize: 13,
                 color: AppColors.primaryColor,
                 fontWeight: FontWeight.w600,
               ),
               Spacer(),
-
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppUtils.getMatchColor(98).withAlpha(70),
+                  color: AppUtils.getMatchColor(matchPercentage).withAlpha(70),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: AppText(
-                  text: '${98}% match',
+                  text: '$matchPercentage% match',
                   fontWeight: FontWeight.w500,
                   fontSize: 10,
-                  color: AppUtils.getMatchColor(98),
+                  color: AppUtils.getMatchColor(matchPercentage),
                 ),
               ),
             ],
@@ -586,7 +676,7 @@ class HandOverToPolice extends StatelessWidget {
         AppIconWidget(assetPath: AssetImages.handoverToOwner),
         SizedBox(height: 7),
         AppText(
-          text: 'Item received successfully!',
+          text: 'Hand Over Completed!',
           fontWeight: FontWeight.w600,
           fontSize: 14,
         ),
@@ -726,6 +816,186 @@ class HandOverToOthers extends StatelessWidget {
   }
 }
 
+class ReceiveToOwner extends StatelessWidget {
+  const ReceiveToOwner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      spacing: 5,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AppIconWidget(assetPath: AssetImages.handoverToOwner),
+        SizedBox(height: 7),
+        AppText(
+          text: 'Item received successfully!',
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        SizedBox(height: 7),
+        AppText(
+          text: 'You have successfully received the item from',
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          textAlign: .center,
+          color: AppColors.grey,
+        ).padHorizontal(20),
+
+        AppContainer(
+          widget: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 26,
+                child: AppCachedNetworkImage(
+                  imageUrl: "https://i.pravatar.cc/150?img=1",
+                  fit: BoxFit.cover,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+
+              const SizedBox(width: 15),
+
+              AppText(
+                text: "Rahul Sharma",
+                fontSize: 13,
+                color: AppColors.primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+              Spacer(),
+
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppUtils.getMatchColor(98).withAlpha(70),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: AppText(
+                  text: '${98}% match',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 10,
+                  color: AppUtils.getMatchColor(98),
+                ),
+              ),
+            ],
+          ).pad(),
+        ),
+
+        SizedBox(height: 10),
+        AppButton(
+          title: 'Done',
+          fontSize: 14,
+          onTap: () {
+            AppRoutes.pop();
+            AppUiHelper.showBottomSheet(
+              showHandle: false,
+              showCloseIcon: true,
+              context: context,
+              child: ReceivedDetails(
+                isReceivedFromPolice: false,
+                isReceivedFromFounder: true,
+                isReceivedFromOthers: false,
+              ),
+            );
+          },
+          bgColor: AppColors.primaryColor,
+          radius: BorderRadius.circular(7),
+        ),
+      ],
+    );
+  }
+}
+
+class ReceiveToPolice extends StatelessWidget {
+  const ReceiveToPolice({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      spacing: 7,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AppIconWidget(assetPath: AssetImages.handoverToOwner),
+        SizedBox(height: 7),
+        AppText(
+          text: 'Item received successfully!',
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        SizedBox(height: 7),
+        AppText(
+          text: 'You have successfully handed over the item to',
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          textAlign: .center,
+          color: AppColors.grey,
+        ).padHorizontal(),
+
+        AppContainer(
+          widget: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              AppIconWidget(assetPath: AssetImages.policeStation),
+
+              SizedBox(width: 10),
+
+              Expanded(
+                child: Column(
+                  spacing: 5,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppText(
+                      text: "Peelamedu Police Station",
+                      fontSize: 14,
+                      color: AppColors.primaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    AppText(
+                      text:
+                      'Fci road second street, Gandhimanagar, Coimbatore, Tamil Nadu - 641001',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.fieldGrey,
+                      textOverflow: TextOverflow.ellipsis,
+                      maxLine: 3,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ).pad(),
+        ),
+
+        SizedBox(height: 10),
+        AppButton(
+          title: 'Done',
+          fontSize: 14,
+          onTap: () {
+            AppRoutes.pop();
+            AppUiHelper.showBottomSheet(
+              showHandle: false,
+              showCloseIcon: true,
+              context: context,
+              child: ReceivedDetails(
+                isReceivedFromPolice: true,
+                isReceivedFromFounder: false,
+                isReceivedFromOthers: false,
+              ),
+            );
+          },
+          bgColor: AppColors.primaryColor,
+          radius: BorderRadius.circular(7),
+        ),
+      ],
+    );
+  }
+}
+
 class ReceiveToOthers extends StatelessWidget {
   const ReceiveToOthers({super.key});
 
@@ -843,7 +1113,9 @@ class PostLive extends StatelessWidget {
 }
 
 class DeletePostReasonsDialog extends StatefulWidget {
-  const DeletePostReasonsDialog({super.key});
+  final int postId;
+  final VoidCallback? onDeleted;
+  const DeletePostReasonsDialog({super.key, required this.postId, this.onDeleted});
 
   @override
   State<DeletePostReasonsDialog> createState() =>
@@ -851,20 +1123,52 @@ class DeletePostReasonsDialog extends StatefulWidget {
 }
 
 class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
+
+  final authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
+
   int presentIndex = 0;
-  String? selectedReason;
   PageController pageController = PageController();
 
   TextEditingController reasonController = TextEditingController();
-  List<String> items = [
-    'Item found',
-    'Post Created by Mistake',
-    'Duplicate Post',
-    'Privacy Concern',
-    'Item no longer available',
-    'Others',
-  ];
+  List<DeletePostReasons> reasons = [];
+  DeletePostReasons? selectedReason;
 
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchReasons();
+  }
+
+  Future<void> fetchReasons() async {
+
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    final response = await authController.getDeleteReasons();
+    if (!mounted) return;
+
+    if(response.isSuccess && response.data != null){
+      setState(() {
+        reasons = response.data!;
+        isLoading = false;
+      });
+    }else{
+      setState(() {
+        errorMessage = response.message.isNotEmpty ? response.message : 'Failed to load reasons';
+        isLoading = false;
+      });
+    }
+
+
+  }
+  bool get _isOthersSelected =>selectedReason?.text.toLowerCase() == 'others';
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -886,7 +1190,25 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
             fontSize: 14,
           ),
 
-          ...items.map((item) {
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                children: [
+                  AppText(text: errorMessage!, textAlign: TextAlign.center),
+                  const SizedBox(height: 8),
+                  AppButton(title: 'Retry', onTap: fetchReasons),
+                ],
+              ),
+            )
+          else
+
+          ...reasons.map((item) {
             return Padding(
               padding: const EdgeInsets.all(8.0),
               child: GestureDetector(
@@ -901,21 +1223,17 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
                     SizedBox(
                       height: 20,
                       width: 20,
-                      child: Radio<String>(
+                      child: Radio<DeletePostReasons>(
                         hoverColor: AppColors.primaryColor,
                         groupValue: selectedReason,
                         activeColor: AppColors.primaryColor,
-                        onChanged: (value) {
-                          setState(() {
-                            selectedReason = value;
-                          });
-                        },
+                        onChanged:(value) => setState(() => selectedReason = value),
                         value: item,
                       ),
                     ),
                     Expanded(
                       child: AppText(
-                        text: item,
+                        text: item.text,
                         fontSize: 14,
                         color: AppColors.black,
                       ),
@@ -926,7 +1244,7 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
             );
           }),
 
-          if (selectedReason == 'Others') ...[
+          if (_isOthersSelected) ...[
             AppText(
               text: 'Please tell us the reason',
               fontWeight: FontWeight.w400,
@@ -964,11 +1282,26 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
                 child: AppButton(
                   title: 'Next',
                   onTap: () {
+                    if (selectedReason == null) {
+                      AppSnackBar.show(context: context, message: 'Please select a reason');
+                      return;
+                    }
+                    final finalReason = _isOthersSelected
+                        ? reasonController.text.trim()
+                        : selectedReason!.text;
+                    if (finalReason.isEmpty) {
+                      AppSnackBar.show(context: context, message: 'Please enter a reason');
+                      return;
+                    }
                     AppRoutes.pop();
 
                     AppDialogue.showPopup(
                       context: context,
-                      content: DeletePostDialog(),
+                      content: DeletePostDialog(
+                        postId: widget.postId,
+                        reason: finalReason,
+                        onDeleted: widget.onDeleted,
+                      ),
                     );
                   },
                   textColor: AppColors.white,
@@ -985,13 +1318,41 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
 }
 
 class DeletePostDialog extends StatefulWidget {
-  const DeletePostDialog({super.key});
+  final int postId;
+  final String reason;
+  final VoidCallback? onDeleted;
+  const DeletePostDialog({super.key, required this.postId, required this.reason, this.onDeleted});
 
   @override
   State<DeletePostDialog> createState() => _DeletePostDialogState();
 }
 
 class _DeletePostDialogState extends State<DeletePostDialog> {
+
+  final authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
+
+  bool isDeleting = false;
+
+  Future<void> confirmDelete() async {
+    print('CONFIRM DELETE CALLED — postId: ${widget.postId}, reason: ${widget.reason}');
+    setState(() => isDeleting = true);
+    final response = await authController.deletePost(postId: widget.postId, reason: widget.reason);
+
+    if (!mounted) return;
+    setState(() => isDeleting = false);
+
+    if(response.isSuccess) {
+      AppRoutes.pop();
+      widget.onDeleted?.call();
+    }else {
+      AppDialogue.showPopup(context: context, content: AppText(text: response.message.isNotEmpty ? response.message : 'Failed to delete post',),);
+    }
+
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1018,9 +1379,7 @@ class _DeletePostDialogState extends State<DeletePostDialog> {
             Expanded(
               child: AppButton(
                 title: 'Cancel',
-                onTap: () {
-                  //Navigator.pop(context);
-                },
+                onTap: isDeleting ? () {} : () => AppRoutes.pop(),
                 fontSize: 14,
                 bgColor: Colors.transparent,
                 border: Border.all(color: AppColors.black),
@@ -1030,10 +1389,8 @@ class _DeletePostDialogState extends State<DeletePostDialog> {
             ),
             Expanded(
               child: AppButton(
-                title: 'Delete Post',
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                title: isDeleting ? 'Deleting...' : 'Delete Post',
+                onTap: isDeleting ? () {} : confirmDelete,
                 fontSize: 14,
                 bgColor: AppColors.red,
                 textColor: AppColors.white,
@@ -1184,61 +1541,186 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
 }
 
 class BlockChat extends StatefulWidget {
-  const BlockChat({super.key});
+  final Future<void> Function()? onUnblock;
+  final Future<void> Function()? onDeleteChat;
+
+  const BlockChat({
+    super.key,
+    this.onUnblock,
+    this.onDeleteChat,
+  });
 
   @override
   State<BlockChat> createState() => _BlockChatState();
 }
 
 class _BlockChatState extends State<BlockChat> {
+  bool _isUnblocking = false;
+  bool _isDeleting = false;
+
+  // ============================================================
+  // UNBLOCK
+  // ============================================================
+
+  Future<void> _handleUnblock() async {
+    if (_isUnblocking || _isDeleting) return;
+
+    setState(() {
+      _isUnblocking = true;
+    });
+
+    try {
+      if (widget.onUnblock != null) {
+        await widget.onUnblock!();
+      }
+
+      if (!mounted) return;
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isUnblocking = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst(
+              'Exception: ',
+              '',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // DELETE CHAT
+  // ============================================================
+
+  Future<void> _handleDeleteChat() async {
+    if (_isUnblocking || _isDeleting) return;
+
+    setState(() {
+      _isDeleting = true;
+    });
+
+    try {
+      if (widget.onDeleteChat != null) {
+        await widget.onDeleteChat!();
+      }
+
+      if (!mounted) return;
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isDeleting = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst(
+              'Exception: ',
+              '',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
-      spacing: 5,
       mainAxisSize: MainAxisSize.min,
       children: [
-        AppIconWidget(assetPath: AssetImages.blockChatBorder),
+        // ========================================================
+        // ICON
+        // ========================================================
 
-        SizedBox(height: 7),
-        AppText(
+        AppIconWidget(
+          assetPath: AssetImages.blockChatBorder,
+        ),
+
+        const SizedBox(height: 12),
+
+        // ========================================================
+        // TITLE
+        // ========================================================
+
+        const AppText(
           text: 'This chat has been blocked',
           fontWeight: FontWeight.w500,
           fontSize: 20,
         ),
-        SizedBox(height: 7),
+
+        const SizedBox(height: 10),
+
+        // ========================================================
+        // DESCRIPTION
+        // ========================================================
+
         AppText(
           text:
-              'Lorem ipsum is Lorem ipsum isLorem ipsum is Lorem ipsum is Lorem ipsum',
+          'You cannot send or receive messages in this chat while it is blocked.',
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          textAlign: .center,
+          textAlign: TextAlign.center,
           color: AppColors.fieldGrey,
         ).padHorizontal(10),
-        SizedBox(height: 15),
+
+        const SizedBox(height: 20),
+
+        // ========================================================
+        // BUTTONS
+        // ========================================================
+
         Row(
-          spacing: 10,
           children: [
+            // ====================================================
+            // DELETE CHAT
+            // ====================================================
+
             Expanded(
               child: AppButton(
-                title: 'Delete chat',
-                onTap: () {
-                  Navigator.pop(context);
-                },
+                title: _isDeleting
+                    ? 'Deleting...'
+                    : 'Delete chat',
+                onTap: _isUnblocking || _isDeleting
+                    ? () {}
+                    : _handleDeleteChat,
                 fontSize: 14,
                 bgColor: Colors.transparent,
-                border: Border.all(color: AppColors.black),
+                border: Border.all(
+                  color: AppColors.black,
+                ),
                 textColor: AppColors.black,
                 radius: BorderRadius.circular(7),
               ),
             ),
+
+            const SizedBox(width: 10),
+
+            // ====================================================
+            // UNBLOCK CHAT
+            // ====================================================
+
             Expanded(
               child: AppButton(
-                title: 'Unblock chat',
-                onTap: () async {
-                  Navigator.pop(context);
-                },
+                title: _isUnblocking
+                    ? 'Unblocking...'
+                    : 'Unblock chat',
+                onTap: _isUnblocking || _isDeleting
+                    ? () {}
+                    : _handleUnblock,
                 fontSize: 16,
-
                 radius: BorderRadius.circular(7),
               ),
             ),
@@ -1249,8 +1731,161 @@ class _BlockChatState extends State<BlockChat> {
   }
 }
 
+class ReportChatReasonSheet extends StatefulWidget {
+  final int userId;
+  final String userName;
+  final String userMobile;
+  final String userEmail;
+  final String roomId;
+  final AuthControllers authControllers;
+
+  const ReportChatReasonSheet({
+    super.key,
+    required this.userId,
+    required this.userName,
+    required this.userMobile,
+    required this.userEmail,
+    required this.roomId,
+    required this.authControllers,
+  });
+
+  @override
+  State<ReportChatReasonSheet> createState() => _ReportChatReasonSheetState();
+}
+
+class _ReportChatReasonSheetState extends State<ReportChatReasonSheet> {
+  // TODO: swap for a real reasons API if you have one (like getReasonsDeletePost)
+  final List<String> reasons = const [
+    'Spam or scam',
+    'Inappropriate content',
+    'Harassment or abuse',
+    'Fake item / listing',
+  ];
+
+  String? selectedReason;
+  bool isOthers = false;
+  final TextEditingController othersController = TextEditingController();
+
+  bool get isSubmitEnabled {
+    if (selectedReason == null) return false;
+    if (isOthers) return othersController.text.trim().isNotEmpty;
+    return true;
+  }
+
+  @override
+  void dispose() {
+    othersController.dispose();
+    super.dispose();
+  }
+
+  void _onSubmit() {
+    final reason = isOthers ? othersController.text.trim() : selectedReason!;
+
+    AppRoutes.pop(); // close this sheet
+
+    AppDialogue.showPopup(
+      context: context,
+      content: ReportChatDialog(
+        reason: reason,
+        userId: widget.userId,
+        userName: widget.userName,
+        userMobile: widget.userMobile,
+        userEmail: widget.userEmail,
+        roomId: widget.roomId,
+        authControllers: widget.authControllers,
+      ),
+
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppText(text: 'Report this chat', fontWeight: FontWeight.w600, fontSize: 18),
+        const SizedBox(height: 12),
+        AppText(text: 'Why are you reporting this review?', fontSize: 14),
+        const SizedBox(height: 8),
+
+        for (final r in reasons)
+          RadioListTile<String>(
+            contentPadding: EdgeInsets.zero,
+            value: r,
+            groupValue: selectedReason,
+            title: AppText(text: r, fontSize: 14),
+            onChanged: (v) => setState(() {
+              selectedReason = v;
+              isOthers = false;
+            }),
+          ),
+
+        RadioListTile<String>(
+          contentPadding: EdgeInsets.zero,
+          value: 'Others',
+          groupValue: selectedReason,
+          title: AppText(text: 'Others', fontSize: 14),
+          onChanged: (v) => setState(() {
+            selectedReason = v;
+            isOthers = true;
+          }),
+        ),
+
+        if (isOthers) ...[
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.fieldGrey),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextField(
+              controller: othersController,
+              maxLines: 3,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                hintText: 'Type here',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.all(10),
+              ),
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: AppButton(
+            title: 'Submit',
+            onTap: isSubmitEnabled ? _onSubmit : () {}, // was: null
+            bgColor: isSubmitEnabled ? AppColors.primaryColor : AppColors.fieldGrey,
+            radius: BorderRadius.circular(8),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class ReportChatDialog extends StatefulWidget {
-  const ReportChatDialog({super.key});
+  final String reason;
+  final int userId;
+  final String userName;
+  final String userMobile;
+  final String userEmail;
+  final String roomId;
+  final AuthControllers authControllers;
+
+  const ReportChatDialog({
+    super.key,
+    required this.reason,
+    required this.userId,
+    required this.userName,
+    required this.userMobile,
+    required this.userEmail,
+    required this.roomId,
+    required this.authControllers,
+  });
 
   @override
   State<ReportChatDialog> createState() => _ReportChatDialogState();
@@ -1258,6 +1893,36 @@ class ReportChatDialog extends StatefulWidget {
 
 class _ReportChatDialogState extends State<ReportChatDialog> {
   bool isChecked = false;
+  bool isSubmitting = false;
+
+  Future<void> _submitReport() async {
+    setState(() => isSubmitting = true);
+
+    final response = await widget.authControllers.createReport(
+      userId: widget.userId,
+      name: widget.userName,
+      mobileno: widget.userMobile,
+      email: widget.userEmail,
+      description: widget.reason, // <-- the reason picked in step 1
+    );
+
+    if (isChecked) {
+      await ChatService.blockChat(
+        roomId: widget.roomId,
+        userId: widget.userId.toString(),
+      );
+    }
+
+    if (!mounted) return;
+    setState(() => isSubmitting = false);
+
+    if (response.isSuccess) {
+      AppSnackBar.show(context: context, message: response.message ?? 'Chat reported');
+      AppRoutes.pop();
+    } else {
+      AppSnackBar.show(context: context, message: response.message ?? 'Failed to report chat');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1265,39 +1930,24 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
       spacing: 5,
       mainAxisSize: MainAxisSize.min,
       children: [
+        AppText(text: 'Report This Chat?', fontWeight: FontWeight.w500, fontSize: 20),
+        const SizedBox(height: 7),
         AppText(
-          text: 'Report This Chat?',
-          fontWeight: FontWeight.w500,
-          fontSize: 20,
-        ),
-        SizedBox(height: 7),
-        AppText(
-          text:
-              'Lorem ipsum is Lorem ipsum isLorem ipsum is Lorem ipsum is Lorem ipsum',
+          text: widget.reason,
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          textAlign: .center,
+          textAlign: TextAlign.center,
           color: AppColors.fieldGrey,
         ).padHorizontal(10),
-        SizedBox(height: 15),
+        const SizedBox(height: 15),
 
         Row(
-          crossAxisAlignment: .start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           spacing: 5,
           children: [
             Checkbox(
               value: isChecked,
-              onChanged: (e) {
-                setState(() {
-                  isChecked = e!;
-                  if (isChecked) {
-                    AppSnackBar.show(
-                      context: context,
-                      message: "Confirm for deletion",
-                    );
-                  }
-                });
-              },
+              onChanged: (e) => setState(() => isChecked = e!),
               hoverColor: AppColors.grey,
               focusColor: AppColors.fieldGrey,
               fillColor: WidgetStateProperty.resolveWith((states) {
@@ -1308,31 +1958,26 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
               }),
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
               side: BorderSide(color: AppColors.fieldGrey, width: 2),
             ),
-            Flexible(
+            const Flexible(
               child: AppText(
                 text: "Report and Block this chat",
                 fontWeight: FontWeight.w400,
-                textAlign: .start,
                 fontSize: 14,
               ),
             ),
           ],
         ),
+
         Row(
           spacing: 10,
           children: [
             Expanded(
               child: AppButton(
                 title: 'Cancel',
-                onTap: () {
-                  Navigator.pop(context);
-                },
+                onTap: isSubmitting ? () {} : () => AppRoutes.pop(),
                 fontSize: 14,
                 bgColor: Colors.transparent,
                 border: Border.all(color: AppColors.black),
@@ -1342,19 +1987,9 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
             ),
             Expanded(
               child: AppButton(
-                title: 'Report',
-                onTap: () async {
-                  if (isChecked) {
-                    AppRoutes.pop();
-                  } else {
-                    AppSnackBar.show(
-                      context: context,
-                      message: "Please choose a reason",
-                    );
-                  }
-                },
+                title: isSubmitting ? 'Reporting...' : 'Report',
+                onTap: isSubmitting ? () {} : _submitReport,
                 fontSize: 16,
-
                 radius: BorderRadius.circular(7),
               ),
             ),
@@ -1365,81 +2000,92 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
   }
 }
 
-class ChatSendRequest extends StatefulWidget {
-  const ChatSendRequest({super.key});
 
-  @override
-  State<ChatSendRequest> createState() => _ChatSendRequestState();
-}
 
-class _ChatSendRequestState extends State<ChatSendRequest> {
+/// Dialog content used when another user asks to share their phone number.
+///
+/// The actual Firestore update is intentionally handled by the parent chat
+/// screen through [onAccept] and [onDecline]. This widget only displays the
+/// dialog UI.
+class ChatSendRequest extends StatelessWidget {
+  final VoidCallback onDecline;
+  final VoidCallback onAccept;
+  final String senderName;
+
+  const ChatSendRequest({
+    super.key,
+    required this.onDecline,
+    required this.onAccept,
+    this.senderName = '',
+  });
+
   @override
   Widget build(BuildContext context) {
+    final displayName = senderName.trim().isNotEmpty
+        ? senderName.trim()
+        : 'This user';
+
     return Column(
       mainAxisSize: MainAxisSize.min,
-      spacing: 10,
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(backgroundColor: AppColors.idCardColor,
+            CircleAvatar(
+              backgroundColor: AppColors.idCardColor,
               radius: 20,
-              child: AppIconWidget(assetPath: AssetImages.phone),
+              child: AppIconWidget(
+                assetPath: AssetImages.phone,
+              ),
             ),
-
-            SizedBox(width: 7,),
-            Flexible(
+            const SizedBox(width: 7),
+            Expanded(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: .start,
-                //mainAxisAlignment: MainAxisAlignment.start,
-                spacing: 7,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppText(
+                  const AppText(
                     text: 'Contact Received',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
+                  const SizedBox(height: 7),
                   AppText(
                     text:
-                        'Varunesha Wants to share contact information with you.',
+                    '$displayName wants to share contact information with you.',
                     fontWeight: FontWeight.w400,
                     fontSize: 12,
-                    maxLine: 2,
+                    maxLine: 3,
                   ),
                 ],
               ),
             ),
-            AppText(
+            const SizedBox(width: 8),
+            const AppText(
               text: 'Just now',
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
               color: AppColors.primaryColor,
             ),
           ],
         ),
-
+        const SizedBox(height: 12),
         Row(
-          spacing: 10,
           children: [
             Expanded(
               child: AppButton(
                 title: 'Decline',
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                onTap: onDecline,
                 bgColor: AppColors.white,
                 border: Border.all(color: AppColors.red),
                 textColor: AppColors.red,
                 fontSize: 14,
               ),
             ),
+            const SizedBox(width: 10),
             Expanded(
               child: AppButton(
                 title: 'Accept',
-                onTap: () {
-                  AppRoutes.pop();
-                },
+                onTap: onAccept,
                 bgColor: AppColors.primaryColor,
                 textColor: AppColors.white,
                 fontSize: 14,
@@ -1451,3 +2097,4 @@ class _ChatSendRequestState extends State<ChatSendRequest> {
     );
   }
 }
+

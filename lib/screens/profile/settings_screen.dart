@@ -87,9 +87,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               CircleAvatar(
                 radius: 40,
                 backgroundImage:profile?.profileImageUrl != null ? CachedNetworkImageProvider(profile!.profileImageUrl!) : null,
-                // NetworkImage(''
-                //   //'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRLEWjC-Hd4WpPkUHnFslUH-qp_VENqS3vYvZJUGoxMU5Zb-Ar3EXKq3c6&s=10',
-                // ),
                 child: profile?.profileImageUrl == null ? Icon(Icons.person) : null,
               ),
 

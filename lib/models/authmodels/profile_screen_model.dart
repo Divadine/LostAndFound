@@ -1,6 +1,7 @@
 class ProfileScreenModel {
   final int? userId;
   final bool isFromEdit;
+  final String? profileImageUrl;
   final String? name;
   final String? mobile;
   final String? altMobile;
@@ -13,7 +14,7 @@ class ProfileScreenModel {
   final String? landmark;
   final String? latitude;
   final String? longitude;
-  final String? profileImageUrl;
+
 
 
   ProfileScreenModel({required this.isFromEdit, this.name, this.mobile, this.userId, this.altMobile, required this.altMobileVerified, this.pincode, this.country, this.state, this.city, this.address, this.landmark, this.latitude, this.longitude, this.profileImageUrl});
@@ -24,6 +25,7 @@ class ProfileScreenModel {
       isFromEdit: false,
       altMobileVerified: json['alt_status'] == 1,
       userId: json['id'],
+      profileImageUrl: json['profile_image'],
       name: json['name'],
       mobile: json['phoneno'],
       altMobile: json['altno'],
@@ -35,7 +37,7 @@ class ProfileScreenModel {
       landmark: json['landmark'],
       latitude: json['latitude']?.toString(),
       longitude: json['longitude']?.toString(),
-      profileImageUrl: json['profile_image'],
+
 
     );
 

@@ -16,7 +16,10 @@ class DateFilterState {
   final String? selectedRange;
   final DateTimeRange? customRange;
 
-  const DateFilterState({this.selectedRange, this.customRange});
+  const DateFilterState({
+    this.selectedRange,
+    this.customRange,
+  });
 
   DateFilterState copyWith({
     String? selectedRange,
@@ -25,8 +28,35 @@ class DateFilterState {
   }) {
     return DateFilterState(
       selectedRange: selectedRange ?? this.selectedRange,
-      customRange: clearCustomRange ? null : (customRange ?? this.customRange),
+      customRange: clearCustomRange
+          ? null
+          : (customRange ?? this.customRange),
     );
+  }
+
+  String? get apiDateFilter {
+    switch (selectedRange) {
+      case 'Today':
+        return 'today';
+
+      case 'Last 7 Days':
+        return 'last_7_days';
+
+      case 'Last 30 Days':
+        return 'last_30_days';
+
+      case 'Last 3 Months':
+        return 'last_3_months';
+
+      case 'Last Year':
+        return 'last_year';
+
+      case 'Custom Range':
+        return 'custom';
+
+      default:
+        return null;
+    }
   }
 }
 
@@ -145,7 +175,8 @@ class _FilterScreenState extends State<FilterScreen> {
                 fontWeight: FontWeight.w500,
               ),
               InkWell(
-                onTap: () => AppRoutes.pop(),
+                onTap: () => Navigator.of(context).pop(),
+                //onTap: () => AppRoutes.pop(),
                 child: AppIconWidget(assetPath: AssetImages.crossIcon),
               ),
             ],
@@ -200,7 +231,8 @@ class _FilterScreenState extends State<FilterScreen> {
                 child: AppButton(
                   title: 'Clear',
                   onTap: () {
-                    AppRoutes.pop('clear');
+                    Navigator.of(context).pop('clear');
+                   // AppRoutes.pop('clear');
                   },
                   fontSize: 15,
                   textColor: AppColors.primaryColor,
@@ -214,11 +246,19 @@ class _FilterScreenState extends State<FilterScreen> {
                   title: 'Apply Filter',
                   onTap: () {
                     if (_filterState.selectedRange == null) return;
-                    AppRoutes.pop({
+                    if (_filterState.selectedRange == 'Custom Range' &&
+                        _filterState.customRange == null) {
+                      AppSnackBar.show(
+                        context: context,
+                        message: 'Please select a custom date range',
+                      );
+                      return;
+                    }
+                    Navigator.of(context).pop({
                       'range': _filterState.selectedRange,
+                      'dateFilter': _filterState.apiDateFilter,
                       'customRange': _filterState.customRange,
                     });
-
                   },
                   fontSize: 15,
                   textColor: AppColors.white,

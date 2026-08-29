@@ -5,10 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:lost_and_found/models/selected_location_model.dart';
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/enums/current_state.dart';
+import 'package:lost_and_found/models/posts_model/selected_location_model.dart';
+import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
 import 'package:lost_and_found/screens/permissions/location_permission.dart';
+import 'package:lost_and_found/services/app_recorder_service.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -27,18 +32,27 @@ import 'package:record/record.dart';
 import 'package:video_player/video_player.dart';
 
 class SecondStepperScreen extends StatefulWidget {
-  const SecondStepperScreen({super.key});
+  final int postId;
+  final String? prefillDescription;
+  const SecondStepperScreen({super.key, required this.postId, this.prefillDescription});
 
   @override
   State<SecondStepperScreen> createState() => _SecondStepperScreenState();
 }
 
 class _SecondStepperScreenState extends State<SecondStepperScreen> {
+
+  final authController = AuthControllers(
+    authRepository: AuthRepository(
+      apiClient: ApiClient(),
+    ),
+  );
   DateTime? selectedDate;
 
   bool isVideoPlaying = false;
   Duration videoDuration = Duration.zero;
 
+  bool isSubmitting = false;
   XFile? selectedVideo;
   List<SelectedLocationModel> loc = [];
   StreamController<List<SelectedLocationModel>> locationController = StreamController.broadcast();
@@ -53,6 +67,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
   final ImagePicker picker = ImagePicker();
   VideoPlayerController? _videoController;
+  final AppRecorderService _recorderService = AppRecorderService.instance;
 
   final AppLocationPermission _appPermissions = AppLocationPermission();
 
@@ -60,13 +75,17 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   void initState() {
     super.initState();
     locationController.add(loc);
-    print('##########################--$loc');
+    _recorderService.deleteRecording();
+    if (widget.prefillDescription != null && widget.prefillDescription!.isNotEmpty) {
+      descriptionController.text = widget.prefillDescription!;
+    }
   }
+
   @override
   void dispose() {
     _videoController?.dispose();
     locationController.close();
-
+    _recorderService.dispose();
     super.dispose();
 
   }
@@ -179,11 +198,13 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     );
 
     if (picked != null) {
-
+      selectedDate = DateTime(picked.year, picked.month, picked.day);
+      selectedDate = picked;
       dateController.text = DateFormat('dd/MM/yyyy').format(picked);
       dateStreamController.add(picked);
       //setState(() {});
     }
+    print('picked date is ^^^^^^^^^^^^^^^^^^^^^^^^^   $picked');
   }
 
 
@@ -203,9 +224,121 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     if (result != null) {
       loc = result as List<SelectedLocationModel>;
       locationController.add(loc);
+
+
       // setState(() {
       //   loc = result as List<SelectedLocationModel>;
       // });
+    }
+  }
+
+  Future<void> _onSubmit() async {
+    if (loc.isEmpty) {
+      AppDialogue.showPopup(context: context, content: AppText(text: 'Please add a location'));
+      return;
+    }
+    if (selectedDate == null) {
+      AppDialogue.showPopup(context: context, content: AppText(text: 'Please select a date'));
+      return;
+    }
+    if (descriptionController.text.trim().isEmpty) {
+      AppDialogue.showPopup(context: context, content: AppText(text: 'Please enter a description'));
+      return;
+    }
+
+    setState(() => isSubmitting = true);
+
+    int? audioId;
+    int? videoId;
+    print("Audio path => ${_recorderService.audioPath}");
+
+    if (_recorderService.isRecorded || _recorderService.audioPath != null) {
+      final audioResponse = await  authController.createAudio(audio: File(_recorderService.audioPath!));
+      if (!mounted) return;
+      if (!audioResponse.isSuccess || audioResponse.data == null) {
+        setState(() => isSubmitting = false);
+        final msg = audioResponse.currentState == CurrentState.noInternet
+            ? 'No internet connection. Please check your network.'
+            : (audioResponse.message.isNotEmpty ? audioResponse.message : 'Failed to upload audio');
+        AppDialogue.showPopup(context: context, content: AppText(text: msg));
+        return;
+      }
+      audioId = audioResponse.data!.id;
+    }
+    // Step A: upload video if selected
+    if (selectedVideo != null) {
+      final videoResponse = await authController.createVideo(video: File(selectedVideo!.path));
+      if (!mounted) return;
+      if (!videoResponse.isSuccess || videoResponse.data == null) {
+        setState(() => isSubmitting = false);
+        final msg = videoResponse.currentState == CurrentState.noInternet
+            ? 'No internet connection. Please check your network.'
+            : (videoResponse.message.isNotEmpty ? videoResponse.message : 'Failed to upload video');
+        AppDialogue.showPopup(context: context, content: AppText(text: msg));
+        return;
+      }
+      videoId = videoResponse.data!.id;
+    }
+
+    // Step C: complete the post
+    final firstLocation = loc.first;
+    final coordinates = loc
+        .map((l) => {
+      'latitude': l.latitude.toString(),
+      'longitude': l.longitude.toString(),
+    })
+        .toList();
+
+    print('COORDINATES BEING SENT: @@@@@@@@@@@@@@@@@@@@@@@@@ ->$coordinates');
+
+    print('=================== STEP 2 SUBMIT DEBUG ===================');
+    print('postId: ${widget.postId}');
+    print('---- LOCATIONS ----');
+    for (int i = 0; i < loc.length; i++) {
+      print('  [$i] address: ${loc[i].address}');
+      print('  [$i] latitude: ${loc[i].latitude}');
+      print('  [$i] longitude: ${loc[i].longitude}');
+    }
+    print('coordinates payload: $coordinates');
+    print('location field value: ${textController.text.trim().isNotEmpty ? textController.text.trim() : firstLocation.address}');
+    print('address field value: ${firstLocation.address}');
+    print('---- DATE ----');
+    print('selectedDate: $selectedDate');
+    print('---- DESCRIPTION ----');
+    print('description: ${descriptionController.text.trim()}');
+    print('---- AUDIO ----');
+    print('recorder state: ${_recorderService.state}');
+    print('recorder audioPath: ${_recorderService.audioPath}');
+    print('recorder isRecorded: ${_recorderService.isRecorded}');
+    print('uploaded audioId: $audioId');
+    print('---- VIDEO ----');
+    print('selectedVideo path: ${selectedVideo?.path}');
+    print('uploaded videoId: $videoId');
+    print('=============================================================');
+    final completeResponse = await authController.completePostStep2(
+      postId: widget.postId,
+      location: textController.text.trim().isNotEmpty ? textController.text.trim() : firstLocation.address,
+      address: firstLocation.address,
+      coordinates: coordinates,
+      postDate: selectedDate!,
+      description: descriptionController.text.trim(),
+      audioId: audioId,
+      videoId: videoId,
+    );
+
+    print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$completeResponse');
+
+    if (!mounted) return;
+    setState(() => isSubmitting = false);
+
+    if (completeResponse.isSuccess) {
+      AppDialogue.showPopup(context: context, content: PostLive());
+      //AppRoutes.pushNamed(AppRoutes.bottomScreen);
+    } else {
+      final msg = completeResponse.currentState == CurrentState.noInternet
+          ? 'No internet connection. Please check your network.'
+          : (completeResponse.message.isNotEmpty ? completeResponse.message : 'Failed to complete post');
+      AppDialogue.showPopup(context: context, content: AppText(text: msg));
     }
   }
 
@@ -325,18 +458,24 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                 stream: dateStreamController.stream,
                 builder: (context, asyncSnapshot) {
                   //final dateData = asyncSnapshot.data;
-                  return buildTextFieldWithHeading(
-                    title: 'Date',
-                    fieldWidget: AppTextField(
-                      //readOnly: true,
-                      hintText: 'Select Date',
-                      readOnly: true,
-                      textController: dateController,
-                      onChange: (v) {},
-                      onSubmit: (v) {},
-                      suffixIcon: GestureDetector(
+                  return GestureDetector(
+                    onTap: selectDate,
+                    child: buildTextFieldWithHeading(
+                      title: 'Date',
+                      fieldWidget: GestureDetector(
                         onTap: selectDate,
-                        child: AppIconWidget(assetPath: AssetImages.calender).pad(),
+                        child: AppTextField(
+                          //readOnly: true,
+                          hintText: 'Select Date',
+                          readOnly: true,
+                          textController: dateController,
+                          onChange: (v) {},
+                          onSubmit: (v) {},
+                          suffixIcon: GestureDetector(
+                              onTap:selectDate,
+                              child: AppIconWidget(assetPath: AssetImages.calender).pad()
+                          ),
+                        ),
                       ),
                     ),
                   );
@@ -366,6 +505,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                   ),
 
                   AppRecorder(),
+
                 ],
               ),
 
@@ -404,7 +544,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                               buildVideoPreview()
                             else
                               GestureDetector(
-                                onTap: pickVideos,
+                                onTap: pickVideo,
                                 child: AppIconWidget(assetPath: AssetImages.video),
                               ),
                           ],
@@ -424,9 +564,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
               AppButton(
                 title: 'Review & Submit',
-                onTap: () {
-                  AppDialogue.showPopup(context: context, content: PostLive());
-                },
+                onTap:   isSubmitting ? () {} : _onSubmit,
                 radius: BorderRadius.circular(10),
                 fontSize: 14,
               ),

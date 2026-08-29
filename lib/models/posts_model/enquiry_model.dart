@@ -1,0 +1,97 @@
+class EnquiryPostModel {
+  final int id;
+  final int userId;          // NEW
+  final String postUid;
+  final String name;
+  final List<String> images;
+  final String location;
+  final DateTime? postDate;
+
+  EnquiryPostModel({
+    required this.id,
+    required this.userId,     // NEW
+    required this.postUid,
+    required this.name,
+    required this.images,
+    required this.location,
+    this.postDate,
+  });
+
+  factory EnquiryPostModel.fromJson(Map<String, dynamic> json) {
+    return EnquiryPostModel(
+      id: json['id'] as int? ?? 0,
+      userId: json['user_id'] as int? ?? 0,   // NEW
+      postUid: json['post_uid']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      images: (json['images'] as List? ?? []).map((e) => e.toString()).toList(),
+      location: json['location']?.toString() ?? '',
+      postDate: json['post_date'] != null
+          ? DateTime.tryParse(json['post_date'].toString())
+          : null,
+    );
+  }
+}
+
+class PostEnquiriesModel {
+  final EnquiryPostModel? post;
+  final int enquiriesCount;
+  final List<EnquiryItem> enquiries;
+
+  PostEnquiriesModel({
+    this.post,
+    required this.enquiriesCount,
+    required this.enquiries,
+  });
+
+  factory PostEnquiriesModel.fromJson(Map<String, dynamic> json) {
+    return PostEnquiriesModel(
+      post: json['post'] != null
+          ? EnquiryPostModel.fromJson(json['post'] as Map<String, dynamic>)
+          : null,
+      enquiriesCount: json['enquiries_count'] as int? ?? 0,
+      enquiries: (json['enquiries'] as List? ?? [])
+          .map((e) => EnquiryItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class EnquiryItem {
+  final int enquiryId;
+  final int matchedPostId;
+  final int enquirerUserId;      // NEW
+  final String postUid;
+  final String enquirerName;
+  final String enquirerProfileImg;
+  final String description;
+  final int matchPercentage;
+  final DateTime? createdAt;
+
+  EnquiryItem({
+    required this.enquiryId,
+    required this.matchedPostId,
+    required this.enquirerUserId,   // NEW
+    required this.postUid,
+    required this.enquirerName,
+    required this.enquirerProfileImg,
+    required this.description,
+    required this.matchPercentage,
+    this.createdAt,
+  });
+
+  factory EnquiryItem.fromJson(Map<String, dynamic> json) {
+    return EnquiryItem(
+      enquiryId: json['enquiry_id'] as int? ?? 0,
+      matchedPostId: json['matched_postid'] as int? ?? 0,
+      enquirerUserId: json['user_id'] as int? ?? 0,   // NEW — clean, no fallback needed
+      postUid: json['post_uid']?.toString() ?? '',
+      enquirerName: json['enquirer_name']?.toString() ?? '',
+      enquirerProfileImg: json['enquirer_profile_img']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      matchPercentage: json['matchPercentage'] as int? ?? 0,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString())
+          : null,
+    );
+  }
+}

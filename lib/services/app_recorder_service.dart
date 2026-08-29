@@ -9,12 +9,17 @@ import 'package:record/record.dart';
 
 enum RecorderState { idle, recording, paused, recorded }
 
+
+
 class AppRecorderService extends ChangeNotifier {
-  AppRecorderService({this.maxRecordingDuration = const Duration(seconds: 30)}) {
+
+  AppRecorderService._({this.maxRecordingDuration = const Duration(seconds: 30)}) {
     _positionSub = _player.positionStream.listen((pos) {
       playbackPosition = pos;
       notifyListeners();
     });
+
+
 
     _playerStateSub = _player.playerStateStream.listen((playerState) async {
       isPlaying = playerState.playing;
@@ -28,6 +33,8 @@ class AppRecorderService extends ChangeNotifier {
         notifyListeners();
       }
     });  }
+
+  static final AppRecorderService instance = AppRecorderService._();
 
   final Duration maxRecordingDuration;
 
@@ -74,8 +81,8 @@ class AppRecorderService extends ChangeNotifier {
   // Recording
   // ---------------------------------------------------------------------
 
-  Future<void> startRecording() async {
-    if (!await _ensureMicPermission()) return;
+  Future<String?> startRecording() async {
+    if (!await _ensureMicPermission()) return null;
 
     final dir = await getTemporaryDirectory();
     audioPath = "${dir.path}/${DateTime.now().millisecondsSinceEpoch}.m4a";
@@ -94,6 +101,9 @@ class AppRecorderService extends ChangeNotifier {
 
     _startTimer();
     notifyListeners();
+
+    return audioPath;
+
   }
 
   Future<void> pauseRecording() async {
@@ -110,14 +120,14 @@ class AppRecorderService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveRecording() async {
+  Future<String?> saveRecording() async {
     final path = await _recorder.stop();
     _recordTimer?.cancel();
 
     if (path == null) {
       state = RecorderState.idle;
       notifyListeners();
-      return;
+      return null;
     }
 
     audioPath = path;
@@ -127,6 +137,9 @@ class AppRecorderService extends ChangeNotifier {
 
     state = RecorderState.recorded;
     notifyListeners();
+
+    return audioPath;
+
   }
 
   Future<void> cancelRecording() async {

@@ -53,7 +53,7 @@ dependencies:
   path_provider: ^2.1.5
   video_player: ^2.10.0
   audio_waveforms: ^2.0.2
-  flutter_riverpod: ^2.6.1
+#  flutter_riverpod: ^2.6.1
   geocoding: ^4.0.0
   google_maps_flutter: ^2.18.0
   just_audio: ^0.10.6
@@ -61,7 +61,9 @@ dependencies:
   geolocator: ^14.0.3
   dio: ^5.8.0+1
   firebase_messaging: ^15.1.6
-package_info_plus: ^8.1.2
+  cloud_firestore: ^5.6.12
+  firebase_core: ^3.15.2
+
 
 
 

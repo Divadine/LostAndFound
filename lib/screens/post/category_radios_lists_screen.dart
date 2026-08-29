@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/models/categories_model/category_model.dart';
+import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -14,7 +18,8 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/category_not_found.dart';
 
 class CategoryRadiosListsScreen extends StatefulWidget {
-  const CategoryRadiosListsScreen({super.key});
+  final int postType;
+  const CategoryRadiosListsScreen({super.key, required this.postType});
 
   @override
   State<CategoryRadiosListsScreen> createState() =>
@@ -22,104 +27,67 @@ class CategoryRadiosListsScreen extends StatefulWidget {
 }
 
 class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
-  final List<Map<String, dynamic>> products = [
-    {
-      "id": 1,
-      "category": "Electronics",
-      "image":
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvM3NbtpQg4MM517dpJ8SzhyEhQ0ZNTlS-bO79XfrZhA&s",
-      "subCategories": [
-        {
-          "name": "Mobile",
-          "fields": [
-            {
-              "key": "brand",
-              "title": "Brand",
-              "type": "dropdown",
-              "options": ["Samsung", "Apple", "Redmi", "Realme"]
-            },
-            {"key": "model", "title": "Model", "type": "text"},
-            {
-              "key": "color",
-              "title": "Color",
-              "type": "dropdown",
-              "options": ["Black", "White", "Blue"]
-            },
-            {"key": "image", "title": "Upload Image", "type": "image"}
-          ]
-        },
-        {
-          "name": "Laptop",
-          "fields": [
-            {
-              "key": "brand",
-              "title": "Brand",
-              "type": "dropdown",
-              "options": ["HP", "Dell", "Lenovo"]
-            },
-            {
-              "key": "ram",
-              "title": "RAM",
-              "type": "dropdown",
-              "options": ["8 GB", "16 GB", "32 GB"]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "category": "Documents",
-      "image":
-      "https://digitalinspiration.com/static/d15fbd06120f76d62fd4eb1a55a8d52c/file-upload-forms.png",
-      "subCategories": [
-        {
-          "name": "Aadhar Card",
-          "fields": [
-            {"key": "holderName", "title": "Holder Name", "type": "text"},
-            {"key": "lastFour", "title": "Last 4 Digits", "type": "number"}
-          ]
-        }
-      ]
-    }
-  ];
+
+  List<CategoryModel> categories = [];
+  final AuthControllers authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
 
   final TextEditingController searchController = TextEditingController();
   int? selectedIndex;
 
+  Timer? _debounce;
   List<Map<String, dynamic>> filteredCategory = [];
+  bool isLoading = false;
 
-  final StreamController<List<Map<String, dynamic>>> mainCategoryStream = StreamController.broadcast();
+  //final StreamController<List<Map<String, dynamic>>> mainCategoryStream = StreamController.broadcast();
   StreamController<int?> selectedCategoryStream = StreamController.broadcast();
+  StreamController<List<CategoryModel>> mainApiCategoryStream = StreamController.broadcast();
 
+
+
+  Future<void> _fetchCategories({ int? limit,  int? page, String? search}) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final response = await authController.getCategories(page: page ?? 0, limit: limit ?? 0, search: search);
+
+    if( response.data!= null){
+       categories = response.data!.categories;
+      mainApiCategoryStream.add(categories);
+    }else{
+      categories = [];
+      mainApiCategoryStream.add([]);
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
   @override
   void initState() {
     super.initState();
-    filteredCategory = products;
-    mainCategoryStream.add(filteredCategory);
+    _fetchCategories();
+
     print('*********************filteredcategory ---> $filteredCategory');
   }
 
   @override
   void dispose() {
-    mainCategoryStream.close();
+    mainApiCategoryStream.close();
     searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
   void searchCategory(String value) {
     selectedIndex = null;
-    setState(() {
-
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _fetchCategories(search: value.trim().isEmpty ? null : value.trim());
     });
-    final result = products
-        .where((item) => (item['category'] as String)
-        .toLowerCase()
-        .contains(value.toLowerCase()))
-        .toList();
 
-    filteredCategory = result;
-    mainCategoryStream.add(result);
   }
 
   @override
@@ -127,55 +95,63 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: 10,
-          children: [
-            AppText(
-              text: 'Select Category',
-              fontWeight: FontWeight.w600,
-              fontSize: 20,
-              color: AppColors.primaryColor,
-            ),
-            AppText(
-              text: 'Choose the Category that best matches your item',
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-            const SizedBox(height: 5),
-            AppContainer(
-              widget: TextField(
-                onChanged: searchCategory,
-                controller: searchController,
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.only(top: 12),
-                  hintText: "Search categories",
-                  border: InputBorder.none,
-                  prefixIcon: AppIconWidget(
-                    assetPath: AssetImages.searchIcon,
-                    size: 10,
-                  ).pad(12),
-                ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 10,
+        children: [
+          AppText(
+            text: 'Select Category',
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+            color: AppColors.primaryColor,
+          ),
+          AppText(
+            text: 'Choose the Category that best matches your item',
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+          const SizedBox(height: 5),
+          AppContainer(
+            widget: TextField(
+              onChanged: searchCategory,
+              controller: searchController,
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.only(top: 12),
+                hintText: "Search categories",
+                border: InputBorder.none,
+                prefixIcon: AppIconWidget(
+                  assetPath: AssetImages.searchIcon,
+                  size: 10,
+                ).pad(12),
               ),
             ),
-            const SizedBox(height: 5),
-            StreamBuilder<List<Map<String, dynamic>>>(
-              stream: mainCategoryStream.stream,
-              initialData: filteredCategory,
+          ),
+          const SizedBox(height: 5),
+          Expanded(
+            child: StreamBuilder<List<CategoryModel>>(
+              stream: mainApiCategoryStream.stream,
+              initialData: categories,
               builder: (context, snapshot) {
                 final catData = snapshot.data ?? [];
-                if (catData.isEmpty) {
-                  return  CategoryNotFound();
+                // API is still loading
+                if (isLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
                 }
+                // API finished but no categories found
+                if (catData.isEmpty) {
+                  return  CategoryNotFound(isFromCategory: true,);
+                }
+                // Data available
                 return ListView.builder(
                   itemCount: catData.length,
-                  shrinkWrap: true,
+                  //shrinkWrap: true,
                   itemBuilder: (context, index) {
                     final cat = catData[index];
                     return buildTile(
-                      categoryName: cat['category'] ?? '',
-                      img: cat['image'] ?? '',
+                      categoryName: cat.name ?? '',
+                      img: cat.imageUrl ?? '',
                       isSelected: selectedIndex == index,
                       value: index,
                     );
@@ -183,19 +159,20 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
                 );
               },
             ),
-          ],
-        ).pad(16),
-      ),
+          ),
+        ],
+      ).pad(16),
       bottomNavigationBar: SafeArea(
         child: (selectedIndex != null)
             ? AppButton(
 
           title: 'Next',
           onTap: () {
-            final selectedCategory = filteredCategory[selectedIndex!];
+            final selectedCategory = categories[selectedIndex!];
             context.pushNamed(
               AppRoutes.subCategoryScreen,
-              extra: selectedCategory,
+              extra: {'category': selectedCategory,'postType': widget.postType,},
+
             );
           },
           icon: AssetImages.arrow_forward,

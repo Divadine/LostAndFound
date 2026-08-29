@@ -12,13 +12,14 @@ class OtpSharedScreen extends StatefulWidget {
   final bool isAlternateNumber;
   final String mobileNumber;
   final Future<String?> Function(String otp) onVerifyOtp;
-  final Future<bool> Function() onSendOtp;
+  final Future<String?> Function() onSendOtp; // null = success, non-null = error message
 
   const OtpSharedScreen({
     super.key,
     required this.isAlternateNumber,
-    required this.mobileNumber, required this.onVerifyOtp, required this.onSendOtp,
-
+    required this.mobileNumber,
+    required this.onVerifyOtp,
+    required this.onSendOtp,
   });
 
   @override
@@ -36,14 +37,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
   StreamController<String> otpStream = StreamController.broadcast();
   StreamController<int> timeStream = StreamController.broadcast();
 
-
-
-
-  final List<TextEditingController> _controller = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-
+  final List<TextEditingController> _controller = List.generate(4, (_) => TextEditingController());
   final List<FocusNode> focusNode = List.generate(4, (_) => FocusNode());
   List<bool> otpError = List.generate(4, (_) => false);
   List<bool> isFocused = List.generate(4, (_) => false);
@@ -63,15 +57,23 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
   }
 
   Future<void> _sendOtp() async {
-    setState(() => isSending = true);
-    final success = await widget.onSendOtp();
+    setState(() {
+      isSending = true;
+      errorText = null;
+    });
+
+    final error = await widget.onSendOtp();
+
+    if (!mounted) return;
     setState(() => isSending = false);
-    if (success) {
+
+    if (error == null) {
       _startTimer();
     } else {
-      setState(() => errorText = "Failed to send OTP, please try again");
+      setState(() => errorText = error);
     }
   }
+
   void _onChanged(int index, String value) {
     if (value.isNotEmpty && index < 3) {
       focusNode[index + 1].requestFocus();
@@ -96,9 +98,8 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
       if (seconds == 0) {
         timer.cancel();
       } else {
-          seconds--;
-
-          timeStream.add(seconds);
+        seconds--;
+        timeStream.add(seconds);
       }
     });
   }
@@ -118,6 +119,8 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
 
     setState(() => isVerifying = true);
     final error = await widget.onVerifyOtp(otp);
+
+    if (!mounted) return;
     setState(() => isVerifying = false);
 
     if (error != null) {
@@ -136,11 +139,9 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
     for (var controller in _controller) {
       controller.dispose();
     }
-
     for (var node in focusNode) {
       node.dispose();
     }
-
     super.dispose();
   }
 
@@ -171,7 +172,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
 
           StreamBuilder<String>(
             stream: otpStream.stream,
-              initialData: '',
+            initialData: '',
             builder: (context, asyncSnapshot) {
               final otpData = asyncSnapshot.data ?? '';
               return Row(
@@ -182,7 +183,6 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
                   return Container(
                     height: 50,
                     width: 50,
-
                     child: TextField(
                       controller: _controller[index],
                       decoration: InputDecoration(
@@ -195,7 +195,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
                                 ? AppColors.grey
                                 : otpError[index]
                                 ? AppColors.red
-                                :otpData.length <= index
+                                : otpData.length <= index
                                 ? AppColors.grey
                                 : AppColors.primaryColor,
                             width: 1.5,
@@ -209,7 +209,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
                                 ? AppColors.grey
                                 : otpError[index]
                                 ? AppColors.red
-                                :otpData.length <= index
+                                : otpData.length <= index
                                 ? AppColors.grey
                                 : AppColors.primaryColor,
                           ),
@@ -220,10 +220,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
                       textAlign: TextAlign.center,
                       keyboardType: TextInputType.phone,
                       onChanged: (v) {
-                        if (v.contains(' ') ||
-                            v.contains('.') ||
-                            v.contains(',') ||
-                            v.contains('-')) {
+                        if (v.contains(' ') || v.contains('.') || v.contains(',') || v.contains('-')) {
                           setState(() {
                             errorText = "OTP cannot contain special character";
                             otpError[index] = true;
@@ -247,7 +244,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
                   );
                 }),
               );
-            }
+            },
           ),
 
           if (errorText != null)
@@ -281,7 +278,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                     );
-                  }
+                  },
                 ),
               ],
             ),
@@ -289,32 +286,24 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
 
           StreamBuilder(
             stream: timeStream.stream,
-              //initialData: 30,
             builder: (context, asyncSnapshot) {
-
               final reSendData = asyncSnapshot.data ?? 0;
               return AuthChangeText(
                 text1: 'Didn’t receive ?',
                 fadeColor: reSendData != 0 ? AppColors.fadeColor : null,
                 tappableText: 'Resend',
                 onTap: () {
-                  if (reSendData == 0) {
-                    if (reSendData == 0 && !isSending) {
-                      _sendOtp();
-                    }
+                  if (reSendData == 0 && !isSending) {
+                    _sendOtp();
                   }
-                }
+                },
               );
-            }
+            },
           ),
 
           AppButton(
-            title:  'Verify',
-            onTap:  (){
-              print('verfiyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy');
-              _onVerifyTap();
-            },
-
+            title: isVerifying ? 'Verifying...' : 'Verify',
+            onTap: isVerifying ? () {} : _onVerifyTap,
             radius: BorderRadius.circular(8),
           ).padHorizontal(30),
           SizedBox(height: 15),
