@@ -43,60 +43,40 @@ class IndividualChatScreen extends StatefulWidget {
 
   const IndividualChatScreen({
     super.key,
-
     required this.roomId,
     required this.currentUserId,
     required this.otherUserId,
-
     required this.otherUserName,
-
     this.otherUserAvatar = '',
     this.otherUserPhone = '',
-
     this.itemName = '',
     this.itemImage = '',
     this.itemLocation = '',
     this.itemPostDate = '',
   });
 
-  // ============================================================
-  // FROM ARGS
-  // ============================================================
-
   factory IndividualChatScreen.fromArgs(
       Map<String, dynamic> args,
       ) {
     return IndividualChatScreen(
-      roomId:
-      args['roomId']?.toString() ?? '',
-
+      roomId: args['roomId']?.toString() ?? '',
       currentUserId:
       args['currentUserId']?.toString() ?? '',
-
       otherUserId:
       args['otherUserId']?.toString() ?? '',
-
       otherUserName:
       args['otherUserName']?.toString() ??
           'User ${args['otherUserId']}',
-
       otherUserAvatar:
-      args['otherUserAvatar']?.toString() ??
-          '',
-
+      args['otherUserAvatar']?.toString() ?? '',
       otherUserPhone:
-      args['otherUserPhone']?.toString() ??
-          '',
-
+      args['otherUserPhone']?.toString() ?? '',
       itemName:
       args['itemName']?.toString() ?? '',
-
       itemImage:
       args['itemImage']?.toString() ?? '',
-
       itemLocation:
       args['itemLocation']?.toString() ?? '',
-
       itemPostDate:
       args['itemPostDate']?.toString() ?? '',
     );
@@ -114,21 +94,17 @@ class _IndividualChatScreenState
 
   String? selectedMessageId;
 
-  // ============================================================
-  // LOCAL PHONE
-  // ============================================================
-
   String _otherUserPhone = '';
-
-  // ============================================================
-  // REQUEST DIALOG
-  // ============================================================
+  bool _phoneLoading = false;
 
   bool _contactDialogShowing = false;
 
-  // ============================================================
-  // INIT
-  // ============================================================
+  final AuthControllers _authController =
+  AuthControllers(
+    authRepository: AuthRepository(
+      apiClient: ApiClient(),
+    ),
+  );
 
   @override
   void initState() {
@@ -137,34 +113,7 @@ class _IndividualChatScreenState
     _otherUserPhone =
         widget.otherUserPhone.trim();
 
-    debugPrint(
-      '==================================================',
-    );
-
-    debugPrint(
-      '[ChatScreen] OPEN',
-    );
-
-    debugPrint(
-      '[ChatScreen] roomId: ${widget.roomId}',
-    );
-
-    debugPrint(
-      '[ChatScreen] currentUserId: ${widget.currentUserId}',
-    );
-
-    debugPrint(
-      '[ChatScreen] otherUserId: ${widget.otherUserId}',
-    );
-
-    debugPrint(
-      '[ChatScreen] otherUserPhone: ${widget.otherUserPhone}',
-    );
-
-    // Load phone directly from Firestore.
-    _loadOtherUserPhone();
-
-    _initializeChat();
+    _loadPhoneAndInitialize();
 
     ChatService.markRoomAsRead(
       roomId: widget.roomId,
@@ -172,77 +121,119 @@ class _IndividualChatScreenState
     );
   }
 
-  // ============================================================
-  // LOAD PHONE
-  // ============================================================
+  Future<void> _loadPhoneAndInitialize() async {
+    await _loadOtherUserPhone();
+
+    if (!mounted) return;
+
+    await _initializeChat();
+  }
 
   Future<void> _loadOtherUserPhone() async {
+    if (_phoneLoading) return;
+
+    _phoneLoading = true;
+
     try {
-      // ==========================================================
-      // FIRST:
-      // If navigation already contains phone, save it.
-      // ==========================================================
+      final navigationPhone =
+      widget.otherUserPhone.trim();
 
-      if (widget.otherUserPhone.trim().isNotEmpty) {
-        _otherUserPhone =
-            widget.otherUserPhone.trim();
+      if (navigationPhone.isNotEmpty) {
+        _setPhone(navigationPhone);
 
-        await ChatService.updateParticipantPhone(
-          roomId: widget.roomId,
-          userId: widget.otherUserId,
-          phone: _otherUserPhone,
-        );
-
-        if (mounted) {
-          setState(() {});
-        }
-
-        debugPrint(
-          '[PHONE] Phone received from navigation: '
-              '$_otherUserPhone',
+        await _savePhoneToRoom(
+          navigationPhone,
         );
 
         return;
       }
 
-      // ==========================================================
-      // SECOND:
-      // Load phone from Firestore.
-      // ==========================================================
+      if (widget.roomId.trim().isNotEmpty &&
+          widget.otherUserId.trim().isNotEmpty) {
+        final firestorePhone =
+        await ChatService.getParticipantPhone(
+          roomId: widget.roomId,
+          userId: widget.otherUserId,
+        );
 
-      final phone =
-      await ChatService.getParticipantPhone(
-        roomId: widget.roomId,
-        userId: widget.otherUserId,
+        if (firestorePhone.trim().isNotEmpty) {
+          _setPhone(firestorePhone.trim());
+          return;
+        }
+      }
+
+      final otherUserId =
+      int.tryParse(
+        widget.otherUserId.trim(),
       );
 
-      if (phone.isNotEmpty) {
-        _otherUserPhone = phone;
+      if (otherUserId == null) return;
 
-        if (mounted) {
-          setState(() {});
+      final response =
+      await _authController.getProfile(
+        userId: otherUserId,
+      );
+
+      if (response.status == 1 &&
+          response.data != null) {
+        final profilePhone =
+            response.data!.mobile
+                ?.toString()
+                .trim() ??
+                '';
+
+        if (profilePhone.isNotEmpty) {
+          _setPhone(profilePhone);
+
+          await _savePhoneToRoom(
+            profilePhone,
+          );
         }
-
-        debugPrint(
-          '[PHONE] Phone loaded from Firestore: '
-              '$_otherUserPhone',
-        );
-      } else {
-        debugPrint(
-          '[PHONE] Firestore phone is EMPTY '
-              'for user ${widget.otherUserId}',
-        );
       }
     } catch (e) {
       debugPrint(
-        '[PHONE] Failed to load phone: $e',
+        '[PHONE] ERROR: $e',
       );
+    } finally {
+      _phoneLoading = false;
     }
   }
 
-  // ============================================================
-  // INITIALIZE CHAT
-  // ============================================================
+  void _setPhone(String phone) {
+    final cleanPhone = phone.trim();
+
+    if (cleanPhone.isEmpty) return;
+
+    _otherUserPhone = cleanPhone;
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _savePhoneToRoom(
+      String phone,
+      ) async {
+    final cleanPhone = phone.trim();
+
+    if (cleanPhone.isEmpty ||
+        widget.roomId.trim().isEmpty ||
+        widget.otherUserId.trim().isEmpty) {
+      return;
+    }
+
+    try {
+      await ChatService.updateParticipantPhone(
+        roomId: widget.roomId,
+        userId: widget.otherUserId,
+        phone: cleanPhone,
+      );
+    } catch (e) {
+      debugPrint(
+        '[PHONE] SAVE ERROR: $e',
+      );
+    }
+  }
 
   Future<void> _initializeChat() async {
     try {
@@ -256,41 +247,34 @@ class _IndividualChatScreenState
         await ChatService.createChatRoom(
           currentUserId:
           widget.currentUserId,
-
           otherUserId:
           widget.otherUserId,
-
-          currentUserPhone:
-          '',
-
+          currentUserPhone: '',
           otherUserPhone:
           _otherUserPhone,
-
           otherUserName:
           widget.otherUserName,
-
           otherUserAvatar:
           widget.otherUserAvatar,
-
           enquirySenderId:
           widget.currentUserId,
-
           itemName:
           widget.itemName,
-
           itemImage:
           widget.itemImage,
-
           itemLocation:
           widget.itemLocation,
-
           itemPostDate:
           widget.itemPostDate,
-
-          // IMPORTANT:
-          // If your navigation has postId, add it here.
-          postId: _extractPostId(),
+          postId:
+          _extractPostId(),
         );
+
+        if (_otherUserPhone.isNotEmpty) {
+          await _savePhoneToRoom(
+            _otherUserPhone,
+          );
+        }
 
         return;
       }
@@ -302,14 +286,10 @@ class _IndividualChatScreenState
       );
     } catch (e) {
       debugPrint(
-        '[ChatScreen] INITIALIZE ERROR: $e',
+        '[CHAT] INITIALIZE ERROR: $e',
       );
     }
   }
-
-  // ============================================================
-  // POST ID
-  // ============================================================
 
   String _extractPostId() {
     final parts =
@@ -322,27 +302,17 @@ class _IndividualChatScreenState
     return '';
   }
 
-  // ============================================================
-  // DISPOSE
-  // ============================================================
-
   @override
   void dispose() {
     textController.dispose();
     super.dispose();
   }
 
-  // ============================================================
-  // SEND
-  // ============================================================
-
   Future<void> _send() async {
     final text =
     textController.text.trim();
 
-    if (text.isEmpty) {
-      return;
-    }
+    if (text.isEmpty) return;
 
     try {
       await ChatService.sendMessage(
@@ -354,9 +324,7 @@ class _IndividualChatScreenState
 
       textController.clear();
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
@@ -372,18 +340,12 @@ class _IndividualChatScreenState
     }
   }
 
-  // ============================================================
-  // CALL
-  // ============================================================
-
   Future<void> _call() async {
     final phone =
     _otherUserPhone.trim();
 
     if (phone.isEmpty) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
@@ -401,32 +363,28 @@ class _IndividualChatScreenState
       path: phone,
     );
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      }
+    } catch (e) {
+      debugPrint(
+        '[CALL] ERROR: $e',
+      );
     }
   }
-
-  // ============================================================
-  // COPY PHONE
-  // ============================================================
 
   Future<void> _copyPhone() async {
     final phone =
     _otherUserPhone.trim();
 
-    if (phone.isEmpty) {
-      return;
-    }
+    if (phone.isEmpty) return;
 
     await Clipboard.setData(
-      ClipboardData(
-        text: phone,
-      ),
+      ClipboardData(text: phone),
     );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context)
         .showSnackBar(
@@ -437,31 +395,21 @@ class _IndividualChatScreenState
     );
   }
 
-  // ============================================================
-  // BLOCK
-  // ============================================================
-
   Future<void> _blockChat() async {
     await ChatService.blockChat(
       roomId: widget.roomId,
-      userId: widget.currentUserId,
+      userId:
+      widget.currentUserId,
     );
   }
-
-  // ============================================================
-  // UNBLOCK
-  // ============================================================
 
   Future<void> _unblockChat() async {
     await ChatService.unblockChat(
       roomId: widget.roomId,
-      userId: widget.currentUserId,
+      userId:
+      widget.currentUserId,
     );
   }
-
-  // ============================================================
-  // CLEAR
-  // ============================================================
 
   Future<void> _clearChat() async {
     await ChatService.clearChat(
@@ -469,15 +417,10 @@ class _IndividualChatScreenState
     );
   }
 
-  // ============================================================
-  // BUILD
-  // ============================================================
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-      AppColors.white,
+      backgroundColor: AppColors.white,
 
       appBar: AppBar(
         toolbarHeight: 0,
@@ -492,10 +435,6 @@ class _IndividualChatScreenState
 
           child: Column(
             children: [
-              // ==================================================
-              // HEADER
-              // ==================================================
-
               selectedMessageId != null
                   ? _buildSelectionTopRow()
                   : _buildHeaderRow(),
@@ -504,33 +443,17 @@ class _IndividualChatScreenState
 
               const Divider(),
 
-              // ==================================================
-              // PHONE / REQUEST
-              // ==================================================
-
               _buildPhoneRow(),
 
               const SizedBox(height: 8),
-
-              // ==================================================
-              // ITEM CARD
-              // ==================================================
 
               _buildTopItemCard(),
 
               const SizedBox(height: 8),
 
-              // ==================================================
-              // SAFETY
-              // ==================================================
-
               _buildSafetyCard(),
 
               const SizedBox(height: 5),
-
-              // ==================================================
-              // MESSAGES
-              // ==================================================
 
               Expanded(
                 child:
@@ -540,10 +463,6 @@ class _IndividualChatScreenState
           ),
         ),
       ),
-
-      // ==========================================================
-      // INPUT
-      // ==========================================================
 
       bottomNavigationBar:
       _buildBottomArea(),
@@ -562,28 +481,33 @@ class _IndividualChatScreenState
         roomId: widget.roomId,
       ),
 
-      builder: (
-          context,
-          snapshot,
-          ) {
+      builder: (context, snapshot) {
         final data =
             snapshot.data ??
                 <String, dynamic>{};
 
         final status =
-            data['status']
-                ?.toString() ??
+            data['status']?.toString() ??
                 'none';
 
         final senderId =
-            data['senderId']
-                ?.toString() ??
+            data['senderId']?.toString() ??
                 '';
 
         final receiverId =
-            data['receiverId']
-                ?.toString() ??
+            data['receiverId']?.toString() ??
                 '';
+
+        DateTime requestTime =
+        DateTime.now();
+
+        final createdAt =
+        data['createdAt'];
+
+        if (createdAt is Timestamp) {
+          requestTime =
+              createdAt.toDate();
+        }
 
         final isMyRequest =
             status == 'pending' &&
@@ -597,62 +521,36 @@ class _IndividualChatScreenState
                 senderId !=
                     widget.currentUserId;
 
-        debugPrint(
-          '[CONTACT UI] '
-              'status=$status '
-              'sender=$senderId '
-              'receiver=$receiverId '
-              'current=${widget.currentUserId} '
-              'phone=$_otherUserPhone',
-        );
-
-        // ========================================================
-        // INCOMING REQUEST
-        // ========================================================
-
         if (isRequestForMe &&
             !_contactDialogShowing) {
           WidgetsBinding.instance
-              .addPostFrameCallback(
-                (_) {
-              if (!mounted ||
-                  _contactDialogShowing) {
-                return;
-              }
+              .addPostFrameCallback((_) {
+            if (!mounted ||
+                _contactDialogShowing) {
+              return;
+            }
 
-              _showContactRequestDialog();
-            },
-          );
+            _showContactRequestDialog(
+              senderName:
+              widget.otherUserName,
+              requestTime:
+              requestTime,
+            );
+          });
         }
-
-        // ========================================================
-        // ACCEPTED
-        // ========================================================
 
         if (status == 'accepted') {
           return _buildAcceptedPhoneRow();
         }
 
-        // ========================================================
-        // REQUEST SENT
-        // ========================================================
-
         if (isMyRequest) {
           return _buildRequestSentRow();
         }
-
-        // ========================================================
-        // SEND REQUEST
-        // ========================================================
 
         return _buildSendRequestRow();
       },
     );
   }
-
-  // ============================================================
-  // SEND REQUEST UI
-  // ============================================================
 
   Widget _buildSendRequestRow() {
     return AppContainer(
@@ -672,10 +570,8 @@ class _IndividualChatScreenState
               _otherUserPhone,
             )
                 : '**********',
-
             fontWeight:
             FontWeight.w400,
-
             fontSize: 12,
           ),
 
@@ -684,44 +580,37 @@ class _IndividualChatScreenState
           InkWell(
             borderRadius:
             BorderRadius.circular(20),
-
             onTap:
             _onSendPhoneRequest,
-
             child: Container(
               padding:
               const EdgeInsets.symmetric(
                 horizontal: 14,
                 vertical: 6,
               ),
-
               decoration:
               BoxDecoration(
                 color:
                 AppColors.white,
-
                 borderRadius:
                 BorderRadius.circular(
                   20,
                 ),
-
                 border: Border.all(
                   color:
-                  AppColors.primaryColor,
+                  AppColors
+                      .primaryColor,
                 ),
               ),
-
               child: AppText(
                 text:
                 'Send Request',
-
                 fontSize: 11,
-
                 fontWeight:
                 FontWeight.w600,
-
                 color:
-                AppColors.primaryColor,
+                AppColors
+                    .primaryColor,
               ),
             ),
           ),
@@ -729,10 +618,6 @@ class _IndividualChatScreenState
       ).pad(8),
     ).padHorizontal(50);
   }
-
-  // ============================================================
-  // REQUEST SENT UI
-  // ============================================================
 
   Widget _buildRequestSentRow() {
     return AppContainer(
@@ -752,10 +637,8 @@ class _IndividualChatScreenState
               _otherUserPhone,
             )
                 : '**********',
-
             fontWeight:
             FontWeight.w400,
-
             fontSize: 12,
           ),
 
@@ -767,48 +650,38 @@ class _IndividualChatScreenState
               horizontal: 12,
               vertical: 6,
             ),
-
             decoration:
             BoxDecoration(
               color:
               AppColors.white,
-
               borderRadius:
               BorderRadius.circular(
                 20,
               ),
-
               border: Border.all(
                 color:
                 AppColors.requestColor,
               ),
             ),
-
             child: Row(
               mainAxisSize:
               MainAxisSize.min,
-
               children: [
                 AppText(
                   text:
                   'Request Sent',
-
                   fontSize: 11,
-
                   fontWeight:
                   FontWeight.w600,
-
                   color:
-                  AppColors.requestColor,
+                  AppColors
+                      .requestColor,
                 ),
-
-                const SizedBox(
-                  width: 5,
-                ),
-
+                const SizedBox(width: 5),
                 AppIconWidget(
                   assetPath:
-                  AssetImages.requestSent,
+                  AssetImages
+                      .requestSent,
                   size: 13,
                 ),
               ],
@@ -819,11 +692,37 @@ class _IndividualChatScreenState
     ).padHorizontal(50);
   }
 
-  // ============================================================
-  // ACCEPTED PHONE UI
-  // ============================================================
-
   Widget _buildAcceptedPhoneRow() {
+    if (_phoneLoading &&
+        _otherUserPhone.isEmpty) {
+      return AppContainer(
+        widget: Row(
+          children: [
+            AppIconWidget(
+              assetPath:
+              AssetImages.mobileIcon,
+            ),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: AppText(
+                text:
+                'Loading phone number...',
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child:
+              CircularProgressIndicator(
+                strokeWidth: 2,
+              ),
+            ),
+          ],
+        ).pad(8),
+      ).padHorizontal(50);
+    }
+
     if (_otherUserPhone.isEmpty) {
       return AppContainer(
         widget: Row(
@@ -832,23 +731,18 @@ class _IndividualChatScreenState
               assetPath:
               AssetImages.mobileIcon,
             ),
-
             const SizedBox(width: 8),
-
             const Expanded(
               child: AppText(
                 text:
                 'Phone number unavailable',
                 fontSize: 12,
-                fontWeight:
-                FontWeight.w400,
               ),
             ),
-
             InkWell(
-              onTap:
-              _loadOtherUserPhone,
-
+              onTap: () async {
+                await _loadOtherUserPhone();
+              },
               child: const AppText(
                 text: 'Refresh',
                 fontSize: 11,
@@ -875,10 +769,6 @@ class _IndividualChatScreenState
             child: AppText(
               text:
               _otherUserPhone,
-
-              fontWeight:
-              FontWeight.w400,
-
               fontSize: 12,
             ),
           ),
@@ -886,7 +776,6 @@ class _IndividualChatScreenState
           InkWell(
             onTap:
             _copyPhone,
-
             child: const AppText(
               text: 'Copy',
               fontSize: 11,
@@ -899,22 +788,17 @@ class _IndividualChatScreenState
 
           InkWell(
             onTap: _call,
-
             child: Row(
               mainAxisSize:
               MainAxisSize.min,
-
               children: [
                 AppIconWidget(
                   assetPath:
-                  AssetImages.mobileIcon,
+                  AssetImages
+                      .mobileIcon,
                   size: 14,
                 ),
-
-                const SizedBox(
-                  width: 3,
-                ),
-
+                const SizedBox(width: 3),
                 const AppText(
                   text: 'Call',
                   fontSize: 11,
@@ -927,13 +811,7 @@ class _IndividualChatScreenState
     ).padHorizontal(50);
   }
 
-  // ============================================================
-  // MASK PHONE
-  // ============================================================
-
-  String _maskPhone(
-      String phone,
-      ) {
+  String _maskPhone(String phone) {
     final digits =
     phone.replaceAll(
       RegExp(r'[^0-9]'),
@@ -957,212 +835,111 @@ class _IndividualChatScreenState
     return '$countryCode ${'*' * 10}';
   }
 
-  // ============================================================
-  // SEND CONTACT REQUEST
-  // ============================================================
-
   Future<void>
   _onSendPhoneRequest() async {
     try {
       await ChatService.sendContactRequest(
         roomId: widget.roomId,
-
         senderId:
         widget.currentUserId,
-
         receiverId:
         widget.otherUserId,
       );
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
         const SnackBar(
-          content:
-          Text('Request sent'),
+          content: Text('Request sent'),
         ),
       );
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
         SnackBar(
-          content:
-          Text(e.toString()),
+          content: Text(
+            e.toString().replaceFirst(
+              'Exception: ',
+              '',
+            ),
+          ),
         ),
       );
     }
   }
 
   // ============================================================
-  // CONTACT REQUEST DIALOG
+  // CONTACT REQUEST
   // ============================================================
 
-  void _showContactRequestDialog() {
+  void _showContactRequestDialog({
+    required String senderName,
+    required DateTime requestTime,
+  }) {
+    if (!mounted ||
+        _contactDialogShowing) {
+      return;
+    }
+
     _contactDialogShowing = true;
 
     AppUiHelper.showBottomSheet(
       showHandle: false,
-
       context: context,
+      child: ChatSendRequest(
+        senderName: senderName,
+        requestTime: requestTime,
 
-      child: Column(
-        mainAxisSize:
-        MainAxisSize.min,
+        onDecline: () async {
+          try {
+            await ChatService
+                .declineContactRequest(
+              roomId: widget.roomId,
+            );
 
-        children: [
-          const AppText(
-            text:
-            'Contact Request',
-            fontSize: 18,
-            fontWeight:
-            FontWeight.w600,
-          ),
+            if (!mounted) return;
 
-          const SizedBox(
-            height: 10,
-          ),
+            Navigator.of(context).pop();
+          } finally {
+            _contactDialogShowing =
+            false;
+          }
+        },
 
-          const AppText(
-            text:
-            'This user wants to access your phone number.',
-            fontSize: 13,
-            maxLine: 3,
-          ),
+        onAccept: () async {
+          try {
+            await ChatService
+                .acceptContactRequest(
+              roomId: widget.roomId,
+            );
 
-          const SizedBox(
-            height: 20,
-          ),
+            await _loadOtherUserPhone();
 
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () async {
-                    Navigator.pop(
-                      context,
-                    );
+            if (!mounted) return;
 
-                    _contactDialogShowing =
-                    false;
-
-                    await ChatService
-                        .declineContactRequest(
-                      roomId:
-                      widget.roomId,
-                    );
-                  },
-
-                  child: Container(
-                    padding:
-                    const EdgeInsets.all(
-                      12,
-                    ),
-
-                    decoration:
-                    BoxDecoration(
-                      borderRadius:
-                      BorderRadius.circular(
-                        10,
-                      ),
-
-                      border:
-                      Border.all(
-                        color:
-                        AppColors.fieldGrey,
-                      ),
-                    ),
-
-                    child:
-                    const Center(
-                      child: AppText(
-                        text:
-                        'Decline',
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(
-                width: 10,
-              ),
-
-              Expanded(
-                child: InkWell(
-                  onTap: () async {
-                    Navigator.pop(
-                      context,
-                    );
-
-                    _contactDialogShowing =
-                    false;
-
-                    await ChatService
-                        .acceptContactRequest(
-                      roomId:
-                      widget.roomId,
-                    );
-
-                    await _loadOtherUserPhone();
-                  },
-
-                  child: Container(
-                    padding:
-                    const EdgeInsets.all(
-                      12,
-                    ),
-
-                    decoration:
-                    BoxDecoration(
-                      color:
-                      AppColors.primaryColor,
-
-                      borderRadius:
-                      BorderRadius.circular(
-                        10,
-                      ),
-                    ),
-
-                    child:
-                    const Center(
-                      child: AppText(
-                        text:
-                        'Accept',
-                        fontSize: 13,
-                        color:
-                        AppColors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ).pad(),
-
+            Navigator.of(context).pop();
+          } finally {
+            _contactDialogShowing =
+            false;
+          }
+        },
+      ),
       showCloseIcon: false,
-
       color:
       AppColors.primaryColor,
-
       iconColor:
       AppColors.white,
     ).whenComplete(() {
-      _contactDialogShowing = false;
+      _contactDialogShowing =
+      false;
     });
   }
 
   // ============================================================
-  // TOP ITEM CARD
+  // ITEM CARD
   // ============================================================
 
   Widget _buildTopItemCard() {
@@ -1175,28 +952,18 @@ class _IndividualChatScreenState
     if (navHasAnyData) {
       return ItemCard(
         imageWidth: 170,
-
         isFromEnquiry: true,
-
-        imgUrl:
-        widget.itemImage,
-
+        imgUrl: widget.itemImage,
         title:
         widget.itemName.trim().isNotEmpty
             ? widget.itemName
             : 'Item',
-
         location:
         widget.itemLocation,
-
         date:
         widget.itemPostDate,
-
         postId: '',
-
-        showPostId:
-        false,
-
+        showPostId: false,
         onTap: () {},
       );
     }
@@ -1257,28 +1024,16 @@ class _IndividualChatScreenState
 
         return ItemCard(
           imageWidth: 170,
-
           isFromEnquiry: true,
-
-          imgUrl:
-          itemImage,
-
+          imgUrl: itemImage,
           title:
           itemName.isNotEmpty
               ? itemName
               : 'Item',
-
-          location:
-          itemLocation,
-
-          date:
-          itemPostDate,
-
+          location: itemLocation,
+          date: itemPostDate,
           postId: '',
-
-          showPostId:
-          false,
-
+          showPostId: false,
           onTap: () {},
         );
       },
@@ -1286,14 +1041,13 @@ class _IndividualChatScreenState
   }
 
   // ============================================================
-  // SAFETY CARD
+  // SAFETY
   // ============================================================
 
   Widget _buildSafetyCard() {
     return AppContainer(
       bgColor:
       AppColors.idCardColor,
-
       widget: Row(
         children: [
           AppIconWidget(
@@ -1319,7 +1073,6 @@ class _IndividualChatScreenState
 
           InkWell(
             onTap: () {},
-
             child: AppIconWidget(
               assetPath:
               AssetImages.crossIcon,
@@ -1356,11 +1109,6 @@ class _IndividualChatScreenState
         }
 
         if (snapshot.hasError) {
-          debugPrint(
-            '[MESSAGES ERROR] '
-                '${snapshot.error}',
-          );
-
           return const Center(
             child: AppText(
               text:
@@ -1375,26 +1123,25 @@ class _IndividualChatScreenState
         }
 
         final docs =
-        snapshot.data!.docs
-            .where((doc) {
-          final data =
-          doc.data();
+        snapshot.data!.docs.where(
+              (doc) {
+            final data = doc.data();
 
-          final deletedFor =
-          List<String>.from(
-            data['deletedFor'] ?? [],
-          );
+            final deletedFor =
+            List<String>.from(
+              data['deletedFor'] ?? [],
+            );
 
-          return !deletedFor.contains(
-            widget.currentUserId,
-          );
-        }).toList();
+            return !deletedFor.contains(
+              widget.currentUserId,
+            );
+          },
+        ).toList();
 
         if (docs.isEmpty) {
           return const Center(
             child: AppText(
-              text:
-              'Say hello 👋',
+              text: 'Say hello 👋',
             ),
           );
         }
@@ -1433,10 +1180,38 @@ class _IndividualChatScreenState
                     ?.toString() ??
                     'text';
 
-            // Item card is displayed above.
+            // Item is already shown above.
             if (messageType == 'item') {
               return const SizedBox.shrink();
             }
+
+            // ==================================================
+            // LOCATION MESSAGE
+            // ==================================================
+
+            if (messageType ==
+                'location') {
+              return _buildLocationMessage(
+                data: data,
+                docId: doc.id,
+              );
+            }
+
+            // ==================================================
+            // IMAGE MESSAGE
+            // ==================================================
+
+            if (messageType ==
+                'image') {
+              return _buildImageMessage(
+                data: data,
+                docId: doc.id,
+              );
+            }
+
+            // ==================================================
+            // NORMAL TEXT
+            // ==================================================
 
             return _buildTextMessage(
               data: data,
@@ -1478,8 +1253,7 @@ class _IndividualChatScreenState
       }
 
       if (messageDate != null) {
-        final dayOnly =
-        DateTime(
+        final dayOnly = DateTime(
           messageDate.year,
           messageDate.month,
           messageDate.day,
@@ -1498,27 +1272,18 @@ class _IndividualChatScreenState
       }
 
       entries.add(
-        _ChatListEntry.message(
-          doc,
-        ),
+        _ChatListEntry.message(doc),
       );
     }
 
     return entries;
   }
 
-  // ============================================================
-  // DATE LABEL
-  // ============================================================
-
-  String _dateLabel(
-      DateTime date,
-      ) {
+  String _dateLabel(DateTime date) {
     final now =
     DateTime.now();
 
-    final today =
-    DateTime(
+    final today = DateTime(
       now.year,
       now.month,
       now.day,
@@ -1526,9 +1291,7 @@ class _IndividualChatScreenState
 
     final yesterday =
     today.subtract(
-      const Duration(
-        days: 1,
-      ),
+      const Duration(days: 1),
     );
 
     if (date == today) {
@@ -1543,10 +1306,6 @@ class _IndividualChatScreenState
       'd MMM yyyy',
     ).format(date);
   }
-
-  // ============================================================
-  // DATE HEADER
-  // ============================================================
 
   Widget _buildDateHeader(
       String label,
@@ -1570,7 +1329,6 @@ class _IndividualChatScreenState
             color:
             AppColors.fieldGrey
                 .withAlpha(60),
-
             borderRadius:
             BorderRadius.circular(
               12,
@@ -1597,8 +1355,7 @@ class _IndividualChatScreenState
     required String docId,
   }) {
     final isMe =
-        data['senderId']
-            ?.toString() ==
+        data['senderId']?.toString() ==
             widget.currentUserId;
 
     final isDeleted =
@@ -1624,9 +1381,7 @@ class _IndividualChatScreenState
 
     return GestureDetector(
       onLongPress: () {
-        if (isDeleted) {
-          return;
-        }
+        if (isDeleted) return;
 
         setState(() {
           selectedMessageId =
@@ -1635,8 +1390,7 @@ class _IndividualChatScreenState
       },
 
       onTap: () {
-        if (selectedMessageId !=
-            null) {
+        if (selectedMessageId != null) {
           setState(() {
             selectedMessageId =
             null;
@@ -1645,8 +1399,7 @@ class _IndividualChatScreenState
       },
 
       child: Container(
-        width:
-        double.infinity,
+        width: double.infinity,
 
         color: isSelected
             ? AppColors.chatDelete
@@ -1706,9 +1459,7 @@ class _IndividualChatScreenState
                       : data['message']
                       ?.toString() ??
                       '',
-
                   fontSize: 12,
-
                   fontWeight:
                   FontWeight.w400,
                 ),
@@ -1719,27 +1470,21 @@ class _IndividualChatScreenState
                 MainAxisSize.min,
 
                 children: [
-                  if (isMe &&
-                      !isDeleted)
+                  if (isMe && !isDeleted)
                     MessageTick(
                       read:
                       data['read'] ==
                           true,
-
                       delivered:
                       data['delivered'] ==
                           true,
                     ),
 
-                  const SizedBox(
-                    width: 3,
-                  ),
+                  const SizedBox(width: 3),
 
                   AppText(
                     text: time,
-
                     fontSize: 10,
-
                     fontWeight:
                     FontWeight.w400,
                   ),
@@ -1753,6 +1498,583 @@ class _IndividualChatScreenState
   }
 
   // ============================================================
+  // IMAGE MESSAGE
+  // ============================================================
+
+  Widget _buildImageMessage({
+    required Map<String, dynamic> data,
+    required String docId,
+  }) {
+    final isMe =
+        data['senderId']?.toString() ==
+            widget.currentUserId;
+
+    final isSelected =
+        selectedMessageId == docId;
+
+    final imageUrl =
+        data['imageUrl']?.toString() ??
+            data['message']?.toString() ??
+            '';
+
+    DateTime? date;
+
+    final timestamp =
+    data['createdAt'];
+
+    if (timestamp is Timestamp) {
+      date =
+          timestamp.toDate();
+    }
+
+    final time =
+    date != null
+        ? _formatTime(date)
+        : '';
+
+    return GestureDetector(
+      onLongPress: () {
+        setState(() {
+          selectedMessageId =
+              docId;
+        });
+      },
+
+      onTap: () {
+        if (selectedMessageId != null) {
+          setState(() {
+            selectedMessageId =
+            null;
+          });
+        }
+      },
+
+      child: Container(
+        width: double.infinity,
+        color: isSelected
+            ? AppColors.chatDelete
+            : Colors.transparent,
+
+        child: Align(
+          alignment: isMe
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
+
+          child: Column(
+            crossAxisAlignment:
+            isMe
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+
+            children: [
+              if (imageUrl.isNotEmpty)
+                Container(
+                  width: 240,
+                  height: 250,
+
+                  margin:
+                  const EdgeInsets.symmetric(
+                    vertical: 5,
+                    horizontal: 10,
+                  ),
+
+                  clipBehavior:
+                  Clip.antiAlias,
+
+                  decoration:
+                  BoxDecoration(
+                    borderRadius:
+                    BorderRadius.circular(
+                      16,
+                    ),
+                  ),
+
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+
+                    errorBuilder:
+                        (
+                        context,
+                        error,
+                        stackTrace,
+                        ) {
+                      return Container(
+                        color:
+                        AppColors.fieldGrey,
+                        alignment:
+                        Alignment.center,
+                        child: const Icon(
+                          Icons
+                              .broken_image_outlined,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+              Row(
+                mainAxisSize:
+                MainAxisSize.min,
+
+                children: [
+                  if (isMe)
+                    MessageTick(
+                      read:
+                      data['read'] ==
+                          true,
+                      delivered:
+                      data['delivered'] ==
+                          true,
+                    ),
+
+                  const SizedBox(width: 3),
+
+                  AppText(
+                    text: time,
+                    fontSize: 10,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // LOCATION MESSAGE
+  // ============================================================
+
+  Widget _buildLocationMessage({
+    required Map<String, dynamic> data,
+    required String docId,
+  }) {
+    final isMe =
+        data['senderId']?.toString() ==
+            widget.currentUserId;
+
+    final isSelected =
+        selectedMessageId == docId;
+
+    final isDeleted =
+        data['isDeleted'] == true;
+
+    final latitude =
+    _toDouble(data['latitude']);
+
+    final longitude =
+    _toDouble(data['longitude']);
+
+    final address =
+        data['address']?.toString().trim() ??
+            '';
+
+    DateTime? date;
+
+    final timestamp =
+    data['createdAt'];
+
+    if (timestamp is Timestamp) {
+      date =
+          timestamp.toDate();
+    }
+
+    final time =
+    date != null
+        ? _formatTime(date)
+        : '';
+
+    if (isDeleted) {
+      return _buildTextMessage(
+        data: {
+          ...data,
+          'message':
+          'This location was deleted',
+          'isDeleted': true,
+        },
+        docId: docId,
+      );
+    }
+
+    return GestureDetector(
+      onLongPress: () {
+        setState(() {
+          selectedMessageId =
+              docId;
+        });
+      },
+
+      onTap: () {
+        if (selectedMessageId != null) {
+          setState(() {
+            selectedMessageId =
+            null;
+          });
+          return;
+        }
+
+        if (latitude != null &&
+            longitude != null) {
+          _openLocationInMaps(
+            latitude,
+            longitude,
+          );
+        }
+      },
+
+      child: Container(
+        width: double.infinity,
+
+        color: isSelected
+            ? AppColors.chatDelete
+            : Colors.transparent,
+
+        child: Align(
+          alignment: isMe
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
+
+          child: Column(
+            crossAxisAlignment:
+            isMe
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+
+            children: [
+              // ==================================================
+              // LOCATION CARD
+              // ==================================================
+
+              Container(
+                width: 260,
+
+                margin:
+                const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+
+                clipBehavior:
+                Clip.antiAlias,
+
+                decoration:
+                BoxDecoration(
+                  color: AppColors.white,
+
+                  borderRadius:
+                  BorderRadius.circular(
+                    16,
+                  ),
+
+                  border: Border.all(
+                    color:
+                    AppColors.fieldGrey,
+                  ),
+                ),
+
+                child: Column(
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
+                  children: [
+                    // ==================================================
+                    // MAP
+                    // ==================================================
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 145,
+
+                      child: Stack(
+                        children: [
+                          Container(
+                            width:
+                            double.infinity,
+                            height:
+                            double.infinity,
+
+                            decoration:
+                            const BoxDecoration(
+                              gradient:
+                              LinearGradient(
+                                begin:
+                                Alignment.topLeft,
+                                end:
+                                Alignment.bottomRight,
+                                colors: [
+                                  Color(
+                                    0xFFE5EDF0,
+                                  ),
+                                  Color(
+                                    0xFFD8E4E8,
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            child:
+                            CustomPaint(
+                              painter:
+                              _LocationMapPainter(),
+                            ),
+                          ),
+
+                          // ==================================================
+                          // CENTER LOCATION PIN
+                          // ==================================================
+
+                          const Center(
+                            child: Icon(
+                              Icons
+                                  .location_on,
+                              size: 44,
+                              color: AppColors
+                                  .primaryColor,
+                            ),
+                          ),
+
+                          // ==================================================
+                          // MAP LABEL
+                          // ==================================================
+
+                          Positioned(
+                            left: 10,
+                            top: 10,
+
+                            child: Container(
+                              padding:
+                              const EdgeInsets
+                                  .symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+
+                              decoration:
+                              BoxDecoration(
+                                color:
+                                Colors.white,
+                                borderRadius:
+                                BorderRadius
+                                    .circular(
+                                  20,
+                                ),
+                              ),
+
+                              child:
+                              const Text(
+                                'Location',
+                                style:
+                                TextStyle(
+                                  fontSize: 11,
+                                  fontWeight:
+                                  FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // ==================================================
+                          // OPEN MAP ICON
+                          // ==================================================
+
+                          Positioned(
+                            right: 10,
+                            top: 10,
+
+                            child: Container(
+                              width: 34,
+                              height: 34,
+
+                              decoration:
+                              BoxDecoration(
+                                color:
+                                Colors.white,
+                                shape:
+                                BoxShape.circle,
+                              ),
+
+                              child: const Icon(
+                                Icons
+                                    .open_in_new,
+                                size: 17,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ==================================================
+                    // LOCATION DETAILS
+                    // ==================================================
+
+                    Padding(
+                      padding:
+                      const EdgeInsets
+                          .all(12),
+
+                      child: Column(
+                        crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start,
+
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons
+                                    .location_on,
+                                size: 18,
+                                color: AppColors
+                                    .primaryColor,
+                              ),
+
+                              const SizedBox(
+                                width: 6,
+                              ),
+
+                              const Expanded(
+                                child: Text(
+                                  'Shared Location',
+                                  style:
+                                  TextStyle(
+                                    fontSize: 13,
+                                    fontWeight:
+                                    FontWeight
+                                        .w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          if (address
+                              .isNotEmpty) ...[
+                            const SizedBox(
+                              height: 6,
+                            ),
+
+                            Text(
+                              address,
+                              maxLines: 2,
+                              overflow:
+                              TextOverflow
+                                  .ellipsis,
+
+                              style:
+                              const TextStyle(
+                                fontSize: 11,
+                                color: Colors
+                                    .black54,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+
+                          if (latitude != null &&
+                              longitude !=
+                                  null) ...[
+                            const SizedBox(
+                              height: 7,
+                            ),
+
+                            Text(
+                              '${latitude.toStringAsFixed(5)}, '
+                                  '${longitude.toStringAsFixed(5)}',
+
+                              style:
+                              const TextStyle(
+                                fontSize: 10,
+                                color: Colors
+                                    .black45,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ==================================================
+              // TIME
+              // ==================================================
+
+              Row(
+                mainAxisSize:
+                MainAxisSize.min,
+
+                children: [
+                  if (isMe)
+                    MessageTick(
+                      read:
+                      data['read'] ==
+                          true,
+                      delivered:
+                      data['delivered'] ==
+                          true,
+                    ),
+
+                  const SizedBox(width: 3),
+
+                  AppText(
+                    text: time,
+                    fontSize: 10,
+                    fontWeight:
+                    FontWeight.w400,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  double? _toDouble(dynamic value) {
+    if (value == null) return null;
+
+    if (value is double) {
+      return value;
+    }
+
+    if (value is int) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(
+      value.toString(),
+    );
+  }
+
+  Future<void> _openLocationInMaps(
+      double latitude,
+      double longitude,
+      ) async {
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude',
+    );
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode:
+          LaunchMode.externalApplication,
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        '[LOCATION] MAP ERROR: $e',
+      );
+    }
+  }
+
+  // ============================================================
   // BOTTOM AREA
   // ============================================================
 
@@ -1760,8 +2082,7 @@ class _IndividualChatScreenState
     return StreamBuilder<bool>(
       stream:
       ChatService.chatBlockedStream(
-        roomId:
-        widget.roomId,
+        roomId: widget.roomId,
       ),
 
       builder: (
@@ -1769,19 +2090,16 @@ class _IndividualChatScreenState
           snapshot,
           ) {
         final isBlocked =
-            snapshot.data ??
-                false;
+            snapshot.data ?? false;
 
         if (isBlocked) {
           return SafeArea(
             top: false,
-
             child: Padding(
               padding:
               const EdgeInsets.all(
                 16,
               ),
-
               child:
               _buildBlockedContainer(),
             ),
@@ -1795,9 +2113,9 @@ class _IndividualChatScreenState
             padding:
             EdgeInsets.only(
               bottom:
-              MediaQuery.of(
-                context,
-              ).viewInsets.bottom,
+              MediaQuery.of(context)
+                  .viewInsets
+                  .bottom,
             ),
 
             child: Row(
@@ -1806,18 +2124,28 @@ class _IndividualChatScreenState
                   onTap: () {
                     AppUiHelper
                         .showBottomSheet(
-                      context:
-                      context,
+                      context: context,
+                      showHandle: false,
+                      showCloseIcon:
+                      false,
+                      color: AppColors
+                          .primaryColor,
+                      iconColor:
+                      AppColors.white,
 
                       child:
-                      ChatSharingFiles(),
+                      ChatSharingFiles(
+                        roomId:
+                        widget.roomId,
+                        currentUserId:
+                        widget
+                            .currentUserId,
+                      ),
                     );
                   },
 
                   height: 50,
-
                   width: 50,
-
                   context,
 
                   icon:
@@ -1833,9 +2161,7 @@ class _IndividualChatScreenState
                   AppColors.fieldGrey,
                 ),
 
-                const SizedBox(
-                  width: 8,
-                ),
+                const SizedBox(width: 8),
 
                 Expanded(
                   child: Container(
@@ -1847,48 +2173,43 @@ class _IndividualChatScreenState
                       AppColors.white,
 
                       borderRadius:
-                      BorderRadius.circular(
+                      BorderRadius
+                          .circular(
                         30,
                       ),
 
-                      boxShadow: const [
+                      boxShadow:
+                      const [
                         BoxShadow(
                           color:
                           Colors.black12,
-                          blurRadius:
-                          8,
+                          blurRadius: 8,
                           offset:
                           Offset(0, 2),
                         ),
                       ],
                     ),
 
-                    child:
-                    AppTextField(
+                    child: AppTextField(
                       hintText:
                       'Write your message..',
 
                       textController:
                       textController,
 
-                      onChange:
-                          (v) {},
+                      onChange: (v) {},
 
-                      onSubmit:
-                          (v) => _send(),
+                      onSubmit: (v) =>
+                          _send(),
                     ),
                   ),
                 ),
 
-                const SizedBox(
-                  width: 8,
-                ),
+                const SizedBox(width: 8),
 
                 buildIconContainer(
                   height: 50,
-
                   width: 50,
-
                   context,
 
                   icon:
@@ -1900,8 +2221,7 @@ class _IndividualChatScreenState
                   iconColor:
                   AppColors.white,
 
-                  onTap:
-                  _send,
+                  onTap: _send,
                 ),
               ],
             ).pad(),
@@ -1911,18 +2231,13 @@ class _IndividualChatScreenState
     );
   }
 
-  // ============================================================
-  // BLOCKED CONTAINER
-  // ============================================================
-
   Widget _buildBlockedContainer() {
     return InkWell(
       onTap:
       _showBlockedPopup,
 
       child: Container(
-        width:
-        double.infinity,
+        width: double.infinity,
 
         padding:
         const EdgeInsets.symmetric(
@@ -1941,8 +2256,7 @@ class _IndividualChatScreenState
             12,
           ),
 
-          border:
-          Border.all(
+          border: Border.all(
             color:
             AppColors.fieldGrey,
           ),
@@ -1952,13 +2266,12 @@ class _IndividualChatScreenState
           children: [
             AppIconWidget(
               assetPath:
-              AssetImages.blockChatBorder,
+              AssetImages
+                  .blockChatBorder,
               size: 25,
             ),
 
-            const SizedBox(
-              width: 10,
-            ),
+            const SizedBox(width: 10),
 
             const Expanded(
               child: AppText(
@@ -1973,8 +2286,7 @@ class _IndividualChatScreenState
             Icon(
               Icons.arrow_forward_ios,
               size: 15,
-              color:
-              AppColors.grey,
+              color: AppColors.grey,
             ),
           ],
         ),
@@ -1982,22 +2294,19 @@ class _IndividualChatScreenState
     );
   }
 
-  // ============================================================
-  // BLOCK POPUP
-  // ============================================================
-
   void _showBlockedPopup() {
     AppUiHelper.showBottomSheet(
       showHandle: false,
-
       context: context,
 
       child: BlockChat(
-        onUnblock: () async {
+        onUnblock:
+            () async {
           await _unblockChat();
         },
 
-        onDeleteChat: () async {
+        onDeleteChat:
+            () async {
           await _clearChat();
         },
       ),
@@ -2029,50 +2338,43 @@ class _IndividualChatScreenState
           ),
         ),
 
-        const SizedBox(
-          width: 20,
-        ),
+        const SizedBox(width: 20),
 
         CircleAvatar(
           radius: 18,
 
           child: ClipOval(
             child:
-            widget.otherUserAvatar.isNotEmpty
+            widget.otherUserAvatar
+                .isNotEmpty
                 ? AppCachedNetworkImage(
               imageUrl:
-              widget.otherUserAvatar,
-
+              widget
+                  .otherUserAvatar,
               height: 36,
-
               width: 36,
-
               fit:
               BoxFit.cover,
             )
                 : Icon(
               Icons.person,
-
-              color:
-              AppColors.primaryColor,
+              color: AppColors
+                  .primaryColor,
             ),
           ),
         ),
 
-        const SizedBox(
-          width: 15,
-        ),
+        const SizedBox(width: 15),
 
         Expanded(
           child: AppText(
             text:
             widget.otherUserName
                 .isNotEmpty
-                ? widget.otherUserName
+                ? widget
+                .otherUserName
                 : 'User ${widget.otherUserId}',
-
             fontSize: 16,
-
             fontWeight:
             FontWeight.w500,
           ),
@@ -2080,17 +2382,14 @@ class _IndividualChatScreenState
 
         Container(
           height: 30,
-
           width: 30,
 
           decoration:
           BoxDecoration(
-            border:
-            Border.all(
+            border: Border.all(
               color:
               AppColors.fieldGrey,
             ),
-
             borderRadius:
             BorderRadius.circular(
               20,
@@ -2102,8 +2401,7 @@ class _IndividualChatScreenState
             padding:
             EdgeInsets.zero,
 
-            icon:
-            AppIconWidget(
+            icon: AppIconWidget(
               assetPath:
               AssetImages.more,
               size: 20,
@@ -2112,10 +2410,7 @@ class _IndividualChatScreenState
             ),
 
             offset:
-            const Offset(
-              0,
-              40,
-            ),
+            const Offset(0, 40),
 
             onSelected:
                 (value) async {
@@ -2127,35 +2422,33 @@ class _IndividualChatScreenState
                 case 'block':
                   await _blockChat();
 
-                  if (!mounted) {
-                    return;
-                  }
+                  if (!mounted) return;
 
                   _showBlockedPopup();
                   break;
 
                 case 'report':
+                  final currentUserId =
+                  int.tryParse(
+                    widget.currentUserId,
+                  );
+
+                  if (currentUserId ==
+                      null) {
+                    return;
+                  }
+
                   AppUiHelper
                       .showBottomSheet(
-                    context:
-                    context,
+                    context: context,
 
                     child:
                     ReportChatReasonSheet(
                       userId:
-                      int.parse(
-                        widget.currentUserId,
-                      ),
-
-                      userName:
-                      '',
-
-                      userMobile:
-                      '',
-
-                      userEmail:
-                      '',
-
+                      currentUserId,
+                      userName: '',
+                      userMobile: '',
+                      userEmail: '',
                       roomId:
                       widget.roomId,
 
@@ -2172,8 +2465,8 @@ class _IndividualChatScreenState
                     showCloseIcon:
                     true,
 
-                    color:
-                    AppColors.primaryColor,
+                    color: AppColors
+                        .primaryColor,
 
                     iconColor:
                     AppColors.white,
@@ -2186,33 +2479,21 @@ class _IndividualChatScreenState
             itemBuilder:
                 (context) => [
               const PopupMenuItem(
-                value:
-                'clear',
-
+                value: 'clear',
                 child:
-                Text(
-                  'Clear Chat',
-                ),
+                Text('Clear Chat'),
               ),
 
               const PopupMenuItem(
-                value:
-                'block',
-
+                value: 'block',
                 child:
-                Text(
-                  'Block',
-                ),
+                Text('Block'),
               ),
 
               const PopupMenuItem(
-                value:
-                'report',
-
+                value: 'report',
                 child:
-                Text(
-                  'Report',
-                ),
+                Text('Report'),
               ),
             ],
           ),
@@ -2220,10 +2501,6 @@ class _IndividualChatScreenState
       ],
     );
   }
-
-  // ============================================================
-  // SELECTION TOP ROW
-  // ============================================================
 
   Widget _buildSelectionTopRow() {
     return Row(
@@ -2248,8 +2525,7 @@ class _IndividualChatScreenState
           offset:
           const Offset(0, 40),
 
-          icon:
-          AppIconWidget(
+          icon: AppIconWidget(
             assetPath:
             AssetImages.delete,
             size: 22,
@@ -2260,51 +2536,42 @@ class _IndividualChatScreenState
             final id =
                 selectedMessageId;
 
-            if (id == null) {
-              return;
-            }
+            if (id == null) return;
 
             try {
-              if (value ==
-                  'me') {
+              if (value == 'me') {
                 await ChatService
                     .deleteForMe(
                   roomId:
                   widget.roomId,
-
-                  messageId:
-                  id,
-
+                  messageId: id,
                   currentUserId:
-                  widget.currentUserId,
+                  widget
+                      .currentUserId,
                 );
-              } else if (value ==
+              }
+
+              if (value ==
                   'everyone') {
                 await ChatService
                     .deleteForEveryone(
                   roomId:
                   widget.roomId,
-
-                  messageId:
-                  id,
-
+                  messageId: id,
                   currentUserId:
-                  widget.currentUserId,
+                  widget
+                      .currentUserId,
                 );
               }
 
-              if (!mounted) {
-                return;
-              }
+              if (!mounted) return;
 
               setState(() {
                 selectedMessageId =
                 null;
               });
             } catch (e) {
-              if (!mounted) {
-                return;
-              }
+              if (!mounted) return;
 
               setState(() {
                 selectedMessageId =
@@ -2315,8 +2582,7 @@ class _IndividualChatScreenState
                 context,
               ).showSnackBar(
                 SnackBar(
-                  content:
-                  Text(
+                  content: Text(
                     e.toString()
                         .replaceFirst(
                       'Exception: ',
@@ -2331,34 +2597,22 @@ class _IndividualChatScreenState
           itemBuilder:
               (context) => [
             const PopupMenuItem(
-              value:
-              'me',
-
-              child:
-              AppText(
+              value: 'me',
+              child: AppText(
                 text:
                 'Delete for me',
-
-                fontSize:
-                14,
-
+                fontSize: 14,
                 fontWeight:
                 FontWeight.w500,
               ),
             ),
 
             const PopupMenuItem(
-              value:
-              'everyone',
-
-              child:
-              AppText(
+              value: 'everyone',
+              child: AppText(
                 text:
                 'Delete for everyone',
-
-                fontSize:
-                14,
-
+                fontSize: 14,
                 fontWeight:
                 FontWeight.w500,
               ),
@@ -2368,10 +2622,6 @@ class _IndividualChatScreenState
       ],
     );
   }
-
-  // ============================================================
-  // FORMAT TIME
-  // ============================================================
 
   String _formatTime(
       DateTime dt,
@@ -2384,10 +2634,7 @@ class _IndividualChatScreenState
     final m =
     dt.minute
         .toString()
-        .padLeft(
-      2,
-      '0',
-    );
+        .padLeft(2, '0');
 
     final ampm =
     dt.hour >= 12
@@ -2395,6 +2642,75 @@ class _IndividualChatScreenState
         : 'AM';
 
     return '$h:$m $ampm';
+  }
+}
+
+// ============================================================
+// MAP PAINTER
+// ============================================================
+
+class _LocationMapPainter
+    extends CustomPainter {
+  @override
+  void paint(
+      Canvas canvas,
+      Size size,
+      ) {
+    final roadPaint = Paint()
+      ..style =
+          PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color =
+      const Color(0xFFCCD7DB);
+
+    final mainRoadPaint = Paint()
+      ..style =
+          PaintingStyle.stroke
+      ..strokeWidth = 6
+      ..color =
+      const Color(0xFFF8FAFA);
+
+    // Horizontal roads
+    for (double y = 15;
+    y < size.height;
+    y += 30) {
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        roadPaint,
+      );
+    }
+
+    // Vertical roads
+    for (double x = 15;
+    x < size.width;
+    x += 40) {
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        roadPaint,
+      );
+    }
+
+    // Main diagonal road
+    canvas.drawLine(
+      Offset(
+        -20,
+        size.height * .85,
+      ),
+      Offset(
+        size.width + 20,
+        size.height * .15,
+      ),
+      mainRoadPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(
+      covariant CustomPainter oldDelegate,
+      ) {
+    return false;
   }
 }
 

@@ -278,19 +278,6 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppText(text: errorMessage!, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            AppButton(title: 'Retry', onTap: _fetchEnquiries),
-          ],
-        ),
-      );
-    }
-
     final post = enquiryData?.post;
     final enquiries = enquiryData?.enquiries ?? [];
 
@@ -302,6 +289,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
         ItemCard(
           imageWidth: 170,
           isFromEnquiry: true,
+          isFound: true,
           imgUrl: post != null && post.images.isNotEmpty ? post.images.first : '',
           title: post?.name ?? '',
           location: post?.location ?? '',
@@ -437,6 +425,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                 ),
               ),
 
+              Spacer(),
               Container(
                 padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(

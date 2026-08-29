@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
@@ -2007,87 +2008,201 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
 /// The actual Firestore update is intentionally handled by the parent chat
 /// screen through [onAccept] and [onDecline]. This widget only displays the
 /// dialog UI.
+
+
 class ChatSendRequest extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onAccept;
   final String senderName;
+  final DateTime requestTime;
 
   const ChatSendRequest({
     super.key,
     required this.onDecline,
     required this.onAccept,
     this.senderName = '',
+    required this.requestTime,
   });
+
+  // ============================================================
+  // REQUEST DATE
+  // ============================================================
+
+  String _formatRequestDate(
+      DateTime date) {
+    final now =
+    DateTime.now();
+
+    final today = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    );
+
+    final requestDate = DateTime(
+      date.year,
+      date.month,
+      date.day,
+    );
+
+    final yesterday =
+    today.subtract(
+      const Duration(days: 1),
+    );
+
+    // ==========================================================
+    // TODAY
+    // ==========================================================
+
+    if (requestDate == today) {
+      return 'Today';
+    }
+
+    // ==========================================================
+    // YESTERDAY
+    // ==========================================================
+
+    if (requestDate == yesterday) {
+      return 'Yesterday';
+    }
+
+    // ==========================================================
+    // OLDER
+    // ==========================================================
+
+    return DateFormat(
+      'd MMM yyyy',
+    ).format(requestDate);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final displayName = senderName.trim().isNotEmpty
+    final displayName =
+    senderName.trim().isNotEmpty
         ? senderName.trim()
         : 'This user';
 
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize:
+      MainAxisSize.min,
       children: [
+        // ======================================================
+        // HEADER
+        // ======================================================
+
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+          CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              backgroundColor: AppColors.idCardColor,
+              backgroundColor:
+              AppColors.idCardColor,
               radius: 20,
-              child: AppIconWidget(
-                assetPath: AssetImages.phone,
+              child:
+              AppIconWidget(
+                assetPath:
+                AssetImages.phone,
               ),
             ),
+
             const SizedBox(width: 7),
+
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
                 children: [
                   const AppText(
-                    text: 'Contact Received',
+                    text:
+                    'Contact Received',
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontWeight:
+                    FontWeight.w500,
                   ),
-                  const SizedBox(height: 7),
+
+                  const SizedBox(
+                    height: 7,
+                  ),
+
                   AppText(
                     text:
                     '$displayName wants to share contact information with you.',
-                    fontWeight: FontWeight.w400,
+                    fontWeight:
+                    FontWeight.w400,
                     fontSize: 12,
                     maxLine: 3,
                   ),
                 ],
               ),
             ),
+
             const SizedBox(width: 8),
-            const AppText(
-              text: 'Just now',
+
+            // ==================================================
+            // TODAY / YESTERDAY / DATE
+            // ==================================================
+
+            AppText(
+              text:
+              _formatRequestDate(
+                requestTime,
+              ),
               fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.primaryColor,
+              fontWeight:
+              FontWeight.w500,
+              color:
+              AppColors.primaryColor,
             ),
           ],
         ),
-        const SizedBox(height: 12),
+
+        const SizedBox(
+          height: 12,
+        ),
+
+        // ======================================================
+        // BUTTONS
+        // ======================================================
+
         Row(
           children: [
+            // ==================================================
+            // DECLINE
+            // ==================================================
+
             Expanded(
               child: AppButton(
                 title: 'Decline',
                 onTap: onDecline,
-                bgColor: AppColors.white,
-                border: Border.all(color: AppColors.red),
-                textColor: AppColors.red,
+                bgColor:
+                AppColors.white,
+                border:
+                Border.all(
+                  color:
+                  AppColors.red,
+                ),
+                textColor:
+                AppColors.red,
                 fontSize: 14,
               ),
             ),
-            const SizedBox(width: 10),
+
+            const SizedBox(
+              width: 10,
+            ),
+
+            // ==================================================
+            // ACCEPT
+            // ==================================================
+
             Expanded(
               child: AppButton(
                 title: 'Accept',
                 onTap: onAccept,
-                bgColor: AppColors.primaryColor,
-                textColor: AppColors.white,
+                bgColor:
+                AppColors.primaryColor,
+                textColor:
+                AppColors.white,
                 fontSize: 14,
               ),
             ),

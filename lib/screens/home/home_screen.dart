@@ -2,21 +2,25 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/models/posts_model/post_list_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
+
 import 'package:lost_and_found/screens/bottomsheets/filter_screen.dart';
 import 'package:lost_and_found/screens/home/available_matching_screen.dart';
 import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
+import 'package:lost_and_found/screens/bottomsheets/handover_selection.dart';
+
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
-import 'package:lost_and_found/screens/bottomsheets/handover_selection.dart';
 import 'package:lost_and_found/shared_widgets/item_card.dart';
 import 'package:lost_and_found/shared_widgets/sucess_card.dart';
+
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
@@ -33,72 +37,158 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-
   final authController = AuthControllers(
-    authRepository: AuthRepository(apiClient: ApiClient()),
+    authRepository: AuthRepository(
+      apiClient: ApiClient(),
+    ),
   );
 
   List<Map<String, dynamic>> details = [
-    {'imageUrl': ''},
+    {
+      'imageUrl': '',
+    },
   ];
 
   final Map<int, int> matchingCounts = {};
 
-  HomeFilterState  filterState = const HomeFilterState();
+  HomeFilterState filterState = const HomeFilterState();
 
-  StreamController<HomeFilterState> filterStateStream = StreamController.broadcast();
+  final StreamController<HomeFilterState> filterStateStream =
+  StreamController<HomeFilterState>.broadcast();
 
   late TabController _tabController;
+
   int _selectedIndex = 0;
 
-  // Lost posts (post_type: 0)
+  // ============================================================
+  // LOST POSTS
+  // ============================================================
+
   List<PostModel> lostPosts = [];
+
   bool isLoadingLost = true;
+
   String? lostErrorMessage;
 
-  // Found posts (post_type: 1)
+  // ============================================================
+  // FOUND POSTS
+  // ============================================================
+
   List<PostModel> foundPosts = [];
+
   bool isLoadingFound = true;
+
   String? foundErrorMessage;
 
+  // ============================================================
+  // FILTER
+  // ============================================================
+
   void _emitFilter(HomeFilterState state) {
-filterState = state;
-filterStateStream.add(state);
+    filterState = state;
+    filterStateStream.add(state);
   }
 
   void _clearFilter() {
-    _emitFilter(HomeFilterState.cleared());
+    _emitFilter(
+      HomeFilterState.cleared(),
+    );
   }
 
+  // ============================================================
+  // MATCH COUNT
+  // ============================================================
 
-  Future<void> _fetchMatchCounts(List<PostModel> posts) async {
+  Future<void> _fetchMatchCounts(
+      List<PostModel> posts,
+      ) async {
     for (final post in posts) {
-      final response = await authController.getPostMatches(postId: post.id);
-      if (!mounted) return;
-      if (response.isSuccess && response.data != null && response.data!.matchingCount > 0) {
-        setState(() => matchingCounts[post.id] = response.data!.matchingCount);
+      try {
+        final response = await authController.getPostMatches(
+          postId: post.id,
+        );
+
+        if (!mounted) {
+          return;
+        }
+
+        if (response.isSuccess &&
+            response.data != null &&
+            response.data!.matchingCount > 0) {
+          setState(() {
+            matchingCounts[post.id] =
+                response.data!.matchingCount;
+          });
+        }
+      } catch (e) {
+        debugPrint(
+          'Error fetching match count for post ${post.id}: $e',
+        );
       }
     }
   }
 
-  String? _mapRangeToApiFilter(String? label) {
+  // ============================================================
+  // DATE FILTER
+  // ============================================================
+
+  String? _mapRangeToApiFilter(
+      String? label,
+      ) {
     switch (label) {
-      case 'Today': return 'today';
-      case 'Last 7 Days': return 'last_7_days';
-      case 'Last 30 Days': return 'last_30_days';
-      case 'Last 3 Months': return 'last_3_months';
-      case 'Last Year': return 'last_year';
-      case 'Custom Range': return 'custom';
-      default: return null;
+      case 'Today':
+        return 'today';
+
+      case 'Last 7 Days':
+        return 'last_7_days';
+
+      case 'Last 30 Days':
+        return 'last_30_days';
+
+      case 'Last 3 Months':
+        return 'last_3_months';
+
+      case 'Last Year':
+        return 'last_year';
+
+      case 'Custom Range':
+        return 'custom';
+
+      default:
+        return null;
     }
   }
 
-  void _openAvailableMatching(PostModel post) {
+  // ============================================================
+  // FORMAT POST DATE
+  // ============================================================
+
+  String _formatDate(
+      DateTime? date,
+      ) {
+    if (date == null) {
+      return '';
+    }
+
+    return DateFormat(
+      'd MMM yyyy',
+    ).format(date);
+  }
+
+  // ============================================================
+  // AVAILABLE MATCHING
+  // ============================================================
+
+  void _openAvailableMatching(
+      PostModel post,
+      ) {
     AppRoutes.pushNamed(
       AppRoutes.availableMatchingScreen,
       arguments: {
         'postId': post.id,
-        'imgUrl': post.images.isNotEmpty ? post.images.first : '',
+        'imgUrl': post.images.isNotEmpty
+            ? post.images.first
+            : '',
         'title': post.name,
         'location': post.location,
         'date': _formatDate(post.postDate),
@@ -109,162 +199,364 @@ filterStateStream.add(state);
     );
   }
 
+  // ============================================================
+  // FETCH LOST POSTS
+  // ============================================================
+
   Future<void> _fetchLostPosts() async {
-    setState(() {
-      isLoadingLost = true;
-      lostErrorMessage = null;
-    });
-
-    final userId = await AppPreferences.getUserId();
-
-    final response = filterState.filterApplied
-        ? await authController.filterPosts(
-      userId: userId ?? 0,
-      postType: 0,
-      dateFilter: filterState.dateFilter,
-      startDate: filterState.customRange != null
-          ? DateFormat('yyyy-MM-dd').format(filterState.customRange!.start)
-          : null,
-      endDate: filterState.customRange != null
-          ? DateFormat('yyyy-MM-dd').format(filterState.customRange!.end)
-          : null,
-    )
-        : await authController.getPost(userId: userId ?? 0, postType: 0);
-
-    if (!mounted) return;
-
-    if (response.isSuccess && response.data != null) {
+    if (mounted) {
       setState(() {
-        lostPosts = response.data!.posts;
-        isLoadingLost = false;
-      });
-      _fetchMatchCounts(lostPosts);
-    } else {
-      setState(() {
-        lostErrorMessage = response.currentState == CurrentState.noInternet
-            ? 'No internet connection. Please check your network.'
-            : (response.message.isNotEmpty ? response.message : 'Failed to load posts');
-        isLoadingLost = false;
+        isLoadingLost = true;
+        lostErrorMessage = null;
       });
     }
+
+    try {
+      final userId = await AppPreferences.getUserId();
+
+      final response = filterState.filterApplied
+          ? await authController.filterPosts(
+        userId: userId ?? 0,
+        postType: 0,
+        dateFilter: filterState.dateFilter,
+        startDate: filterState.customRange != null
+            ? DateFormat('yyyy-MM-dd').format(
+          filterState.customRange!.start,
+        )
+            : null,
+        endDate: filterState.customRange != null
+            ? DateFormat('yyyy-MM-dd').format(
+          filterState.customRange!.end,
+        )
+            : null,
+      )
+          : await authController.getPost(
+        userId: userId ?? 0,
+        postType: 0,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (response.isSuccess &&
+          response.data != null) {
+        var posts = response.data!.posts;
+        debugPrint('FILTER DEBUG: API returned ${posts.length} posts');
+
+        // Local filtering based on postDate (event date)
+        if (filterState.filterApplied) {
+          final range = filterState.effectiveRange;
+          debugPrint('FILTER DEBUG: Applying local filter for range: ${filterState.displayText}');
+          
+          if (range != null) {
+            final sDate = DateTime(
+              range.start.year,
+              range.start.month,
+              range.start.day,
+            );
+            final eDate = DateTime(
+              range.end.year,
+              range.end.month,
+              range.end.day,
+            );
+            debugPrint('FILTER DEBUG: Local Range Normalized: $sDate to $eDate');
+
+            posts = posts.where((post) {
+              if (post.postDate == null) {
+                debugPrint('FILTER DEBUG: Post ${post.id} has no postDate. Removing.');
+                return false;
+              }
+
+              final pDate = DateTime(
+                post.postDate!.year,
+                post.postDate!.month,
+                post.postDate!.day,
+              );
+
+              final keep = !pDate.isBefore(sDate) && !pDate.isAfter(eDate);
+              debugPrint('FILTER DEBUG: Post ${post.id} date: $pDate -> Keep: $keep');
+              return keep;
+            }).toList();
+            debugPrint('FILTER DEBUG: After local filtering: ${posts.length} posts remaining');
+          }
+        }
+
+        setState(() {
+          lostPosts = posts;
+          isLoadingLost = false;
+        });
+
+        _fetchMatchCounts(
+          lostPosts,
+        );
+      } else {
+        setState(() {
+          isLoadingLost = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        isLoadingLost = false;
+      });
+
+      debugPrint(
+        'Lost posts error: $e',
+      );
+    }
   }
+
+  // ============================================================
+  // FETCH FOUND POSTS
+  // ============================================================
 
   Future<void> _fetchFoundPosts() async {
-    setState(() {
-      isLoadingFound = true;
-      foundErrorMessage = null;
-    });
-
-    final userId = await AppPreferences.getUserId();
-
-    final response = filterState.filterApplied
-        ? await authController.filterPosts(
-      userId: userId ?? 0,
-      postType: 1,
-      dateFilter: filterState.dateFilter,
-      //_mapRangeToApiFilter(filterState.selectedRange),
-      startDate: filterState.customRange != null
-          ? DateFormat('yyyy-MM-dd').format(filterState.customRange!.start)
-          : null,
-      endDate: filterState.customRange != null
-          ? DateFormat('yyyy-MM-dd').format(filterState.customRange!.end)
-          : null,
-    )
-        : await authController.getPost(userId: userId ?? 0, postType: 1);
-
-    if (!mounted) return;
-
-    if (response.isSuccess && response.data != null) {
+    if (mounted) {
       setState(() {
-        foundPosts = response.data!.posts;
-        isLoadingFound = false;
-      });
-    } else {
-      setState(() {
-        foundErrorMessage = response.currentState == CurrentState.noInternet
-            ? 'No internet connection. Please check your network.'
-            : (response.message.isNotEmpty ? response.message : 'Failed to load posts');
-        isLoadingFound = false;
+        isLoadingFound = true;
+        foundErrorMessage = null;
       });
     }
+
+    try {
+      final userId = await AppPreferences.getUserId();
+
+      final response = filterState.filterApplied
+          ? await authController.filterPosts(
+        userId: userId ?? 0,
+        postType: 1,
+        dateFilter: filterState.dateFilter,
+        startDate: filterState.customRange != null
+            ? DateFormat('yyyy-MM-dd').format(
+          filterState.customRange!.start,
+        )
+            : null,
+        endDate: filterState.customRange != null
+            ? DateFormat('yyyy-MM-dd').format(
+          filterState.customRange!.end,
+        )
+            : null,
+      )
+          : await authController.getPost(
+        userId: userId ?? 0,
+        postType: 1,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (response.isSuccess &&
+          response.data != null) {
+        var posts = response.data!.posts;
+        debugPrint('FILTER DEBUG (Found): API returned ${posts.length} posts');
+
+        // Local filtering based on postDate (event date)
+        if (filterState.filterApplied) {
+          final range = filterState.effectiveRange;
+          if (range != null) {
+            final sDate = DateTime(range.start.year, range.start.month, range.start.day);
+            final eDate = DateTime(range.end.year, range.end.month, range.end.day);
+
+            posts = posts.where((post) {
+              if (post.postDate == null) return false;
+
+              final pDate = DateTime(
+                post.postDate!.year,
+                post.postDate!.month,
+                post.postDate!.day,
+              );
+
+              final keep = !pDate.isBefore(sDate) && !pDate.isAfter(eDate);
+              return keep;
+            }).toList();
+            debugPrint('FILTER DEBUG (Found): After local filtering: ${posts.length} posts remaining');
+          }
+        }
+
+        setState(() {
+          foundPosts = posts;
+          isLoadingFound = false;
+        });
+      } else {
+        setState(() {
+          isLoadingFound = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        isLoadingFound = false;
+      });
+
+      debugPrint(
+        'Found posts error: $e',
+      );
+    }
   }
+
+  // ============================================================
+  // SHOW CONTACT REQUEST DIALOG
+  // ============================================================
+
+  void _showContactRequestDialog() {
+    AppDialogue.showPopup(
+      context: context,
+      content: ChatSendRequest(
+        senderName: 'This user',
+
+        // TEMPORARY:
+        // Replace this with the actual Firestore request createdAt
+        // when you load the notification/request.
+        requestTime: DateTime.now(),
+
+        onDecline: () {
+          Navigator.pop(context);
+        },
+
+        onAccept: () {
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  // ============================================================
+  // INIT
+  // ============================================================
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging ||
-          _tabController.index != _selectedIndex) {
-        setState(() {
-          _selectedIndex = _tabController.index;
-        });
-      }
-    });
+
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+    );
+
+    _tabController.addListener(
+          () {
+        if (_tabController.indexIsChanging ||
+            _tabController.index != _selectedIndex) {
+          setState(() {
+            _selectedIndex = _tabController.index;
+          });
+        }
+      },
+    );
 
     _fetchLostPosts();
     _fetchFoundPosts();
   }
 
+  // ============================================================
+  // DISPOSE
+  // ============================================================
+
   @override
   void dispose() {
     _tabController.dispose();
     filterStateStream.close();
+
     super.dispose();
   }
 
-  String _formatDate(DateTime? date) {
-    if (date == null) return '';
-    return DateFormat('d MMM yyyy').format(date);
-  }
+  // ============================================================
+  // BUILD
+  // ============================================================
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+      BuildContext context,
+      ) {
     return Scaffold(
-      appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
+      appBar: AppBar(
+        toolbarHeight: 0,
+        backgroundColor: AppColors.primaryColor,
+      ),
+
       body: SafeArea(
         child: Stack(
           children: [
+            // ====================================================
+            // BLUE BACKGROUND
+            // ====================================================
+
             Container(
               height: double.infinity,
               width: double.infinity,
               color: AppColors.primaryColor,
             ),
 
+            // ====================================================
+            // HOME BOX IMAGE
+            // ====================================================
+
             Positioned(
               top: 30,
               right: 0,
-              child: AppIconWidget(assetPath: AssetImages.homeBox),
+              child: AppIconWidget(
+                assetPath: AssetImages.homeBox,
+              ),
             ),
+
+            // ====================================================
+            // WHITE CONTENT CONTAINER
+            // ====================================================
 
             Align(
               alignment: Alignment.bottomCenter,
               child: Container(
-                padding: EdgeInsets.all(12),
-                height: MediaQuery.of(context).size.height * 0.65,
+                padding: const EdgeInsets.all(12),
+
+                height:
+                MediaQuery.of(context).size.height * 0.65,
+
                 width: double.infinity,
-                decoration: BoxDecoration(
+
+                decoration: const BoxDecoration(
                   color: AppColors.white,
+
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(35),
                     topRight: Radius.circular(35),
                   ),
                 ),
+
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisAlignment:
+                  MainAxisAlignment.start,
+
                   children: [
+                    // ==========================================
+                    // TAB + FILTER
+                    // ==========================================
 
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                      ),
+
                       child: Row(
                         children: [
                           Expanded(
                             child: Container(
-
                               height: 40,
+
                               decoration: BoxDecoration(
                                 color: AppColors.white,
-                                borderRadius: BorderRadius.circular(30),
-                                boxShadow: [
+
+                                borderRadius:
+                                BorderRadius.circular(30),
+
+                                boxShadow: const [
                                   BoxShadow(
                                     color: Colors.black12,
                                     blurRadius: 8,
@@ -272,37 +564,71 @@ filterStateStream.add(state);
                                   ),
                                 ],
                               ),
+
                               child: TabBar(
-                                controller: _tabController,
-                                indicatorSize: TabBarIndicatorSize.label,
-                                indicator: UnderlineTabIndicator(
+                                controller:
+                                _tabController,
+
+                                indicatorSize:
+                                TabBarIndicatorSize.label,
+
+                                indicator:
+                                const UnderlineTabIndicator(
                                   borderSide: BorderSide(
-                                    color: AppColors.primaryColor,
+                                    color:
+                                    AppColors.primaryColor,
                                     width: 3,
                                   ),
-                                  insets: EdgeInsets.symmetric(vertical: -10),
+
+                                  insets:
+                                  EdgeInsets.symmetric(
+                                    vertical: -10,
+                                  ),
                                 ),
+
                                 padding: EdgeInsets.zero,
-                                indicatorPadding: EdgeInsets.only(
+
+                                indicatorPadding:
+                                const EdgeInsets.only(
                                   left: 1,
                                   right: 1,
                                 ),
-                                dividerColor: Colors.transparent,
-                                labelColor: AppColors.primaryColor,
-                                unselectedLabelColor: AppColors.grey,
+
+                                dividerColor:
+                                Colors.transparent,
+
+                                labelColor:
+                                AppColors.primaryColor,
+
+                                unselectedLabelColor:
+                                AppColors.grey,
+
                                 tabs: [
                                   Tab(
-                                    child: buildTabBarView(
-                                      image: AssetImages.lostItemHome,
-                                      title: "Lost Items",
-                                      isSelected: _selectedIndex == 0,
+                                    child:
+                                    buildTabBarView(
+                                      image: AssetImages
+                                          .lostItemHome,
+
+                                      title: 'Lost Items',
+
+                                      isSelected:
+                                      _selectedIndex ==
+                                          0,
                                     ),
                                   ),
+
                                   Tab(
-                                    child: buildTabBarView(
-                                      image: AssetImages.foundItem,
-                                      title: "Found Items",
-                                      isSelected: _selectedIndex == 1,
+                                    child:
+                                    buildTabBarView(
+                                      image:
+                                      AssetImages.foundItem,
+
+                                      title: 'Found Items',
+
+                                      isSelected:
+                                      _selectedIndex ==
+                                          1,
                                     ),
                                   ),
                                 ],
@@ -310,53 +636,86 @@ filterStateStream.add(state);
                             ),
                           ),
 
-                          SizedBox(width: 5),
+                          const SizedBox(
+                            width: 5,
+                          ),
+
+                          // ====================================
+                          // FILTER BUTTON
+                          // ====================================
+
                           GestureDetector(
                             onTap: () async {
-                              final filterData = await AppUiHelper.showBottomSheet(context: context, child: FilterScreen());
+                              final filterData =
+                              await AppUiHelper
+                                  .showBottomSheet(
+                                context: context,
+                                child: FilterScreen(),
+                              );
+
+                              if (!mounted) {
+                                return;
+                              }
 
                               if (filterData == 'clear') {
-                                _emitFilter(HomeFilterState.cleared());
+                                _emitFilter(
+                                  HomeFilterState
+                                      .cleared(),
+                                );
+
                                 _fetchLostPosts();
                                 _fetchFoundPosts();
-                              } else if (filterData is Map) {
-                                _emitFilter(HomeFilterState(
-                                  customRange: filterData['customRange'],
-                                  filterApplied: true,
-                                  selectedRange: filterData['range'],
-                                  dateFilter: filterData['dateFilter'],
-                                ));
+                              } else if (filterData
+                              is Map) {
+                                _emitFilter(
+                                  HomeFilterState(
+                                    customRange:
+                                    filterData[
+                                    'customRange'],
+
+                                    filterApplied:
+                                    true,
+
+                                    selectedRange:
+                                    filterData[
+                                    'range'],
+
+                                    dateFilter:
+                                    filterData[
+                                    'dateFilter'],
+                                  ),
+                                );
+
                                 _fetchLostPosts();
                                 _fetchFoundPosts();
                               }
                             },
-                            // onTap: () async{
-                            //
-                            //   final filterData = await AppUiHelper.showBottomSheet(context: context, child: FilterScreen());
-                            //
-                            //   if(filterData == 'clear'){
-                            //     _emitFilter(HomeFilterState.cleared());
-                            //   }else if(filterData is Map){
-                            //     _emitFilter(HomeFilterState(customRange: filterData['customRange'],filterApplied: true,selectedRange: filterData['range']));
-                            //   }
-                            // },
+
                             child: Container(
                               height: 40,
                               width: 40,
-                              decoration: BoxDecoration(
+
+                              decoration:
+                              const BoxDecoration(
                                 color: AppColors.white,
                                 shape: BoxShape.circle,
+
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black12,
+                                    color:
+                                    Colors.black12,
                                     blurRadius: 8,
                                   ),
                                 ],
                               ),
+
                               child: Center(
                                 child: AppIconWidget(
-                                  assetPath: AssetImages.filter,
+                                  assetPath:
+                                  AssetImages.filter,
+
                                   fit: BoxFit.cover,
+
                                   size: 20,
                                 ),
                               ),
@@ -366,86 +725,21 @@ filterStateStream.add(state);
                       ),
                     ),
 
-                    SizedBox(height: 10),
+                    const SizedBox(
+                      height: 10,
+                    ),
+
+                    // ==========================================
+                    // TAB CONTENT
+                    // ==========================================
+
                     Expanded(
                       child: TabBarView(
                         controller: _tabController,
+
                         children: [
                           _buildLostTab(),
-
                           _buildFoundTab(),
-
-
-                          // StreamBuilder(
-                          //   stream: filterStateStream.stream,
-                          //
-                          //   builder: (context, asyncSnapshot) {
-                          //     final filterData = asyncSnapshot.data ?? HomeFilterState();
-                          //
-                          //     if (!filterData.filterApplied) {
-                          //       return const SizedBox.shrink();
-                          //     }
-                          //     return Container(
-                          //       height: 35,
-                          //       width: double.infinity,
-                          //       decoration: BoxDecoration(
-                          //         //border: Border.all(color: AppColors.primaryColor),
-                          //         color: AppColors.lightBlue,
-                          //         borderRadius: BorderRadius.circular(12),
-                          //       ),
-                          //       child: Row(
-                          //         crossAxisAlignment: CrossAxisAlignment.center,
-                          //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          //         children: [
-                          //
-                          //           AppIconWidget(assetPath: AssetImages.filterTick),
-                          //           SizedBox(width: 15,),
-                          //           AppText(
-                          //             text: 'Showing results : ${filterData.selectedRange ?? " "}  ',
-                          //             fontSize: 12,
-                          //             fontWeight: FontWeight.w500,
-                          //           ),
-                          //           Spacer(),
-                          //           GestureDetector(
-                          //             onTap: () {
-                          //               _clearFilter();
-                          //               AppRoutes.pop();
-                          //               // },
-                          //             },
-                          //             child:AppIconWidget(assetPath: AssetImages.crossIcon,color: AppColors.black,),
-                          //           ),
-                          //         ],
-                          //       ).padHorizontal(16),
-                          //     ).padHorizontal();
-                          //   }
-                          // ),
-                          // foundItems
-                          // ListView.builder(
-                          //   itemCount: 2,
-                          //   itemBuilder: (context, index) {
-                          //     return ItemCard(
-                          //       imgUrl:
-                          //           'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTweFjIvljtnBPBG3-QrPhjYAWLr_1vmJzWbHM58T7TUw&s=10',
-                          //       title: 'Fossil Watch',
-                          //       location: 'Coimbatore, TamilNadu',
-                          //       date: '20 May 2026',
-                          //       postId: 'LF2378',
-                          //       time: "Just now",
-                          //       newMessageCount: "5",
-                          //       enquiredProfile: [
-                          //         'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTweFjIvljtnBPBG3-QrPhjYAWLr_1vmJzWbHM58T7TUw&s=10',
-                          //         'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTweFjIvljtnBPBG3-QrPhjYAWLr_1vmJzWbHM58T7TUw&s=10',
-                          //         'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTweFjIvljtnBPBG3-QrPhjYAWLr_1vmJzWbHM58T7TUw&s=10',
-                          //       ],
-                          //       onTap: () {
-                          //         AppRoutes.pushNamed(
-                          //           AppRoutes.enquiryListScreen,
-                          //         );
-                          //       },
-                          //       showPostId: true,
-                          //     ).pad();
-                          //   },
-                          // ),
                         ],
                       ),
                     ),
@@ -454,36 +748,53 @@ filterStateStream.add(state);
               ),
             ),
 
+            // ====================================================
+            // HEADER
+            // ====================================================
+
             Positioned(
               top: 40,
               left: 20,
               right: 20,
+
               child: Column(
                 spacing: 10,
-                crossAxisAlignment: CrossAxisAlignment.start,
+
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
+
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+
                     children: [
-                      AppText(
-                        text: "Lost & Found",
+                      const AppText(
+                        text: 'Lost & Found',
                         color: AppColors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
                       ),
+
+                      // ========================================
+                      // NOTIFICATION
+                      // ========================================
+
                       GestureDetector(
-                        onTap: () {
-                          AppDialogue.showPopup(context: context, content: ChatSendRequest(onDecline: () {  }, onAccept: () {  },));
-                          //AppRoutes.pushNamed(AppRoutes.loginScreen);
-                        },
+                        onTap:
+                        _showContactRequestDialog,
+
                         child: AppIconWidget(
-                          assetPath: AssetImages.notification,
+                          assetPath:
+                          AssetImages.notification,
                         ),
                       ),
                     ],
                   ),
-                  AppText(
-                    text: "Helping you reunite with what\nmatters.",
+
+                  const AppText(
+                    text:
+                    'Helping you reunite with what\nmatters.',
                     color: AppColors.white,
                     fontSize: 14,
                   ),
@@ -496,290 +807,421 @@ filterStateStream.add(state);
     );
   }
 
+  // ============================================================
+  // LOST TAB
+  // ============================================================
+
   Widget _buildLostTab() {
     if (isLoadingLost) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (lostErrorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppText(text: lostErrorMessage!, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            AppButton(title: 'Retry', onTap: _fetchLostPosts),
-            //ElevatedButton(onPressed: _fetchLostPosts, child: const Text('Retry')),
-          ],
-        ),
+      return const Center(
+        child: CircularProgressIndicator(),
       );
     }
 
     if (lostPosts.isEmpty) {
-      return const Center(child: AppText(text: 'No lost items posted yet'));
+      return const Center(
+        child: AppText(
+          text: 'No lost items posted yet',
+        ),
+      );
     }
 
     return RefreshIndicator(
       onRefresh: _fetchLostPosts,
-      child: ListView(
+
+      child: Column(
         children: [
-          StreamBuilder(
+          // ================================================
+          // FILTER DISPLAY
+          // ================================================
+
+          StreamBuilder<HomeFilterState>(
             stream: filterStateStream.stream,
-            builder: (context, asyncSnapshot) {
-              final filterData = asyncSnapshot.data ?? HomeFilterState();
-              if (!filterData.filterApplied) return const SizedBox.shrink();
+            initialData: filterState,
+
+            builder: (
+                context,
+                asyncSnapshot,
+                ) {
+              final filterData =
+                  asyncSnapshot.data ??
+                      const HomeFilterState();
+
+              if (!filterData.filterApplied) {
+                return const SizedBox.shrink();
+              }
+
               return Container(
                 height: 35,
                 width: double.infinity,
+
                 decoration: BoxDecoration(
                   color: AppColors.lightBlue,
-                  borderRadius: BorderRadius.circular(12),
+
+                  borderRadius:
+                  BorderRadius.circular(12),
                 ),
+
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment:
+                  CrossAxisAlignment.center,
+
+                  mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween,
+
                   children: [
-                    AppIconWidget(assetPath: AssetImages.filterTick),
-                    SizedBox(width: 15),
-                    AppText(
-                      text: 'Showing results : ${filterData.displayText}',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                    AppIconWidget(
+                      assetPath:
+                      AssetImages.filterTick,
                     ),
-                    Spacer(),
+
+                    const SizedBox(
+                      width: 15,
+                    ),
+
+                    AppText(
+                      text:
+                      'Showing results: ${filterData.displayText}',
+
+                      fontSize: 12,
+
+                      fontWeight:
+                      FontWeight.w500,
+                    ),
+
+                    const Spacer(),
+
                     GestureDetector(
                       onTap: () {
                         _clearFilter();
                         _fetchLostPosts();
+                        _fetchFoundPosts();
                       },
-                      child: AppIconWidget(assetPath: AssetImages.crossIcon, color: AppColors.black),
+
+                      child: AppIconWidget(
+                        assetPath:
+                        AssetImages.crossIcon,
+
+                        color: AppColors.black,
+                      ),
                     ),
                   ],
                 ).padHorizontal(16),
-              ).padHorizontal();
+              ).padHorizontal().padBottom(10);
             },
           ),
 
+          // ================================================
+          // LOST ITEMS
+          // ================================================
 
-          for (final post in lostPosts)
-            ItemCard(
-              imgUrl: post.images.isNotEmpty ? post.images.first : '',
-              title: post.name,
-              location: post.location,
-              date: _formatDate(post.postDate),
-              postId: post.postUid,
-              foundCount: matchingCounts[post.id],
-              postIntId: post.id,
-              onDeleted: _fetchLostPosts,
-              newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
-              enquiredProfile: post.enquirerAvatars.isNotEmpty
-                  ? post.enquirerAvatars.map((e) => e.imageUrl).toList()
-                  : null,
-              onViewAll: () => _openAvailableMatching(post),
-              onTap: () {
+          Expanded(
+            child: lostPosts.isEmpty
+                ? const Center(
+              child: AppText(
+                text: 'No lost items posted yet',
+              ),
+            )
+                : ListView(
+              children: [
+                for (final post in lostPosts)
+                  ItemCard(
+                    imgUrl: post.images.isNotEmpty
+                        ? post.images.first
+                        : '',
 
-                AppRoutes.pushNamed(
-                  AppRoutes.availableMatchingScreen,
-                  arguments: {
-                    'postId': post.id,
-                    'imgUrl': post.images.isNotEmpty ? post.images.first : '',
-                    'title': post.name,
-                    'location': post.location,
-                    'date': _formatDate(post.postDate),
-                    'postUid': post.postUid,
-                    'foundCount': post.enquiriesCount,
-                    'isReceived': false,
-                  }
-                );
-              },
-              showPostId: true,
-            ).pad(),
+                    title: post.name,
+
+                    location: post.location,
+
+                    date: _formatDate(
+                      post.postDate,
+                    ),
+
+                    postId: post.postUid,
+
+                    foundCount:
+                    matchingCounts[post.id],
+
+                    postIntId: post.id,
+
+                    onDeleted:
+                    _fetchLostPosts,
+
+                    newMessageCount:
+                    post.enquiriesCount > 0
+                        ? post.enquiriesCount
+                        .toString()
+                        : null,
+
+                    enquiredProfile:
+                    post.enquirerAvatars.isNotEmpty
+                        ? post.enquirerAvatars
+                        .map(
+                          (e) => e.imageUrl,
+                    )
+                        .where(
+                          (url) =>
+                      url.isNotEmpty,
+                    )
+                        .toList()
+                        : null,
+
+                    onViewAll: () =>
+                        _openAvailableMatching(
+                          post,
+                        ),
+
+                    onTap: () {
+                      AppRoutes.pushNamed(
+                        AppRoutes
+                            .availableMatchingScreen,
+
+                        arguments: {
+                          'postId': post.id,
+
+                          'imgUrl':
+                          post.images.isNotEmpty
+                              ? post.images.first
+                              : '',
+
+                          'title':
+                          post.name,
+
+                          'location':
+                          post.location,
+
+                          'date':
+                          _formatDate(
+                            post.postDate,
+                          ),
+
+                          'postUid':
+                          post.postUid,
+
+                          'foundCount':
+                          post.enquiriesCount,
+
+                          'isReceived':
+                          false,
+                        },
+                      );
+                    },
+
+                    showPostId: true,
+                  ).pad(),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
+  // ============================================================
+  // FOUND TAB
+  // ============================================================
+
   Widget _buildFoundTab() {
     if (isLoadingFound) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (foundErrorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppText(text: foundErrorMessage!, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            AppButton(title: 'Retry', onTap: _fetchFoundPosts),
-          ],
-        ),
+      return const Center(
+        child: CircularProgressIndicator(),
       );
     }
+
     if (foundPosts.isEmpty) {
-      return const Center(child: AppText(text: 'No found items posted yet'));
+      return const Center(
+        child: AppText(
+          text: 'No found items posted yet',
+        ),
+      );
     }
 
     return RefreshIndicator(
       onRefresh: _fetchFoundPosts,
-      child: ListView(
-        children: [
 
-          StreamBuilder(
+      child: Column(
+        children: [
+          // ================================================
+          // FILTER DISPLAY
+          // ================================================
+
+          StreamBuilder<HomeFilterState>(
             stream: filterStateStream.stream,
-            builder: (context, asyncSnapshot) {
-              final filterData = asyncSnapshot.data ?? HomeFilterState();
-              if (!filterData.filterApplied) return const SizedBox.shrink();
+            initialData: filterState,
+
+            builder: (
+                context,
+                asyncSnapshot,
+                ) {
+              final filterData =
+                  asyncSnapshot.data ??
+                      const HomeFilterState();
+
+              if (!filterData.filterApplied) {
+                return const SizedBox.shrink();
+              }
+
               return Container(
                 height: 35,
                 width: double.infinity,
+
                 decoration: BoxDecoration(
                   color: AppColors.lightBlue,
-                  borderRadius: BorderRadius.circular(12),
+
+                  borderRadius:
+                  BorderRadius.circular(12),
                 ),
+
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment:
+                  CrossAxisAlignment.center,
+
+                  mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween,
+
                   children: [
-                    AppIconWidget(assetPath: AssetImages.filterTick),
-                    SizedBox(width: 15),
-                    AppText(
-                      text: 'Showing results : ${filterData.displayText}',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                    AppIconWidget(
+                      assetPath:
+                      AssetImages.filterTick,
                     ),
-                    Spacer(),
+
+                    const SizedBox(
+                      width: 15,
+                    ),
+
+                    AppText(
+                      text:
+                      'Showing results: ${filterData.displayText}',
+
+                      fontSize: 12,
+
+                      fontWeight:
+                      FontWeight.w500,
+                    ),
+
+                    const Spacer(),
+
                     GestureDetector(
                       onTap: () {
                         _clearFilter();
+                        _fetchLostPosts();
                         _fetchFoundPosts();
                       },
-                      child: AppIconWidget(assetPath: AssetImages.crossIcon, color: AppColors.black),
+
+                      child: AppIconWidget(
+                        assetPath:
+                        AssetImages.crossIcon,
+
+                        color: AppColors.black,
+                      ),
                     ),
                   ],
                 ).padHorizontal(16),
-              ).padHorizontal();
+              ).padHorizontal().padBottom(10);
             },
           ),
 
+          // ================================================
+          // FOUND ITEMS
+          // ================================================
 
-          for (final post in foundPosts)
-            ItemCard(
-              imgUrl: post.images.isNotEmpty ? post.images.first : '',
-              title: post.name,
-              location: post.location,
-              date: _formatDate(post.postDate),
-              postId: post.postUid,
-              postIntId: post.id,
-              onDeleted: _fetchFoundPosts,
+          Expanded(
+            child: foundPosts.isEmpty
+                ? const Center(
+              child: AppText(
+                text: 'No found items posted yet',
+              ),
+            )
+                : ListView(
+              children: [
+                for (final post in foundPosts)
+                  ItemCard(
+                    imgUrl: post.images.isNotEmpty
+                        ? post.images.first
+                        : '',
 
-              newMessageCount: post.enquiriesCount > 0
-                  ? post.enquiriesCount.toString()
-                  : null,
+                    title: post.name,
 
-              enquiredProfile: post.enquirerAvatars.isNotEmpty
-                  ? post.enquirerAvatars
-                  .map((e) => e.imageUrl)
-                  .where((url) => url.isNotEmpty)
-                  .toList()
-                  : null,
+                    location: post.location,
 
-              onTap: () {
-                AppRoutes.pushNamed(
-                  AppRoutes.enquiryListScreen,
-                  arguments: {
-                    'postId': post.id,
-                  },
-                );
-              },
+                    date: _formatDate(
+                      post.postDate,
+                    ),
 
-              showPostId: true,
-            ).pad(),
-            // ItemCard(
-            //   imgUrl: post.images.isNotEmpty ? post.images.first : '',
-            //   title: post.name,
-            //   location: post.location,
-            //   date: _formatDate(post.postDate),
-            //   postId: post.postUid,
-            //   postIntId: post.id,
-            //   onDeleted: _fetchFoundPosts,
-            //   newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
-            //   enquiredProfile: post.enquirerAvatars.isNotEmpty
-            //       ? post.enquirerAvatars.map((e) => e.imageUrl).toList()
-            //       : null,
-            //   onTap: () {
-            //     AppRoutes.pushNamed(AppRoutes.enquiryListScreen,arguments: {'postId': post.id},);
-            //   },
-            //   showPostId: true,
-            // ).pad(),
+                    isFound: true,
+
+                    postId: post.postUid,
+
+                    postIntId: post.id,
+
+                    onDeleted:
+                    _fetchFoundPosts,
+
+                    newMessageCount:
+                    post.enquiriesCount > 0
+                        ? post.enquiriesCount
+                        .toString()
+                        : null,
+
+                    enquiredProfile:
+                    post.enquirerAvatars.isNotEmpty
+                        ? post.enquirerAvatars
+                        .map(
+                          (e) => e.imageUrl,
+                    )
+                        .where(
+                          (url) =>
+                      url.isNotEmpty,
+                    )
+                        .toList()
+                        : null,
+
+                    onTap: () {
+                      AppRoutes.pushNamed(
+                        AppRoutes.enquiryListScreen,
+
+                        arguments: {
+                          'postId': post.id,
+                        },
+                      );
+                    },
+
+                    showPostId: true,
+                  ).pad(),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
-  // Widget _buildFoundTab() {
-  //   if (isLoadingFound) {
-  //     return const Center(child: CircularProgressIndicator());
-  //   }
-  //   if (foundErrorMessage != null) {
-  //     return Center(
-  //       child: Column(
-  //         mainAxisSize: MainAxisSize.min,
-  //         children: [
-  //
-  //           AppText(text: foundErrorMessage!, textAlign: TextAlign.center),
-  //           const SizedBox(height: 12),
-  //           AppButton(title: 'Retry', onTap: _fetchFoundPosts),
-  //           //ElevatedButton(onPressed: _fetchFoundPosts, child: const Text('Retry')),
-  //         ],
-  //       ),
-  //     );
-  //   }
-  //   if (foundPosts.isEmpty) {
-  //     return const Center(child: AppText(text: 'No found items posted yet'));
-  //   }
-  //
-  //   return RefreshIndicator(
-  //     onRefresh: _fetchFoundPosts,
-  //     child: ListView.builder(
-  //       itemCount: foundPosts.length,
-  //       itemBuilder: (context, index) {
-  //         final post = foundPosts[index];
-  //         return ItemCard(
-  //           imgUrl: post.images.isNotEmpty ? post.images.first : '',
-  //           title: post.name,
-  //           location: post.location,
-  //           date: _formatDate(post.postDate),
-  //           postId: post.postUid,
-  //           postIntId: post.id,
-  //           onDeleted: _fetchFoundPosts,
-  //           newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
-  //           enquiredProfile: post.enquirerAvatars.isNotEmpty
-  //               ? post.enquirerAvatars.map((e) => e.imageUrl).toList()
-  //               : null,
-  //           onTap: () {
-  //             AppRoutes.pushNamed(AppRoutes.enquiryListScreen);
-  //           },
-  //           showPostId: true,
-  //         ).pad();
-  //       },
-  //     ),
-  //   );
-  // }
+
+  // ============================================================
+  // TAB BAR
+  // ============================================================
 
   Widget buildTabBarView({
     required String image,
     required String title,
     required bool isSelected,
   }) {
-    final color = isSelected ? AppColors.primaryColor : AppColors.grey;
+    final color = isSelected
+        ? AppColors.primaryColor
+        : AppColors.grey;
 
     return Row(
       spacing: 10,
-      mainAxisAlignment: MainAxisAlignment.center,
+
+      mainAxisAlignment:
+      MainAxisAlignment.center,
+
       children: [
         AppIconWidget(
           assetPath: image,
-          color: color, // requires AppIconWidget to support a color/tint param
+          color: color,
         ),
+
         AppText(
           text: title,
           fontSize: 14,
@@ -791,11 +1233,17 @@ filterStateStream.add(state);
   }
 }
 
+// ================================================================
+// HOME FILTER STATE
+// ================================================================
 
 class HomeFilterState {
   final bool filterApplied;
-  final String? selectedRange;   // e.g. "Last 7 Days" or "Custom Range"
-  final String? dateFilter;      // API value, e.g. "last_7_days" or "custom"
+
+  final String? selectedRange;
+
+  final String? dateFilter;
+
   final DateTimeRange? customRange;
 
   const HomeFilterState({
@@ -805,14 +1253,269 @@ class HomeFilterState {
     this.customRange,
   });
 
-  factory HomeFilterState.cleared() => const HomeFilterState();
+  factory HomeFilterState.cleared() {
+    return const HomeFilterState();
+  }
+
+  DateTimeRange? get effectiveRange {
+    if (customRange != null) return customRange;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    switch (selectedRange) {
+      case 'Today':
+        return DateTimeRange(start: today, end: today);
+      case 'Last 7 Days':
+        return DateTimeRange(
+          start: today.subtract(const Duration(days: 6)),
+          end: today,
+        );
+      case 'Last 30 Days':
+        return DateTimeRange(
+          start: today.subtract(const Duration(days: 29)),
+          end: today,
+        );
+      case 'Last 3 Months':
+        return DateTimeRange(
+          start: DateTime(today.year, today.month - 3, today.day),
+          end: today,
+        );
+      case 'Last Year':
+        return DateTimeRange(
+          start: DateTime(today.year - 1, today.month, today.day),
+          end: today,
+        );
+      default:
+        return null;
+    }
+  }
 
   String get displayText {
-    if (selectedRange == 'Custom Range' && customRange != null) {
-      final start = DateFormat('MMMM d').format(customRange!.start);
-      final end = DateFormat('MMMM d').format(customRange!.end);
+    final range = effectiveRange;
+    if (range != null) {
+      final start = DateFormat('MMMM d').format(range.start);
+      final end = DateFormat('MMMM d').format(range.end);
+      if (start == end) return start;
       return '$start - $end';
     }
     return selectedRange ?? '';
+  }
+}
+
+// ================================================================
+// CONTACT REQUEST DIALOG
+// ================================================================
+
+class ChatSendRequest extends StatelessWidget {
+  final VoidCallback onDecline;
+
+  final VoidCallback onAccept;
+
+  final String senderName;
+
+  final DateTime requestTime;
+
+  const ChatSendRequest({
+    super.key,
+
+    required this.onDecline,
+
+    required this.onAccept,
+
+    this.senderName = '',
+
+    required this.requestTime,
+  });
+
+  // ============================================================
+  // REQUEST DATE
+  // ============================================================
+
+  String _formatRequestDate(
+      DateTime date,
+      ) {
+    final now = DateTime.now();
+
+    final today = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    );
+
+    final requestDay = DateTime(
+      date.year,
+      date.month,
+      date.day,
+    );
+
+    final difference =
+        today.difference(requestDay).inDays;
+
+    if (difference == 0) {
+      return 'Today';
+    }
+
+    if (difference == 1) {
+      return 'Yesterday';
+    }
+
+    return DateFormat(
+      'd MMM yyyy',
+    ).format(date);
+  }
+
+  @override
+  Widget build(
+      BuildContext context,
+      ) {
+    final displayName =
+    senderName.trim().isNotEmpty
+        ? senderName.trim()
+        : 'This user';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+
+      children: [
+        // ======================================================
+        // HEADER
+        // ======================================================
+
+        Row(
+          crossAxisAlignment:
+          CrossAxisAlignment.start,
+
+          children: [
+            CircleAvatar(
+              backgroundColor:
+              AppColors.idCardColor,
+
+              radius: 20,
+
+              child: AppIconWidget(
+                assetPath:
+                AssetImages.phone,
+              ),
+            ),
+
+            const SizedBox(
+              width: 7,
+            ),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
+
+                children: [
+                  const AppText(
+                    text:
+                    'Contact Received',
+
+                    fontSize: 14,
+
+                    fontWeight:
+                    FontWeight.w500,
+                  ),
+
+                  const SizedBox(
+                    height: 7,
+                  ),
+
+                  AppText(
+                    text:
+                    '$displayName wants to share contact information with you.',
+
+                    fontWeight:
+                    FontWeight.w400,
+
+                    fontSize: 12,
+
+                    maxLine: 3,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(
+              width: 8,
+            ),
+
+            // ==================================================
+            // TODAY / YESTERDAY / DATE
+            // ==================================================
+
+            AppText(
+              text:
+              _formatRequestDate(
+                requestTime,
+              ),
+
+              fontSize: 12,
+
+              fontWeight:
+              FontWeight.w500,
+
+              color:
+              AppColors.primaryColor,
+            ),
+          ],
+        ),
+
+        const SizedBox(
+          height: 12,
+        ),
+
+        // ======================================================
+        // BUTTONS
+        // ======================================================
+
+        Row(
+          children: [
+            Expanded(
+              child: AppButton(
+                title: 'Decline',
+
+                onTap: onDecline,
+
+                bgColor:
+                AppColors.white,
+
+                border: Border.all(
+                  color:
+                  AppColors.red,
+                ),
+
+                textColor:
+                AppColors.red,
+
+                fontSize: 14,
+              ),
+            ),
+
+            const SizedBox(
+              width: 10,
+            ),
+
+            Expanded(
+              child: AppButton(
+                title: 'Accept',
+
+                onTap: onAccept,
+
+                bgColor:
+                AppColors.primaryColor,
+
+                textColor:
+                AppColors.white,
+
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

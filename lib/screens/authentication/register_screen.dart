@@ -237,6 +237,7 @@ Widget buildTextFieldWithHeading({
   required Widget fieldWidget,
 }) {
   return Column(
+    mainAxisSize: MainAxisSize.min,
     spacing: 10,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [

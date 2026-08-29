@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:lost_and_found/utils/app_colors.dart';
 
 class AppAudioPlayer extends StatefulWidget {
   final String url;
@@ -18,6 +19,10 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
 
   bool _isLoading = true;
   String? _errorMessage;
+
+  static const List<double> _waveHeights = [
+    2, 5, 8, 10, 14, 18, 20, 25, 20, 14, 10, 14, 18, 20, 25, 20, 14, 10, 15, 18, 20, 25, 20, 14, 10, 8, 5, 2,
+  ];
 
   @override
   void initState() {
@@ -139,21 +144,7 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 10,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey.shade300,
-        ),
-      ),
-      child: _buildPlayer(),
-    );
+    return _buildPlayer();
   }
 
   Widget _buildPlayer() {
@@ -198,133 +189,100 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
       stream: _audioPlayer.playerStateStream,
       builder: (context, snapshot) {
         final playerState = snapshot.data;
-
         final isPlaying = playerState?.playing ?? false;
-
         final processingState =
             playerState?.processingState ?? ProcessingState.idle;
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                // PLAY BUTTON
-                GestureDetector(
-                  onTap: _toggleAudio,
-                  child: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.blue,
+        return StreamBuilder<Duration>(
+          stream: _audioPlayer.positionStream,
+          builder: (context, positionSnapshot) {
+            final position = positionSnapshot.data ?? Duration.zero;
+
+            return StreamBuilder<Duration?>(
+              stream: _audioPlayer.durationStream,
+              builder: (context, durationSnapshot) {
+                final duration = durationSnapshot.data ?? Duration.zero;
+                final progress = (duration.inMilliseconds > 0)
+                    ? (position.inMilliseconds / duration.inMilliseconds)
+                    : 0.0;
+
+                return Row(
+                  children: [
+                    // PLAY BUTTON
+                    GestureDetector(
+                      onTap: _toggleAudio,
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primaryColor,
+                        ),
+                        child: Icon(
+                          isPlaying ? Icons.pause : Icons.play_arrow,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
                     ),
-                    child: Icon(
-                      isPlaying
-                          ? Icons.pause
-                          : Icons.play_arrow,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                ),
 
-                const SizedBox(width: 10),
+                    const SizedBox(width: 12),
 
-                // PROGRESS
-                Expanded(
-                  child: StreamBuilder<Duration>(
-                    stream: _audioPlayer.positionStream,
-                    builder: (context, positionSnapshot) {
-                      final position =
-                          positionSnapshot.data ?? Duration.zero;
-
-                      return StreamBuilder<Duration?>(
-                        stream: _audioPlayer.durationStream,
-                        builder: (context, durationSnapshot) {
-                          final duration =
-                              durationSnapshot.data ?? Duration.zero;
-
-                          final max =
-                          duration.inMilliseconds > 0
-                              ? duration.inMilliseconds.toDouble()
-                              : 1.0;
-
-                          final value =
-                          position.inMilliseconds
-                              .clamp(0, duration.inMilliseconds)
-                              .toDouble();
-
-                          return Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.stretch,
-                            children: [
-                              SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                  trackHeight: 3,
-                                  thumbShape:
-                                  const RoundSliderThumbShape(
-                                    enabledThumbRadius: 6,
+                    // WAVEFORM
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTapDown: (details) {
+                              if (duration.inMilliseconds > 0) {
+                                final seekProgress = details.localPosition.dx /
+                                    constraints.maxWidth;
+                                _audioPlayer.seek(
+                                  Duration(
+                                    milliseconds: (duration.inMilliseconds *
+                                            seekProgress)
+                                        .toInt(),
                                   ),
-                                  overlayShape:
-                                  const RoundSliderOverlayShape(
-                                    overlayRadius: 12,
-                                  ),
-                                ),
-                                child: Slider(
-                                  min: 0,
-                                  max: max,
-                                  value: value,
-                                  onChanged: duration.inMilliseconds <= 0
-                                      ? null
-                                      : (newValue) {
-                                    _audioPlayer.seek(
-                                      Duration(
-                                        milliseconds:
-                                        newValue.toInt(),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-
-                              Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    _formatDuration(position),
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                  Text(
-                                    _formatDuration(duration),
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                );
+                              }
+                            },
+                            child: _buildWave(progress),
                           );
                         },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-            // BUFFERING / COMPLETED STATUS
-            if (processingState == ProcessingState.buffering)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: LinearProgressIndicator(),
-              ),
-          ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildWave(double progress) {
+    final total = _waveHeights.length;
+    final filledCount = (progress * total).floor();
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: List.generate(total, (i) {
+        final bool filled = i < filledCount;
+
+        return Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 1),
+            height: _waveHeights[i],
+            decoration: BoxDecoration(
+              color: filled ? AppColors.primaryColor : Colors.grey.shade400,
+              borderRadius: BorderRadius.circular(5),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

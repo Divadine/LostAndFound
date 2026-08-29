@@ -38,8 +38,6 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
   DateTime? _start;
   DateTime? _end;
 
-  String? _selectedRange;
-  DateTimeRange? _customRange;
   static const double _rowHeight = 44;
 
   @override
@@ -268,25 +266,30 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
         children: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const AppText( text: 'Cancel',color: AppColors.black,fontSize: 16,fontWeight: FontWeight.w400,),
+            child: const AppText(
+              text: 'Cancel',
+              color: AppColors.black,
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+            ),
           ),
           const SizedBox(width: 4),
           TextButton(
-            onPressed:(){
-              _start == null
-                  ? null
-                  : () {
-                final range = DateTimeRange(
-                  start: _start!,
-                  end: _end ?? _start!,
-                );
-                if (_selectedRange == null) return;
-                AppRoutes.pop(range);
-
-              };
-            },
-
-            child: const AppText( text: 'Ok',color: AppColors.black,fontSize: 16,fontWeight: FontWeight.w400,),
+            onPressed: _start == null
+                ? null
+                : () {
+                    final range = DateTimeRange(
+                      start: _start!,
+                      end: _end ?? _start!,
+                    );
+                    Navigator.of(context).pop(range);
+                  },
+            child: const AppText(
+              text: 'Ok',
+              color: AppColors.black,
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+            ),
           ),
         ],
       ),
