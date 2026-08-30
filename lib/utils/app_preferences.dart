@@ -60,6 +60,19 @@ class AppPreferences {
   }
 
 
+  static Future<void> logout() async {
+    await _prefs.remove(_tokenKey);
+    await _prefs.remove(_userIdKey);
+    await _prefs.remove(_userNameKey);
+
+    await _prefs.setBool(
+      _isLoggedIn,
+      false,
+    );
+  }
+
+
+
   static const String _tokenKey = "access_token";
 
   static Future<void> saveToken(String token) async {
@@ -104,6 +117,8 @@ class AppPreferences {
     await _prefs.remove(_userIdKey);
     await _prefs.remove(_userNameKey);
     await _prefs.setBool(_isLoggedIn, false);
+    // await _prefs.clear();
   }
+
 
 }

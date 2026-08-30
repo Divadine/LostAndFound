@@ -1,11 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lost_and_found/shared_widgets/app_container.dart';
-import 'package:lost_and_found/shared_widgets/app_text.dart';
-import 'package:lost_and_found/utils/app_colors.dart';
-
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
@@ -78,11 +72,9 @@ class AppTextField extends StatelessWidget {
       builder: (field) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: .center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Material(
-              elevation: 2,
-              shadowColor: AppColors.fieldGrey,
               borderRadius: borderRadius ?? BorderRadius.circular(6),
               child: TextField(
                 controller: textController,

@@ -265,9 +265,6 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     spacing: 14,
                     children: [
-                      // for (final field in stepTwoFields)
-                      //   _buildLabeledBlock(field.fieldName, field.fieldValue),
-
                       if (post.location.isNotEmpty)
                         _buildLabeledBlock('Location', post.location),
 
@@ -288,7 +285,9 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                               fontSize: 14,
                               color: AppColors.primaryColor,
                             ),
-                            AppAudioPlayer( url: _getMediaUrl(post.videoUrl),),
+                            AppAudioPlayer(
+                              url: _getMediaUrl(post.audioUrl),
+                            ),
                           ],
                         ),
 
@@ -303,7 +302,9 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                               fontSize: 14,
                               color: AppColors.primaryColor,
                             ),
-                            AppVideoPlayer(url: _getMediaUrl(post.videoUrl),),
+                            AppVideoPlayer(
+                              url: _getMediaUrl(post.videoUrl),
+                            ),
                           ],
                         ),
                     ],

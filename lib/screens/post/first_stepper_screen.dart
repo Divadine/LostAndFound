@@ -15,6 +15,7 @@ import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_dropdown_field.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
+import 'package:lost_and_found/shared_widgets/app_step_indicator.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
@@ -353,97 +354,104 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
           AppRoutes.pop();
         },
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : errorMessage != null
-          ? Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(errorMessage!, textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              ElevatedButton(onPressed: _fetchDynamicFields, child: const Text('Retry')),
-            ],
-          ),
-        ),
-      )
-          : ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          // Category — always shown, auto-filled, read-only
-          buildTextFieldWithHeading(
-            title: 'Category',
-            fieldWidget: AppTextField(
-              suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad(),
-              readOnly: true,
-              borderColor: AppColors.fieldGrey,
-              borderRadius: BorderRadius.circular(5),
-              hintText: '',
-              textController: TextEditingController(text: widget.category.name ?? ''),
-              onChange: (v) {},
-              onSubmit: (v) {},
-            ).pad(),
-          ).pad(),
+          const AppStepIndicator(currentStep: 1, totalSteps: 2),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : errorMessage != null
+                ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(errorMessage!, textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    ElevatedButton(onPressed: _fetchDynamicFields, child: const Text('Retry')),
+                  ],
+                ),
+              ),
+            )
+                : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Category — always shown, auto-filled, read-only
+                buildTextFieldWithHeading(
+                  title: 'Category',
+                  fieldWidget: AppTextField(
+                    suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad(),
+                    readOnly: true,
+                    borderColor: AppColors.fieldGrey,
+                    borderRadius: BorderRadius.circular(5),
+                    hintText: '',
+                    textController: TextEditingController(text: widget.category.name ?? ''),
+                    onChange: (v) {},
+                    onSubmit: (v) {},
+                  ).pad(),
+                ).pad(),
 
-          // Sub-Category — only shown when one was actually chosen
-          // (skipped when Category = "Others" was picked at the top level).
-          if (widget.subCategory != null)
-            buildTextFieldWithHeading(
-              title: 'Sub-Category',
-              fieldWidget: AppTextField(
-                suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad(),
-                readOnly: true,
-                borderColor: AppColors.fieldGrey,
-                borderRadius: BorderRadius.circular(5),
-                hintText: '',
-                textController: TextEditingController(text: widget.subCategory!.name),
-                onChange: (v) {},
-                onSubmit: (v) {},
-              ).pad(),
-            ).pad(),
+                // Sub-Category — only shown when one was actually chosen
+                // (skipped when Category = "Others" was picked at the top level).
+                if (widget.subCategory != null)
+                  buildTextFieldWithHeading(
+                    title: 'Sub-Category',
+                    fieldWidget: AppTextField(
+                      suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad(),
+                      readOnly: true,
+                      borderColor: AppColors.fieldGrey,
+                      borderRadius: BorderRadius.circular(5),
+                      hintText: '',
+                      textController: TextEditingController(text: widget.subCategory!.name),
+                      onChange: (v) {},
+                      onSubmit: (v) {},
+                    ).pad(),
+                  ).pad(),
 
-          // Item Name — ONLY in generic mode ("Others" / "Not Sure").
-          // Hidden entirely for a normal category+subcategory selection.
-          if (_isGenericMode)
-            buildTextFieldWithHeading(
-              title: 'Item Name',
-              fieldWidget: AppTextField(
-                borderColor: AppColors.fieldGrey,
-                borderRadius: BorderRadius.circular(5),
-                hintText: 'Enter item name',
-                textController: itemNameController,
-                onChange: (v) {},
-                onSubmit: (v) {},
-              ).pad(),
-            ).pad(),
+                // Item Name — ONLY in generic mode ("Others" / "Not Sure").
+                // Hidden entirely for a normal category+subcategory selection.
+                if (_isGenericMode)
+                  buildTextFieldWithHeading(
+                    title: 'Item Name',
+                    fieldWidget: AppTextField(
+                      borderColor: AppColors.fieldGrey,
+                      borderRadius: BorderRadius.circular(5),
+                      hintText: 'Enter item name',
+                      textController: itemNameController,
+                      onChange: (v) {},
+                      onSubmit: (v) {},
+                    ).pad(),
+                  ).pad(),
 
-          // Color — ALWAYS shown, ALWAYS from the dedicated getColors API,
-          // in every mode.
-          _buildColorDropdown(),
+                // Color — ALWAYS shown, ALWAYS from the dedicated getColors API,
+                // in every mode.
+                _buildColorDropdown(),
 
-          // Normal mode: subcategory-driven dynamic fields (Brand, Model, etc,
-          // with Color already filtered out).
-          // Generic mode: no dynamic fields — description instead.
-          if (_isGenericMode)
-            buildTextFieldWithHeading(
-              title: 'Item Description',
-              fieldWidget: AppTextField(
-                maxLines: 4,
-                borderColor: AppColors.fieldGrey,
-                borderRadius: BorderRadius.circular(5),
-                hintText: 'Write a item description',
-                textController: descriptionController,
-                onChange: (v) {},
-                onSubmit: (v) {},
-              ).pad(),
-            ).pad()
-          else
-            ...dynamicFields.map((field) => _buildField(field)),
+                // Normal mode: subcategory-driven dynamic fields (Brand, Model, etc,
+                // with Color already filtered out).
+                // Generic mode: no dynamic fields — description instead.
+                if (_isGenericMode)
+                  buildTextFieldWithHeading(
+                    title: 'Item Description',
+                    fieldWidget: AppTextField(
+                      maxLines: 4,
+                      borderColor: AppColors.fieldGrey,
+                      borderRadius: BorderRadius.circular(5),
+                      hintText: 'Write a item description',
+                      textController: descriptionController,
+                      onChange: (v) {},
+                      onSubmit: (v) {},
+                    ).pad(),
+                  ).pad()
+                else
+                  ...dynamicFields.map((field) => _buildField(field)),
 
-          // Image upload — ALWAYS shown, at the end, in every mode.
-          _buildImageUploadSection(),
+                // Image upload — ALWAYS shown, at the end, in every mode.
+                _buildImageUploadSection(),
+              ],
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: isLoading || errorMessage != null
@@ -620,6 +628,7 @@ Widget buildTextFieldWithHeading({
   required Widget fieldWidget,
 }) {
   return Column(
+    mainAxisSize: MainAxisSize.min,
     spacing: 10,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [

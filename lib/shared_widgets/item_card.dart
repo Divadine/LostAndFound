@@ -25,6 +25,7 @@ class ItemCard extends StatelessWidget {
   final List<String>? enquiredProfile;
   final String? newMessageCount;
   final bool isFromEnquiry;
+  final bool isFound;
   final String? description;
   final void Function() onTap;
   final String? profileId;
@@ -50,6 +51,7 @@ class ItemCard extends StatelessWidget {
     this.enquiredProfile,
     this.newMessageCount,
     this.isFromEnquiry = false,
+    this.isFound = false,
     this.description,
     required this.postId,
     this.time,
@@ -201,7 +203,7 @@ class ItemCard extends StatelessWidget {
                         color: AppColors.black,
                       ),
                       AppText(
-                        text: 'Lost on $date',
+                        text: '${isFound ? 'Found' : 'Lost'} on $date',
                         fontWeight: FontWeight.w400,
                         fontSize: 12,
                         color: AppColors.black,

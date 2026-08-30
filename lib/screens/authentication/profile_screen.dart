@@ -115,8 +115,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     longitude = widget.profileModel.longitude;
 
     _isAltVerified = widget.profileModel.altMobileVerified;
-    if (widget.profileModel.altMobileVerified) {
-      verifyMobileStream.add(true);
+    
+    // Use addPostFrameCallback to ensure the StreamBuilder is ready to receive the initial data if needed
+    if (_isAltVerified) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        verifyMobileStream.add(true);
+      });
     }
     if (widget.profileModel.pincode != null) {
       isPinCodeValid =
@@ -149,8 +153,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _checkFormValidity() {
-    final valid =
-        (_formKey.currentState?.validate() ?? false) && choosenImage != null;
+    final isNameValid = nameController.text.trim().isNotEmpty;
+    final isMobileValid = mobileController.text.trim().isNotEmpty;
+    final isPinValid = AppUtils.validatePincode(pinController.text) == null;
+    final isLandmarkValid = landmarkController.text.trim().isNotEmpty;
+    final isAddressValid = addressController.text.trim().isNotEmpty;
+    final isCityValid = cityController.text.isNotEmpty;
+    final isStateValid = stateController.text.isNotEmpty;
+    final isCountryValid = countryController.text.isNotEmpty;
+
+    final valid = isNameValid &&
+        isMobileValid &&
+        isPinValid &&
+        isLandmarkValid &&
+        isAddressValid &&
+        isCityValid &&
+        isStateValid &&
+        isCountryValid &&
+        choosenImage != null;
+
     if (valid != _isFormValid) {
       setState(() => _isFormValid = valid);
     }
@@ -407,8 +428,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           readOnly: !widget.profileModel.isFromEdit,
                           hintText: 'Enter a mobile number',
                           textController: mobileController,
-                          onChange: (v) => _checkFormValidity(),
-
+                          onChange: (v) {
+                            _checkFormValidity();
+                          },
                           onSubmit: (v) {},
                           textInputType: TextInputType.phone,
                         ),
@@ -423,7 +445,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   builder: (context, asyncSnapshot) {
                     final numberData = asyncSnapshot.data;
                     return buildTextFieldWithHeading(
-                      title: ' Alternate Mobile Number(optional)',
+                      title: 'Alternate Mobile Number (optional)',
                       fieldWidget: Column(
                         children: [
                           Row(
@@ -493,7 +515,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                           .userId!,
                                                     );
                                                     if (response.status == 1) {
-                                                      _isAltVerified = true;
+                                                      setState(() {
+                                                        _isAltVerified = true;
+                                                      });
                                                       verifyMobileStream.add(
                                                         true,
                                                       );
@@ -527,12 +551,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         child: SizedBox(
                                           width: 100,
                                           child: Container(
-                                            color: isVerified
-                                                ? AppColors.lightGreen
-                                                : AppColors.idCardColor,
+                                            decoration: BoxDecoration(
+                                              color: isVerified
+                                                  ? AppColors.lightGreen
+                                                  : AppColors.idCardColor,
+                                              borderRadius:
+                                                  const BorderRadius.only(
+                                                topRight: Radius.circular(6),
+                                                bottomRight:
+                                                    Radius.circular(6),
+                                              ),
+                                            ),
                                             padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 16,
+                                              horizontal: 8,
+                                              vertical: 14,
                                             ),
                                             child: Center(
                                               child: Row(
@@ -542,7 +574,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                     Icon(
                                                       Icons.check,
                                                       color: AppColors.green,
-                                                      size: 16,
+                                                      size: 14,
                                                     ),
                                                   if (isVerified)
                                                     const SizedBox(width: 4),
@@ -551,6 +583,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                         ? "Verified"
                                                         : "Verify",
                                                     fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
                                                     color: isVerified
                                                         ? AppColors.green
                                                         : AppColors.grey,

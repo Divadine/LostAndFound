@@ -5,7 +5,6 @@ import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
-import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 import '../../utils/app_images.dart';
@@ -22,7 +21,6 @@ class OnboardingScreenState extends State<OnboardingScreen> {
   String? selectedReason;
   PageController pageController = PageController();
 
-  TextEditingController reasonController = TextEditingController();
   List<String> items = [
     'Item found',
     'Post Created by Mistake',
@@ -32,22 +30,22 @@ class OnboardingScreenState extends State<OnboardingScreen> {
     'Others',
   ];
 
-  List<onBoardModel> screenContents = [
-    onBoardModel(
+  List<OnBoardModel> screenContents = [
+    OnBoardModel(
       image: AssetImages.onboard_1,
       title: 'Lost Something ?',
       subTitle: 'Find it Fast ',
       description:
           'Search lost items posted by  People nearby using map, categories and photos',
     ),
-    onBoardModel(
+    OnBoardModel(
       image: AssetImages.onboard_2,
       title: 'Found Something ?',
       subTitle: 'Post it Now.',
       description:
           'Take a photo, add location and post the item. Help the rightful  owner get it back',
     ),
-    onBoardModel(
+    OnBoardModel(
       image: AssetImages.onboard_3,
       title: 'Hand Over Safely',
       subTitle: 'Police Station',
@@ -65,9 +63,7 @@ class OnboardingScreenState extends State<OnboardingScreen> {
         child: Column(
           spacing: 20,
           children: [
-            Container(
-              height:MediaQuery.of(context).size.height * 0.75,
-              decoration: BoxDecoration(),
+            Expanded(
               child: PageView.builder(
                 controller: pageController,
                 itemCount: screenContents.length,
@@ -80,42 +76,44 @@ class OnboardingScreenState extends State<OnboardingScreen> {
                   final model = screenContents[index];
                   return Stack(
                     children: [
-                      Column(
-                        spacing: 10,
-                        crossAxisAlignment: .center,
-                        mainAxisAlignment: .center,
-                        children: [
-                          Flexible(
-                            child: SizedBox(
+                      SingleChildScrollView(
+                        child: Column(
+                          spacing: 10,
+                          crossAxisAlignment: .center,
+                          mainAxisAlignment: .center,
+                          children: [
+                            const SizedBox(height: 20),
+                            SizedBox(
                               height: 350,
                               child: AppIconWidget(
                                 assetPath: model.image,
                                 fit: BoxFit.cover,
                               ),
                             ),
-                          ),
-
-                          SizedBox(height: 40),
-                          AppText(
-                            text: model.title,
-                            fontSize: 24,
-                            color: AppColors.black,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          AppText(
-                            text: model.subTitle,
-                            fontSize: 28,
-                            color: AppColors.primaryColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          AppText(
-                            text: model.description,
-                            fontSize: 16,
-                            color: AppColors.grey,
-                            textAlign: .center,
-                            fontWeight: FontWeight.w400,
-                          ).padHorizontal(30),
-                        ],
+  
+                            const SizedBox(height: 40),
+                            AppText(
+                              text: model.title,
+                              fontSize: 24,
+                              color: AppColors.black,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            AppText(
+                              text: model.subTitle,
+                              fontSize: 28,
+                              color: AppColors.primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            AppText(
+                              text: model.description,
+                              fontSize: 16,
+                              color: AppColors.grey,
+                              textAlign: .center,
+                              fontWeight: FontWeight.w400,
+                            ).padHorizontal(30),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
                       ),
 
                       if (presentIndex < 2)
@@ -183,7 +181,7 @@ class OnboardingScreenState extends State<OnboardingScreen> {
             title: presentIndex == screenContents.length - 1
                 ? 'Get Start'
                 : 'Next',
-            onTap: () {
+            onTap: () async {
               if (presentIndex < screenContents.length - 1) {
                 pageController.animateToPage(
                   presentIndex + 1,
@@ -191,7 +189,8 @@ class OnboardingScreenState extends State<OnboardingScreen> {
                   curve: Curves.easeOut,
                 );
               } else {
-                //AppPreferences.setIsOnboarded(true);
+                 await AppPreferences.setIsOnboarded(true);
+                if (!mounted) return;
                 AppDialogue.showPopup(
                   context: context,
                   content: DisclaimerPopUP(isFromOnBoard: true),
@@ -206,13 +205,13 @@ class OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-class onBoardModel {
+class OnBoardModel {
   final String image;
   final String title;
   final String subTitle;
   final String description;
 
-  onBoardModel({
+  OnBoardModel({
     required this.image,
     required this.title,
     required this.subTitle,

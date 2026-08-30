@@ -124,6 +124,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
 
             ItemCard(
               isFromEnquiry: true,
+              isFound: false,
               imgUrl: widget.imgUrl,
               title: widget.title,
               location: widget.location,
@@ -148,17 +149,6 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
             Expanded(
               child: isLoadingMatches
                   ? const Center(child: CircularProgressIndicator())
-                  : matchesErrorMessage != null
-                  ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AppText(text: matchesErrorMessage!, textAlign: TextAlign.center),
-                    const SizedBox(height: 12),
-                    AppButton(title: 'Retry', onTap: _fetchMatches),
-                  ],
-                ),
-              )
                   : matches.isEmpty
                   ? const Center(child: AppText(text: 'No matches found yet'))
                   : ListView.builder(
@@ -168,6 +158,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                   return ItemCard(
                     imageWidth: 170,
                     isFromEnquiry: true,
+                    isFound: true,
                     imgUrl: match.postImages.trim(),
                     title: match.name,
                     location: match.location,
