@@ -268,7 +268,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
   Future<void> _onSubmit() async {
     if (selectedImages.isEmpty) {
-      AppDialogue.showPopup(context: context, content: AppText(text: 'Please upload at least one image'));
+      AppSnackBar.show(context: context, message: 'Please upload at least one image');
       return;
     }
 
@@ -326,18 +326,31 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     setState(() => isSubmitting = false);
 
     if (postResponse.isSuccess && postResponse.data != null) {
+      // Label + value for the "Item Type" row shown later on the Preview
+      // screen: in normal mode it's the chosen subcategory/category name,
+      // in generic mode it's whatever the user typed as the item name.
+      final itemTypeLabel = _isGenericMode ? 'Item Name' : 'Item Type';
+      final itemTypeValue = _isGenericMode
+          ? itemNameController.text.trim()
+          : (widget.subCategory?.name ?? widget.category.name ?? '');
+
       AppRoutes.pushNamed(
         AppRoutes.secondStepperScreen,
         arguments: {
           'postId': postResponse.data!.id,
           if (_isGenericMode) 'prefillDescription': descriptionController.text.trim(),
+          'itemTypeLabel': itemTypeLabel,
+          'itemTypeValue': itemTypeValue,
+          'color': selectedColor ?? '',
+          'fieldValues': postValues,
+          'mainImage': selectedImages.isNotEmpty ? selectedImages.first : null,
         },
       );
     } else {
       final msg = postResponse.currentState == CurrentState.noInternet
           ? 'No internet connection. Please check your network.'
           : (postResponse.message.isNotEmpty ? postResponse.message : 'Failed to complete post');
-      AppDialogue.showPopup(context: context, content: AppText(text: msg));
+      AppSnackBar.show(context: context, message: msg);
     }
   }
 
@@ -346,7 +359,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: CustomAppBar(
-        title: 'Post Lost Item',
+        title: widget.postType == 0 ? 'Post Lost Item' : 'Post Found Item',
         centerTitle: true,
         leadingSvg: AssetImages.backArrow,
         leadingIconColor: AppColors.primaryColor,

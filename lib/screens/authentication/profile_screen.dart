@@ -113,6 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     landmarkController.text = widget.profileModel.landmark ?? '';
     latitude = widget.profileModel.latitude;
     longitude = widget.profileModel.longitude;
+    isNotFromSetUp = widget.profileModel.isFromEdit;
 
     _isAltVerified = widget.profileModel.altMobileVerified;
     
@@ -479,122 +480,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   },
                                   onSubmit: (v) {},
                                   textInputType: TextInputType.phone,
-                                  suffixIcon: StreamBuilder(
-                                    stream: verifyMobileStream.stream,
-                                    initialData: _isAltVerified,
-                                    builder: (context, asyncSnapshot) {
-                                      final isVerified =
-                                          asyncSnapshot.data ?? false;
-                                      return GestureDetector(
-                                        onTap: isVerified ? null : () {
-                                          if
-                                           (AppUtils.validateMobileNumber(alternativeController.text) == null) {
-                                            if (isVerified) return;
-
-                                            if (AppUtils.validateMobileNumber(
-                                              alternativeController.text,
-                                            ) ==
-                                                null) {
-                                              AppDialogue.showPopup(
-                                                context: context,
-                                                content: OtpSharedScreen(
-                                                  isAlternateNumber: true,
-                                                  mobileNumber:
-                                                  alternativeController.text,
-                                                  onVerifyOtp: (
-                                                      String otp) async {
-                                                    final response =
-                                                    await authController
-                                                        .verifyMobileOtp(
-                                                      phone:
-                                                      alternativeController
-                                                          .text,
-                                                      otp: otp,
-                                                      userId: widget
-                                                          .profileModel
-                                                          .userId!,
-                                                    );
-                                                    if (response.status == 1) {
-                                                      setState(() {
-                                                        _isAltVerified = true;
-                                                      });
-                                                      verifyMobileStream.add(
-                                                        true,
-                                                      );
-                                                      AppRoutes.pop();
-                                                      return null;
-                                                    }
-                                                    return response.message;
-                                                  },
-                                                  onSendOtp: () async {
-                                                    final response = await authController
-                                                        .generateMobileOtp(
-                                                        alternativeController
-                                                            .text);
-                                                    if (response.isSuccess)
-                                                      return null;
-                                                    if (response.currentState ==
-                                                        CurrentState
-                                                            .noInternet) {
-                                                      return 'No internet connection. Please check your network.';
-                                                    }
-                                                    return response.message
-                                                        .isNotEmpty
-                                                        ? response.message
-                                                        : 'Failed to send OTP';
-                                                  },
-                                                ),
+                                  suffixIcon: GestureDetector(
+                                    onTap: _isAltVerified ? null : () {
+                                      if (AppUtils.validateMobileNumber(alternativeController.text) == null) {
+                                        AppDialogue.showPopup(
+                                          context: context,
+                                          content: OtpSharedScreen(
+                                            isAlternateNumber: true,
+                                            mobileNumber: alternativeController.text,
+                                            onVerifyOtp: (String otp) async {
+                                              final response = await authController.verifyMobileOtp(
+                                                phone: alternativeController.text,
+                                                otp: otp,
+                                                userId: widget.profileModel.userId!,
                                               );
-                                            }
-                                          }
-                                        },
-                                        child: SizedBox(
-                                          width: 100,
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: isVerified
-                                                  ? AppColors.lightGreen
-                                                  : AppColors.idCardColor,
-                                              borderRadius:
-                                                  const BorderRadius.only(
-                                                topRight: Radius.circular(6),
-                                                bottomRight:
-                                                    Radius.circular(6),
-                                              ),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 14,
-                                            ),
-                                            child: Center(
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  if (isVerified)
-                                                    Icon(
-                                                      Icons.check,
-                                                      color: AppColors.green,
-                                                      size: 14,
-                                                    ),
-                                                  if (isVerified)
-                                                    const SizedBox(width: 4),
-                                                  AppText(
-                                                    text: isVerified
-                                                        ? "Verified"
-                                                        : "Verify",
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: isVerified
-                                                        ? AppColors.green
-                                                        : AppColors.grey,
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
+                                              if (response.status == 1) {
+                                                setState(() {
+                                                  _isAltVerified = true;
+                                                });
+                                                verifyMobileStream.add(true);
+                                                AppRoutes.pop();
+                                                return null;
+                                              }
+                                              return response.message;
+                                            },
+                                            onSendOtp: () async {
+                                              final response = await authController.generateMobileOtp(
+                                                  alternativeController.text);
+                                              if (response.isSuccess) return null;
+                                              if (response.currentState == CurrentState.noInternet) {
+                                                return 'No internet connection. Please check your network.';
+                                              }
+                                              return response.message.isNotEmpty
+                                                  ? response.message
+                                                  : 'Failed to send OTP';
+                                            },
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    child: SizedBox(
+                                      width: 100,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: _isAltVerified
+                                              ? AppColors.lightGreen
+                                              : AppColors.idCardColor,
+                                          borderRadius: const BorderRadius.only(
+                                            topRight: Radius.circular(6),
+                                            bottomRight: Radius.circular(6),
                                           ),
                                         ),
-                                      );
-                                    },
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 14,
+                                        ),
+                                        child: Center(
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (_isAltVerified)
+                                                Icon(
+                                                  Icons.check,
+                                                  color: AppColors.green,
+                                                  size: 14,
+                                                ),
+                                              if (_isAltVerified)
+                                                const SizedBox(width: 4),
+                                              AppText(
+                                                text: _isAltVerified ? "Verified" : "Verify",
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: _isAltVerified ? AppColors.green : AppColors.grey,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),

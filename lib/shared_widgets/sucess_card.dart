@@ -12,51 +12,65 @@ Widget SucessCard({
   required bool isReceiver,
   required VoidCallback onTap,
 }) {
-  return Container(
-    height: 100,
-    width: double.infinity,
-    decoration: BoxDecoration(
-      color: AppColors.lightGreen,
-      border: Border.all(color: AppColors.green),
-      borderRadius: BorderRadius.circular(12),
-    ),
-
-    child: Row(
-      spacing: 15,
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        AppIconWidget(assetPath: AssetImages.greenRoundedTick),
-
-
-        Column(
-          spacing: 5,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppText(
-              text: isReceiver ?  'Received to ' : 'Hand Over to' ,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-
-            AppText(
-              text: name,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-
-            AppText(
-              text: location,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ],
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      height: 100,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.lightGreen,
+        border: Border.all(
+          color: AppColors.green,
         ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          AppIconWidget(
+            assetPath: AssetImages.greenRoundedTick,
+          ),
 
-        Spacer(),
-        AppIconWidget(assetPath: AssetImages.iosForward,)
-      ],
-    ).pad(16),
+          const SizedBox(width: 15),
+
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppText(
+                  text: isReceiver
+                      ? 'Received to'
+                      : 'Hand Over to',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+
+                const SizedBox(height: 5),
+
+                AppText(
+                  text: name,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+
+                const SizedBox(height: 5),
+
+                AppText(
+                  text: location,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          AppIconWidget(
+            assetPath: AssetImages.iosForward,
+          ),
+        ],
+      ).pad(16),
+    ),
   ).pad();
 }

@@ -13,6 +13,7 @@ import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 
@@ -42,6 +43,12 @@ class _LoginScreenState extends State<LoginScreen> {
   String? errorText;
 
   StreamController<String?> numberStream = StreamController.broadcast();
+
+  @override
+  void initState() {
+    super.initState();
+   // phoneController.text = AppPreferences.getPhone() ?? '';
+  }
 
   @override
   void dispose() {
@@ -162,10 +169,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         //AppUiHelper.showLoadingDialog(context);
                         final response = await authController.sendOtp(phoneController.text, type: 2,);
                         if (!mounted) return;
-                        AppRoutes.pop();
 
                         if(response.isSuccess){
-                          AppRoutes.pushNamed(AppRoutes.otpScreen, arguments: phoneController.text);
+                          AppRoutes.pushNamed(AppRoutes.otpScreen, arguments: {
+                            'mobileNo': phoneController.text,
+                            'autoSend': false,
+                          });
                         }else if (response.currentState == CurrentState.noInternet) {
                           AppDialogue.showPopup(
                             context: context,

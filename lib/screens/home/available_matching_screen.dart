@@ -133,7 +133,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
               bg: AppColors.lightBlue_2,
               onTap: () {},
               showPostId: true,
-            ),
+            ).pad(),
 
             AppContainer(
               widget: AppText(

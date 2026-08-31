@@ -101,52 +101,63 @@ class _BottomScreenState extends State<BottomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: pages[selectedIndex],
+    return PopScope(
+      canPop: selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (selectedIndex != 0) {
+          setState(() {
+            selectedIndex = 0;
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: pages[selectedIndex],
+          ),
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          height: 60,
-          decoration: BoxDecoration(color: AppColors.primaryColor),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(image.length, (index) {
-              final isSelected = selectedIndex == index;
-              return GestureDetector(
-                onTap: () {
-                  if (index == 2) {
-                    _showPostBottomSheet();
-                    return;
-                  }
+        bottomNavigationBar: SafeArea(
+          child: Container(
+            height: 60,
+            decoration: BoxDecoration(color: AppColors.primaryColor),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(image.length, (index) {
+                final isSelected = selectedIndex == index;
+                return GestureDetector(
+                  onTap: () {
+                    if (index == 2) {
+                      _showPostBottomSheet();
+                      return;
+                    }
 
-                  setState(() {
-                    selectedIndex = index;
-                  });
-                },
-                behavior: HitTestBehavior.opaque,
-                child: SizedBox(
-                  width: 50,
-                  child: Column(
-                    spacing: 5,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AppIconWidget(assetPath: image[index]),
-                      if (isSelected)
-                        AppText(
-                          text: labels[index],
-                          fontSize: 12,
-                          color: AppColors.white,
-                        ),
-                    ],
+                    setState(() {
+                      selectedIndex = index;
+                    });
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: SizedBox(
+                    width: 50,
+                    child: Column(
+                      spacing: 5,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AppIconWidget(assetPath: image[index]),
+                        if (isSelected)
+                          AppText(
+                            text: labels[index],
+                            fontSize: 12,
+                            color: AppColors.white,
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }),
+                );
+              }),
+            ),
           ),
         ),
       ),

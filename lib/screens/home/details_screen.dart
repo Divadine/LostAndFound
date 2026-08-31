@@ -5,6 +5,7 @@ import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/models/posts_model/single_match_item.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
+import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
@@ -14,7 +15,9 @@ import 'package:lost_and_found/shared_widgets/app_audio_player.dart';
 import 'package:lost_and_found/shared_widgets/app_video_player.dart';
 import 'package:lost_and_found/screens/bottomsheets/send_enquiry.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
+import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
@@ -48,6 +51,8 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
   SingleMatchModel? postDetails;
   bool isLoading = true;
   String? errorMessage;
+  bool hasEnquired = false;
+  String? existingRoomId;
 
   @override
   void initState() {
@@ -57,6 +62,25 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
     } else {
       isLoading = false;
       errorMessage = 'Invalid post details';
+    }
+  }
+
+  Future<void> _checkEnquiryStatus() async {
+    final userId = AppPreferences.getUserId();
+    if (userId == null || postDetails == null) return;
+
+    final currentUserId = userId.toString().trim();
+    final otherUserId = widget.userId.toString().trim();
+    final users = [currentUserId, otherUserId]..sort();
+    final roomId = '${users[0]}_${users[1]}_${postDetails!.id}';
+
+    final room = await ChatService.getRoom(roomId);
+    if (room != null) {
+      if (!mounted) return;
+      setState(() {
+        hasEnquired = true;
+        existingRoomId = roomId;
+      });
     }
   }
 
@@ -96,6 +120,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
         postDetails = response.data;
         isLoading = false;
       });
+      await _checkEnquiryStatus();
     } else {
       setState(() {
         errorMessage = response.message.isNotEmpty ? response.message : 'Failed to fetch post';
@@ -232,7 +257,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                         ),
                       _buildInfoRow('Color', post.color),
                     ],
-                  ),
+                  ).padHorizontal(5),
                 ),
 
                 // 4. MATCH
@@ -308,7 +333,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                           ],
                         ),
                     ],
-                  ).padHorizontal(16),
+                  ).pad(5),
                 ),
               ],
             ).pad(16),
@@ -320,6 +345,30 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
         AppButton(
           title: 'Send Enquiry',
           onTap: () {
+            if (hasEnquired) {
+              AppSnackBar.show(
+                context: context,
+                message: 'Enquiry already sent',
+              );
+              final userId = AppPreferences.getUserId();
+              AppRoutes.pushNamed(
+                AppRoutes.individualChatScreen,
+                arguments: {
+                  'roomId': existingRoomId,
+                  'currentUserId': userId.toString(),
+                  'otherUserId': widget.userId.toString(),
+                  'otherUserName': _posterName,
+                  'otherUserAvatar': _posterAvatar,
+                  'otherUserPhone': postDetails?.posterName ?? '', // Fallback or correct phone if available
+                  'itemName': postDetails?.itemName ?? '',
+                  'itemImage': postDetails?.imageUrl ?? '',
+                  'itemLocation': postDetails?.location ?? '',
+                  'itemPostDate': _formatDate(postDetails?.postDate),
+                  'itemPostId': postDetails?.id.toString(),
+                },
+              );
+              return;
+            }
             AppUiHelper.showBottomSheet(
               showHandle: false,
               showCloseIcon: false,

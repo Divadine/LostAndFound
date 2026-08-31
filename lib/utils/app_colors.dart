@@ -37,6 +37,8 @@ class AppColors {
   static const Color chatByOther = Color(0xffF2F2F2);
   static const Color chatDelete = Color(0xffECF0FF);
   static const Color requestColor = Color(0xffFEF1DA);
+  static const Color closedColor = Color(0xffEDFFF0);
+
 
 
 

@@ -169,6 +169,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           await authController.sendOtp(phoneController.text, type: 1);
                           //popup
                           AppDialogue.showPopup(context: context, content: OtpSharedScreen(
+                              autoSend: false,
                               isAlternateNumber: false,
                               mobileNumber: phoneController.text,
                             onVerifyOtp: ( otp) async {

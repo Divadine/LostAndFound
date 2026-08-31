@@ -774,13 +774,22 @@ class _IndividualChatScreenState
           ),
 
           InkWell(
-            onTap:
-            _copyPhone,
-            child: const AppText(
-              text: 'Copy',
-              fontSize: 11,
-              fontWeight:
-              FontWeight.w600,
+            onTap: _copyPhone,
+            child: Row(
+              spacing: 5,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppIconWidget(
+                  assetPath: AssetImages.copy,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                const AppText(
+                  text: 'Copy',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ],
             ),
           ),
 
@@ -789,26 +798,25 @@ class _IndividualChatScreenState
           InkWell(
             onTap: _call,
             child: Row(
-              mainAxisSize:
-              MainAxisSize.min,
+              spacing: 5,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 AppIconWidget(
-                  assetPath:
-                  AssetImages
-                      .mobileIcon,
-                  size: 14,
+                  assetPath: AssetImages.call,
+                  size: 16,
                 ),
-                const SizedBox(width: 3),
+                const SizedBox(width: 4),
                 const AppText(
                   text: 'Call',
                   fontSize: 11,
+                  fontWeight: FontWeight.w600,
                 ),
               ],
             ),
           ),
         ],
       ).pad(8),
-    ).padHorizontal(50);
+    ).padHorizontal(20);
   }
 
   String _maskPhone(String phone) {
@@ -886,10 +894,9 @@ class _IndividualChatScreenState
 
     _contactDialogShowing = true;
 
-    AppUiHelper.showBottomSheet(
-      showHandle: false,
+    AppDialogue.showPopup(
       context: context,
-      child: ChatSendRequest(
+      content: ChatSendRequest(
         senderName: senderName,
         requestTime: requestTime,
 
@@ -927,11 +934,6 @@ class _IndividualChatScreenState
           }
         },
       ),
-      showCloseIcon: false,
-      color:
-      AppColors.primaryColor,
-      iconColor:
-      AppColors.white,
     ).whenComplete(() {
       _contactDialogShowing =
       false;

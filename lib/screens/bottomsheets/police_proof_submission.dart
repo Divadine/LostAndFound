@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/enums/handover_type.dart';
+import 'package:lost_and_found/models/handover/handover_type.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -118,7 +120,17 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
       AppRoutes.pop();
       AppDialogue.showPopup(
         context: context,
-        content: HandOverToPolice(),
+        content:
+        TransferCompleted(
+          type: TransferType.handOverToPolice,
+          data: TransferData(
+            policeStationName: apiPoliceStationName,
+            policeStationAddress: apiPoliceStationAddress,
+            phoneNumber: apiPhone,
+            description: apiDescription,
+            proofPhotos: apiProofPhotos,
+          ),
+        )
         // If HandOverToPolice's constructor accepts stationName/stationAddress,
         // pass widget.stationName / widget.stationAddress here.
       );

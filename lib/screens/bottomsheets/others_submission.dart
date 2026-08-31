@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/enums/handover_type.dart';
+import 'package:lost_and_found/models/handover/handover_type.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -116,7 +118,17 @@ class _OthersHandoverState extends State<OthersHandover> {
             AppRoutes.pop();
             AppDialogue.showPopup(
               context: context,
-              content: ReceiveToOthers(),
+              content:
+              TransferCompleted(
+                type: TransferType.handOverToOthers,
+                data: TransferData(
+                  name: apiName,
+                  avatarUrl: apiImage,
+                  phoneNumber: apiPhone,
+                  description: apiDescription,
+                  proofPhotos: apiProofPhotos,
+                ),
+              )
             );
           },
           fontSize: 14,

@@ -87,8 +87,10 @@ class ItemCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.grey.withAlpha(20),
                   borderRadius: BorderRadius.only(
-                    bottomRight: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(15),
+                    bottomLeft: Radius.circular(15),
+                    topRight: Radius.circular(10),
+                    topLeft: Radius.circular(10),
                   ),
                 ),
                 child: Row(
@@ -154,7 +156,7 @@ class ItemCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                ).padHorizontal(15),
+                ).padHorizontal(18),
               ),
             ],
 

@@ -64,6 +64,7 @@ class AppPreferences {
     await _prefs.remove(_tokenKey);
     await _prefs.remove(_userIdKey);
     await _prefs.remove(_userNameKey);
+    await _prefs.remove(_phoneKey);
 
     await _prefs.setBool(
       _isLoggedIn,
@@ -101,6 +102,16 @@ class AppPreferences {
     return _prefs.getInt(_userIdKey);
   }
 
+  static const String _phoneKey = "phone_no";
+
+  static Future<void> savePhone(String phone) async {
+    await _prefs.setString(_phoneKey, phone);
+  }
+
+  static String? getPhone() {
+    return _prefs.getString(_phoneKey);
+  }
+
   // NEW: user name storage
   static const String _userNameKey = "user_name";
 
@@ -116,6 +127,7 @@ class AppPreferences {
     await _prefs.remove(_tokenKey);
     await _prefs.remove(_userIdKey);
     await _prefs.remove(_userNameKey);
+    await _prefs.remove(_phoneKey);
     await _prefs.setBool(_isLoggedIn, false);
     // await _prefs.clear();
   }

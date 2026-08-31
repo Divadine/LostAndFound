@@ -302,7 +302,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
             AppRoutes.pushNamed(AppRoutes.lostItemsDetailsScreen);
           },
           showPostId: true,
-        ),
+        ).pad(10),
 
         Row(
           children: [
@@ -479,6 +479,6 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
           ),
         ],
       ).pad(),
-    ).pad();
+    ).pad(10);
   }
 }

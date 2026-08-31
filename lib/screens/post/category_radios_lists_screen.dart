@@ -156,7 +156,7 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
                       value: index,
                     );
                   },
-                );
+                ).pad();
               },
             ),
           ),

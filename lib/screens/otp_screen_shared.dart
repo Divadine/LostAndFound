@@ -13,6 +13,7 @@ class OtpSharedScreen extends StatefulWidget {
   final String mobileNumber;
   final Future<String?> Function(String otp) onVerifyOtp;
   final Future<String?> Function() onSendOtp; // null = success, non-null = error message
+  final bool autoSend;
 
   const OtpSharedScreen({
     super.key,
@@ -20,6 +21,7 @@ class OtpSharedScreen extends StatefulWidget {
     required this.mobileNumber,
     required this.onVerifyOtp,
     required this.onSendOtp,
+    this.autoSend = true,
   });
 
   @override
@@ -45,8 +47,11 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
   @override
   void initState() {
     super.initState();
-    _sendOtp();
-    _startTimer();
+    if (widget.autoSend) {
+      _sendOtp();
+    } else {
+      _startTimer();
+    }
     for (int i = 0; i < focusNode.length; i++) {
       focusNode[i].addListener(() {
         setState(() {

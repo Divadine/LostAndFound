@@ -151,11 +151,18 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
         AppRoutes.pop();
         AppDialogue.showPopup(
           context: context,
-          content: HandOverToOwner(
-            name: widget.selectedOwner.name,
-            avatarUrl: widget.selectedOwner.profileImageUrl ?? '',
-            matchPercentage: widget.selectedOwner.matchPercentage,
-          ),
+          content:
+          TransferCompleted(
+            type: TransferType.handOverToOwner,
+            data: TransferData(
+              name: apiName,
+              avatarUrl: apiImage,
+              matchPercentage: apiMatchPercentage,
+              phoneNumber: apiPhone,
+              description: apiDescription,
+              proofPhotos: apiProofPhotos,
+            ),
+          )
         );
       } else {
         _showError(handoverResponse.message.isNotEmpty

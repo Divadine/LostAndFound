@@ -266,23 +266,26 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
     final total = _waveHeights.length;
     final filledCount = (progress * total).floor();
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: List.generate(total, (i) {
-        final bool filled = i < filledCount;
-
-        return Expanded(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 1),
-            height: _waveHeights[i],
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: List.generate(total, (i) {
+          final bool filled = i < filledCount;
+  
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            width: 3,
+            height: _waveHeights[i] + 6,
             decoration: BoxDecoration(
-              color: filled ? AppColors.primaryColor : Colors.grey.shade400,
+              color: filled ? AppColors.primaryColor : AppColors.grey,
               borderRadius: BorderRadius.circular(5),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 }

@@ -32,10 +32,30 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:video_player/video_player.dart';
 
+import 'reording_screen.dart';
+
 class SecondStepperScreen extends StatefulWidget {
   final int postId;
   final String? prefillDescription;
-  const SecondStepperScreen({super.key, required this.postId, this.prefillDescription});
+
+  // Forwarded from FirstStepperScreen so the Preview screen (step 3) can
+  // show the item-type/color/dynamic-field summary without re-fetching.
+  final String itemTypeLabel;
+  final String itemTypeValue;
+  final String color;
+  final List<Map<String, String>> fieldValues;
+  final File? mainImage;
+
+  const SecondStepperScreen({
+    super.key,
+    required this.postId,
+    this.prefillDescription,
+    this.itemTypeLabel = 'Item Type',
+    this.itemTypeValue = '',
+    this.color = '',
+    this.fieldValues = const [],
+    this.mainImage,
+  });
 
   @override
   State<SecondStepperScreen> createState() => _SecondStepperScreenState();
@@ -53,7 +73,6 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   bool isVideoPlaying = false;
   Duration videoDuration = Duration.zero;
 
-  bool isSubmitting = false;
   XFile? selectedVideo;
   List<SelectedLocationModel> loc = [];
   StreamController<List<SelectedLocationModel>> locationController = StreamController.broadcast();
@@ -233,114 +252,40 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     }
   }
 
-  Future<void> _onSubmit() async {
+
+  Future<void> _goToPreview() async {
     if (loc.isEmpty) {
-      AppDialogue.showPopup(context: context, content: AppText(text: 'Please add a location'));
+      AppSnackBar.show(context: context, message: 'Please add a location');
       return;
     }
     if (selectedDate == null) {
-      AppDialogue.showPopup(context: context, content: AppText(text: 'Please select a date'));
+      AppSnackBar.show(context: context, message: 'Please select a date');
       return;
     }
     if (descriptionController.text.trim().isEmpty) {
-      AppDialogue.showPopup(context: context, content: AppText(text: 'Please enter a description'));
+      AppSnackBar.show(context: context, message: 'Please enter a description');
       return;
     }
 
-    setState(() => isSubmitting = true);
-
-    int? audioId;
-    int? videoId;
-    print("Audio path => ${_recorderService.audioPath}");
-
-    if (_recorderService.isRecorded || _recorderService.audioPath != null) {
-      final audioResponse = await  authController.createAudio(audio: File(_recorderService.audioPath!));
-      if (!mounted) return;
-      if (!audioResponse.isSuccess || audioResponse.data == null) {
-        setState(() => isSubmitting = false);
-        final msg = audioResponse.currentState == CurrentState.noInternet
-            ? 'No internet connection. Please check your network.'
-            : (audioResponse.message.isNotEmpty ? audioResponse.message : 'Failed to upload audio');
-        AppDialogue.showPopup(context: context, content: AppText(text: msg));
-        return;
-      }
-      audioId = audioResponse.data!.id;
-    }
-    // Step A: upload video if selected
-    if (selectedVideo != null) {
-      final videoResponse = await authController.createVideo(video: File(selectedVideo!.path));
-      if (!mounted) return;
-      if (!videoResponse.isSuccess || videoResponse.data == null) {
-        setState(() => isSubmitting = false);
-        final msg = videoResponse.currentState == CurrentState.noInternet
-            ? 'No internet connection. Please check your network.'
-            : (videoResponse.message.isNotEmpty ? videoResponse.message : 'Failed to upload video');
-        AppDialogue.showPopup(context: context, content: AppText(text: msg));
-        return;
-      }
-      videoId = videoResponse.data!.id;
-    }
-
-    // Step C: complete the post
-    final firstLocation = loc.first;
-    final coordinates = loc
-        .map((l) => {
-      'latitude': l.latitude.toString(),
-      'longitude': l.longitude.toString(),
-    })
-        .toList();
-
-    print('COORDINATES BEING SENT: @@@@@@@@@@@@@@@@@@@@@@@@@ ->$coordinates');
-
-    print('=================== STEP 2 SUBMIT DEBUG ===================');
-    print('postId: ${widget.postId}');
-    print('---- LOCATIONS ----');
-    for (int i = 0; i < loc.length; i++) {
-      print('  [$i] address: ${loc[i].address}');
-      print('  [$i] latitude: ${loc[i].latitude}');
-      print('  [$i] longitude: ${loc[i].longitude}');
-    }
-    print('coordinates payload: $coordinates');
-    print('location field value: ${textController.text.trim().isNotEmpty ? textController.text.trim() : firstLocation.address}');
-    print('address field value: ${firstLocation.address}');
-    print('---- DATE ----');
-    print('selectedDate: $selectedDate');
-    print('---- DESCRIPTION ----');
-    print('description: ${descriptionController.text.trim()}');
-    print('---- AUDIO ----');
-    print('recorder state: ${_recorderService.state}');
-    print('recorder audioPath: ${_recorderService.audioPath}');
-    print('recorder isRecorded: ${_recorderService.isRecorded}');
-    print('uploaded audioId: $audioId');
-    print('---- VIDEO ----');
-    print('selectedVideo path: ${selectedVideo?.path}');
-    print('uploaded videoId: $videoId');
-    print('=============================================================');
-    final completeResponse = await authController.completePostStep2(
-      postId: widget.postId,
-      location: textController.text.trim().isNotEmpty ? textController.text.trim() : firstLocation.address,
-      address: firstLocation.address,
-      coordinates: coordinates,
-      postDate: selectedDate!,
-      description: descriptionController.text.trim(),
-      audioId: audioId,
-      videoId: videoId,
+    AppRoutes.pushNamed(
+      AppRoutes.previewScreen,
+      arguments: {
+        'postId': widget.postId,
+        'mainImage': widget.mainImage,
+        'itemTypeLabel': widget.itemTypeLabel,
+        'itemTypeValue': widget.itemTypeValue,
+        'color': widget.color,
+        'fieldValues': widget.fieldValues,
+        'locations': List<SelectedLocationModel>.from(loc),
+        'locationText': textController.text.trim(),
+        'postDate': selectedDate!,
+        'description': descriptionController.text.trim(),
+        'audioPath': (_recorderService.isRecorded || _recorderService.audioPath != null)
+            ? _recorderService.audioPath
+            : null,
+        'videoFile': selectedVideo != null ? File(selectedVideo!.path) : null,
+      },
     );
-
-    print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$completeResponse');
-
-    if (!mounted) return;
-    setState(() => isSubmitting = false);
-
-    if (completeResponse.isSuccess) {
-      AppDialogue.showPopup(context: context, content: PostLive());
-      //AppRoutes.pushNamed(AppRoutes.bottomScreen);
-    } else {
-      final msg = completeResponse.currentState == CurrentState.noInternet
-          ? 'No internet connection. Please check your network.'
-          : (completeResponse.message.isNotEmpty ? completeResponse.message : 'Failed to complete post');
-      AppDialogue.showPopup(context: context, content: AppText(text: msg));
-    }
   }
 
   @override
@@ -364,221 +309,221 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
               child: SingleChildScrollView(
                 child: Column(
                   spacing: 10,
-  
+
                   children: [
-                  buildTextFieldWithHeading(
-                    title: 'Where did you lose it ?',
-                    fieldWidget: AppTextField(
-                      hintText: 'Chennai, Tamil Nadu, India',
-                      textController: textController,
-                      onChange: (v) {},
-                      onSubmit: (v) {},
+                    buildTextFieldWithHeading(
+                      title: 'Where did you lose it ?',
+                      fieldWidget: AppTextField(
+                        hintText: 'Chennai, Tamil Nadu, India',
+                        textController: textController,
+                        onChange: (v) {},
+                        onSubmit: (v) {},
+                      ),
                     ),
-                  ),
 
-                  StreamBuilder(
-                    stream: locationController.stream,
-                    initialData: loc,
-                    builder: (context, asyncSnapshot) {
-                      final locData = asyncSnapshot.data ?? [];
-                      return buildTextFieldWithHeading(
-                        title: 'Location',
-                        fieldWidget: loc.isEmpty
-                            ? AppTextField(
-                                readOnly: true,
-
-                                onTap: _openMapForLocations,
-                                hintText: 'Chennai, Tamil Nadu, India',
-                                textController: mapController,
-                                onChange: (v) {},
-                                onSubmit: (v) {},
-                                suffixIcon: AppIconWidget(
-                                  assetPath: AssetImages.locationMarker,
-                                ).pad(),
-                              )
-                            : Column(
-                                children: [
-                                  ListView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: locData.length,
-                                    itemBuilder: (context, index) {
-                                      final locate = locData[index];
-                                      return AppContainer(
-                                        widget: Row(
-                                          spacing: 7,
-                                          children: [
-                                            buildIconContainer(
-                                              context,
-                                              icon: AssetImages.mapIcon,
-                                              size: 15,
-                                              height: 30,
-                                              width: 30,
-                                            ),
-                                            Flexible(
-                                              child: AppText(
-                                                text: locate.address,
-                                                maxLine: 2,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w400,
-                                                color: AppColors.black,
-                                              ),
-                                            ),
-                                            GestureDetector(
-                                              onTap: () {
-                                                loc.remove(locate);
-                                                locationController.add(loc);
-                                                //setState(() {});
-                                              },
-                                              child: AppIconWidget(
-                                                assetPath: AssetImages.delete,
-
-                                                color: AppColors.black,
-                                              ).pad(),
-                                            ),
-                                          ],
-                                        ).pad(),
-                                      ).padBottom();
-                                    },
-                                  ),
-
-                                  if (loc.length < 3)
-                                    AppButton(
-                                      prefixIcon: AssetImages.add,
-                                      bgColor: Colors.transparent,
-                                      border: Border.all(color: AppColors.primaryColor),
-                                      title: 'Add Another Location (UP TO 3)',
-                                      textColor: AppColors.primaryColor,
-                                      radius: BorderRadius.circular(10),
-                                      fontSize: 12,
-                                      onTap: _openMapForLocations,
-                                    ),
-                                ],
-                              ),
-                      );
-                    }
-                  ),
-
-                  StreamBuilder(
-                    stream: dateStreamController.stream,
-                    builder: (context, asyncSnapshot) {
-                      //final dateData = asyncSnapshot.data;
-                      return GestureDetector(
-                        onTap: selectDate,
-                        child: buildTextFieldWithHeading(
-                          title: 'Date',
-                          fieldWidget: GestureDetector(
-                            onTap: selectDate,
-                            child: AppTextField(
-                              //readOnly: true,
-                              hintText: 'Select Date',
+                    StreamBuilder(
+                        stream: locationController.stream,
+                        initialData: loc,
+                        builder: (context, asyncSnapshot) {
+                          final locData = asyncSnapshot.data ?? [];
+                          return buildTextFieldWithHeading(
+                            title: 'Location',
+                            fieldWidget: loc.isEmpty
+                                ? AppTextField(
                               readOnly: true,
-                              textController: dateController,
+
+                              onTap: _openMapForLocations,
+                              hintText: 'Chennai, Tamil Nadu, India',
+                              textController: mapController,
                               onChange: (v) {},
                               onSubmit: (v) {},
-                              suffixIcon: GestureDetector(
-                                  onTap:selectDate,
-                                  child: AppIconWidget(assetPath: AssetImages.calender).pad()
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                  ),
-
-                  buildTextFieldWithHeading(
-                    title: 'Description',
-                    fieldWidget: AppTextField(
-                      hintText: 'write Description here',
-                      textController: descriptionController,
-                      onChange: (v) {},
-                      onSubmit: (v) {},
-                      maxLines: 5,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Column(
-                    spacing: 10,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppText(
-                        text: 'Voice Description',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-
-                      AppRecorder(),
-
-                    ],
-                  ),
-
-                  SizedBox(height: 10),
-
-                  StreamBuilder(
-                    stream: videoStreamController.stream,
-                    builder: (context, asyncSnapshot) {
-                      return Column(
-                        spacing: 10,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AppText(
-                            text: 'Add a short video of your item or place',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          AppContainer(
-                            widget: Column(
-                              spacing: 10,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                              suffixIcon: AppIconWidget(
+                                assetPath: AssetImages.locationMarker,
+                              ).pad(),
+                            )
+                                : Column(
                               children: [
-                                if (selectedVideo == null)
-                                  AppText(
-                                    text: 'Tap to choose a video',
-                                    fontWeight: FontWeight.w400,
+                                ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: locData.length,
+                                  itemBuilder: (context, index) {
+                                    final locate = locData[index];
+                                    return AppContainer(
+                                      widget: Row(
+                                        spacing: 7,
+                                        children: [
+                                          buildIconContainer(
+                                            context,
+                                            icon: AssetImages.mapIcon,
+                                            size: 15,
+                                            height: 30,
+                                            width: 30,
+                                          ),
+                                          Flexible(
+                                            child: AppText(
+                                              text: locate.address,
+                                              maxLine: 2,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w400,
+                                              color: AppColors.black,
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: () {
+                                              loc.remove(locate);
+                                              locationController.add(loc);
+                                              //setState(() {});
+                                            },
+                                            child: AppIconWidget(
+                                              assetPath: AssetImages.delete,
+
+                                              color: AppColors.black,
+                                            ).pad(),
+                                          ),
+                                        ],
+                                      ).pad(),
+                                    ).padBottom();
+                                  },
+                                ),
+
+                                if (loc.length < 3)
+                                  AppButton(
+                                    prefixIcon: AssetImages.add,
+                                    bgColor: Colors.transparent,
+                                    border: Border.all(color: AppColors.primaryColor),
+                                    title: 'Add Another Location (UP TO 3)',
+                                    textColor: AppColors.primaryColor,
+                                    radius: BorderRadius.circular(10),
                                     fontSize: 12,
-                                    color: AppColors.grey,
-                                  ),
-
-
-                                if (_videoController != null &&
-                                    _videoController!.value.isInitialized)
-                                  buildVideoPreview()
-                                else
-                                  GestureDetector(
-                                    onTap: pickVideo,
-                                    child: AppIconWidget(assetPath: AssetImages.video),
+                                    onTap: _openMapForLocations,
                                   ),
                               ],
-                            ).pad(),
-                          ),
+                            ),
+                          );
+                        }
+                    ),
 
-                          AppText(
-                            text: 'Max 30 seconds & Max size 15 MB',
-                            fontWeight: FontWeight.w400,
-                            fontSize: 12,
-                            color: AppColors.grey,
-                          ),
-                        ],
-                      );
-                    }
-                  ),
+                    StreamBuilder(
+                        stream: dateStreamController.stream,
+                        builder: (context, asyncSnapshot) {
+                          //final dateData = asyncSnapshot.data;
+                          return GestureDetector(
+                            onTap: selectDate,
+                            child: buildTextFieldWithHeading(
+                              title: 'Date',
+                              fieldWidget: GestureDetector(
+                                onTap: selectDate,
+                                child: AppTextField(
+                                  //readOnly: true,
+                                  hintText: 'Select Date',
+                                  readOnly: true,
+                                  textController: dateController,
+                                  onChange: (v) {},
+                                  onSubmit: (v) {},
+                                  suffixIcon: GestureDetector(
+                                      onTap:selectDate,
+                                      child: AppIconWidget(assetPath: AssetImages.calender).pad()
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                    ),
 
-                  AppButton(
-                    title: 'Review & Submit',
-                    onTap:   isSubmitting ? () {} : _onSubmit,
-                    radius: BorderRadius.circular(10),
-                    fontSize: 14,
-                  ),
-                ],
-              ).pad(16),
+                    buildTextFieldWithHeading(
+                      title: 'Description',
+                      fieldWidget: AppTextField(
+                        hintText: 'write Description here',
+                        textController: descriptionController,
+                        onChange: (v) {},
+                        onSubmit: (v) {},
+                        maxLines: 5,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Column(
+                      spacing: 10,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppText(
+                          text: 'Voice Description',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+
+                   AppRecorder(service: _recorderService)
+
+                      ],
+                    ),
+
+                    SizedBox(height: 10),
+
+                    StreamBuilder(
+                        stream: videoStreamController.stream,
+                        builder: (context, asyncSnapshot) {
+                          return Column(
+                            spacing: 10,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AppText(
+                                text: 'Add a short video of your item or place',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              AppContainer(
+                                widget: Column(
+                                  spacing: 10,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    if (selectedVideo == null)
+                                      AppText(
+                                        text: 'Tap to choose a video',
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 12,
+                                        color: AppColors.grey,
+                                      ),
+
+
+                                    if (_videoController != null &&
+                                        _videoController!.value.isInitialized)
+                                      buildVideoPreview()
+                                    else
+                                      GestureDetector(
+                                        onTap: pickVideo,
+                                        child: AppIconWidget(assetPath: AssetImages.video),
+                                      ),
+                                  ],
+                                ).pad(),
+                              ),
+
+                              AppText(
+                                text: 'Max 30 seconds & Max size 15 MB',
+                                fontWeight: FontWeight.w400,
+                                fontSize: 12,
+                                color: AppColors.grey,
+                              ),
+                            ],
+                          );
+                        }
+                    ),
+
+                    AppButton(
+                      title: 'Review & Submit',
+                      onTap: _goToPreview,
+                      radius: BorderRadius.circular(10),
+                      fontSize: 14,
+                    ),
+                  ],
+                ).pad(16),
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -607,15 +552,15 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
               // Play button
               GestureDetector(
                 onTap: () {
-                  
-                    if (_videoController!.value.isPlaying) {
-                      _videoController!.pause();
-                      isVideoPlaying = false;
-                    } else {
-                      _videoController!.play();
-                      isVideoPlaying = true;
-                    }
-                videoStreamController.add(null);
+
+                  if (_videoController!.value.isPlaying) {
+                    _videoController!.pause();
+                    isVideoPlaying = false;
+                  } else {
+                    _videoController!.play();
+                    isVideoPlaying = true;
+                  }
+                  videoStreamController.add(null);
                 },
 
                 child: CircleAvatar(

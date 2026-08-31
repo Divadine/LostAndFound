@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
+import 'package:lost_and_found/models/posts_model/selected_location_model.dart';
 import 'package:lost_and_found/screens/bottomsheets/filter_screen.dart';
 import 'package:lost_and_found/screens/chat/individual_chat_screen.dart';
 import 'package:lost_and_found/screens/home/available_matching_screen.dart';
@@ -12,6 +15,7 @@ import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
 import 'package:lost_and_found/screens/post/category_radios_lists_screen.dart';
 import 'package:lost_and_found/screens/chat/chat_screen.dart';
 import 'package:lost_and_found/screens/post/first_stepper_screen.dart';
+import 'package:lost_and_found/screens/post/preview_screen.dart';
 import 'package:lost_and_found/screens/post/sub_category_screen.dart';
 import 'package:lost_and_found/screens/profile/delete_account_screeen.dart';
 import 'package:lost_and_found/screens/home/enquiry_list_screen.dart';
@@ -28,6 +32,7 @@ import 'package:lost_and_found/screens/report_justification.dart';
 import 'package:lost_and_found/screens/post/second_stepper_screen.dart';
 import 'package:lost_and_found/screens/profile/settings_screen.dart';
 import 'package:lost_and_found/screens/profile/webView.dart';
+import 'package:lost_and_found/shared_widgets/app_recorder.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 
 import 'app_utils.dart';
@@ -51,6 +56,7 @@ class AppRoutes {
   static const enquiryListScreen = '/enquiryListScreen';
   static const chatScreen = '/chatScreen';
   static const secondStepperScreen = '/secondStepperScreen';
+  static const previewScreen = '/previewScreen';
   static const mapScreen = '/mapScreen';
   static const subCategoryScreen = '/subCategoryScreen';
   static const individualChatScreen = '/individualChatScreen';
@@ -66,9 +72,7 @@ class AppRoutes {
   static final GoRouter router = GoRouter(
     navigatorKey: AppUtils.navigatorKey,
     initialLocation: AppPreferences.getIsOnboarded()
-        ? AppPreferences.getIsLoggedIn()
-              ? bottomScreen
-              : loginScreen
+        ? loginScreen
         : onBoardingScreen,
     routes: [
       GoRoute(
@@ -98,9 +102,16 @@ class AppRoutes {
       GoRoute(
         path: '/otpScreen',
         name: otpScreen,
-        builder: (context, state){
-          final mobileNo = state.extra as String;
-          return OtpScreen(mobileNo: mobileNo,);
+        builder: (context, state) {
+          if (state.extra is Map) {
+            final data = state.extra as Map<String, dynamic>;
+            return OtpScreen(
+              mobileNo: data['mobileNo'] as String,
+              autoSend: data['autoSend'] as bool? ?? true,
+            );
+          }
+          final mobileNo = state.extra is String ? state.extra as String : '';
+          return OtpScreen(mobileNo: mobileNo);
         },
       ),
       GoRoute(
@@ -224,6 +235,36 @@ class AppRoutes {
           return SecondStepperScreen(
             postId: data['postId'] as int,
             prefillDescription: data['prefillDescription'] as String?,
+            itemTypeLabel: data['itemTypeLabel'] as String? ?? 'Item Type',
+            itemTypeValue: data['itemTypeValue'] as String? ?? '',
+            color: data['color'] as String? ?? '',
+            fieldValues: (data['fieldValues'] as List<dynamic>? ?? [])
+                .map((e) => Map<String, String>.from(e as Map))
+                .toList(),
+            mainImage: data['mainImage'] as File?,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/previewScreen',
+        name: previewScreen,
+        builder: (context, state) {
+          final data = state.extra as Map<String, dynamic>;
+          return PreviewScreen(
+            postId: data['postId'] as int,
+            mainImage: data['mainImage'] as File?,
+            itemTypeLabel: data['itemTypeLabel'] as String? ?? 'Item Type',
+            itemTypeValue: data['itemTypeValue'] as String? ?? '',
+            color: data['color'] as String? ?? '',
+            fieldValues: (data['fieldValues'] as List<dynamic>? ?? [])
+                .map((e) => Map<String, String>.from(e as Map))
+                .toList(),
+            locations: data['locations'] as List<SelectedLocationModel>,
+            locationText: data['locationText'] as String? ?? '',
+            postDate: data['postDate'] as DateTime,
+            description: data['description'] as String,
+            audioPath: data['audioPath'] as String?,
+            videoFile: data['videoFile'] as File?,
           );
         },
       ),
@@ -302,6 +343,6 @@ class AppRoutes {
   }
 
   static void pushAndRemoveUntil(String name, {dynamic arguments}) {
-    router.goNamed(name, extra: arguments);
+    router.go(name, extra: arguments);
   }
 }

@@ -14,8 +14,9 @@ import 'package:lost_and_found/screens/otp_screen_shared.dart';
 
 class OtpScreen extends StatefulWidget {
   final String mobileNo;
+  final bool autoSend;
 
-  const OtpScreen({super.key, required this.mobileNo});
+  const OtpScreen({super.key, required this.mobileNo, this.autoSend = true});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -48,6 +49,7 @@ class _OtpScreenState extends State<OtpScreen> {
       body: Center(
         child: AppContainer(
           widget:  OtpSharedScreen(
+            autoSend: widget.autoSend,
             isAlternateNumber: false,
             mobileNumber: widget.mobileNo,
             onVerifyOtp: (otp) async {
@@ -58,7 +60,7 @@ class _OtpScreenState extends State<OtpScreen> {
               );
               print(response);
               if(response.status == 1){
-                AppRoutes.pushNamed(AppRoutes.bottomScreen);
+                AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
                 return null;
               }
               return response.message;

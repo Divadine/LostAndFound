@@ -138,6 +138,8 @@ class AssetImages {
   static const String requestSent = "assets/images/requestSent.svg";
   static const String call = "assets/images/call.svg";
   static const String copy = "assets/images/copy.svg";
+  static const String closed = "assets/images/closed.svg";
+
 
 
 

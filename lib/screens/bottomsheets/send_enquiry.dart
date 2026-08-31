@@ -237,6 +237,46 @@ class _SendEnquiryState extends State<SendEnquiry> {
 
     try {
       // ==========================================================
+      // CHECK FOR DUPLICATE ENQUIRY
+      // ==========================================================
+
+      final users = [currentUserId, otherUserId]..sort();
+      final roomIdCheck = '${users[0]}_${users[1]}_${widget.matchedPostId}';
+
+      debugPrint('[SendEnquiry] Checking for existing room: $roomIdCheck');
+      final existingRoom = await ChatService.getRoom(roomIdCheck);
+
+      if (existingRoom != null) {
+        if (!mounted) return;
+        setState(() => isSubmitting = false);
+
+        AppSnackBar.show(
+          context: context,
+          message: 'Already sent enquiry',
+        );
+
+        // Optionally, close sheet and go to chat directly
+        AppRoutes.pop();
+        AppRoutes.pushNamed(
+          AppRoutes.individualChatScreen,
+          arguments: {
+            'roomId': roomIdCheck,
+            'currentUserId': currentUserId,
+            'otherUserId': otherUserId,
+            'otherUserName': widget.otherUserName,
+            'otherUserAvatar': widget.otherUserAvatar,
+            'otherUserPhone': widget.otherUserPhone,
+            'itemName': widget.itemName,
+            'itemImage': widget.itemImage,
+            'itemLocation': widget.itemLocation,
+            'itemPostDate': widget.itemPostDate,
+            'itemPostId': widget.matchedPostId.toString(),
+          },
+        );
+        return;
+      }
+
+      // ==========================================================
       // DEBUG
       // ==========================================================
 

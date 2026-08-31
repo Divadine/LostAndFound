@@ -23,7 +23,7 @@ class ProfileScreenModel {
   factory ProfileScreenModel.fromJson(Map<String , dynamic> json) {
     return ProfileScreenModel(
       isFromEdit: false,
-      altMobileVerified: json['alt_status'] == 1,
+      altMobileVerified: json['alt_status']?.toString() == '1',
       userId: json['id'],
       profileImageUrl: json['profile_image'],
       name: json['name'],
