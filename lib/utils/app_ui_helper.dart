@@ -168,11 +168,14 @@ class AppUiHelper {
                         height: 30,
                         width: 30,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
+                          shape: BoxShape.circle,
                           color: color ?? AppColors.white,
                         ),
-
-                        child:Icon(Icons.close,color: iconColor??  AppColors.black,weight: 20,),
+                        child: Icon(
+                          Icons.close,
+                          color: iconColor ?? AppColors.black,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),

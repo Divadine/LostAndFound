@@ -29,6 +29,7 @@ class AvailableMatchingScreen extends StatefulWidget {
   final String postUid;
   final int? foundCount;
   final bool isReceived;
+  final int? status;
 
   const AvailableMatchingScreen({
     super.key,
@@ -40,6 +41,7 @@ class AvailableMatchingScreen extends StatefulWidget {
     required this.postUid,
     this.foundCount,
     this.isReceived = false,
+    this.status,
   });
 
   @override
@@ -135,6 +137,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
               bg: AppColors.lightBlue_2,
               onTap: () {},
               showPostId: true,
+              status: widget.status,
             ).pad(),
 
             AppContainer(
@@ -179,13 +182,17 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
           ],
         ).pad(),
       ),
-      bottomNavigationBar: widget.isReceived
+      bottomNavigationBar: widget.status == 2
+          ? null
+          : widget.isReceived
           ? SafeArea(
         child: SucessCard(
           name: widget.title,
           location: widget.date,
           onTap: () {
             AppUiHelper.showBottomSheet(
+              showHandle: false,
+              showCloseIcon: true,
               context: context,
               child: ReceivedDetails(
                 type: TransferType.receiveToOwner,

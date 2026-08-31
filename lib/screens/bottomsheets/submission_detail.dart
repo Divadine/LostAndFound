@@ -63,7 +63,7 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
 
           const Center(
             child: AppText(
-              text: 'Received Details',
+              text: 'Handover Details',
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -189,7 +189,7 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
                     ),
                     child: AppText(
                       text:
-                      'ID : ${widget.data.name}',
+                      'ID : ${widget.data.userId ?? '-'}',
                       fontWeight: FontWeight.w500,
                       fontSize: 10,
                       color: AppColors.primaryColor,
@@ -368,39 +368,29 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
-      height: 100,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: widget.data.proofPhotos.length,
-        separatorBuilder: (context, index) {
-          return const SizedBox(width: 8);
-        },
-        itemBuilder: (context, index) {
-          final imageUrl =
-          widget.data.proofPhotos[index];
-
-          return ClipRRect(
+    return Column(
+      spacing: 8,
+      children: [
+        for (final imageUrl in widget.data.proofPhotos)
+          ClipRRect(
             borderRadius: BorderRadius.circular(15),
             child: CachedNetworkImage(
               imageUrl: imageUrl,
-              width: 130,
-              height: 100,
+              width: double.infinity,
+              height: 180,
               fit: BoxFit.cover,
               placeholder: (context, url) {
                 return Container(
-                  width: 130,
-                  height: 100,
+                  width: double.infinity,
+                  height: 180,
                   alignment: Alignment.center,
                   child: const CircularProgressIndicator(),
                 );
               },
-              errorWidget:
-                  (context, url, error) {
+              errorWidget: (context, url, error) {
                 return Container(
-                  width: 130,
-                  height: 100,
+                  width: double.infinity,
+                  height: 180,
                   alignment: Alignment.center,
                   child: Icon(
                     Icons.image_not_supported,
@@ -409,9 +399,8 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
                 );
               },
             ),
-          );
-        },
-      ),
+          ),
+      ],
     );
   }
 }

@@ -180,6 +180,7 @@ class AppRoutes {
             postUid: data['postUid'] as String? ?? '',
             foundCount: data['foundCount'] as int?,
             isReceived: data['isReceived'] as bool? ?? false,
+            status: data['status'] as int?,
           );
         },
       ),

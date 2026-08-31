@@ -27,6 +27,8 @@ class AssetImages {
   static const String calender = "assets/images/calender.png";
   static const String noSubCategoryFound = "assets/images/noSubCategoryFound.png";
   static const String mapAccess = "assets/images/mapAccess.png";
+  static const String closedStatus = "assets/images/closedStatus.png";
+
 
 
 
@@ -138,7 +140,7 @@ class AssetImages {
   static const String requestSent = "assets/images/requestSent.svg";
   static const String call = "assets/images/call.svg";
   static const String copy = "assets/images/copy.svg";
-  static const String closed = "assets/images/closed.svg";
+  static const String closed = "assets/images/closed.png";
 
 
 

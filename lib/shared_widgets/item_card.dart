@@ -33,10 +33,10 @@ class ItemCard extends StatelessWidget {
   final bool showPostId;
   final bool isTopAvailabilityCard;
   final double? imageWidth;
-    final int? postIntId;        // NEW — numeric id for API calls
+  final int? postIntId; // NEW — numeric id for API calls
   final VoidCallback? onDeleted; // NEW — refresh trigger after successful delete
   final VoidCallback? onViewAll;
-
+  final int? status;
 
   const ItemCard({
     super.key,
@@ -63,21 +63,23 @@ class ItemCard extends StatelessWidget {
     this.isTopAvailabilityCard = false,
     this.imageWidth,
     this.postIntId,
-   this.onDeleted, this.onViewAll,
+    this.onDeleted,
+    this.onViewAll,
+    this.status,
   });
 
   @override
   Widget build(BuildContext context) {
+    final cardBg = status == 2 ? AppColors.closedColor : (bg ?? AppColors.white);
+
     return GestureDetector(
       onTap: onTap,
       child: AppContainer(
-        bgColor: bg,
+        bgColor: cardBg,
         widget: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-
             if (percentageMatch != null ||
                 profileName != null ||
                 profileUrl != null ||
@@ -85,7 +87,9 @@ class ItemCard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.grey.withAlpha(20),
+                  color: status == 2
+                      ? Colors.transparent
+                      : AppColors.grey.withAlpha(20),
                   borderRadius: BorderRadius.only(
                     bottomRight: Radius.circular(15),
                     bottomLeft: Radius.circular(15),
@@ -100,82 +104,102 @@ class ItemCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     if (profileUrl != null && profileUrl!.trim().isNotEmpty)
-                    CircleAvatar(
-                      radius: 20,
-                      child: AppCachedNetworkImage(
-                        width: 40,
-                        // height: 40,
-                        imageUrl: profileUrl!,
-                        fit: BoxFit.cover,
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ).padVertical(5),
+                      CircleAvatar(
+                        radius: 20,
+                        child: AppCachedNetworkImage(
+                          width: 40,
+                          // height: 40,
+                          imageUrl: profileUrl!,
+                          fit: BoxFit.cover,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ).padVertical(5),
                     if (profileName != null && profileName!.trim().isNotEmpty)
-                    AppText(
-                      text: profileName!,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                      color: AppColors.primaryColor,
-                    ),
-                    if (profileId != null && profileId!.trim().isNotEmpty)
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightBlue_3,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: AppText(
-                        text: 'ID : ${profileId ?? '-'}',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 10,
+                      AppText(
+                        text: profileName!,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
                         color: AppColors.primaryColor,
                       ),
-                    ),
+                    if (profileId != null && profileId!.trim().isNotEmpty)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: status == 2
+                              ? AppColors.white.withAlpha(100)
+                              : AppColors.lightBlue_3,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: AppText(
+                          text: 'ID : ${profileId ?? '-'}',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 10,
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
                     Spacer(),
-
                     if (percentageMatch != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppUtils.getMatchColor(
+                            percentageMatch!,
+                          ).withAlpha(70),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: AppText(
+                          text: '$percentageMatch% match',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 10,
+                          color: AppUtils.getMatchColor(percentageMatch!),
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: AppUtils.getMatchColor(
-                          percentageMatch!,
-                        ).withAlpha(70),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: AppText(
-                        text: '$percentageMatch% match',
-                        fontWeight: FontWeight.w500,
-                        fontSize: 10,
-                        color: AppUtils.getMatchColor(percentageMatch!),
-                      ),
-                    ),
                   ],
                 ).padHorizontal(18),
               ),
             ],
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
-
               children: [
-                AppCachedNetworkImage(
-                  imageUrl: imgUrl,
-                  height:
-                      // profileUrl != null || isFromEnquiry ? 130 :
-                      100,
-                  width: imageWidth ?? 140,
-                  fit: BoxFit.cover,
-                  borderRadius: BorderRadius.circular(10),
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    AppCachedNetworkImage(
+                      imageUrl: imgUrl,
+                      height: 100,
+                      width: imageWidth ?? 140,
+                      fit: BoxFit.cover,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    if (status == 2)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Transform.rotate(
+                              angle: -0.2, // Slight tilt
+                              child: Image.asset(
+                                AssetImages.closed,
+                                width: 80,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 SizedBox(width: 12),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,12 +237,13 @@ class ItemCard extends StatelessWidget {
                     ],
                   ),
                 ),
-
-                if (profileUrl == null && !isFromEnquiry  && postIntId != null)
+                if (profileUrl == null &&
+                    !isFromEnquiry &&
+                    postIntId != null &&
+                    status != 2)
                   PopupMenuButton(
                     color: AppColors.white,
                     icon: AppIconWidget(assetPath: AssetImages.more),
-
                     offset: const Offset(0, 40),
                     itemBuilder: (context) => [
                       PopupMenuItem(
@@ -228,13 +253,8 @@ class ItemCard extends StatelessWidget {
                         child: Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.fieldGrey.withAlpha(50)),
-                            // boxShadow: [
-                            //   BoxShadow(
-                            //     color: AppColors.fieldGrey,
-                            //     offset: Offset(0,0)
-                            //   )
-                            // ]
+                            border: Border.all(
+                                color: AppColors.fieldGrey.withAlpha(50)),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: AppText(
@@ -259,11 +279,6 @@ class ItemCard extends StatelessWidget {
                       }
                     },
                   ),
-
-                // GestureDetector(
-                //   onTap: () {},
-                //   child: AppIconWidget(assetPath: AssetImages.more),
-                // ),
               ],
             ).pad(),
             if (time != null)
@@ -279,9 +294,9 @@ class ItemCard extends StatelessWidget {
                 ],
               ),
             SizedBox(height: 10),
-            if (foundCount != null)
+            if (foundCount != null && status != 2)
               GestureDetector(
-                onTap:onViewAll,
+                onTap: onViewAll,
                 child: Container(
                   height: 35,
                   width: double.infinity,
@@ -298,7 +313,8 @@ class ItemCard extends StatelessWidget {
                       children: [
                         Flexible(
                           child: AppText(
-                            text: 'Available Matching item - $foundCount founded',
+                            text:
+                                'Available Matching item - $foundCount founded',
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -320,9 +336,7 @@ class ItemCard extends StatelessWidget {
                   ),
                 ).pad(),
               ),
-
-           // if (enquiredProfile != null && newMessageCount != null)
-            if (newMessageCount != null)
+            if (newMessageCount != null && status != 2)
               Container(
                 height: 35,
                 width: double.infinity,
@@ -342,11 +356,11 @@ class ItemCard extends StatelessWidget {
                       color: AppColors.secondaryBlack,
                     ),
                     if (enquiredProfile != null && enquiredProfile!.isNotEmpty)
-                    EnquiredPersonsAvatar(images: enquiredProfile!),
+                      EnquiredPersonsAvatar(images: enquiredProfile!),
                     GestureDetector(
                       onTap: () {},
                       child: Row(
-                        mainAxisAlignment: .end,
+                        mainAxisAlignment: MainAxisAlignment.end,
                         spacing: 10,
                         children: [
                           AppText(
@@ -375,6 +389,42 @@ class ItemCard extends StatelessWidget {
                           AppIconWidget(assetPath: AssetImages.iosForward),
                         ],
                       ),
+                    ),
+                  ],
+                ).padHorizontal(),
+              ).pad(),
+            if (status == 2)
+              Container(
+                height: 35,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  //color: AppColors.white.withAlpha(150),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    AppText(
+                      text: 'Closed',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.green,
+                    ),
+                    Row(
+                      spacing: 5,
+                      children: [
+                        AppText(
+                          text: 'View Details',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.green,
+                        ),
+                        AppIconWidget(
+                          assetPath: AssetImages.iosForward,
+                          color: AppColors.green,
+                          size: 14,
+                        ),
+                      ],
                     ),
                   ],
                 ).padHorizontal(),

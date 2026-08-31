@@ -6,6 +6,7 @@ class EnquiryPostModel {
   final List<String> images;
   final String location;
   final DateTime? postDate;
+  final int status;
 
   EnquiryPostModel({
     required this.id,
@@ -15,6 +16,7 @@ class EnquiryPostModel {
     required this.images,
     required this.location,
     this.postDate,
+    this.status = 0,
   });
 
   factory EnquiryPostModel.fromJson(Map<String, dynamic> json) {
@@ -28,6 +30,7 @@ class EnquiryPostModel {
       postDate: json['post_date'] != null
           ? DateTime.tryParse(json['post_date'].toString())
           : null,
+      status: json['status'] as int? ?? 0,
     );
   }
 }
@@ -66,6 +69,7 @@ class EnquiryItem {
   final String description;
   final int matchPercentage;
   final DateTime? createdAt;
+  final int status;
 
   EnquiryItem({
     required this.enquiryId,
@@ -77,6 +81,7 @@ class EnquiryItem {
     required this.description,
     required this.matchPercentage,
     this.createdAt,
+    this.status = 0,
   });
 
   factory EnquiryItem.fromJson(Map<String, dynamic> json) {
@@ -92,6 +97,7 @@ class EnquiryItem {
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : null,
+      status: json['status'] as int? ?? 0,
     );
   }
 }

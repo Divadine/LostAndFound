@@ -195,6 +195,7 @@ class _HomeScreenState extends State<HomeScreen>
         'postUid': post.postUid,
         'foundCount': matchingCounts[post.id] ?? 0,
         'isReceived': false,
+        'status': post.status,
       },
     );
   }
@@ -971,7 +972,7 @@ class _HomeScreenState extends State<HomeScreen>
                         _openAvailableMatching(
                           post,
                         ),
-
+                    status: post.status,
                     onTap: () {
                       AppRoutes.pushNamed(
                         AppRoutes
@@ -1004,6 +1005,7 @@ class _HomeScreenState extends State<HomeScreen>
 
                           'isReceived':
                           false,
+                          'status': post.status,
                         },
                       );
                     },
@@ -1176,7 +1178,7 @@ class _HomeScreenState extends State<HomeScreen>
                     )
                         .toList()
                         : null,
-
+                    status: post.status,
                     onTap: () {
                       AppRoutes.pushNamed(
                         AppRoutes.enquiryListScreen,
