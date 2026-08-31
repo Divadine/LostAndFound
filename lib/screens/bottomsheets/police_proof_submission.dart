@@ -32,6 +32,7 @@ class PoliceHandoverProofDocuments extends StatefulWidget {
   final String stationAddress;
   final String? latitude;
   final String? longitude;
+  final bool isReceiver;
 
   const PoliceHandoverProofDocuments({
     super.key,
@@ -46,6 +47,7 @@ class PoliceHandoverProofDocuments extends StatefulWidget {
     required this.stationAddress,
     this.latitude,
     this.longitude,
+    this.isReceiver = false,
   });
 
   @override
@@ -98,9 +100,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
 
     final response = await authController.createHandover(
       enquiryId: widget.enquiryId,
-      // `type` — CONFIRM with backend what this represents; kept separate
-      // from `handoverType` (owner/police/others) below.
-      type: 1,
+      type: widget.isReceiver ? 2 : 1,
       userId: widget.userId,
       postId: widget.postId,
       receiverId: widget.receiverId,
@@ -120,19 +120,16 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
       AppRoutes.pop();
       AppDialogue.showPopup(
         context: context,
-        content:
-        TransferCompleted(
-          type: TransferType.handOverToPolice,
+        content: TransferCompleted(
+          type: widget.isReceiver ? TransferType.receiveToPolice : TransferType.handOverToPolice,
           data: TransferData(
-            policeStationName: apiPoliceStationName,
-            policeStationAddress: apiPoliceStationAddress,
-            phoneNumber: apiPhone,
-            description: apiDescription,
-            proofPhotos: apiProofPhotos,
+            policeStationName: widget.stationName,
+            policeStationAddress: widget.stationAddress,
+            phoneNumber: widget.phoneNumber,
+            description: textController.text.trim(),
+            proofPhotos: imageResponse.data!.map((img) => img.imgPath).toList(),
           ),
-        )
-        // If HandOverToPolice's constructor accepts stationName/stationAddress,
-        // pass widget.stationName / widget.stationAddress here.
+        ),
       );
     } else {
       AppDialogue.showPopup(

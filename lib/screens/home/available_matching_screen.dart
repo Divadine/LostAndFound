@@ -17,6 +17,8 @@ import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:intl/intl.dart';
+import 'package:lost_and_found/enums/handover_type.dart';
+import 'package:lost_and_found/models/handover/handover_type.dart';
 
 class AvailableMatchingScreen extends StatefulWidget {
   final int postId;
@@ -180,19 +182,22 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
       bottomNavigationBar: widget.isReceived
           ? SafeArea(
         child: SucessCard(
-          name: 'Dinesh',
-          location: '22 May 2026',
+          name: widget.title,
+          location: widget.date,
           onTap: () {
             AppUiHelper.showBottomSheet(
               context: context,
               child: ReceivedDetails(
-                isReceivedFromPolice: false,
-                isReceivedFromFounder: false,
-                isReceivedFromOthers: false,
+                type: TransferType.receiveToOwner,
+                data: TransferData(
+                  name: widget.title,
+                  phoneNumber: widget.postUid,
+                  description: "Successfully processed",
+                ),
               ),
             );
           },
-          isReceiver: false,
+          isReceiver: true,
         ).pad(),
       )
           : (matches.isEmpty)
@@ -203,11 +208,15 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               AppButton(
-                title: 'Receive',
+                title: widget.foundCount != null ? 'Receive' : 'Hand Over',
                 onTap: () {
                   AppUiHelper.showBottomSheet(
                     context: context,
-                    child: ReceiveHandoverSheet(title:widget.title,  isReceiver: true, postId:  widget.postId, ),
+                    child: ReceiveHandoverSheet(
+                      title: widget.title,
+                      isReceiver: widget.foundCount != null,
+                      postId: widget.postId,
+                    ),
                   );
                 },
                 radius: BorderRadius.circular(14),

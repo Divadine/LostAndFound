@@ -105,34 +105,24 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
           AppButton(
             title: 'Continue',
             onTap: () async {
+              if (selectedIndex == 0) return;
               AppRoutes.pop();
 
-              // TODO: source the real logged-in user's phone number
-              // (e.g. from a Profile API call or AppPreferences) instead
-              // of the empty string below — createHandover needs it.
-              const phoneNumber = '';
+              final phoneNumber = AppPreferences.getPhone() ?? '';
+              final userId = AppPreferences.getUserId() ?? 0;
 
               if (selectedIndex == 1) {
-                final userId = await AppPreferences.getUserId() ?? 0;
-                if (!mounted) return;
                 AppUiHelper.showBottomSheet(
                   showHandle: false,
                   context: context,
                   child: HandoverMatchedPersons(
                     postId: widget.postId,
-                    // Wire these into HandoverMatchedPersons' constructor
-                    // and forward to createHandover the same way the
-                    // police flow does below.
-                    // userId: userId,
-                    // phoneNumber: phoneNumber,
-                    // handoverType: HandoverType.owner,
+                    isReceiver: widget.isReceiver,
                   ),
                 );
               }
 
               if (selectedIndex == 2) {
-                final userId = await AppPreferences.getUserId() ?? 0;
-                if (!mounted) return;
                 AppUiHelper.showBottomSheet(
                   showHandle: false,
                   context: context,
@@ -141,6 +131,7 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                     userId: userId,
                     phoneNumber: phoneNumber,
                     handoverType: HandoverType.police,
+                    isReceiver: widget.isReceiver,
                   ),
                 );
               }
@@ -150,9 +141,9 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                   showHandle: false,
                   context: context,
                   child: OthersHandover(
-                    // Same as above — wire postId/userId/phoneNumber and
-                    // pass handoverType: HandoverType.others through to
-                    // createHandover inside OthersHandover.
+                    postId: widget.postId,
+                    userId: userId,
+                    isReceiver: widget.isReceiver,
                   ),
                 );
               }

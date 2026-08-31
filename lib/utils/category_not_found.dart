@@ -32,6 +32,7 @@ class _CategoryNotFoundState extends State<CategoryNotFound> {
         AppButton(title: 'Try again',
           onTap: (){
 
+
         },
           fontSize: 16,)
       ],

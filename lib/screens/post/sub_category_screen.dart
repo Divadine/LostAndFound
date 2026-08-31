@@ -42,6 +42,29 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
   StreamController<int?> selectedIndexStream = StreamController.broadcast();
   StreamController<List<SubCategoryModel>> subCategoryStream = StreamController.broadcast();
 
+  // ---------------------------------------------------------------------
+  // Manually-added "Others" sub-category.
+  // This is NOT returned by the API — we append it locally to the end of
+  // the list every time sub-categories are (re)fetched. Selecting it and
+  // pressing Next still goes through the normal FirstStepperScreen route,
+  // but FirstStepperScreen's `_isGenericMode` getter already treats
+  // subCategory.name == 'Others' as generic mode, so item-name/description
+  // fields show automatically with no extra wiring needed there.
+  //
+  // NOTE: adjust `id` to whatever sentinel your backend expects for "no
+  // real sub-category" (e.g. -1, 0, etc.), and confirm SubCategoryModel's
+  // constructor field names match (id/name/subCategoryImg).
+  // ---------------------------------------------------------------------
+  // This is a GETTER, not a field, because `widget` (needed for
+  // widget.category.id) isn't safely accessible from a field initializer —
+  // field initializers run before the State is attached to its widget.
+  SubCategoryModel get othersSubCategory => SubCategoryModel(
+    id: -1,
+    name: 'Others',
+    subCategoryImg: '',
+    categoryId: widget.category.id,
+  );
+
   @override
   void initState() {
     super.initState();
@@ -73,11 +96,13 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
     });
     final response = await authController.getSubCategories(catId: widget.category.id,search: search);
     if(response.status == 1 && response.data != null){
-     subCategories = response.data!;
+      subCategories = [...response.data!, othersSubCategory];
       subCategoryStream.add(subCategories);
     }else {
-      subCategories = [];
-      subCategoryStream.add([]);
+      // Even on failure/empty response, still offer "Others" so the user
+      // isn't blocked from posting.
+      subCategories = [othersSubCategory];
+      subCategoryStream.add(subCategories);
     }
     setState(() {
       isLoading= false;
@@ -126,65 +151,65 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
           SizedBox(height: 5),
 
           StreamBuilder(
-            stream: subCategoryStream.stream,
-            initialData:subCategories,
-            builder: (context, asyncSnapshot) {
-              final subCat = asyncSnapshot.data ?? [];
-              // API/search is still loading
-              if (isLoading) {
-                return const Expanded(
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                );
-              }
+              stream: subCategoryStream.stream,
+              initialData:subCategories,
+              builder: (context, asyncSnapshot) {
+                final subCat = asyncSnapshot.data ?? [];
+                // API/search is still loading
+                if (isLoading) {
+                  return const Expanded(
+                    child: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
 
-              // API finished but no data
-              if (subCat.isEmpty) {
-                return const Expanded(
-                  child: CategoryNotFound(
-                    isFromCategory: false,
-                  ),
-                );
-              }
-              return
+                // API finished but no data
+                if (subCat.isEmpty) {
+                  return const Expanded(
+                    child: CategoryNotFound(
+                      isFromCategory: false,
+                    ),
+                  );
+                }
+                return
 
-                Expanded(
+                  Expanded(
                     child: ListView.builder(
 
-                        itemCount: subCat.length,
-                        itemBuilder: (context, index) {
-                          final cat = subCat[index];
-                          return StreamBuilder(
-                            stream: selectedIndexStream.stream,
-                            builder: (context, asyncSnapshot) {
-                              final selectedValue = asyncSnapshot.data;
-                              return buildTile(
-                                categoryName: cat.name,
-                                img: cat.subCategoryImg ?? '',
-                                isSelected: selectedValue == index,
-                                onTap: () {
-                                  setState(() {
+                      itemCount: subCat.length,
+                      itemBuilder: (context, index) {
+                        final cat = subCat[index];
+                        return StreamBuilder(
+                          stream: selectedIndexStream.stream,
+                          builder: (context, asyncSnapshot) {
+                            final selectedValue = asyncSnapshot.data;
+                            return buildTile(
+                              categoryName: cat.name,
+                              img: cat.subCategoryImg ?? '',
+                              isSelected: selectedValue == index,
+                              onTap: () {
+                                setState(() {
 
-                                  });
-                                  selectedIndex = index;
-                                  print("jjjjjjjjjj$selectedIndex");
-                                  selectedIndexStream.add(selectedIndex);
+                                });
+                                selectedIndex = index;
+                                print("jjjjjjjjjj$selectedIndex");
+                                selectedIndexStream.add(selectedIndex);
 
-                                },
+                              },
 
-                                value: index,
-                                onChange: (int? value) {
-                                  selectedIndex = value;
-                                  selectedIndexStream.add(selectedIndex);
-                                },
-                              );
-                            },
-                          );
-                        },
-                      ),
+                              value: index,
+                              onChange: (int? value) {
+                                selectedIndex = value;
+                                selectedIndexStream.add(selectedIndex);
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
                   );
-            }
+              }
           ),
         ],
       ).pad(16),
@@ -192,21 +217,21 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
       bottomNavigationBar: SafeArea(
         child: (selectedIndex != null)
             ? AppButton(
-                title: 'Next',
-                onTap: () {
-                  final selectedSubCategory =
-                      subCategories[selectedIndex!];
-                  context.pushNamed(
-                    AppRoutes.firstStepperScreen,
-                    extra: {
-                      'category': widget.category,
-                      'subCategory': selectedSubCategory,
-                      'postType': widget.postType,
-                    },
-                  );
-                },
-                icon: AssetImages.arrow_forward,
-              ).pad(16)
+          title: 'Next',
+          onTap: () {
+            final selectedSubCategory =
+            subCategories[selectedIndex!];
+            context.pushNamed(
+              AppRoutes.firstStepperScreen,
+              extra: {
+                'category': widget.category,
+                'subCategory': selectedSubCategory,
+                'postType': widget.postType,
+              },
+            );
+          },
+          icon: AssetImages.arrow_forward,
+        ).pad(16)
             : SizedBox(),
       ),
     );
@@ -227,7 +252,23 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
         widget: Row(
           spacing: 20,
           children: [
-            AppCachedNetworkImage(
+            // "Others" has no real image (subCategoryImg is intentionally
+            // empty), so fall back to a simple icon instead of hitting the
+            // network / showing a broken-image placeholder.
+            img.isEmpty
+                ? Container(
+              height: 50,
+              width: 50,
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withAlpha(30),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: const Icon(
+                Icons.more_horiz,
+                color: AppColors.primaryColor,
+              ),
+            )
+                : AppCachedNetworkImage(
               imageUrl: img,
               fit: BoxFit.cover,
               height: 50,

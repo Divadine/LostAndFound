@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:dotted_border/dotted_border.dart';
@@ -9,6 +8,8 @@ import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/models/handover/handover_owner.dart';
+import 'package:lost_and_found/enums/handover_type.dart';
+import 'package:lost_and_found/models/handover/handover_type.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/otp_screen_shared.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
@@ -31,12 +32,14 @@ class HandoverProofDocuments extends StatefulWidget {
   final HandoverOwnerModel selectedOwner;
   final int postId;
   final int enquiryId;
+  final bool isReceiver;
 
   const HandoverProofDocuments({
     super.key,
     required this.selectedOwner,
     required this.postId,
     required this.enquiryId,
+    this.isReceiver = false,
   });
 
   @override
@@ -127,7 +130,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
 
       // NOTE: `type` / `handoverType` values — confirm exact enum with backend.
       final handoverResponse = await authController.createHandover(
-        type: 1,
+        type: widget.isReceiver ? 2 : 1,
         userId: currentUserId,
         postId: widget.postId,
         enquiryId: widget.enquiryId,
@@ -151,18 +154,17 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
         AppRoutes.pop();
         AppDialogue.showPopup(
           context: context,
-          content:
-          TransferCompleted(
-            type: TransferType.handOverToOwner,
+          content: TransferCompleted(
+            type: widget.isReceiver ? TransferType.receiveToOwner : TransferType.handOverToOwner,
             data: TransferData(
-              name: apiName,
-              avatarUrl: apiImage,
-              matchPercentage: apiMatchPercentage,
-              phoneNumber: apiPhone,
-              description: apiDescription,
-              proofPhotos: apiProofPhotos,
+              name: widget.selectedOwner.name,
+              avatarUrl: widget.selectedOwner.profileImageUrl ?? '',
+              matchPercentage: widget.selectedOwner.matchPercentage,
+              phoneNumber: _phoneFormatter.actualValue,
+              description: textController.text.trim(),
+              proofPhotos: imageResponse.data!.map((img) => img.imgPath).toList(),
             ),
-          )
+          ),
         );
       } else {
         _showError(handoverResponse.message.isNotEmpty

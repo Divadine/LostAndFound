@@ -24,6 +24,7 @@ class PoliceStationHandOver extends StatefulWidget {
   final int? receiverId;
   final int? receiverPostId;
   final int handoverType; // owner=1 / police=2 / others=3 — see HandoverType
+  final bool isReceiver;
 
   const PoliceStationHandOver({
     super.key,
@@ -34,6 +35,7 @@ class PoliceStationHandOver extends StatefulWidget {
     this.receiverId,
     this.receiverPostId,
     required this.handoverType,
+    this.isReceiver = false,
   });
 
   @override
@@ -86,7 +88,7 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         AppText(
-          text: 'Hand Over to Police Station',
+          text: widget.isReceiver ? 'Receive from Police Station' : 'Hand Over to Police Station',
           fontWeight: FontWeight.w600,
           fontSize: 14,
         ),
@@ -211,6 +213,7 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
                 stationAddress: textController.text.trim(),
                 latitude: latitude,
                 longitude: longitude,
+                isReceiver: widget.isReceiver,
               ),
             );
           },

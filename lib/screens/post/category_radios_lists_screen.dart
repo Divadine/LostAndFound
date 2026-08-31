@@ -40,11 +40,25 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
   List<Map<String, dynamic>> filteredCategory = [];
   bool isLoading = false;
 
-  //final StreamController<List<Map<String, dynamic>>> mainCategoryStream = StreamController.broadcast();
   StreamController<int?> selectedCategoryStream = StreamController.broadcast();
   StreamController<List<CategoryModel>> mainApiCategoryStream = StreamController.broadcast();
 
-
+  // ---------------------------------------------------------------------
+  // Manually-added "Others" category.
+  // This is NOT returned by the API — we append it locally to the end of
+  // the list every time categories are (re)fetched. Selecting it skips the
+  // sub-category screen entirely and routes straight to FirstStepperScreen,
+  // which already has generic-mode handling for category.name == 'Others'.
+  //
+  // NOTE: adjust the `id` value below to whatever sentinel your backend
+  // expects for "no real category" (e.g. -1, 0, etc.), and double check
+  // CategoryModel's constructor matches (id/name/imageUrl field names).
+  // ---------------------------------------------------------------------
+  final CategoryModel othersCategory = CategoryModel(
+    id: -1,
+    name: 'Others',
+    imageUrl: '',
+  );
 
   Future<void> _fetchCategories({ int? limit,  int? page, String? search}) async {
     setState(() {
@@ -53,12 +67,14 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
 
     final response = await authController.getCategories(page: page ?? 0, limit: limit ?? 0, search: search);
 
-    if( response.data!= null){
-       categories = response.data!.categories;
+    if (response.data != null) {
+      categories = [...response.data!.categories, othersCategory];
       mainApiCategoryStream.add(categories);
-    }else{
-      categories = [];
-      mainApiCategoryStream.add([]);
+    } else {
+      // Even on failure/empty response, still offer "Others" so the user
+      // isn't blocked from posting.
+      categories = [othersCategory];
+      mainApiCategoryStream.add(categories);
     }
 
     setState(() {
@@ -165,15 +181,27 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
       bottomNavigationBar: SafeArea(
         child: (selectedIndex != null)
             ? AppButton(
-
           title: 'Next',
           onTap: () {
             final selectedCategory = categories[selectedIndex!];
-            context.pushNamed(
-              AppRoutes.subCategoryScreen,
-              extra: {'category': selectedCategory,'postType': widget.postType,},
+            final isOthers = selectedCategory.name.toLowerCase().trim() == 'others';
 
-            );
+            if (isOthers) {
+
+              context.pushNamed(
+                AppRoutes.firstStepperScreen,
+                extra: {
+                  'category': selectedCategory,
+                  'subCategory': null,
+                  'postType': widget.postType,
+                },
+              );
+            } else {
+              context.pushNamed(
+                AppRoutes.subCategoryScreen,
+                extra: {'category': selectedCategory, 'postType': widget.postType},
+              );
+            }
           },
           icon: AssetImages.arrow_forward,
         ).pad(16)
@@ -198,7 +226,23 @@ class _CategoryRadiosListsScreenState extends State<CategoryRadiosListsScreen> {
         widget: Row(
           spacing: 10,
           children: [
-            AppCachedNetworkImage(
+            // "Others" has no real image (imageUrl is intentionally empty),
+            // so fall back to a simple icon instead of hitting the network
+            // / showing a broken-image placeholder.
+            img.isEmpty
+                ? Container(
+              height: 50,
+              width: 50,
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withAlpha(30),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: const Icon(
+                Icons.more_horiz,
+                color: AppColors.primaryColor,
+              ),
+            )
+                : AppCachedNetworkImage(
               imageUrl: img,
               fit: BoxFit.cover,
               height: 50,

@@ -18,7 +18,8 @@ import 'owner_proof_submission.dart';
 
 class HandoverMatchedPersons extends StatefulWidget {
   final int postId;
-  const HandoverMatchedPersons({super.key, required this.postId});
+  final bool isReceiver;
+  const HandoverMatchedPersons({super.key, required this.postId, this.isReceiver = false});
 
   @override
   State<HandoverMatchedPersons> createState() => _HandoverMatchedPersonsState();
@@ -120,6 +121,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
         selectedOwner: selectedOwner,
         postId: widget.postId,
         enquiryId: enquiryId,
+        isReceiver: widget.isReceiver,
       ),
     );
   }
@@ -129,8 +131,18 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
     return Column(
       spacing: 10,
       children: [
-        AppText(text: 'Select the Owner', fontWeight: FontWeight.w600, fontSize: 14),
-        AppText(text: 'Choose the correct person from the suggested matches', fontSize: 12, fontWeight: FontWeight.w400),
+        AppText(
+          text: widget.isReceiver ? 'Select the Founder' : 'Select the Owner',
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        AppText(
+          text: widget.isReceiver
+              ? 'Choose the correct person who found your item'
+              : 'Choose the correct person from the suggested matches',
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+        ),
 
         Expanded(
           child: isLoading

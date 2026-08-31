@@ -3,7 +3,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/enums/handover_type.dart';
 import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
+import 'package:lost_and_found/models/handover/handover_type.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
 import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
@@ -17,12 +19,12 @@ import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
-import 'app_images.dart';
-import 'app_preferences.dart';
-import 'app_routes.dart';
-import 'app_ui_helper.dart';
-import 'app_urls.dart';
-import 'app_utils.dart';
+import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
+import 'package:lost_and_found/utils/app_routes.dart';
+import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_urls.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class AppDialogue {
   static Future<bool> showPopup({
@@ -566,22 +568,6 @@ class _LogoutPopUpState extends State<LogoutPopUp> {
     );
   }
 }
-
-import 'package:flutter/material.dart';
-
-import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
-import 'package:lost_and_found/shared_widgets/app_container.dart';
-import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
-import 'package:lost_and_found/shared_widgets/app_text.dart';
-import 'package:lost_and_found/utils/app_colors.dart';
-import 'package:lost_and_found/utils/app_images.dart';
-import 'package:lost_and_found/utils/app_routes.dart';
-import 'package:lost_and_found/utils/app_ui_helper.dart';
-import 'package:lost_and_found/utils/app_utils.dart';
-
-import 'received_details.dart';
-import 'transfer_data.dart';
-import 'transfer_type.dart';
 
 class TransferCompleted extends StatelessWidget {
   final TransferType type;
