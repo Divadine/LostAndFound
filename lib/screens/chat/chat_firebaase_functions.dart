@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -1127,14 +1128,18 @@ class ChatService {
         .child(roomId)
         .child(fileName);
 
-    final uploadTask =
-    await storageRef.putFile(
-      imageFile,
+    // Using putData instead of putFile to avoid potential path/permission issues on some devices
+    final Uint8List bytes = await imageFile.readAsBytes();
+    final UploadTask uploadTask = storageRef.putData(
+      bytes,
+      SettableMetadata(contentType: 'image/jpeg'),
     );
 
-    final imageUrl =
-    await uploadTask.ref
-        .getDownloadURL();
+    // Wait for the upload to complete and get the snapshot
+    final TaskSnapshot snapshot = await uploadTask;
+
+    // Get the download URL from the snapshot reference
+    final String imageUrl = await snapshot.ref.getDownloadURL();
 
     final messageRef =
     roomRef
