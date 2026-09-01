@@ -70,7 +70,7 @@ class ItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardBg = status == 2 ? AppColors.closedColor : (bg ?? AppColors.white);
+    final cardBg = bg ?? AppColors.white;
 
     return GestureDetector(
       onTap: onTap,
@@ -164,12 +164,12 @@ class ItemCard extends StatelessWidget {
                 ).padHorizontal(18),
               ),
             ],
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Stack(
+              alignment: Alignment.center,
               children: [
-                Stack(
-                  alignment: Alignment.center,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AppCachedNetworkImage(
                       imageUrl: imgUrl,
@@ -178,109 +178,114 @@ class ItemCard extends StatelessWidget {
                       fit: BoxFit.cover,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    if (status == 2)
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.4),
-                            borderRadius: BorderRadius.circular(10),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        spacing: 5,
+                        children: [
+                          AppText(
+                            text: title,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: AppColors.primaryColor,
                           ),
-                          child: Center(
+                          if (showPostId)
+                            AppText(
+                              text: "Posted ID : $postId",
+                              fontWeight: FontWeight.w400,
+                              fontSize: 10,
+                              color: AppColors.grey,
+                            ),
+                          SizedBox(height: 5),
+                          AppText(
+                            text: location,
+                            fontWeight: FontWeight.w400,
+                            fontSize: 12,
+                            maxLine: 1,
+                            textOverflow: TextOverflow.ellipsis,
+                            color: AppColors.black,
+                          ),
+                          AppText(
+                            text: '${isFound ? 'Found' : 'Lost'} on $date',
+                            fontWeight: FontWeight.w400,
+                            fontSize: 12,
+                            color: AppColors.black,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (profileUrl == null &&
+                        !isFromEnquiry &&
+                        postIntId != null &&
+                        status != 2)
+                      PopupMenuButton(
+                        color: AppColors.white,
+                        icon: AppIconWidget(assetPath: AssetImages.more),
+                        offset: const Offset(0, 40),
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            height: 0,
+                            value: 'delete',
+                            //height: 25
+                            child: Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                    color: AppColors.fieldGrey.withAlpha(50)),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: AppText(
+                                text: 'Delete',
+                                color: AppColors.red,
+                                fontSize: 14,
+                                textAlign: TextAlign.center,
+                              ).pad(),
+                            ),
+                          ),
+                        ],
+                        onSelected: (value) {
+                          if (value == 'delete') {
+                            print('DELETE TAPPED — postIntId: $postIntId');
+                            AppDialogue.showPopup(
+                              context: context,
+                              content: DeletePostReasonsDialog(
+                                postId: postIntId!,
+                                onDeleted: onDeleted,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                  ],
+                ).pad(),
+                if (status == 2)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.white.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 10), // Moves the stamp down slightly
                             child: Transform.rotate(
-                              angle: -0.2, // Slight tilt
+                              angle: -0.3, // Slight tilt
                               child: Image.asset(
                                 AssetImages.closed,
-                                width: 80,
+                                width: 130, // Reduced width to ensure it stays within bounds
                                 fit: BoxFit.contain,
                               ),
                             ),
                           ),
                         ),
                       ),
-                  ],
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    spacing: 5,
-                    children: [
-                      AppText(
-                        text: title,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: AppColors.primaryColor,
-                      ),
-                      if (showPostId)
-                        AppText(
-                          text: "Posted ID : $postId",
-                          fontWeight: FontWeight.w400,
-                          fontSize: 10,
-                          color: AppColors.grey,
-                        ),
-                      SizedBox(height: 5),
-                      AppText(
-                        text: location,
-                        fontWeight: FontWeight.w400,
-                        fontSize: 12,
-                        maxLine: 1,
-                        textOverflow: TextOverflow.ellipsis,
-                        color: AppColors.black,
-                      ),
-                      AppText(
-                        text: '${isFound ? 'Found' : 'Lost'} on $date',
-                        fontWeight: FontWeight.w400,
-                        fontSize: 12,
-                        color: AppColors.black,
-                      ),
-                    ],
-                  ),
-                ),
-                if (profileUrl == null &&
-                    !isFromEnquiry &&
-                    postIntId != null &&
-                    status != 2)
-                  PopupMenuButton(
-                    color: AppColors.white,
-                    icon: AppIconWidget(assetPath: AssetImages.more),
-                    offset: const Offset(0, 40),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        height: 0,
-                        value: 'delete',
-                        //height: 25
-                        child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                                color: AppColors.fieldGrey.withAlpha(50)),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: AppText(
-                            text: 'Delete',
-                            color: AppColors.red,
-                            fontSize: 14,
-                            textAlign: TextAlign.center,
-                          ).pad(),
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      if (value == 'delete') {
-                        print('DELETE TAPPED — postIntId: $postIntId');
-                        AppDialogue.showPopup(
-                          context: context,
-                          content: DeletePostReasonsDialog(
-                            postId: postIntId!,
-                            onDeleted: onDeleted,
-                          ),
-                        );
-                      }
-                    },
+                    ),
                   ),
               ],
-            ).pad(),
+            ),
             if (time != null)
               Row(
                 children: [
@@ -398,7 +403,7 @@ class ItemCard extends StatelessWidget {
                 height: 35,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  //color: AppColors.white.withAlpha(150),
+                  color: AppColors.closedColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(

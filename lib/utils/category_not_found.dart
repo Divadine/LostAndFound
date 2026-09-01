@@ -6,7 +6,6 @@ import 'package:lost_and_found/shared_widgets/app_text.dart';
 
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
-import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 class CategoryNotFound extends StatelessWidget {
   final bool isFromCategory;
