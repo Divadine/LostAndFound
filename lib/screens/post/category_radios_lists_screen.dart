@@ -35,9 +35,9 @@ class CategoryRadiosListsScreen extends StatefulWidget {
 
 class _CategoryRadiosListsScreenState
     extends State<CategoryRadiosListsScreen> {
-  // ---------------------------------------------------------------------------
-  // Controller
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // CONTROLLER
+  // ===========================================================================
 
   final AuthControllers authController = AuthControllers(
     authRepository: AuthRepository(
@@ -45,44 +45,38 @@ class _CategoryRadiosListsScreenState
     ),
   );
 
-  // ---------------------------------------------------------------------------
-  // Controllers
-  // ---------------------------------------------------------------------------
-
-  final TextEditingController searchController = TextEditingController();
+  final TextEditingController searchController =
+  TextEditingController();
 
   Timer? _debounce;
 
-  // ---------------------------------------------------------------------------
-  // Data
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // DATA
+  // ===========================================================================
 
   List<CategoryModel> categories = [];
 
-  /// Stores only categories received from API.
-  ///
-  /// This is important because "Others" is manually added and should not
-  /// affect the "No Categories Found" condition.
   List<CategoryModel> apiCategories = [];
 
-  // ---------------------------------------------------------------------------
-  // State
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // STATE
+  // ===========================================================================
 
   int? selectedIndex;
 
   bool isLoading = false;
 
-  // ---------------------------------------------------------------------------
-  // Stream
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // STREAM
+  // ===========================================================================
 
-  final StreamController<List<CategoryModel>> mainApiCategoryStream =
+  final StreamController<List<CategoryModel>>
+  mainApiCategoryStream =
   StreamController<List<CategoryModel>>.broadcast();
 
-  // ---------------------------------------------------------------------------
-  // Others category
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // OTHERS
+  // ===========================================================================
 
   final CategoryModel othersCategory = CategoryModel(
     id: -1,
@@ -109,13 +103,16 @@ class _CategoryRadiosListsScreenState
   void dispose() {
     _debounce?.cancel();
     searchController.dispose();
-    mainApiCategoryStream.close();
+
+    if (!mainApiCategoryStream.isClosed) {
+      mainApiCategoryStream.close();
+    }
 
     super.dispose();
   }
 
   // ===========================================================================
-  // FETCH CATEGORIES
+  // FETCH
   // ===========================================================================
 
   Future<void> _fetchCategories({
@@ -131,13 +128,6 @@ class _CategoryRadiosListsScreenState
     });
 
     try {
-      debugPrint('========================================');
-      debugPrint('FETCH CATEGORIES');
-      debugPrint('Search: $search');
-      debugPrint('Page: ${page ?? 0}');
-      debugPrint('Limit: ${limit ?? 0}');
-      debugPrint('========================================');
-
       final response = await authController.getCategories(
         page: page ?? 0,
         limit: limit ?? 0,
@@ -146,35 +136,13 @@ class _CategoryRadiosListsScreenState
 
       if (!mounted) return;
 
-      // -----------------------------------------------------------------------
-      // API SUCCESS
-      // -----------------------------------------------------------------------
-
       if (response.data != null) {
         apiCategories = List<CategoryModel>.from(
           response.data!.categories,
         );
-
-        debugPrint(
-          'API categories count: ${apiCategories.length}',
-        );
       } else {
         apiCategories = [];
-
-        debugPrint('API returned null data');
       }
-
-      // -----------------------------------------------------------------------
-      // IMPORTANT
-      //
-      // If API has categories:
-      //     categories = API categories + Others
-      //
-      // If API has no categories:
-      //     categories = []
-      //
-      // This allows CategoryNotFound to actually appear.
-      // -----------------------------------------------------------------------
 
       if (apiCategories.isNotEmpty) {
         categories = [
@@ -185,33 +153,31 @@ class _CategoryRadiosListsScreenState
         categories = [];
       }
 
-      // -----------------------------------------------------------------------
-      // Update stream
-      // -----------------------------------------------------------------------
-
-      mainApiCategoryStream.add(
-        List<CategoryModel>.from(categories),
-      );
+      if (!mainApiCategoryStream.isClosed) {
+        mainApiCategoryStream.add(
+          List<CategoryModel>.from(categories),
+        );
+      }
 
       if (!mounted) return;
 
       setState(() {
         isLoading = false;
+        selectedIndex = null;
       });
     } catch (e, stackTrace) {
-      debugPrint('========================================');
       debugPrint('CATEGORY API ERROR');
       debugPrint('$e');
       debugPrint('$stackTrace');
-      debugPrint('========================================');
 
       if (!mounted) return;
 
-      // On API error, don't show Others as if the API succeeded.
       categories = [];
       apiCategories = [];
 
-      mainApiCategoryStream.add([]);
+      if (!mainApiCategoryStream.isClosed) {
+        mainApiCategoryStream.add([]);
+      }
 
       setState(() {
         isLoading = false;
@@ -225,17 +191,19 @@ class _CategoryRadiosListsScreenState
   // ===========================================================================
 
   void searchCategory(String value) {
-    // Reset selected category when searching.
+    if (!mounted) return;
+
     setState(() {
       selectedIndex = null;
     });
 
-    // Cancel previous debounce.
     _debounce?.cancel();
 
     _debounce = Timer(
       const Duration(milliseconds: 400),
           () {
+        if (!mounted) return;
+
         final searchValue = value.trim();
 
         _fetchCategories(
@@ -271,139 +239,112 @@ class _CategoryRadiosListsScreenState
         backgroundColor: AppColors.primaryColor,
       ),
 
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 10,
-        children: [
-          // -------------------------------------------------------------------
-          // TITLE
-          // -------------------------------------------------------------------
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppText(
+              text: 'Select Category',
+              fontWeight: FontWeight.w600,
+              fontSize: 20,
+              color: AppColors.primaryColor,
+            ),
 
-          AppText(
-            text: 'Select Category',
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-            color: AppColors.primaryColor,
-          ),
+            const SizedBox(height: 10),
 
-          // -------------------------------------------------------------------
-          // SUBTITLE
-          // -------------------------------------------------------------------
+            AppText(
+              text:
+              'Choose the Category that best matches your item',
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
 
-          AppText(
-            text: 'Choose the Category that best matches your item',
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+            const SizedBox(height: 15),
 
-          const SizedBox(height: 5),
-
-          // -------------------------------------------------------------------
-          // SEARCH
-          // -------------------------------------------------------------------
-
-          AppContainer(
-            widget: TextField(
-              controller: searchController,
-              onChanged: searchCategory,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.only(
-                  top: 12,
-                  right: 12,
+            AppContainer(
+              widget: TextField(
+                controller: searchController,
+                onChanged: searchCategory,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.only(
+                    top: 12,
+                    right: 12,
+                  ),
+                  hintText: 'Search categories',
+                  border: InputBorder.none,
+                  prefixIcon: AppIconWidget(
+                    assetPath: AssetImages.searchIcon,
+                    size: 10,
+                  ).pad(12),
                 ),
-                hintText: 'Search categories',
-                border: InputBorder.none,
-
-                prefixIcon: AppIconWidget(
-                  assetPath: AssetImages.searchIcon,
-                  size: 10,
-                ).pad(12),
               ),
             ),
-          ),
 
-          const SizedBox(height: 5),
+            const SizedBox(height: 15),
 
-          // -------------------------------------------------------------------
-          // CATEGORY LIST
-          // -------------------------------------------------------------------
+            // IMPORTANT:
+            // Expanded is directly inside Column.
+            Expanded(
+              child: StreamBuilder<List<CategoryModel>>(
+                stream: mainApiCategoryStream.stream,
+                initialData: categories,
+                builder: (context, snapshot) {
+                  final catData = snapshot.data ?? [];
 
-          Expanded(
-            child: StreamBuilder<List<CategoryModel>>(
-              stream: mainApiCategoryStream.stream,
-
-              initialData: categories,
-
-              builder: (context, snapshot) {
-                final catData = snapshot.data ?? [];
-
-                // -------------------------------------------------------------
-                // LOADING
-                // -------------------------------------------------------------
-
-                if (isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-
-                // -------------------------------------------------------------
-                // EMPTY
-                // -------------------------------------------------------------
-
-                if (catData.isEmpty) {
-                  return CategoryNotFound(
-                    isFromCategory: true,
-                    onRetry: _retryCategories,
-                  );
-                }
-
-                // -------------------------------------------------------------
-                // DATA AVAILABLE
-                // -------------------------------------------------------------
-
-                return ListView.builder(
-                  itemCount: catData.length,
-
-                  itemBuilder: (context, index) {
-                    final category = catData[index];
-
-                    return _buildTile(
-                      categoryName: category.name ?? '',
-                      img: category.imageUrl ?? '',
-                      isSelected: selectedIndex == index,
-                      value: index,
+                  if (isLoading) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
                     );
-                  },
-                ).pad();
-              },
-            ),
-          ),
-        ],
-      ).pad(16),
+                  }
 
-      // =========================================================================
-      // NEXT BUTTON
-      // =========================================================================
+                  if (catData.isEmpty) {
+                    return CategoryNotFound(
+                      key: const ValueKey('category_not_found'),
+                      isFromCategory: true,
+                      onRetry: _retryCategories,
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: catData.length,
+                    itemBuilder: (context, index) {
+                      final category = catData[index];
+
+                      return _buildTile(
+                        categoryName:
+                        category.name ?? '',
+                        img:
+                        category.imageUrl ?? '',
+                        isSelected:
+                        selectedIndex == index,
+                        value: index,
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
 
       bottomNavigationBar: SafeArea(
         child: selectedIndex != null
             ? AppButton(
           title: 'Next',
-
           icon: AssetImages.arrow_forward,
-
           onTap: _onNext,
-
         ).pad(16)
-            : const SizedBox(),
+            : const SizedBox.shrink(),
       ),
     );
   }
 
   // ===========================================================================
-  // NEXT BUTTON ACTION
+  // NEXT
   // ===========================================================================
 
   void _onNext() {
@@ -414,26 +355,18 @@ class _CategoryRadiosListsScreenState
       return;
     }
 
-    final selectedCategory = categories[selectedIndex!];
+    final selectedCategory =
+    categories[selectedIndex!];
 
     final categoryName =
-    (selectedCategory.name ?? '').trim().toLowerCase();
+    (selectedCategory.name ?? '')
+        .trim()
+        .toLowerCase();
 
-    final bool isOthers = categoryName == 'others';
+    final bool isOthers =
+        categoryName == 'others';
 
-    debugPrint('========================================');
-    debugPrint('SELECTED CATEGORY');
-    debugPrint('Name: ${selectedCategory.name}');
-    debugPrint('ID: ${selectedCategory.id}');
-    debugPrint('Is Others: $isOthers');
-    debugPrint('========================================');
-
-    // =========================================================================
-    // OTHERS
-    //
-    // Skip sub-category screen.
-    // Go directly to FirstStepperScreen.
-    // =========================================================================
+    if (!mounted) return;
 
     if (isOthers) {
       context.pushNamed(
@@ -448,12 +381,6 @@ class _CategoryRadiosListsScreenState
       return;
     }
 
-    // =========================================================================
-    // NORMAL CATEGORY
-    //
-    // Go to sub-category screen.
-    // =========================================================================
-
     context.pushNamed(
       AppRoutes.subCategoryScreen,
       extra: {
@@ -464,7 +391,7 @@ class _CategoryRadiosListsScreenState
   }
 
   // ===========================================================================
-  // CATEGORY TILE
+  // TILE
   // ===========================================================================
 
   Widget _buildTile({
@@ -481,28 +408,24 @@ class _CategoryRadiosListsScreenState
           selectedIndex = value;
         });
       },
-
       child: AppContainer(
         widget: Row(
-          spacing: 10,
           children: [
-            // -----------------------------------------------------------------
-            // IMAGE
-            // -----------------------------------------------------------------
-
             img.isEmpty
                 ? Container(
               height: 50,
               width: 50,
-
               decoration: BoxDecoration(
-                color: AppColors.primaryColor.withAlpha(30),
-                borderRadius: BorderRadius.circular(30),
+                color:
+                AppColors.primaryColor
+                    .withAlpha(30),
+                borderRadius:
+                BorderRadius.circular(30),
               ),
-
               child: const Icon(
                 Icons.more_horiz,
-                color: AppColors.primaryColor,
+                color:
+                AppColors.primaryColor,
               ),
             )
                 : AppCachedNetworkImage(
@@ -510,12 +433,11 @@ class _CategoryRadiosListsScreenState
               fit: BoxFit.cover,
               height: 50,
               width: 50,
-              borderRadius: BorderRadius.circular(30),
+              borderRadius:
+              BorderRadius.circular(30),
             ),
 
-            // -----------------------------------------------------------------
-            // NAME
-            // -----------------------------------------------------------------
+            const SizedBox(width: 10),
 
             Expanded(
               child: AppText(
@@ -523,22 +445,22 @@ class _CategoryRadiosListsScreenState
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
                 maxLine: 2,
-                textOverflow: TextOverflow.ellipsis,
+                textOverflow:
+                TextOverflow.ellipsis,
               ),
             ),
-
-            // -----------------------------------------------------------------
-            // RADIO
-            // -----------------------------------------------------------------
 
             Radio<int>(
               value: value,
               groupValue: selectedIndex,
-              activeColor: AppColors.primaryColor,
-              hoverColor: AppColors.primaryColor,
-
+              activeColor:
+              AppColors.primaryColor,
+              hoverColor:
+              AppColors.primaryColor,
               onChanged: (val) {
-                if (!mounted) return;
+                if (!mounted || val == null) {
+                  return;
+                }
 
                 setState(() {
                   selectedIndex = val;

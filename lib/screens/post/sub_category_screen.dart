@@ -32,38 +32,34 @@ class SubCategoryScreen extends StatefulWidget {
   });
 
   @override
-  State<SubCategoryScreen> createState() => _SubCategoryScreenState();
+  State<SubCategoryScreen> createState() =>
+      _SubCategoryScreenState();
 }
 
-class _SubCategoryScreenState extends State<SubCategoryScreen> {
+class _SubCategoryScreenState
+    extends State<SubCategoryScreen> {
   // ===========================================================================
   // CONTROLLERS
   // ===========================================================================
 
-  final TextEditingController searchController = TextEditingController();
+  final TextEditingController searchController =
+  TextEditingController();
 
-  final AuthControllers authController = AuthControllers(
+  final AuthControllers authController =
+  AuthControllers(
     authRepository: AuthRepository(
       apiClient: ApiClient(),
     ),
   );
 
+  Timer? _debounce;
+
   // ===========================================================================
   // DATA
   // ===========================================================================
 
-  /// Only actual sub-categories returned by API.
   List<SubCategoryModel> apiSubCategories = [];
 
-  /// Data displayed in the UI.
-  ///
-  /// If API has data:
-  ///     API subcategories + Others
-  ///
-  /// If API has no data:
-  ///     []
-  ///
-  /// This allows CategoryNotFound to actually appear.
   List<SubCategoryModel> subCategories = [];
 
   // ===========================================================================
@@ -74,20 +70,16 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
 
   bool isLoading = false;
 
-  Timer? _debounce;
-
   // ===========================================================================
-  // STREAMS
+  // STREAM
   // ===========================================================================
 
-  final StreamController<int?> selectedIndexStream =
-  StreamController<int?>.broadcast();
-
-  final StreamController<List<SubCategoryModel>> subCategoryStream =
+  final StreamController<List<SubCategoryModel>>
+  subCategoryStream =
   StreamController<List<SubCategoryModel>>.broadcast();
 
   // ===========================================================================
-  // OTHERS SUB-CATEGORY
+  // OTHERS
   // ===========================================================================
 
   SubCategoryModel get othersSubCategory {
@@ -107,8 +99,6 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
   void initState() {
     super.initState();
 
-    _fetchSubCategories();
-
     debugPrint(
       'Selected Category: ${widget.category.name}',
     );
@@ -116,6 +106,8 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
     debugPrint(
       'Selected Category ID: ${widget.category.id}',
     );
+
+    _fetchSubCategories();
   }
 
   // ===========================================================================
@@ -125,14 +117,25 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
-
     searchController.dispose();
 
-    selectedIndexStream.close();
-
-    subCategoryStream.close();
+    if (!subCategoryStream.isClosed) {
+      subCategoryStream.close();
+    }
 
     super.dispose();
+  }
+
+  // ===========================================================================
+  // BACK
+  // ===========================================================================
+
+  void _goBackToCategory() {
+    if (!mounted) return;
+
+    // This pops ONLY SubCategoryScreen.
+    // The previous CategoryRadiosListsScreen remains in the stack.
+    context.pop();
   }
 
   // ===========================================================================
@@ -146,17 +149,20 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
       selectedIndex = null;
     });
 
-    selectedIndexStream.add(null);
-
     _debounce?.cancel();
 
     _debounce = Timer(
       const Duration(milliseconds: 400),
           () {
+        if (!mounted) return;
+
         final searchValue = value.trim();
 
         _fetchSubCategories(
-          search: searchValue.isEmpty ? null : searchValue,
+          search:
+          searchValue.isEmpty
+              ? null
+              : searchValue,
         );
       },
     );
@@ -167,15 +173,19 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
   // ===========================================================================
 
   Future<void> _retrySubCategories() async {
-    final searchValue = searchController.text.trim();
+    final searchValue =
+    searchController.text.trim();
 
     await _fetchSubCategories(
-      search: searchValue.isEmpty ? null : searchValue,
+      search:
+      searchValue.isEmpty
+          ? null
+          : searchValue,
     );
   }
 
   // ===========================================================================
-  // FETCH SUB-CATEGORIES
+  // FETCH
   // ===========================================================================
 
   Future<void> _fetchSubCategories({
@@ -188,49 +198,36 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
       selectedIndex = null;
     });
 
-    selectedIndexStream.add(null);
-
     try {
-      debugPrint('========================================');
-      debugPrint('FETCH SUB CATEGORIES');
-      debugPrint('Category ID: ${widget.category.id}');
-      debugPrint('Search: $search');
-      debugPrint('========================================');
+      debugPrint(
+        'FETCH SUB CATEGORIES',
+      );
 
-      final response = await authController.getSubCategories(
+      debugPrint(
+        'Category ID: ${widget.category.id}',
+      );
+
+      debugPrint(
+        'Search: $search',
+      );
+
+      final response =
+      await authController.getSubCategories(
         catId: widget.category.id,
         search: search,
       );
 
       if (!mounted) return;
 
-      // =======================================================================
-      // API SUCCESS
-      // =======================================================================
-
-      if (response.status == 1 && response.data != null) {
-        apiSubCategories = List<SubCategoryModel>.from(
+      if (response.status == 1 &&
+          response.data != null) {
+        apiSubCategories =
+        List<SubCategoryModel>.from(
           response.data!,
-        );
-
-        debugPrint(
-          'API sub-category count: ${apiSubCategories.length}',
         );
       } else {
         apiSubCategories = [];
-
-        debugPrint(
-          'No sub-categories returned from API',
-        );
       }
-
-      // =======================================================================
-      // IMPORTANT
-      //
-      // Only add Others when actual API data exists.
-      //
-      // Otherwise CategoryNotFound will never appear.
-      // =======================================================================
 
       if (apiSubCategories.isNotEmpty) {
         subCategories = [
@@ -241,39 +238,41 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
         subCategories = [];
       }
 
-      // =======================================================================
-      // UPDATE STREAM
-      // =======================================================================
-
-      subCategoryStream.add(
-        List<SubCategoryModel>.from(subCategories),
-      );
+      if (!subCategoryStream.isClosed) {
+        subCategoryStream.add(
+          List<SubCategoryModel>.from(
+            subCategories,
+          ),
+        );
+      }
 
       if (!mounted) return;
 
       setState(() {
         isLoading = false;
+        selectedIndex = null;
       });
     } catch (e, stackTrace) {
-      debugPrint('========================================');
-      debugPrint('SUB CATEGORY API ERROR');
+      debugPrint(
+        'SUB CATEGORY API ERROR',
+      );
+
       debugPrint('$e');
       debugPrint('$stackTrace');
-      debugPrint('========================================');
 
       if (!mounted) return;
 
       apiSubCategories = [];
       subCategories = [];
 
-      subCategoryStream.add([]);
+      if (!subCategoryStream.isClosed) {
+        subCategoryStream.add([]);
+      }
 
       setState(() {
         isLoading = false;
         selectedIndex = null;
       });
-
-      selectedIndexStream.add(null);
     }
   }
 
@@ -283,177 +282,206 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (
+          didPop,
+          result,
+          ) {
+        // Do not call pop here.
+        //
+        // GoRouter/Flutter already handles the system
+        // back button because canPop = true.
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.white,
 
-      appBar: AppBar(
-        toolbarHeight: 0,
-        backgroundColor: AppColors.primaryColor,
-      ),
+        appBar: AppBar(
+          toolbarHeight: 0,
+          backgroundColor:
+          AppColors.primaryColor,
+        ),
 
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 10,
-        children: [
-          // -------------------------------------------------------------------
-          // TITLE
-          // -------------------------------------------------------------------
-
-          AppText(
-            text: 'Select Sub-Category',
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-            color: AppColors.primaryColor,
-          ),
-
-          // -------------------------------------------------------------------
-          // DESCRIPTION
-          // -------------------------------------------------------------------
-
-          AppText(
-            text: 'Choose the Sub-Category that best matches your item',
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-
-          const SizedBox(height: 5),
-
-          // -------------------------------------------------------------------
-          // SEARCH
-          // -------------------------------------------------------------------
-
-          AppContainer(
-            widget: TextField(
-              controller: searchController,
-              onChanged: searchCategory,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.only(
-                  top: 12,
-                  right: 12,
-                ),
-                hintText: 'Search sub-categories',
-                border: InputBorder.none,
-
-                prefixIcon: AppIconWidget(
-                  assetPath: AssetImages.searchIcon,
-                  size: 10,
-                ).pad(12),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
+            children: [
+              AppText(
+                text: 'Select Sub-Category',
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
+                color:
+                AppColors.primaryColor,
               ),
-            ),
-          ),
 
-          const SizedBox(height: 5),
+              const SizedBox(height: 10),
 
-          // -------------------------------------------------------------------
-          // SUB-CATEGORY LIST
-          // -------------------------------------------------------------------
+              AppText(
+                text:
+                'Choose the Sub-Category that best matches your item',
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
 
-          Expanded(
-            child: StreamBuilder<List<SubCategoryModel>>(
-              stream: subCategoryStream.stream,
-              initialData: subCategories,
+              const SizedBox(height: 15),
 
-              builder: (context, snapshot) {
-                final subCat = snapshot.data ?? [];
+              AppContainer(
+                widget: TextField(
+                  controller:
+                  searchController,
+                  onChanged:
+                  searchCategory,
+                  textInputAction:
+                  TextInputAction.search,
+                  decoration:
+                  InputDecoration(
+                    contentPadding:
+                    const EdgeInsets.only(
+                      top: 12,
+                      right: 12,
+                    ),
+                    hintText:
+                    'Search sub-categories',
+                    border:
+                    InputBorder.none,
+                    prefixIcon:
+                    AppIconWidget(
+                      assetPath:
+                      AssetImages
+                          .searchIcon,
+                      size: 10,
+                    ).pad(12),
+                  ),
+                ),
+              ),
 
-                // =============================================================
-                // LOADING
-                // =============================================================
+              const SizedBox(height: 15),
 
-                if (isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
+              // IMPORTANT:
+              // Expanded directly inside Column.
+              Expanded(
+                child: StreamBuilder<
+                    List<SubCategoryModel>>(
+                  stream:
+                  subCategoryStream.stream,
+                  initialData:
+                  subCategories,
+                  builder:
+                      (context, snapshot) {
+                    final subCat =
+                        snapshot.data ??
+                            [];
 
-                // =============================================================
-                // EMPTY
-                // =============================================================
+                    if (isLoading) {
+                      return const Center(
+                        child:
+                        CircularProgressIndicator(),
+                      );
+                    }
 
-                if (subCat.isEmpty) {
-                  return CategoryNotFound(
-                    isFromCategory: false,
+                    if (subCat.isEmpty) {
+                      return CategoryNotFound(
+                        key: const ValueKey(
+                          'subcategory_not_found',
+                        ),
+                        isFromCategory:
+                        false,
+                        onRetry:
+                        _retrySubCategories,
+                      );
+                    }
 
-                    onRetry: _retrySubCategories,
-                  );
-                }
+                    return ListView.builder(
+                      padding:
+                      EdgeInsets.zero,
+                      itemCount:
+                      subCat.length,
+                      itemBuilder:
+                          (context, index) {
+                        final subCategory =
+                        subCat[index];
 
-                // =============================================================
-                // DATA
-                // =============================================================
+                        return _buildTile(
+                          categoryName:
+                          subCategory
+                              .name ??
+                              '',
+                          img:
+                          subCategory
+                              .subCategoryImg ??
+                              '',
+                          isSelected:
+                          selectedIndex ==
+                              index,
+                          value: index,
+                          onTap: () {
+                            _selectSubCategory(
+                              index,
+                            );
+                          },
+                          onChange:
+                              (value) {
+                            if (value ==
+                                null) {
+                              return;
+                            }
 
-                return ListView.builder(
-                  itemCount: subCat.length,
-
-                  itemBuilder: (context, index) {
-                    final subCategory = subCat[index];
-
-                    return _buildTile(
-                      categoryName: subCategory.name ?? '',
-                      img: subCategory.subCategoryImg ?? '',
-                      isSelected: selectedIndex == index,
-                      value: index,
-
-                      onTap: () {
-                        _selectSubCategory(index);
-                      },
-
-                      onChange: (int? value) {
-                        if (value == null) return;
-
-                        _selectSubCategory(value);
+                            _selectSubCategory(
+                              value,
+                            );
+                          },
+                        );
                       },
                     );
                   },
-                ).pad();
-              },
-            ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ).pad(16),
+        ),
 
-      // =========================================================================
-      // NEXT BUTTON
-      // =========================================================================
-
-      bottomNavigationBar: SafeArea(
-        child: selectedIndex != null
-            ? AppButton(
-          title: 'Next',
-
-          icon: AssetImages.arrow_forward,
-
-          onTap: _onNext,
-        ).pad(16)
-            : const SizedBox(),
+        bottomNavigationBar:
+        SafeArea(
+          child: selectedIndex != null
+              ? AppButton(
+            title: 'Next',
+            icon: AssetImages
+                .arrow_forward,
+            onTap: _onNext,
+          ).pad(16)
+              : const SizedBox.shrink(),
+        ),
       ),
     );
   }
 
   // ===========================================================================
-  // SELECT SUB-CATEGORY
+  // SELECT
   // ===========================================================================
 
-  void _selectSubCategory(int index) {
-    if (index < 0 || index >= subCategories.length) {
+  void _selectSubCategory(
+      int index,
+      ) {
+    if (!mounted) return;
+
+    if (index < 0 ||
+        index >= subCategories.length) {
       return;
     }
-
-    if (!mounted) return;
 
     setState(() {
       selectedIndex = index;
     });
-
-    selectedIndexStream.add(index);
 
     debugPrint(
       'Selected sub-category index: $index',
     );
 
     debugPrint(
-      'Selected sub-category: ${subCategories[index].name}',
+      'Selected sub-category: '
+          '${subCategories[index].name}',
     );
   }
 
@@ -462,37 +490,49 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
   // ===========================================================================
 
   void _onNext() {
-    if (selectedIndex == null) return;
+    if (selectedIndex == null) {
+      return;
+    }
 
     if (selectedIndex! < 0 ||
-        selectedIndex! >= subCategories.length) {
+        selectedIndex! >=
+            subCategories.length) {
       return;
     }
 
     final selectedSubCategory =
     subCategories[selectedIndex!];
 
-    debugPrint('========================================');
-    debugPrint('SELECTED SUB CATEGORY');
+    debugPrint(
+      'SELECTED SUB CATEGORY',
+    );
+
     debugPrint(
       'Category: ${widget.category.name}',
     );
+
     debugPrint(
       'Category ID: ${widget.category.id}',
     );
+
     debugPrint(
-      'Sub Category: ${selectedSubCategory.name}',
+      'Sub Category: '
+          '${selectedSubCategory.name}',
     );
+
     debugPrint(
-      'Sub Category ID: ${selectedSubCategory.id}',
+      'Sub Category ID: '
+          '${selectedSubCategory.id}',
     );
-    debugPrint('========================================');
+
+    if (!mounted) return;
 
     context.pushNamed(
       AppRoutes.firstStepperScreen,
       extra: {
         'category': widget.category,
-        'subCategory': selectedSubCategory,
+        'subCategory':
+        selectedSubCategory,
         'postType': widget.postType,
       },
     );
@@ -512,29 +552,30 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
   }) {
     return GestureDetector(
       onTap: onTap,
-
       child: AppContainer(
         widget: Row(
-          spacing: 20,
-
           children: [
-            // -----------------------------------------------------------------
-            // IMAGE
-            // -----------------------------------------------------------------
-
             img.isEmpty
                 ? Container(
               height: 50,
               width: 50,
-
-              decoration: BoxDecoration(
-                color: AppColors.primaryColor.withAlpha(30),
-                borderRadius: BorderRadius.circular(30),
+              decoration:
+              BoxDecoration(
+                color:
+                AppColors
+                    .primaryColor
+                    .withAlpha(
+                    30),
+                borderRadius:
+                BorderRadius
+                    .circular(
+                    30),
               ),
-
-              child: const Icon(
+              child:
+              const Icon(
                 Icons.more_horiz,
-                color: AppColors.primaryColor,
+                color: AppColors
+                    .primaryColor,
               ),
             )
                 : AppCachedNetworkImage(
@@ -542,36 +583,33 @@ class _SubCategoryScreenState extends State<SubCategoryScreen> {
               fit: BoxFit.cover,
               height: 50,
               width: 50,
-              borderRadius: BorderRadius.circular(30),
+              borderRadius:
+              BorderRadius
+                  .circular(30),
             ),
 
-            // -----------------------------------------------------------------
-            // NAME
-            // -----------------------------------------------------------------
+            const SizedBox(width: 20),
 
             Expanded(
               child: AppText(
                 text: categoryName,
-                fontWeight: FontWeight.w500,
+                fontWeight:
+                FontWeight.w500,
                 fontSize: 14,
                 maxLine: 2,
-                textOverflow: TextOverflow.ellipsis,
+                textOverflow:
+                TextOverflow.ellipsis,
               ),
             ),
 
-            // -----------------------------------------------------------------
-            // RADIO
-            // -----------------------------------------------------------------
-
             Radio<int>(
               value: value,
-
-              groupValue: selectedIndex,
-
-              activeColor: AppColors.primaryColor,
-
-              hoverColor: AppColors.primaryColor,
-
+              groupValue:
+              selectedIndex,
+              activeColor:
+              AppColors.primaryColor,
+              hoverColor:
+              AppColors.primaryColor,
               onChanged: onChange,
             ),
           ],
