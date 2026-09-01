@@ -720,6 +720,9 @@ class _ChatScreenState
 
         'itemPostDate':
         chat.itemPostDate,
+
+        'enquirySenderId':
+        chat.enquirySenderId ?? '',
       },
     );
   }

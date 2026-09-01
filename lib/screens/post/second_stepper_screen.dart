@@ -94,8 +94,19 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   @override
   void initState() {
     super.initState();
-    locationController.add(loc);
-    _recorderService.deleteRecording();
+    
+    // Use post frame callback to avoid notifyListeners() or stream events 
+    // triggering rebuilds during the navigation transition/build phase.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      try {
+        locationController.add(loc);
+        _recorderService.deleteRecording();
+      } catch (e) {
+        debugPrint('Error in SecondStepperScreen post-frame: $e');
+      }
+    });
+
     if (widget.prefillDescription != null && widget.prefillDescription!.isNotEmpty) {
       descriptionController.text = widget.prefillDescription!;
     }
@@ -105,9 +116,13 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   void dispose() {
     _videoController?.dispose();
     locationController.close();
-    _recorderService.dispose();
+    dateStreamController.close();
+    videoStreamController.close();
+    textController.dispose();
+    mapController.dispose();
+    dateController.dispose();
+    descriptionController.dispose();
     super.dispose();
-
   }
 
   Future<void> pickVideos() async {
@@ -308,8 +323,6 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
-                  spacing: 10,
-
                   children: [
                     buildTextFieldWithHeading(
                       title: 'Where did you lose it ?',
@@ -320,7 +333,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                         onSubmit: (v) {},
                       ),
                     ),
-
+                    const SizedBox(height: 10),
                     StreamBuilder(
                         stream: locationController.stream,
                         initialData: loc,
@@ -351,7 +364,6 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                     final locate = locData[index];
                                     return AppContainer(
                                       widget: Row(
-                                        spacing: 7,
                                         children: [
                                           buildIconContainer(
                                             context,
@@ -360,6 +372,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                             height: 30,
                                             width: 30,
                                           ),
+                                          const SizedBox(width: 7),
                                           Flexible(
                                             child: AppText(
                                               text: locate.address,
@@ -403,7 +416,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                           );
                         }
                     ),
-
+                    const SizedBox(height: 10),
                     StreamBuilder(
                         stream: dateStreamController.stream,
                         builder: (context, asyncSnapshot) {
@@ -431,7 +444,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                           );
                         }
                     ),
-
+                    const SizedBox(height: 10),
                     buildTextFieldWithHeading(
                       title: 'Description',
                       fieldWidget: AppTextField(
@@ -442,9 +455,8 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                         maxLines: 5,
                       ),
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     Column(
-                      spacing: 10,
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -453,19 +465,16 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
-
-                   AppRecorder(service: _recorderService)
+                        const SizedBox(height: 10),
+                        AppRecorder(service: _recorderService)
 
                       ],
                     ),
-
-                    SizedBox(height: 10),
-
+                    const SizedBox(height: 10),
                     StreamBuilder(
                         stream: videoStreamController.stream,
                         builder: (context, asyncSnapshot) {
                           return Column(
-                            spacing: 10,
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -474,9 +483,9 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                               ),
+                              const SizedBox(height: 10),
                               AppContainer(
                                 widget: Column(
-                                  spacing: 10,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
@@ -487,7 +496,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                         fontSize: 12,
                                         color: AppColors.grey,
                                       ),
-
+                                    const SizedBox(height: 10),
 
                                     if (_videoController != null &&
                                         _videoController!.value.isInitialized)
@@ -500,7 +509,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                   ],
                                 ).pad(),
                               ),
-
+                              const SizedBox(height: 10),
                               AppText(
                                 text: 'Max 30 seconds & Max size 15 MB',
                                 fontWeight: FontWeight.w400,
@@ -511,7 +520,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                           );
                         }
                     ),
-
+                    const SizedBox(height: 10),
                     AppButton(
                       title: 'Review & Submit',
                       onTap: _goToPreview,

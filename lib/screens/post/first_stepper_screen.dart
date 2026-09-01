@@ -55,6 +55,8 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
   final TextEditingController itemNameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController(); // generic mode only
+  final TextEditingController categoryController = TextEditingController();
+  final TextEditingController subCategoryController = TextEditingController();
 
   final Map<int, TextEditingController> textControllers = {};
   final Map<int, String?> selectedDropdownValues = {};
@@ -90,6 +92,8 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   @override
   void initState() {
     super.initState();
+    categoryController.text = widget.category.name ?? '';
+    subCategoryController.text = widget.subCategory?.name ?? '';
     _fetchColors();
     if (_isGenericMode) {
       // No subcategory-driven fields to load in generic mode.
@@ -103,6 +107,8 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   void dispose() {
     itemNameController.dispose();
     descriptionController.dispose();
+    categoryController.dispose();
+    subCategoryController.dispose();
     for (final controller in textControllers.values) {
       controller.dispose();
     }
@@ -399,7 +405,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                     borderColor: AppColors.fieldGrey,
                     borderRadius: BorderRadius.circular(5),
                     hintText: '',
-                    textController: TextEditingController(text: widget.category.name ?? ''),
+                    textController: categoryController,
                     onChange: (v) {},
                     onSubmit: (v) {},
                   ).pad(),
@@ -416,7 +422,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                       borderColor: AppColors.fieldGrey,
                       borderRadius: BorderRadius.circular(5),
                       hintText: '',
-                      textController: TextEditingController(text: widget.subCategory!.name),
+                      textController: subCategoryController,
                       onChange: (v) {},
                       onSubmit: (v) {},
                     ).pad(),
@@ -642,10 +648,10 @@ Widget buildTextFieldWithHeading({
 }) {
   return Column(
     mainAxisSize: MainAxisSize.min,
-    spacing: 10,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       AppText(text: title, fontSize: 16, fontWeight: FontWeight.w600),
+      const SizedBox(height: 10),
       fieldWidget,
     ],
   );

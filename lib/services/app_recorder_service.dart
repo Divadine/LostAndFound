@@ -224,11 +224,16 @@ class AppRecorderService extends ChangeNotifier {
 
   @override
   void dispose() {
+    // A singleton should typically not be disposed as it lives for the 
+    // entire app lifecycle. We cancel timers and subscriptions but 
+    // avoid calling super.dispose() which would permanently disable listeners.
     _recordTimer?.cancel();
     _positionSub?.cancel();
     _playerStateSub?.cancel();
-    _recorder.dispose();
-    _player.dispose();
-    super.dispose();
+    
+    // We stop the players but don't dispose the underlying objects 
+    // so they can be reused if the singleton is accessed again.
+    _player.stop();
+    _recorder.stop();
   }
 }

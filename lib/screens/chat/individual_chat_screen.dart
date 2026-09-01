@@ -40,6 +40,7 @@ class IndividualChatScreen extends StatefulWidget {
   final String itemImage;
   final String itemLocation;
   final String itemPostDate;
+  final String enquirySenderId;
 
   const IndividualChatScreen({
     super.key,
@@ -53,6 +54,7 @@ class IndividualChatScreen extends StatefulWidget {
     this.itemImage = '',
     this.itemLocation = '',
     this.itemPostDate = '',
+    this.enquirySenderId = '',
   });
 
   factory IndividualChatScreen.fromArgs(
@@ -79,6 +81,8 @@ class IndividualChatScreen extends StatefulWidget {
       args['itemLocation']?.toString() ?? '',
       itemPostDate:
       args['itemPostDate']?.toString() ?? '',
+      enquirySenderId:
+      args['enquirySenderId']?.toString() ?? '',
     );
   }
 
@@ -257,7 +261,9 @@ class _IndividualChatScreenState
           otherUserAvatar:
           widget.otherUserAvatar,
           enquirySenderId:
-          widget.currentUserId,
+          widget.enquirySenderId.isNotEmpty
+              ? widget.enquirySenderId
+              : widget.currentUserId,
           itemName:
           widget.itemName,
           itemImage:

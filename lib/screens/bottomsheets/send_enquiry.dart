@@ -271,6 +271,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
             'itemLocation': widget.itemLocation,
             'itemPostDate': widget.itemPostDate,
             'itemPostId': widget.matchedPostId.toString(),
+            'enquirySenderId': currentUserId,
           },
         );
         return;
@@ -545,6 +546,9 @@ class _SendEnquiryState extends State<SendEnquiry> {
 
           'itemPostId':
           widget.matchedPostId.toString(),
+
+          'enquirySenderId':
+          currentUserId,
         },
       );
 

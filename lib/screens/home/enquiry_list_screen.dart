@@ -77,6 +77,15 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
         currentUserId: currentUserId.toString(),
         otherUserId: otherUserId.toString(),
 
+        /// Pass item details to ensure consistency
+        itemName: post?.name ?? '',
+        itemImage: post != null && post.images.isNotEmpty ? post.images.first : '',
+        itemLocation: post?.location ?? '',
+        itemPostDate: post?.postDate != null
+            ? DateFormat('d MMM yyyy').format(post!.postDate!)
+            : '',
+        postId: widget.postId.toString(),
+
         /// The enquirer is the person who
         /// sent the enquiry.
         enquirySenderId: otherUserId.toString(),
@@ -94,13 +103,13 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
           'otherUserAvatar': enquiry.enquirerProfileImg,
           'otherUserPhone': '',
           'itemName': post?.name ?? '',
-          'itemImage': post != null && post.images.isNotEmpty
-              ? post.images.first
-              : '',
+          'itemImage': post != null && post.images.isNotEmpty ? post.images.first : '',
           'itemLocation': post?.location ?? '',
           'itemPostDate': post?.postDate != null
               ? DateFormat('d MMM yyyy').format(post!.postDate!)
               : '',
+          'itemPostId': widget.postId.toString(),
+          'enquirySenderId': otherUserId.toString(),
         },
       );
     } catch (e, stackTrace) {

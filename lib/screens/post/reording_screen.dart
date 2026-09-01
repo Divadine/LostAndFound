@@ -52,7 +52,6 @@ class _AppRecorderState extends State<AppRecorder> {
   Widget _buildIdleUi() {
     return AppContainer(
       widget: Column(
-        spacing: 10,
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -62,6 +61,7 @@ class _AppRecorderState extends State<AppRecorder> {
             fontSize: 12,
             color: AppColors.grey,
           ),
+          const SizedBox(height: 10),
           GestureDetector(
             onTap: _service.startRecording,
             child: AppIconWidget(assetPath: AssetImages.mic),
@@ -74,7 +74,6 @@ class _AppRecorderState extends State<AppRecorder> {
   Widget _buildRecordingUi() {
     return AppContainer(
       widget: Column(
-        spacing: 10,
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -83,15 +82,15 @@ class _AppRecorderState extends State<AppRecorder> {
             fontSize: 14,
             fontWeight: FontWeight.w400,
           ),
-
+          const SizedBox(height: 10),
           _buildWave(),
-
+          const SizedBox(height: 10),
           AppText(
             text: _service.formatDuration(_service.elapsed),
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
-
+          const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -100,6 +99,7 @@ class _AppRecorderState extends State<AppRecorder> {
                 onTap: _service.cancelRecording,
                 child: AppIconWidget(assetPath: AssetImages.recordCancel),
               ),
+              const SizedBox(width: 10),
               GestureDetector(
                 onTap: () {
                   if (_service.isPaused) {
@@ -114,6 +114,7 @@ class _AppRecorderState extends State<AppRecorder> {
                       : AssetImages.recordingPlay,
                 ),
               ),
+              const SizedBox(width: 10),
               GestureDetector(
                 onTap: ()async{
                   print("Function Called");
@@ -136,7 +137,6 @@ class _AppRecorderState extends State<AppRecorder> {
 
     return AppContainer(
       widget: Column(
-        spacing: 7,
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -153,19 +153,20 @@ class _AppRecorderState extends State<AppRecorder> {
                   ,
                 ),
               ),
+              const SizedBox(width: 7),
               Flexible(child: _buildWave()),
             ],
           ).pad(),
-
+          const SizedBox(height: 7),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               AppText(text: _service.formatDuration(displayDuration)),
               Row(
-                spacing: 10,
                 children: [
                   AppIconWidget(assetPath: AssetImages.recordSave),
+                  const SizedBox(width: 10),
                   AppText(
                     text: 'Recording Saved',
                     fontSize: 12,
@@ -175,7 +176,7 @@ class _AppRecorderState extends State<AppRecorder> {
               ),
             ],
           ),
-
+          const SizedBox(height: 7),
           Row(
             children: [
               Expanded(

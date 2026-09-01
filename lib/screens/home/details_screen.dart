@@ -410,6 +410,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                     'itemLocation': postDetails?.location ?? '',
                     'itemPostDate': _formatDate(postDetails?.postDate),
                     'itemPostId': postDetails?.id.toString(),
+                    'enquirySenderId': userId.toString(),
                   },
                 );
                 return;

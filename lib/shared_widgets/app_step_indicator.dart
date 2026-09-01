@@ -56,7 +56,7 @@ class AppStepIndicator extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 120),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 80),
       child: Row(children: children),
     );
   }
