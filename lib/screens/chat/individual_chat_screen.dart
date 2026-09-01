@@ -1149,7 +1149,7 @@ class _IndividualChatScreenState
         if (docs.isEmpty) {
           return const Center(
             child: AppText(
-              text: 'Say hello 👋',
+              text: 'Say hello',
             ),
           );
         }

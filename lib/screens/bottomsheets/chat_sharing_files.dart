@@ -6,10 +6,15 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/repository/Auth_repository.dart';
+
 import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
+import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 
 class ChatSharingFiles extends StatefulWidget {
@@ -30,6 +35,12 @@ class ChatSharingFiles extends StatefulWidget {
 class _ChatSharingFilesState extends State<ChatSharingFiles> {
   final ImagePicker _imagePicker = ImagePicker();
 
+  final AuthControllers authController = AuthControllers(
+    authRepository: AuthRepository(
+      apiClient: ApiClient(),
+    ),
+  );
+
   bool _loading = false;
   String _loadingText = '';
 
@@ -39,15 +50,13 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
   Future<void> _openCamera() async {
     if (_loading) return;
-
     try {
       setState(() {
         _loading = true;
         _loadingText = 'Opening camera...';
       });
 
-      final XFile? pickedFile =
-      await _imagePicker.pickImage(
+      final XFile? pickedFile = await _imagePicker.pickImage(
         source: ImageSource.camera,
         imageQuality: 85,
         maxWidth: 1600,
@@ -59,13 +68,38 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
         return;
       }
 
-      final File imageFile =
-      File(pickedFile.path);
+      final File imageFile = File(pickedFile.path);
 
       if (!await imageFile.exists()) {
+        throw Exception('Camera image was not found.');
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _loadingText = 'Uploading photo...';
+      });
+
+      // ========================================================
+      // UPLOAD VIA createImage API
+      // ========================================================
+
+      final uploadResponse = await authController.createImage(
+        images: [imageFile],
+      );
+
+      if (!uploadResponse.isSuccess ||
+          uploadResponse.data == null ||
+          uploadResponse.data!.isEmpty) {
         throw Exception(
-          'Camera image was not found.',
+          uploadResponse.message ?? 'Image upload failed',
         );
+      }
+
+      final imageUrl = uploadResponse.data!.first.imgPath;
+
+      if (imageUrl.trim().isEmpty) {
+        throw Exception('Server did not return an image URL');
       }
 
       if (!mounted) return;
@@ -74,10 +108,14 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
         _loadingText = 'Sending photo...';
       });
 
-      await ChatService.sendImageMessage(
+      // ========================================================
+      // SAVE URL TO FIRESTORE
+      // ========================================================
+
+      await ChatService.sendImageMessageWithUrl(
         roomId: widget.roomId,
         senderId: widget.currentUserId,
-        imageFile: imageFile,
+        imageUrl: imageUrl.trim(),
       );
 
       if (!mounted) return;
@@ -90,9 +128,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
       if (!mounted) return;
 
-      _showError(
-        'Unable to open camera or send photo.\n$e',
-      );
+      _showError('Unable to open camera or send photo.\n$e');
     }
   }
 
@@ -109,8 +145,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
         _loadingText = 'Opening gallery...';
       });
 
-      final XFile? pickedFile =
-      await _imagePicker.pickImage(
+      final XFile? pickedFile = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 85,
         maxWidth: 1600,
@@ -122,13 +157,38 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
         return;
       }
 
-      final File imageFile =
-      File(pickedFile.path);
+      final File imageFile = File(pickedFile.path);
 
       if (!await imageFile.exists()) {
+        throw Exception('Selected image was not found.');
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _loadingText = 'Uploading photo...';
+      });
+
+      // ========================================================
+      // UPLOAD VIA createImage API
+      // ========================================================
+
+      final uploadResponse = await authController.createImage(
+        images: [imageFile],
+      );
+
+      if (!uploadResponse.isSuccess ||
+          uploadResponse.data == null ||
+          uploadResponse.data!.isEmpty) {
         throw Exception(
-          'Selected image was not found.',
+          uploadResponse.message ?? 'Image upload failed',
         );
+      }
+
+      final imageUrl = uploadResponse.data!.first.imgPath;
+
+      if (imageUrl.trim().isEmpty) {
+        throw Exception('Server did not return an image URL');
       }
 
       if (!mounted) return;
@@ -137,10 +197,14 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
         _loadingText = 'Sending photo...';
       });
 
-      await ChatService.sendImageMessage(
+      // ========================================================
+      // SAVE URL TO FIRESTORE
+      // ========================================================
+
+      await ChatService.sendImageMessageWithUrl(
         roomId: widget.roomId,
         senderId: widget.currentUserId,
-        imageFile: imageFile,
+        imageUrl: imageUrl.trim(),
       );
 
       if (!mounted) return;
@@ -153,9 +217,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
       if (!mounted) return;
 
-      _showError(
-        'Unable to attach photo or send it.\n$e',
-      );
+      _showError('Unable to attach photo or send it.\n$e');
     }
   }
 
@@ -172,87 +234,60 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
         _loadingText = 'Getting your location...';
       });
 
-      // ----------------------------------------------------------
-      // LOCATION SERVICE
-      // ----------------------------------------------------------
-
-      final serviceEnabled =
-      await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
         _stopLoading();
 
         if (!mounted) return;
 
-        await _showLocationServiceDialog();
+        await DeviceLocationAccess();
         return;
       }
 
-      // ----------------------------------------------------------
-      // PERMISSION
-      // ----------------------------------------------------------
+      LocationPermission permission = await Geolocator.checkPermission();
 
-      LocationPermission permission =
-      await Geolocator.checkPermission();
-
-      if (permission ==
-          LocationPermission.denied) {
-        permission =
-        await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
       }
 
-      if (permission ==
-          LocationPermission.denied) {
+      if (permission == LocationPermission.denied) {
         _stopLoading();
 
         if (!mounted) return;
 
-        _showError(
-          'Location permission was denied.',
-        );
+        _showError('Location permission was denied.');
 
         return;
       }
 
-      if (permission ==
-          LocationPermission.deniedForever) {
+      if (permission == LocationPermission.deniedForever) {
         _stopLoading();
 
         if (!mounted) return;
 
-        await _showPermissionSettingsDialog();
+        await AppLocationAccess();
         return;
       }
 
-      // ----------------------------------------------------------
-      // CURRENT LOCATION
-      // ----------------------------------------------------------
-
-      final Position position =
-      await Geolocator.getCurrentPosition(
-        desiredAccuracy:
-        LocationAccuracy.high,
+      final Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
       );
 
       _stopLoading();
 
       if (!mounted) return;
 
-      // Close sharing options.
       Navigator.of(context).pop();
 
-      // Open confirmation screen.
-      final bool? sent =
-      await Navigator.of(context).push<bool>(
+      final bool? sent = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           fullscreenDialog: true,
-          builder: (_) =>
-              LocationConfirmationScreen(
-                roomId: widget.roomId,
-                currentUserId:
-                widget.currentUserId,
-                position: position,
-              ),
+          builder: (_) => LocationConfirmationScreen(
+            roomId: widget.roomId,
+            currentUserId: widget.currentUserId,
+            position: position,
+          ),
         ),
       );
 
@@ -264,9 +299,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
       if (!mounted) return;
 
-      _showError(
-        'Unable to get your location.\n$e',
-      );
+      _showError('Unable to get your location.\n$e');
     }
   }
 
@@ -283,66 +316,44 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
         _loadingText = 'Getting your address...';
       });
 
-      // ----------------------------------------------------------
-      // LOCATION SERVICE
-      // ----------------------------------------------------------
-
-      final serviceEnabled =
-      await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
         _stopLoading();
 
         if (!mounted) return;
 
-        await _showLocationServiceDialog();
+        await DeviceLocationAccess();
         return;
       }
 
-      // ----------------------------------------------------------
-      // PERMISSION
-      // ----------------------------------------------------------
+      LocationPermission permission = await Geolocator.checkPermission();
 
-      LocationPermission permission =
-      await Geolocator.checkPermission();
-
-      if (permission ==
-          LocationPermission.denied) {
-        permission =
-        await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
       }
 
-      if (permission ==
-          LocationPermission.denied) {
+      if (permission == LocationPermission.denied) {
         _stopLoading();
 
         if (!mounted) return;
 
-        _showError(
-          'Location permission was denied.',
-        );
+        _showError('Location permission was denied.');
 
         return;
       }
 
-      if (permission ==
-          LocationPermission.deniedForever) {
+      if (permission == LocationPermission.deniedForever) {
         _stopLoading();
 
         if (!mounted) return;
 
-        await _showPermissionSettingsDialog();
+        await AppLocationAccess();
         return;
       }
 
-      // ----------------------------------------------------------
-      // CURRENT LOCATION
-      // ----------------------------------------------------------
-
-      final Position position =
-      await Geolocator.getCurrentPosition(
-        desiredAccuracy:
-        LocationAccuracy.high,
+      final Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
       );
 
       _stopLoading();
@@ -351,18 +362,15 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
       Navigator.of(context).pop();
 
-      final bool? sent =
-      await Navigator.of(context).push<bool>(
+      final bool? sent = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           fullscreenDialog: true,
-          builder: (_) =>
-              LocationConfirmationScreen(
-                roomId: widget.roomId,
-                currentUserId:
-                widget.currentUserId,
-                position: position,
-                addressOnly: true,
-              ),
+          builder: (_) => LocationConfirmationScreen(
+            roomId: widget.roomId,
+            currentUserId: widget.currentUserId,
+            position: position,
+            addressOnly: true,
+          ),
         ),
       );
 
@@ -374,9 +382,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
       if (!mounted) return;
 
-      _showError(
-        'Unable to get your address.\n$e',
-      );
+      _showError('Unable to get your address.\n$e');
     }
   }
 
@@ -405,10 +411,8 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          behavior:
-          SnackBarBehavior.floating,
-          duration:
-          const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
         ),
       );
   }
@@ -425,10 +429,8 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          behavior:
-          SnackBarBehavior.floating,
-          duration:
-          const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
         ),
       );
   }
@@ -442,17 +444,14 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          shape:
-          RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
           title: const Text(
             'Location is disabled',
             style: TextStyle(
               fontSize: 18,
-              fontWeight:
-              FontWeight.w600,
+              fontWeight: FontWeight.w600,
             ),
           ),
           content: const Text(
@@ -465,24 +464,17 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                );
+                Navigator.pop(dialogContext);
               },
-              child:
-              const Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () async {
-                Navigator.pop(
-                  dialogContext,
-                );
+                Navigator.pop(dialogContext);
 
-                await Geolocator
-                    .openLocationSettings();
+                await Geolocator.openLocationSettings();
               },
-              child:
-              const Text('Settings'),
+              child: const Text('Settings'),
             ),
           ],
         );
@@ -494,23 +486,19 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
   // PERMISSION SETTINGS
   // ============================================================
 
-  Future<void>
-  _showPermissionSettingsDialog() async {
+  Future<void> _showPermissionSettingsDialog() async {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          shape:
-          RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
           title: const Text(
             'Location permission required',
             style: TextStyle(
               fontSize: 18,
-              fontWeight:
-              FontWeight.w600,
+              fontWeight: FontWeight.w600,
             ),
           ),
           content: const Text(
@@ -523,24 +511,17 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                );
+                Navigator.pop(dialogContext);
               },
-              child:
-              const Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () async {
-                Navigator.pop(
-                  dialogContext,
-                );
+                Navigator.pop(dialogContext);
 
-                await Geolocator
-                    .openAppSettings();
+                await Geolocator.openAppSettings();
               },
-              child:
-              const Text('Settings'),
+              child: const Text('Settings'),
             ),
           ],
         );
@@ -559,134 +540,80 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding:
-          const EdgeInsets.fromLTRB(
-            16,
-            14,
-            16,
-            16,
-          ),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
           child: Column(
-            mainAxisSize:
-            MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // ==================================================
-              // HANDLE
-              // ==================================================
-
               Container(
                 width: 38,
                 height: 4,
-                margin:
-                const EdgeInsets.only(
-                  bottom: 16,
-                ),
-                decoration:
-                BoxDecoration(
-                  color:
-                  const Color(0xFFD6D6D6),
-                  borderRadius:
-                  BorderRadius.circular(
-                    10,
-                  ),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD6D6D6),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-
-              // ==================================================
-              // FOUR OPTIONS (card with dividers between rows)
-              // ==================================================
 
               Container(
                 width: double.infinity,
                 clipBehavior: Clip.antiAlias,
-                decoration:
-                BoxDecoration(
+                decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius:
-                  BorderRadius.circular(
-                    14,
-                  ),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(
-                  mainAxisSize:
-                  MainAxisSize.min,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildOption(
                       title: 'Camera',
-                      onTap:
-                      _openCamera,
+                      onTap: _openCamera,
                     ),
                     _buildDivider(),
 
                     _buildOption(
-                      title:
-                      'Attach Photo',
-                      onTap:
-                      _attachPhoto,
+                      title: 'Attach Photo',
+                      onTap: _attachPhoto,
                     ),
                     _buildDivider(),
 
                     _buildOption(
-                      title:
-                      'Share Location',
-                      onTap:
-                      _shareLocation,
+                      title: 'Share Location',
+                      onTap: _shareLocation,
                     ),
                     _buildDivider(),
 
                     _buildOption(
-                      title:
-                      'Share Address',
-                      onTap:
-                      _shareAddress,
+                      title: 'Share Address',
+                      onTap: _shareAddress,
                       isLast: true,
                     ),
                   ],
                 ),
               ),
 
-              // ==================================================
-              // TRANSPARENT GAP
-              // ==================================================
-
-              const SizedBox(
-                height: 10,
-              ),
-
-              // ==================================================
-              // CANCEL (its own rounded card, matching the sheet
-              // above — no border, filled white, red label)
-              // ==================================================
+              const SizedBox(height: 10),
 
               SizedBox(
                 width: double.infinity,
                 child: Material(
                   color: Colors.white,
-                  borderRadius:
-                  BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(14),
                   child: InkWell(
-                    borderRadius:
-                    BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(14),
                     onTap: _loading
                         ? null
                         : () {
-                      Navigator.of(
-                        context,
-                      ).pop();
+                      Navigator.of(context).pop();
                     },
                     child: Container(
                       height: 54,
-                      alignment:
-                      Alignment.center,
+                      alignment: Alignment.center,
                       child: Text(
                         'Cancel',
-                        style:
-                        const TextStyle(
-                          color:
-                          AppColors.red,
+                        style: const TextStyle(
+                          color: AppColors.red,
                           fontSize: 17,
-                          fontWeight:
-                          FontWeight.w600,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -694,41 +621,28 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
                 ),
               ),
 
-              // ==================================================
-              // LOADING
-              // ==================================================
-
               if (_loading) ...[
-                const SizedBox(
-                  height: 12,
-                ),
+                const SizedBox(height: 12),
 
                 Row(
-                  mainAxisAlignment:
-                  MainAxisAlignment
-                      .center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(
                       width: 18,
                       height: 18,
-                      child:
-                      CircularProgressIndicator(
+                      child: CircularProgressIndicator(
                         strokeWidth: 2,
                       ),
                     ),
 
-                    const SizedBox(
-                      width: 10,
-                    ),
+                    const SizedBox(width: 10),
 
                     Flexible(
                       child: Text(
                         _loadingText,
-                        style:
-                        const TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
-                          fontWeight:
-                          FontWeight.w500,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -742,23 +656,15 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
     );
   }
 
-  // ============================================================
-  // DIVIDER (hairline between option rows, matches reference)
-  // ============================================================
-
   Widget _buildDivider() {
     return const Divider(
       height: 1,
       thickness: 0.6,
       indent: 0,
       endIndent: 0,
-      color: Color(0x29808080), // ~29% opacity, iOS-style hairline
+      color: Color(0x29808080),
     );
   }
-
-  // ============================================================
-  // OPTION
-  // ============================================================
 
   Widget _buildOption({
     required String title,
@@ -768,29 +674,20 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
     return Material(
       color: Colors.white,
       child: InkWell(
-        onTap:
-        _loading ? null : onTap,
-        splashColor: AppColors
-            .primaryColor
-            .withAlpha(15),
-        highlightColor: AppColors
-            .primaryColor
-            .withAlpha(8),
+        onTap: _loading ? null : onTap,
+        splashColor: AppColors.primaryColor.withAlpha(15),
+        highlightColor: AppColors.primaryColor.withAlpha(8),
         child: Container(
           width: double.infinity,
           height: 56,
-          alignment:
-          Alignment.center,
+          alignment: Alignment.center,
           color: Colors.white,
           child: Text(
             title,
-            style:
-            const TextStyle(
+            style: const TextStyle(
               fontSize: 17,
-              fontWeight:
-              FontWeight.w400,
-              color:
-              Colors.black87,
+              fontWeight: FontWeight.w400,
+              color: Colors.black87,
             ),
           ),
         ),
@@ -803,8 +700,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 // LOCATION CONFIRMATION SCREEN
 // =================================================================
 
-class LocationConfirmationScreen
-    extends StatefulWidget {
+class LocationConfirmationScreen extends StatefulWidget {
   final String roomId;
   final String currentUserId;
   final Position position;
@@ -822,22 +718,18 @@ class LocationConfirmationScreen
   });
 
   @override
-  State<LocationConfirmationScreen>
-  createState() =>
+  State<LocationConfirmationScreen> createState() =>
       _LocationConfirmationScreenState();
 }
 
 class _LocationConfirmationScreenState
-    extends State<
-        LocationConfirmationScreen> {
-  GoogleMapController?
-  _mapController;
+    extends State<LocationConfirmationScreen> {
+  GoogleMapController? _mapController;
 
   bool _sendCurrentLocation = false;
   bool _sending = false;
 
-  String _address =
-      'Fetching address...';
+  String _address = 'Fetching address...';
 
   late final LatLng _currentLatLng;
 
@@ -859,8 +751,7 @@ class _LocationConfirmationScreenState
 
   Future<void> _getAddress() async {
     try {
-      final placemarks =
-      await placemarkFromCoordinates(
+      final placemarks = await placemarkFromCoordinates(
         widget.position.latitude,
         widget.position.longitude,
       );
@@ -868,32 +759,23 @@ class _LocationConfirmationScreenState
       if (!mounted) return;
 
       if (placemarks.isNotEmpty) {
-        final address =
-        _formatPlacemark(
-          placemarks.first,
-        );
+        final address = _formatPlacemark(placemarks.first);
 
         setState(() {
-          _address = address.isNotEmpty
-              ? address
-              : 'Current location';
+          _address = address.isNotEmpty ? address : 'Current location';
         });
       } else {
         setState(() {
-          _address =
-          'Current location';
+          _address = 'Current location';
         });
       }
     } catch (e) {
-      debugPrint(
-        '[LOCATION] ADDRESS ERROR: $e',
-      );
+      debugPrint('[LOCATION] ADDRESS ERROR: $e');
 
       if (!mounted) return;
 
       setState(() {
-        _address =
-        'Current location';
+        _address = 'Current location';
       });
     }
   }
@@ -902,9 +784,7 @@ class _LocationConfirmationScreenState
   // FORMAT ADDRESS
   // ============================================================
 
-  String _formatPlacemark(
-      Placemark place,
-      ) {
+  String _formatPlacemark(Placemark place) {
     final List<String> parts = [];
 
     void add(String? value) {
@@ -952,12 +832,9 @@ class _LocationConfirmationScreenState
 
       await ChatService.sendLocationMessage(
         roomId: widget.roomId,
-        senderId:
-        widget.currentUserId,
-        latitude:
-        widget.position.latitude,
-        longitude:
-        widget.position.longitude,
+        senderId: widget.currentUserId,
+        latitude: widget.position.latitude,
+        longitude: widget.position.longitude,
         address: _address,
       );
 
@@ -971,9 +848,7 @@ class _LocationConfirmationScreenState
         _sending = false;
       });
 
-      _showMessage(
-        'Unable to share location.\n$e',
-      );
+      _showMessage('Unable to share location.\n$e');
     }
   }
 
@@ -981,9 +856,7 @@ class _LocationConfirmationScreenState
   // MESSAGE
   // ============================================================
 
-  void _showMessage(
-      String message,
-      ) {
+  void _showMessage(String message) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context)
@@ -991,8 +864,7 @@ class _LocationConfirmationScreenState
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          behavior:
-          SnackBarBehavior.floating,
+          behavior: SnackBarBehavior.floating,
         ),
       );
   }
@@ -1001,9 +873,7 @@ class _LocationConfirmationScreenState
   // MAP CREATED
   // ============================================================
 
-  void _onMapCreated(
-      GoogleMapController controller,
-      ) {
+  void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
   }
 
@@ -1014,110 +884,69 @@ class _LocationConfirmationScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-      Colors.white,
-
-      // ========================================================
-      // APP BAR
-      // ========================================================
+      backgroundColor: Colors.white,
 
       appBar: AppBar(
         leading: IconButton(
           onPressed: () {
-            Navigator.of(context)
-                .pop(false);
+            Navigator.of(context).pop(false);
           },
           icon: AppIconWidget(
-            assetPath:
-            AssetImages.backArrow,
+            assetPath: AssetImages.backArrow,
             size: 20,
-            color:
-            AppColors.white,
+            color: AppColors.white,
           ),
         ),
-        backgroundColor:
-        AppColors.primaryColor,
-        foregroundColor:
-        Colors.white,
+        backgroundColor: AppColors.primaryColor,
+        foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          widget.addressOnly
-              ? 'Share Address'
-              : 'Share Location',
-          style:
-          const TextStyle(
+          widget.addressOnly ? 'Share Address' : 'Share Location',
+          style: const TextStyle(
             fontSize: 18,
-            fontWeight:
-            FontWeight.w600,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
 
-      // ========================================================
-      // BODY
-      // ========================================================
-
       body: Stack(
         children: [
-          // ======================================================
-          // MAP
-          // ======================================================
-
           Positioned.fill(
             child: GoogleMap(
-              initialCameraPosition:
-              CameraPosition(
-                target:
-                _currentLatLng,
+              initialCameraPosition: CameraPosition(
+                target: _currentLatLng,
                 zoom: 17,
               ),
 
-              onMapCreated:
-              _onMapCreated,
+              onMapCreated: _onMapCreated,
 
-              myLocationEnabled:
-              true,
+              myLocationEnabled: true,
 
-              myLocationButtonEnabled:
-              true,
+              myLocationButtonEnabled: true,
 
-              zoomControlsEnabled:
-              false,
+              zoomControlsEnabled: false,
 
-              mapToolbarEnabled:
-              false,
+              mapToolbarEnabled: false,
 
-              compassEnabled:
-              true,
+              compassEnabled: true,
 
               markers: {
                 Marker(
-                  markerId:
-                  const MarkerId(
-                    'current_location',
-                  ),
-                  position:
-                  _currentLatLng,
-                  infoWindow:
-                  const InfoWindow(
-                    title:
-                    'Your current location',
+                  markerId: const MarkerId('current_location'),
+                  position: _currentLatLng,
+                  infoWindow: const InfoWindow(
+                    title: 'Your current location',
                   ),
                 ),
               },
             ),
           ),
 
-          // ======================================================
-          // BOTTOM PANEL
-          // ======================================================
-
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child:
-            _buildBottomPanel(),
+            child: _buildBottomPanel(),
           ),
         ],
       ),
@@ -1130,18 +959,10 @@ class _LocationConfirmationScreenState
 
   Widget _buildBottomPanel() {
     return Container(
-      padding:
-      const EdgeInsets.fromLTRB(
-        18,
-        18,
-        18,
-        20,
-      ),
-      decoration:
-      const BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius:
-        BorderRadius.vertical(
+        borderRadius: BorderRadius.vertical(
           top: Radius.circular(24),
         ),
         boxShadow: [
@@ -1155,65 +976,37 @@ class _LocationConfirmationScreenState
       child: SafeArea(
         top: false,
         child: Column(
-          mainAxisSize:
-          MainAxisSize.min,
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ==================================================
-            // TITLE
-            // ==================================================
-
             AppText(
-              text: widget.addressOnly
-                  ? 'Nearby Place'
-                  : 'Nearby Place',
+              text: widget.addressOnly ? 'Nearby Place' : 'Nearby Place',
               fontSize: 16,
-              fontWeight:
-              FontWeight.w600,
+              fontWeight: FontWeight.w600,
             ),
 
-            const SizedBox(
-              height: 8,
-            ),
-
-            // ==================================================
-            // ADDRESS
-            // ==================================================
+            const SizedBox(height: 8),
 
             Text(
               _address,
               maxLines: 3,
-              overflow:
-              TextOverflow.ellipsis,
-              style:
-              const TextStyle(
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
                 fontSize: 13,
-                color:
-                Colors.black54,
+                color: Colors.black54,
                 height: 1.4,
               ),
             ),
 
-            const SizedBox(
-              height: 12,
-            ),
-
-            // ==================================================
-            // RADIO OPTION
-            // ==================================================
+            const SizedBox(height: 12),
 
             InkWell(
-              borderRadius:
-              BorderRadius.circular(
-                12,
-              ),
+              borderRadius: BorderRadius.circular(12),
               onTap: _sending
                   ? null
                   : () async {
                 setState(() {
-                  _sendCurrentLocation =
-                  true;
+                  _sendCurrentLocation = true;
                 });
 
                 await _sendLocation();
@@ -1222,22 +1015,14 @@ class _LocationConfirmationScreenState
                 children: [
                   Radio<bool>(
                     value: true,
-                    groupValue:
-                    _sendCurrentLocation
-                        ? true
-                        : null,
-                    activeColor:
-                    AppColors
-                        .primaryColor,
-                    onChanged:
-                    _sending
+                    groupValue: _sendCurrentLocation ? true : null,
+                    activeColor: AppColors.primaryColor,
+                    onChanged: _sending
                         ? null
                         : (value) async {
-                      if (value ==
-                          true) {
+                      if (value == true) {
                         setState(() {
-                          _sendCurrentLocation =
-                          true;
+                          _sendCurrentLocation = true;
                         });
 
                         await _sendLocation();
@@ -1245,20 +1030,16 @@ class _LocationConfirmationScreenState
                     },
                   ),
 
-                  const SizedBox(
-                    width: 2,
-                  ),
+                  const SizedBox(width: 2),
 
                   Expanded(
                     child: Text(
                       widget.addressOnly
                           ? 'Send this address'
                           : 'Send your current location',
-                      style:
-                      const TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        fontWeight:
-                        FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -1267,15 +1048,12 @@ class _LocationConfirmationScreenState
                     const SizedBox(
                       width: 18,
                       height: 18,
-                      child:
-                      CircularProgressIndicator(
+                      child: CircularProgressIndicator(
                         strokeWidth: 2,
                       ),
                     ),
 
-                  const SizedBox(
-                    width: 8,
-                  ),
+                  const SizedBox(width: 8),
                 ],
               ),
             ),

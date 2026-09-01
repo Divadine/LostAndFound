@@ -24,12 +24,35 @@ class AppCachedNetworkImage extends StatefulWidget {
 }
 
 class _AppCachedNetworkImageState extends State<AppCachedNetworkImage> {
+  // Base URL for the backend — used to resolve relative image paths
+  // returned by getPost / Match / viewEnquiry etc.
+  static const String _baseUrl = 'https://lost-and-found.skyraantech.com/backend/';
+
+  String get _resolvedUrl {
+    final url = widget.imageUrl.trim();
+    if (url.isEmpty) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url; // already absolute (e.g. from createImage response)
+    }
+    final cleanPath = url.startsWith('/') ? url.substring(1) : url;
+    return '$_baseUrl$cleanPath';
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_resolvedUrl.isEmpty) {
+      return Container(
+        color: Colors.grey,
+        width: widget.width,
+        height: widget.height,
+        child: const Icon(Icons.image_not_supported, size: 40),
+      );
+    }
+
     return ClipRRect(
       borderRadius: widget.borderRadius ?? BorderRadius.circular(6),
       child: CachedNetworkImage(
-        imageUrl: widget.imageUrl,
+        imageUrl: _resolvedUrl,
         width: widget.width,
         height: widget.height,
         fit: widget.fit,

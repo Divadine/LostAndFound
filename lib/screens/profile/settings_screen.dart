@@ -86,7 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               CircleAvatar(
                 radius: 40,
-                backgroundImage:profile?.profileImageUrl != null ? CachedNetworkImageProvider(profile!.profileImageUrl!) : null,
+                backgroundImage:profile?.profileImageUrl != null && profile!.profileImageUrl!.isNotEmpty ? CachedNetworkImageProvider(profile!.profileImageUrl!) : null,
                 child: profile?.profileImageUrl == null ? Icon(Icons.person) : null,
               ),
 

@@ -968,7 +968,7 @@ class ChatService {
 
     await roomRef.set(
       {
-        'lastMessage': '📍 Location',
+        'lastMessage': ' Location',
         'lastMessageTime':
         FieldValue.serverTimestamp(),
         'lastMessageSenderId':
@@ -1304,6 +1304,101 @@ class ChatService {
   }
 
   // ============================================================
+// SEND IMAGE MESSAGE (image already uploaded via createImage API)
+//
+// Flow:
+// 1. File is uploaded via AuthRepository.createImage()
+// 2. Backend returns img_path URL
+// 3. ONLY the URL is stored in Firestore — no Firebase Storage
+// ============================================================
+
+  static Future<void> sendImageMessageWithUrl({
+    required String roomId,
+    required String senderId,
+    required String imageUrl,
+  }) async {
+    final cleanRoomId = roomId.trim();
+    final cleanSenderId = senderId.trim();
+    final cleanImageUrl = imageUrl.trim();
+
+    if (cleanImageUrl.isEmpty) {
+      throw Exception('Image URL cannot be empty');
+    }
+
+    final roomRef = _rooms.doc(cleanRoomId);
+
+    final roomSnapshot = await roomRef.get();
+
+    if (!roomSnapshot.exists) {
+      throw Exception('Chat room does not exist');
+    }
+
+    final roomData = roomSnapshot.data() ?? <String, dynamic>{};
+
+    final blockedBy = List<String>.from(roomData['blockedBy'] ?? []);
+
+    if (blockedBy.isNotEmpty) {
+      throw Exception(
+        'This chat is blocked. Unblock the chat to continue.',
+      );
+    }
+
+    final users = List<String>.from(roomData['users'] ?? []);
+
+    final receiverId = _getReceiverId(
+      users: users,
+      senderId: cleanSenderId,
+    );
+
+    if (receiverId.isEmpty) {
+      throw Exception('Receiver user not found');
+    }
+
+    final messageRef = roomRef.collection('messages').doc();
+
+    // ==========================================================
+    // SAVE URL TO FIRESTORE — no file, no Firebase Storage upload
+    // ==========================================================
+
+    await messageRef.set({
+      'messageType': 'image',
+      'senderId': cleanSenderId,
+      'message': '',
+      'imageUrl': cleanImageUrl,
+      'createdAt': FieldValue.serverTimestamp(),
+      'isDeleted': false,
+      'deletedFor': <String>[],
+      'delivered': true,
+      'read': false,
+      'readBy': <String>[],
+    });
+
+    final currentUnread = _getUnreadCounts(roomData);
+
+    int receiverUnread = int.tryParse(
+      currentUnread[receiverId]?.toString() ?? '0',
+    ) ??
+        0;
+
+    receiverUnread++;
+    currentUnread[receiverId] = receiverUnread;
+
+    await roomRef.set(
+      {
+        'lastMessage': 'Photo',
+        'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastMessageSenderId': cleanSenderId,
+        'lastMessageRead': false,
+        'lastMessageDelivered': true,
+        'lastMessageDeleted': false,
+        'lastMessageId': messageRef.id,
+        'unreadCounts': currentUnread,
+      },
+      SetOptions(merge: true),
+    );
+  }
+
+  // ============================================================
   // CHAT ROOMS STREAM
   // ============================================================
 
@@ -1533,9 +1628,9 @@ class ChatService {
     } else if (latestType == 'item') {
       latestMessage = 'Item shared';
     } else if (latestType == 'location') {
-      latestMessage = '📍 Location';
+      latestMessage = ' Location';
     } else if (latestType == 'image') {
-      latestMessage = '📷 Photo';
+      latestMessage = 'Photo';
     } else {
       latestMessage =
           latestData['message']
@@ -1769,7 +1864,7 @@ class ChatService {
 
   // ============================================================
   // DECLINE CONTACT REQUEST
-  // ============================================================
+  // ===========================================================
 
   static Future<void> declineContactRequest({
     required String roomId,
@@ -1784,4 +1879,10 @@ class ChatService {
       SetOptions(merge: true),
     );
   }
+
+
+
 }
+
+
+

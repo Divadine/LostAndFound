@@ -13,7 +13,6 @@ import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
-import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 

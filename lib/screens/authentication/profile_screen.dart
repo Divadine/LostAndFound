@@ -76,7 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   final List<TextEditingController> _controller = List.generate(
     4,
-    (_) => TextEditingController(),
+        (_) => TextEditingController(),
   );
 
   final TextEditingController nameController = TextEditingController();
@@ -116,7 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     isNotFromSetUp = widget.profileModel.isFromEdit;
 
     _isAltVerified = widget.profileModel.altMobileVerified;
-    
+
     // Use addPostFrameCallback to ensure the StreamBuilder is ready to receive the initial data if needed
     if (_isAltVerified) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -225,12 +225,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: AppColors.white,
       appBar: isNotFromSetUp
           ? CustomAppBar(
-              title: '',
-              leadingSvg: AssetImages.backArrow,
-              onLeadingTap: () {
-                AppRoutes.pop();
-              },
-            )
+        title: '',
+        leadingSvg: AssetImages.backArrow,
+        onLeadingTap: () {
+          AppRoutes.pop();
+        },
+      )
           : null,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -260,18 +260,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : null,
                           radius: 50,
                           child: selectedImage == null
-                              ? (widget.profileModel.profileImageUrl != null
-                                    ? ClipOval(
-                                        child: CachedNetworkImage(
-                                          imageUrl: widget
-                                              .profileModel
-                                              .profileImageUrl!,
-                                          width: 100,
-                                          height: 100,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      )
-                                    : Icon(Icons.person))
+                              ? ((widget.profileModel.profileImageUrl != null && widget.profileModel.profileImageUrl!.isNotEmpty)
+                              ? ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: widget
+                                  .profileModel
+                                  .profileImageUrl!,
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                              : Icon(Icons.person))
                               : null,
                         ),
 
@@ -309,9 +309,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                                       child: Row(
                                         crossAxisAlignment:
-                                            CrossAxisAlignment.center,
+                                        CrossAxisAlignment.center,
                                         mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        MainAxisAlignment.center,
                                         spacing: 10,
                                         children: [
                                           AppIconWidget(
@@ -332,9 +332,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       },
                                       child: Row(
                                         crossAxisAlignment:
-                                            CrossAxisAlignment.center,
+                                        CrossAxisAlignment.center,
                                         mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        MainAxisAlignment.center,
                                         spacing: 10,
                                         children: [
                                           AppIconWidget(
@@ -378,20 +378,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
-
-                //userid
-                // Container(
-                //   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                //   decoration: BoxDecoration(
-                //     color: AppColors.idCardColor,
-                //     borderRadius: BorderRadius.circular(12),
-                //   ),
-                //   child: AppText(
-                //     text: 'ID : LF101',
-                //     fontWeight: FontWeight.w400,
-                //     fontSize: 10,
-                //   ),
-                // ),
 
                 //name field
                 buildTextFieldWithHeading(
@@ -576,83 +562,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   builder: (context, asyncSnapshot) {
                     final pinData = asyncSnapshot.data;
                     return buildTextFieldWithHeading(
-                      title: ' PinCode',
-                      fieldWidget: AppTextField(
-                        hintText: 'Enter Pincode',
-                        textController: pinController,
-                        textInputType: TextInputType.phone,
-                        maxLength: 6,
-                        validator: (e) {
-                          if (e == null) return null;
+                        title: ' PinCode',
+                        fieldWidget: AppTextField(
+                          hintText: 'Enter Pincode',
+                          textController: pinController,
+                          textInputType: TextInputType.phone,
+                          maxLength: 6,
+                          validator: (e) {
+                            if (e == null) return null;
 
-                          return AppUtils.validatePincode(e);
-                        },
-                        onChange: (v) {
-                          // _validatePinCode(v);
-                          pinStream.add(_validatePinCode(v));
-                          _checkFormValidity();
-                          // checkFormValidation();
-                        },
+                            return AppUtils.validatePincode(e);
+                          },
+                          onChange: (v) {
+                            pinStream.add(_validatePinCode(v));
+                            _checkFormValidity();
+                          },
 
-                        onSubmit: (v) {},
-                        suffixIcon: GestureDetector(
-                          onTap: isPinCodeValid
-                              ? () async {
-                            final result = await addressControllers
-                                .getAddressByPincode(pinController.text);
-                            if (result != null) {
-                              setState(() {
-                                countryController.text = result.country;
-                                stateController.text = result.state;
-                                cityOptions = result.areas;
-                                selectedCityName = cityOptions.isNotEmpty
-                                    ? cityOptions.first.name
-                                    : null;
-                                cityController.text =
-                                    selectedCityName ?? '';
-                                latitude = result.latitude;
-                                longitude = result.longitude;
-                              });
-                              _checkFormValidity();
-                            } else {
-                              AppDialogue.showPopup(
-                                context: context,
-                                content: AppText(
-                                  text:
-                                  'Could not fetch location details',
-                                ),
-                              );
+                          onSubmit: (v) {},
+                          suffixIcon: GestureDetector(
+                            onTap: isPinCodeValid
+                                ? () async {
+                              final result = await addressControllers
+                                  .getAddressByPincode(pinController.text);
+                              if (result != null) {
+                                setState(() {
+                                  countryController.text = result.country;
+                                  stateController.text = result.state;
+                                  cityOptions = result.areas;
+                                  selectedCityName = cityOptions.isNotEmpty
+                                      ? cityOptions.first.name
+                                      : null;
+                                  cityController.text =
+                                      selectedCityName ?? '';
+                                  latitude = result.latitude;
+                                  longitude = result.longitude;
+                                });
+                                _checkFormValidity();
+                              } else {
+                                AppDialogue.showPopup(
+                                  context: context,
+                                  content: AppText(
+                                    text:
+                                    'Could not fetch location details',
+                                  ),
+                                );
+                              }
                             }
-                          }
-                              : null,
-                          child: SizedBox(
-                            width: 100,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                vertical: 16,
-                                horizontal: 18,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.idCardColor,
-                                borderRadius: const BorderRadius.only(
-                                  topRight: Radius.circular(5),
-                                  bottomRight: Radius.circular(5),
+                                : null,
+                            child: SizedBox(
+                              width: 100,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 16,
+                                  horizontal: 18,
                                 ),
-                              ),
-                              child: Center(
-                                child: AppText(
-                                  text: 'Get Details',
-                                  color: isPinCodeValid
-                                      ? AppColors.primaryColor
-                                      : AppColors.grey,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 12,
+                                decoration: BoxDecoration(
+                                  color: AppColors.idCardColor,
+                                  borderRadius: const BorderRadius.only(
+                                    topRight: Radius.circular(5),
+                                    bottomRight: Radius.circular(5),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: AppText(
+                                    text: 'Get Details',
+                                    color: isPinCodeValid
+                                        ? AppColors.primaryColor
+                                        : AppColors.grey,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      )
+                        )
 
                     );
                   },
@@ -669,17 +653,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           readOnly: true,
                           hintText: 'Enter country',
                           textController: countryController,
-                          onChange: (v) {
-                            //
-                            //
-                            //
-                            //
-                            // ();
-                          },
+                          onChange: (v) {},
                           onSubmit: (v) {},
-                          // validator: (v) {
-                          //   return AppUtils.required(v);
-                          // },
                         ),
                       ),
 
@@ -691,19 +666,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           readOnly: true,
 
                           textController: stateController,
-                          onChange: (v) {
-                            // checkFormValidation();
-                          },
+                          onChange: (v) {},
                           onSubmit: (v) {},
-                          // validator: (v) {
-                          //   return AppUtils.required(v);
-                          // },
                         ),
                       ),
 
                       //city
-                      //city
-                      // city
                       buildTextFieldWithHeading(
                         title: 'City',
                         fieldWidget: AppDropdownField<String>(
@@ -725,47 +693,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                         ),
                       ),
-                      // buildTextFieldWithHeading(
-                      //   title: 'City',
-                      //   fieldWidget: DropdownButtonFormField<String>(
-                      //     value: selectedCityName,
-                      //     items: cityOptions
-                      //         .map(
-                      //           (a) => DropdownMenuItem(
-                      //             value: a.name,
-                      //             child: Text(a.name),
-                      //           ),
-                      //         )
-                      //         .toList(),
-                      //     onChanged: cityOptions.isEmpty
-                      //         ? null
-                      //         : (v) {
-                      //             setState(() {
-                      //               selectedCityName = v;
-                      //               cityController.text = v ?? '';
-                      //             });
-                      //             _checkFormValidity();
-                      //           },
-                      //     decoration: InputDecoration(
-                      //       hintText: cityOptions.isEmpty
-                      //           ? 'Fetch pincode first'
-                      //           : 'Select city',
-                      //       border: const OutlineInputBorder(),
-                      //     ),
-                      //     validator: (v) => v == null || v.isEmpty
-                      //         ? 'City is required'
-                      //         : null,
-                      //   ),
-                      // ),
                     ],
                   ),
                 ),
 
-                //country
                 SizedBox(height: 10),
 
-                //map
-                //map/address card
                 Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -789,16 +722,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         child: Stack(
                           children: [
-                            // Image background
                             Positioned.fill(
                               child: AppIconWidget(
                                 assetPath: AssetImages.map,
-                                // 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-dXyMpH81pBa6x9qvetSA8LqNx4mnigmw0eRp8KFWqBP9nrfmDOdkX2y3&s=10',
                                 fit: BoxFit.cover,
                               ),
                             ),
 
-                            // Bottom button
                             Center(
                               child: AppTextField(
                                 onTap: _openMapForAddress,
@@ -807,9 +737,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   text: "Pin Location on Map",
                                 ),
                                 textBackgroundColor: AppColors.primaryColor,
-                                onChange: (e) {
-                                  // checkFormValidation();
-                                },
+                                onChange: (e) {},
                                 suffixIcon: AppIconWidget(
                                   assetPath: AssetImages.iosForward,
                                 ).pad(12),
@@ -841,9 +769,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _checkFormValidity();
                     },
                     onSubmit: (v) {},
-                    // validator: (v) {
-                    //   return AppUtils.required(v);
-                    // },
                   ),
                 ),
 
@@ -884,6 +809,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () async {
               if (!_formKey.currentState!.validate()) return;
 
+              // profile_status:
+              //  0 -> register flow (first time setup) OR edit flow with a new image picked
+              //  1 -> edit flow, image unchanged
+              final int profileStatus = !widget.profileModel.isFromEdit
+                  ? 0
+                  : (choosenImage != null ? 0 : 1);
+
+              // alt_status:
+              //  1 -> alternate number verified
+              //  0 -> not verified
+              final int altStatus = _isAltVerified ? 1 : 0;
+
+
               final profile = UpdateProfileForm(
                 id: widget.profileModel.userId,
                 profileImg: choosenImage,
@@ -900,6 +838,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 landMark: landmarkController.text,
                 lat: latitude,
                 log: longitude,
+                profileStatus: profileStatus,
                 altVerified: _isAltVerified,
               );
 
@@ -910,7 +849,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ? AppRoutes.pop()
                     : AppRoutes.pushNamed(AppRoutes.firstHomeScreen);
               } else {
-                print('**************************************************');
                 AppDialogue.showPopup(
                   context: context,
                   content: AppText(
