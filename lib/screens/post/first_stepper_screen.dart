@@ -278,25 +278,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       return;
     }
 
-    setState(() => isSubmitting = true);
-
-    // Step A: upload images
-    final imageResponse = await authController.createImage(images: selectedImages);
-
-    if (!mounted) return;
-
-    if (!imageResponse.isSuccess || imageResponse.data == null) {
-      setState(() => isSubmitting = false);
-      final msg = imageResponse.currentState == CurrentState.noInternet
-          ? 'No internet connection. Please check your network.'
-          : (imageResponse.message.isNotEmpty ? imageResponse.message : 'Failed to upload images');
-      AppDialogue.showPopup(context: context, content: AppText(text: msg));
-      return;
-    }
-
-    final imageIds = imageResponse.data!.map((e) => e.id).join(',');
-
-    // Step B: gather dynamic field values — only relevant in normal mode.
+    // gather dynamic field values — only relevant in normal mode.
     // Color is deliberately excluded here; it's sent as its own top-level field.
     final postValues = <Map<String, String>>[];
 
@@ -315,49 +297,30 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       }
     }
 
-    final userId = await AppPreferences.getUserId();
+    // Label + value for the "Item Type" row shown later on the Preview
+    // screen: in normal mode it's the chosen subcategory/category name,
+    // in generic mode it's whatever the user typed as the item name.
+    final itemTypeLabel = _isGenericMode ? 'Item Name' : 'Item Type';
+    final itemTypeValue = _isGenericMode
+        ? itemNameController.text.trim()
+        : (widget.subCategory?.name ?? widget.category.name ?? '');
 
-    final postResponse = await authController.createPostStep1(
-      userId: userId ?? 0,
-      postType: widget.postType,
-      categoryId: widget.category.id,
-      subcategoryId: widget.subCategory?.id ?? 0,
-      itemName: _isGenericMode ? itemNameController.text.trim() : '',
-      color: selectedColor ?? '',
-      postImages: imageIds,
-      postValues: postValues,
+    AppRoutes.pushNamed(
+      AppRoutes.secondStepperScreen,
+      arguments: {
+        'postType': widget.postType,
+        'categoryId': widget.category.id,
+        'subcategoryId': widget.subCategory?.id ?? 0,
+        'itemName': _isGenericMode ? itemNameController.text.trim() : '',
+        'selectedImages': selectedImages,
+        'fieldValues': postValues,
+        'prefillDescription': _isGenericMode ? descriptionController.text.trim() : '',
+        'itemTypeLabel': itemTypeLabel,
+        'itemTypeValue': itemTypeValue,
+        'color': selectedColor ?? '',
+        'mainImage': selectedImages.isNotEmpty ? selectedImages.first : null,
+      },
     );
-
-    if (!mounted) return;
-    setState(() => isSubmitting = false);
-
-    if (postResponse.isSuccess && postResponse.data != null) {
-      // Label + value for the "Item Type" row shown later on the Preview
-      // screen: in normal mode it's the chosen subcategory/category name,
-      // in generic mode it's whatever the user typed as the item name.
-      final itemTypeLabel = _isGenericMode ? 'Item Name' : 'Item Type';
-      final itemTypeValue = _isGenericMode
-          ? itemNameController.text.trim()
-          : (widget.subCategory?.name ?? widget.category.name ?? '');
-
-      AppRoutes.pushNamed(
-        AppRoutes.secondStepperScreen,
-        arguments: {
-          'postId': postResponse.data!.id,
-          if (_isGenericMode) 'prefillDescription': descriptionController.text.trim(),
-          'itemTypeLabel': itemTypeLabel,
-          'itemTypeValue': itemTypeValue,
-          'color': selectedColor ?? '',
-          'fieldValues': postValues,
-          'mainImage': selectedImages.isNotEmpty ? selectedImages.first : null,
-        },
-      );
-    } else {
-      final msg = postResponse.currentState == CurrentState.noInternet
-          ? 'No internet connection. Please check your network.'
-          : (postResponse.message.isNotEmpty ? postResponse.message : 'Failed to complete post');
-      AppSnackBar.show(context: context, message: msg);
-    }
   }
 
   @override

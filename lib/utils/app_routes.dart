@@ -33,11 +33,13 @@ import 'package:lost_and_found/screens/post/second_stepper_screen.dart';
 import 'package:lost_and_found/screens/profile/settings_screen.dart';
 import 'package:lost_and_found/screens/profile/webView.dart';
 import 'package:lost_and_found/shared_widgets/app_recorder.dart';
+import 'package:lost_and_found/screens/splash_screen.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 
 import 'app_utils.dart';
 
 class AppRoutes {
+  static const splashScreen = "/";
   static const onBoardingScreen = "/onBoardingScreen";
   static const homeScreen = '/homeScreen';
   static const loginScreen = '/loginScreen';
@@ -71,10 +73,14 @@ class AppRoutes {
 
   static final GoRouter router = GoRouter(
     navigatorKey: AppUtils.navigatorKey,
-    initialLocation: AppPreferences.getIsOnboarded()
-        ? loginScreen
-        : onBoardingScreen,
+    initialLocation: splashScreen,
     routes: [
+      GoRoute(
+        path: '/',
+        name: splashScreen,
+        builder: (context, state) => const SplashScreen(),
+      ),
+
       GoRoute(
         path: '/onBoardingScreen',
         name: onBoardingScreen,
@@ -234,7 +240,11 @@ class AppRoutes {
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>;
           return SecondStepperScreen(
-            postId: data['postId'] as int,
+            postType: data['postType'] as int,
+            categoryId: data['categoryId'] as int,
+            subcategoryId: data['subcategoryId'] as int,
+            itemName: data['itemName'] as String,
+            selectedImages: data['selectedImages'] as List<File>,
             prefillDescription: data['prefillDescription'] as String?,
             itemTypeLabel: data['itemTypeLabel'] as String? ?? 'Item Type',
             itemTypeValue: data['itemTypeValue'] as String? ?? '',
@@ -252,7 +262,11 @@ class AppRoutes {
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>;
           return PreviewScreen(
-            postId: data['postId'] as int,
+            postType: data['postType'] as int,
+            categoryId: data['categoryId'] as int,
+            subcategoryId: data['subcategoryId'] as int,
+            itemName: data['itemName'] as String,
+            selectedImages: data['selectedImages'] as List<File>,
             mainImage: data['mainImage'] as File?,
             itemTypeLabel: data['itemTypeLabel'] as String? ?? 'Item Type',
             itemTypeValue: data['itemTypeValue'] as String? ?? '',
@@ -341,6 +355,10 @@ class AppRoutes {
 
   static void pushNamed(String name, {dynamic arguments}) {
     router.pushNamed(name, extra: arguments);
+  }
+
+  static void replaceNamed(String name, {dynamic arguments}) {
+    router.replaceNamed(name, extra: arguments);
   }
 
   static void pushAndRemoveUntil(String name, {dynamic arguments}) {

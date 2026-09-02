@@ -131,10 +131,16 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
             child: Image.file(
               File(imagePath),
               width: 100,
-              height: 100,
+              height: 200,
               fit: BoxFit.cover,
             ),
           ),
+
+
+
+
+
+
 
           const SizedBox(width: 14),
 

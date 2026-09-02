@@ -17,8 +17,7 @@ class UpdateProfileForm {
   final String? lat;
   final String? log;
 
-  // 0 -> register flow, or edit flow with a new image picked
-  // 1 -> edit flow, existing image kept unchanged
+
   final int profileStatus;
 
   final int? status;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
+import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 
@@ -24,6 +25,8 @@ class AppDropdownField<T> extends StatefulWidget {
 
   final Color? selectedItemTextColor;
 
+  final double? menuHeight;
+
 
   const AppDropdownField({
 
@@ -47,6 +50,8 @@ class AppDropdownField<T> extends StatefulWidget {
     this.selectedItemColor,
 
     this.selectedItemTextColor,
+
+    this.menuHeight,
 
   });
 
@@ -131,11 +136,10 @@ class _AppDropdownFieldState<T>
 
       builder: (context,constraints){
         return Material(
-          elevation: 2,
-          shadowColor: AppColors.fieldGrey,
           borderRadius: BorderRadius.circular(6),
           child: DropdownMenu<T>(
             width: constraints.maxWidth,
+            menuHeight: widget.menuHeight,
             controller: controller,
             focusNode: focusNode,
             requestFocusOnTap: false,
@@ -145,7 +149,7 @@ class _AppDropdownFieldState<T>
             trailingIcon:AppIconWidget(assetPath: AssetImages.dropDown),
             selectedTrailingIcon: AppIconWidget(assetPath: AssetImages.dropUp),
             hintText: widget.hintText,
-            textStyle: TextStyle(
+            textStyle: appTextStyle(
               fontSize: 16,
               color: AppColors.black
 
@@ -155,13 +159,13 @@ class _AppDropdownFieldState<T>
               fillColor: Colors.white,
               isDense: true,
 
-              // contentPadding: const EdgeInsets.symmetric(
-              //   horizontal: 12,
-              //   vertical: -10,
-              // ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 0,
+              ),
 
 
-              hintStyle: const TextStyle(
+              hintStyle: appTextStyle(
                 fontSize: 16,
                 color: Colors.grey,
               ),
@@ -233,7 +237,7 @@ class _AppDropdownFieldState<T>
                   ),
                   textStyle:
                   WidgetStateProperty.all(
-                    const TextStyle(
+                    appTextStyle(
                       fontSize:16,
                     ),
                   ),

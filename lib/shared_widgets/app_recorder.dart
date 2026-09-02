@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import 'package:lost_and_found/api_providers/api_client.dart';
@@ -26,7 +27,12 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 /// Submit here is what actually uploads audio/video and calls
 /// completePostStep2.
 class PreviewScreen extends StatefulWidget {
-  final int postId;
+  final int postType;
+  final int categoryId;
+  final int subcategoryId;
+  final String itemName;
+  final List<File> selectedImages;
+
   final File? mainImage;
   final String itemTypeLabel;
   final String itemTypeValue;
@@ -41,7 +47,11 @@ class PreviewScreen extends StatefulWidget {
 
   const PreviewScreen({
     super.key,
-    required this.postId,
+    required this.postType,
+    required this.categoryId,
+    required this.subcategoryId,
+    required this.itemName,
+    required this.selectedImages,
     this.mainImage,
     this.itemTypeLabel = 'Item Type',
     this.itemTypeValue = '',
@@ -166,10 +176,48 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
     setState(() => isSubmitting = true);
 
+    // Step 1: upload Step 1 images
+    final imageResponse = await authController.createImage(images: widget.selectedImages);
+    if (!mounted) return;
+    if (!imageResponse.isSuccess || imageResponse.data == null) {
+      setState(() => isSubmitting = false);
+      final msg = imageResponse.currentState == CurrentState.noInternet
+          ? 'No internet connection. Please check your network.'
+          : (imageResponse.message.isNotEmpty ? imageResponse.message : 'Failed to upload images');
+      AppDialogue.showPopup(context: context, content: AppText(text: msg));
+      return;
+    }
+    final imageIds = imageResponse.data!.map((e) => e.id).join(',');
+
+    // Step 2: call createPostStep1
+    final userId = await AppPreferences.getUserId();
+    final postResponse = await authController.createPostStep1(
+      userId: userId ?? 0,
+      postType: widget.postType,
+      categoryId: widget.categoryId,
+      subcategoryId: widget.subcategoryId,
+      itemName: widget.itemName,
+      color: widget.color,
+      postImages: imageIds,
+      postValues: widget.fieldValues,
+    );
+
+    if (!mounted) return;
+    if (!postResponse.isSuccess || postResponse.data == null) {
+      setState(() => isSubmitting = false);
+      final msg = postResponse.currentState == CurrentState.noInternet
+          ? 'No internet connection. Please check your network.'
+          : (postResponse.message.isNotEmpty ? postResponse.message : 'Failed to initiate post');
+      AppSnackBar.show(context: context, message: msg);
+      return;
+    }
+
+    final int postId = postResponse.data!.id;
+
     int? audioId;
     int? videoId;
 
-    // Step A: upload voice recording, if any
+    // Step 3: upload voice recording, if any
     if (widget.audioPath != null && widget.audioPath!.isNotEmpty) {
       final audioResponse = await authController.createAudio(audio: File(widget.audioPath!));
       if (!mounted) return;
@@ -184,7 +232,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       audioId = audioResponse.data!.id;
     }
 
-    // Step B: upload video, if any
+    // Step 4: upload video, if any
     if (widget.videoFile != null) {
       final videoResponse = await authController.createVideo(video: widget.videoFile!);
       if (!mounted) return;
@@ -199,17 +247,17 @@ class _PreviewScreenState extends State<PreviewScreen> {
       videoId = videoResponse.data!.id;
     }
 
-    // Step C: complete the post
+    // Step 5: complete the post
     final firstLocation = widget.locations.first;
     final coordinates = widget.locations
         .map((l) => {
-      'latitude': l.latitude.toString(),
-      'longitude': l.longitude.toString(),
-    })
+              'latitude': l.latitude.toString(),
+              'longitude': l.longitude.toString(),
+            })
         .toList();
 
     final completeResponse = await authController.completePostStep2(
-      postId: widget.postId,
+      postId: postId,
       location: widget.locationText.isNotEmpty ? widget.locationText : firstLocation.address,
       address: firstLocation.address,
       coordinates: coordinates,

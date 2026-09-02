@@ -112,6 +112,7 @@ class _BottomScreenState extends State<BottomScreen> {
         }
       },
       child: Scaffold(
+        appBar: AppBar(toolbarHeight: 0,backgroundColor: AppColors.primaryColor,),
         backgroundColor: Colors.transparent,
         body: SafeArea(
           child: AnimatedSwitcher(

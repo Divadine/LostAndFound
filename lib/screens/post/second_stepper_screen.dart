@@ -35,7 +35,12 @@ import 'package:video_player/video_player.dart';
 import 'reording_screen.dart';
 
 class SecondStepperScreen extends StatefulWidget {
-  final int postId;
+  final int postType;
+  final int categoryId;
+  final int subcategoryId;
+  final String itemName;
+  final List<File> selectedImages;
+
   final String? prefillDescription;
 
   // Forwarded from FirstStepperScreen so the Preview screen (step 3) can
@@ -48,7 +53,11 @@ class SecondStepperScreen extends StatefulWidget {
 
   const SecondStepperScreen({
     super.key,
-    required this.postId,
+    required this.postType,
+    required this.categoryId,
+    required this.subcategoryId,
+    required this.itemName,
+    required this.selectedImages,
     this.prefillDescription,
     this.itemTypeLabel = 'Item Type',
     this.itemTypeValue = '',
@@ -285,7 +294,11 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     AppRoutes.pushNamed(
       AppRoutes.previewScreen,
       arguments: {
-        'postId': widget.postId,
+        'postType': widget.postType,
+        'categoryId': widget.categoryId,
+        'subcategoryId': widget.subcategoryId,
+        'itemName': widget.itemName,
+        'selectedImages': widget.selectedImages,
         'mainImage': widget.mainImage,
         'itemTypeLabel': widget.itemTypeLabel,
         'itemTypeValue': widget.itemTypeValue,

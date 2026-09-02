@@ -31,7 +31,8 @@ class OtpSharedScreen extends StatefulWidget {
 class _OtpSharedScreenState extends State<OtpSharedScreen> {
   String otp = '';
   Timer? timer;
-  int seconds = 30;
+  static const int otpTimerDuration = 30;
+  int seconds = otpTimerDuration;
   int? enableRestart;
   String? errorText;
   bool isSending = false;
@@ -62,10 +63,17 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
   }
 
   Future<void> _sendOtp() async {
+    // Reset OTP fields, error state, and highlight flags on every send/resend.
     setState(() {
       isSending = true;
       errorText = null;
+      otp = '';
+      otpError = List.generate(4, (_) => false);
+      for (var controller in _controller) {
+        controller.clear();
+      }
     });
+    otpStream.add('');
 
     final error = await widget.onSendOtp();
 
@@ -97,7 +105,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
 
   void _startTimer() {
     timer?.cancel();
-    seconds = 30;
+    seconds = otpTimerDuration;
     timeStream.add(seconds);
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (seconds == 0) {
@@ -233,9 +241,11 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
                           return;
                         }
 
+                        // Clear the red error state on ALL boxes as soon as the
+                        // user edits/deletes any digit, not just the current one.
                         setState(() {
                           errorText = null;
-                          otpError[index] = false;
+                          otpError = List.generate(4, (_) => false);
                         });
 
                         _onChanged(index, v);
@@ -275,8 +285,9 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
                 AppIconWidget(assetPath: AssetImages.time),
                 StreamBuilder(
                   stream: timeStream.stream,
+                  initialData: seconds,
                   builder: (context, asyncSnapshot) {
-                    final timeData = asyncSnapshot.data ?? 0;
+                    final timeData = asyncSnapshot.data ?? otpTimerDuration;
                     return AppText(
                       text: _formatTime(timeData),
                       color: AppColors.navyBlue,
@@ -291,8 +302,9 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
 
           StreamBuilder(
             stream: timeStream.stream,
+            initialData: seconds,
             builder: (context, asyncSnapshot) {
-              final reSendData = asyncSnapshot.data ?? 0;
+              final reSendData = asyncSnapshot.data ?? otpTimerDuration;
               return AuthChangeText(
                 text1: 'Didn’t receive ?',
                 fadeColor: reSendData != 0 ? AppColors.fadeColor : null,

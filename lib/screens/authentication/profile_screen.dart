@@ -29,6 +29,7 @@ import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
@@ -117,6 +118,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     _isAltVerified = widget.profileModel.altMobileVerified;
 
+    if (alternativeController.text.isNotEmpty) {
+      isAlternativeNumberValid =
+          AppUtils.validateMobileNumber(alternativeController.text) == null &&
+              alternativeController.text != mobileController.text;
+    }
+
     // Use addPostFrameCallback to ensure the StreamBuilder is ready to receive the initial data if needed
     if (_isAltVerified) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -135,6 +142,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       selectedCityName = widget.profileModel.city;
       cityOptions = [AreaModel(id: 0, name: widget.profileModel.city!)];
     }
+    _checkFormValidity();
   }
 
   Future<void> _openMapForAddress() async {
@@ -150,6 +158,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (singleLocation != null) {
       final locations = singleLocation as SelectedLocationModel;
       addressController.text = locations.address;
+      _checkFormValidity();
     }
   }
 
@@ -163,6 +172,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isStateValid = stateController.text.isNotEmpty;
     final isCountryValid = countryController.text.isNotEmpty;
 
+    final isImageValid = choosenImage != null ||
+        (widget.profileModel.profileImageUrl != null &&
+            widget.profileModel.profileImageUrl!.isNotEmpty);
+
     final valid = isNameValid &&
         isMobileValid &&
         isPinValid &&
@@ -171,7 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         isCityValid &&
         isStateValid &&
         isCountryValid &&
-        choosenImage != null;
+        isImageValid;
 
     if (valid != _isFormValid) {
       setState(() => _isFormValid = valid);
@@ -283,6 +296,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onTap: () {
                               FocusManager.instance.primaryFocus?.unfocus();
                               AppUiHelper.showBottomSheet(
+                                showHandle: false,
                                 maxHeightFactor: 0.25,
                                 context: context,
                                 child: Column(
@@ -453,12 +467,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 flex: 8,
                                 child: AppTextField(
                                   maxLength: 10,
+                                  readOnly: _isAltVerified,
                                   hintText: 'Enter a mobile number',
                                   textController: alternativeController,
                                   onChange: (v) {
-                                    mobileStream.add(
-                                      AppUtils.validateMobileNumber(v),
-                                    );
+                                    bool isValid = false;
+                                    if (v.isEmpty) {
+                                      mobileStream.add(null);
+                                      isValid = false;
+                                    } else if (v == mobileController.text) {
+                                      mobileStream.add(
+                                          "Alternate number cannot be same as mobile number");
+                                      isValid = false;
+                                    } else {
+                                      final error =
+                                          AppUtils.validateMobileNumber(v);
+                                      mobileStream.add(error);
+                                      isValid = error == null;
+                                    }
+
+                                    if (isValid != isAlternativeNumberValid) {
+                                      setState(() =>
+                                          isAlternativeNumberValid = isValid);
+                                    }
+
                                     if (_isAltVerified) {
                                       setState(() => _isAltVerified = false);
                                       verifyMobileStream.add(false);
@@ -467,44 +499,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   onSubmit: (v) {},
                                   textInputType: TextInputType.phone,
                                   suffixIcon: GestureDetector(
-                                    onTap: _isAltVerified ? null : () {
-                                      if (AppUtils.validateMobileNumber(alternativeController.text) == null) {
-                                        AppDialogue.showPopup(
-                                          context: context,
-                                          content: OtpSharedScreen(
-                                            isAlternateNumber: true,
-                                            mobileNumber: alternativeController.text,
-                                            onVerifyOtp: (String otp) async {
-                                              final response = await authController.verifyMobileOtp(
-                                                phone: alternativeController.text,
-                                                otp: otp,
-                                                userId: widget.profileModel.userId!,
+                                    onTap: _isAltVerified ||
+                                            !isAlternativeNumberValid
+                                        ? null
+                                        : () {
+                                            if (AppUtils.validateMobileNumber(
+                                                    alternativeController
+                                                        .text) ==
+                                                null) {
+                                              AppDialogue.showPopup(
+                                                context: context,
+                                                content: OtpSharedScreen(
+                                                  isAlternateNumber: true,
+                                                  mobileNumber:
+                                                      alternativeController
+                                                          .text,
+                                                  onVerifyOtp:
+                                                      (String otp) async {
+                                                    final response =
+                                                        await authController
+                                                            .verifyMobileOtp(
+                                                      phone:
+                                                          alternativeController
+                                                              .text,
+                                                      otp: otp,
+                                                      userId: widget
+                                                          .profileModel.userId!,
+                                                    );
+                                                    if (response.status == 1) {
+                                                      setState(() {
+                                                        _isAltVerified = true;
+                                                      });
+                                                      verifyMobileStream
+                                                          .add(true);
+                                                      AppRoutes.pop();
+                                                      return null;
+                                                    }
+                                                    return response.message;
+                                                  },
+                                                  onSendOtp: () async {
+                                                    final response =
+                                                        await authController
+                                                            .generateMobileOtp(
+                                                                alternativeController
+                                                                    .text);
+                                                    if (response.isSuccess)
+                                                      return null;
+                                                    if (response.currentState ==
+                                                        CurrentState
+                                                            .noInternet) {
+                                                      return 'No internet connection. Please check your network.';
+                                                    }
+                                                    return response
+                                                            .message.isNotEmpty
+                                                        ? response.message
+                                                        : 'Failed to send OTP';
+                                                  },
+                                                ),
                                               );
-                                              if (response.status == 1) {
-                                                setState(() {
-                                                  _isAltVerified = true;
-                                                });
-                                                verifyMobileStream.add(true);
-                                                AppRoutes.pop();
-                                                return null;
-                                              }
-                                              return response.message;
-                                            },
-                                            onSendOtp: () async {
-                                              final response = await authController.generateMobileOtp(
-                                                  alternativeController.text);
-                                              if (response.isSuccess) return null;
-                                              if (response.currentState == CurrentState.noInternet) {
-                                                return 'No internet connection. Please check your network.';
-                                              }
-                                              return response.message.isNotEmpty
-                                                  ? response.message
-                                                  : 'Failed to send OTP';
-                                            },
-                                          ),
-                                        );
-                                      }
-                                    },
+                                            }
+                                          },
                                     child: SizedBox(
                                       width: 100,
                                       child: Container(
@@ -534,10 +588,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               if (_isAltVerified)
                                                 const SizedBox(width: 4),
                                               AppText(
-                                                text: _isAltVerified ? "Verified" : "Verify",
+                                                text: _isAltVerified
+                                                    ? "Verified"
+                                                    : "Verify",
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
-                                                color: _isAltVerified ? AppColors.green : AppColors.grey,
+                                                color: _isAltVerified
+                                                    ? AppColors.green
+                                                    : (isAlternativeNumberValid
+                                                        ? AppColors.primaryColor
+                                                        : AppColors.grey),
                                               ),
                                             ],
                                           ),
@@ -574,6 +634,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             return AppUtils.validatePincode(e);
                           },
                           onChange: (v) {
+                            if (v.length < 6) {
+                              setState(() {
+                                countryController.clear();
+                                stateController.clear();
+                                cityController.clear();
+                                cityOptions = [];
+                                selectedCityName = null;
+                                latitude = null;
+                                longitude = null;
+                              });
+                            }
                             pinStream.add(_validatePinCode(v));
                             _checkFormValidity();
                           },
@@ -676,7 +747,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: 'City',
                         fieldWidget: AppDropdownField<String>(
                           value: selectedCityName,
-                          borderColor: AppColors.fieldGrey,
+                          menuHeight: 300,
+                          borderColor: AppColors.fieldGrey.withAlpha(20),
                           hintText: cityOptions.isEmpty ? 'Fetch pincode first' : 'Select city',
                           items: cityOptions.map((a) => a.name).toList(),
                           itemLabel: (value) => value,
@@ -761,6 +833,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 buildTextFieldWithHeading(
                   title: 'Full Address',
                   fieldWidget: AppTextField(
+                    textAlign: TextAlign.center,
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 12,
+                    ),
+                    textAlignVertical: TextAlignVertical.center,
                     readOnly: true,
                     maxLines: 2,
                     hintText: 'Enter Full Address',
@@ -845,6 +923,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               final response = await authController.updateProfileForm(profile);
               if (!mounted) return;
               if (response.status == 1) {
+                await AppPreferences.setProfileStatus(1);
                 widget.profileModel.isFromEdit
                     ? AppRoutes.pop()
                     : AppRoutes.pushNamed(AppRoutes.firstHomeScreen);

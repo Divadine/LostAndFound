@@ -3,6 +3,7 @@ import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
+import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
@@ -59,8 +60,30 @@ class _OtpScreenState extends State<OtpScreen> {
                   type: 2,
               );
               print(response);
-              if(response.status == 1){
-                AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+              if(response.status == 1 && response.data != null){
+                if (response.data!.status == 1) {
+                  AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+                } else {
+                  final profileResponse = await authController.getProfile(userId: response.data!.userId);
+                  if (profileResponse.isSuccess && profileResponse.data != null) {
+                    AppRoutes.pushAndRemoveUntil(
+                      AppRoutes.profileScreen,
+                      arguments: profileResponse.data,
+                    );
+                  } else {
+                    // Fallback to profile screen with basic info if fetch fails
+                    AppRoutes.pushAndRemoveUntil(
+                      AppRoutes.profileScreen,
+                      arguments: ProfileScreenModel(
+                        isFromEdit: false,
+                        userId: response.data!.userId,
+                        name: response.data!.name,
+                        mobile: response.data!.phoneno,
+                        altMobileVerified: false,
+                      ),
+                    );
+                  }
+                }
                 return null;
               }
               return response.message;

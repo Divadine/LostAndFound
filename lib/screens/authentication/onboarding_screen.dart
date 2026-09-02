@@ -189,7 +189,7 @@ class OnboardingScreenState extends State<OnboardingScreen> {
                   curve: Curves.easeOut,
                 );
               } else {
-                 await AppPreferences.setIsOnboarded(true);
+
                 if (!mounted) return;
                 AppDialogue.showPopup(
                   context: context,

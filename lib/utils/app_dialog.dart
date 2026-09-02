@@ -449,19 +449,27 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
           ),
         if (widget.isFromOnBoard)
           AppButton(
+            radius: BorderRadius.all(Radius.circular(10)),
             title: 'Confirm',
-            onTap: () {
+            onTap: () async{
+              await AppPreferences.setIsOnboarded(true);
               if (isChecked) {
                 AppRoutes.pop();
-                AppRoutes.pushNamed(AppRoutes.loginScreen);
+                AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
               } else {
-                AppSnackBar.show(
-                  context: context,
-                  message: "please check the disclaimer",
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Please check the disclaimer"),
+                    behavior: SnackBarBehavior.floating,
+                  ),
                 );
+                // AppSnackBar.show(
+                //   context: context,
+                //   message: "please check the disclaimer",
+                // );
               }
             },
-            bgColor: AppColors.primaryColor,
+            bgColor: isChecked ? AppColors.primaryColor : AppColors.disclaimerGrey,
             fontSize: 16,
             textColor: AppColors.white,
           ),
@@ -1788,7 +1796,6 @@ class _AppLocationAccessState extends State<AppLocationAccess> {
                 title: 'Allow location',
                 onTap: () async {
                   Navigator.pop(context);
-
                   await Geolocator.openAppSettings();
                 },
                 fontSize: 16,

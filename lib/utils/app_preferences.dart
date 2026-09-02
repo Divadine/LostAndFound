@@ -39,6 +39,16 @@ class AppPreferences {
 
   }
 
+  static const String _profileStatus = 'profile_status';
+
+  static Future<bool> setProfileStatus(int status) async {
+    return _prefs.setInt(_profileStatus, status);
+  }
+
+  static int getProfileStatus() {
+    return _prefs.getInt(_profileStatus) ?? 0;
+  }
+
   static const String _askedDeviceLocationService = 'asked_device_location_service_before';
 
   static Future<bool> setAskedDeviceLocationService(bool asked) async {
@@ -132,5 +142,13 @@ class AppPreferences {
     // await _prefs.clear();
   }
 
+  static const String _lastAuthScreen = 'last_auth_screen';
 
+  static Future<bool> setLastAuthScreen(String screen) async {
+    return _prefs.setString(_lastAuthScreen, screen);
+  }
+
+  static String? getLastAuthScreen() {
+    return _prefs.getString(_lastAuthScreen);
+  }
 }

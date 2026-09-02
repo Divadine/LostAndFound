@@ -55,7 +55,6 @@ class _CategoryRadiosListsScreenState
   // ===========================================================================
 
   List<CategoryModel> categories = [];
-
   List<CategoryModel> apiCategories = [];
 
   // ===========================================================================
@@ -63,8 +62,13 @@ class _CategoryRadiosListsScreenState
   // ===========================================================================
 
   int? selectedIndex;
-
   bool isLoading = false;
+  bool isMoreLoading = false;
+  int currentPage = 1;
+  int totalCategories = 0;
+  final int limit = 10;
+
+  final ScrollController _scrollController = ScrollController();
 
   // ===========================================================================
   // STREAM
@@ -92,6 +96,15 @@ class _CategoryRadiosListsScreenState
   void initState() {
     super.initState();
 
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
+          !isMoreLoading &&
+          apiCategories.length < totalCategories) {
+        currentPage++;
+        _fetchCategories(isLoadMore: true, search: searchController.text.trim());
+      }
+    });
+
     _fetchCategories();
   }
 
@@ -103,6 +116,7 @@ class _CategoryRadiosListsScreenState
   void dispose() {
     _debounce?.cancel();
     searchController.dispose();
+    _scrollController.dispose();
 
     if (!mainApiCategoryStream.isClosed) {
       mainApiCategoryStream.close();
@@ -116,32 +130,38 @@ class _CategoryRadiosListsScreenState
   // ===========================================================================
 
   Future<void> _fetchCategories({
-    int? limit,
-    int? page,
     String? search,
+    bool isLoadMore = false,
   }) async {
     if (!mounted) return;
 
     setState(() {
-      isLoading = true;
-      selectedIndex = null;
+      if (isLoadMore) {
+        isMoreLoading = true;
+      } else {
+        isLoading = true;
+        currentPage = 1;
+        apiCategories.clear();
+        selectedIndex = null;
+      }
     });
 
     try {
       final response = await authController.getCategories(
-        page: page ?? 0,
-        limit: limit ?? 0,
+        page: currentPage,
+        limit: limit,
         search: search,
       );
 
       if (!mounted) return;
 
       if (response.data != null) {
-        apiCategories = List<CategoryModel>.from(
-          response.data!.categories,
-        );
-      } else {
-        apiCategories = [];
+        totalCategories = response.data!.total;
+        if (isLoadMore) {
+          apiCategories.addAll(response.data!.categories);
+        } else {
+          apiCategories = List<CategoryModel>.from(response.data!.categories);
+        }
       }
 
       if (apiCategories.isNotEmpty) {
@@ -150,38 +170,27 @@ class _CategoryRadiosListsScreenState
           othersCategory,
         ];
       } else {
-        categories = [];
+        categories = [othersCategory];
       }
 
       if (!mainApiCategoryStream.isClosed) {
-        mainApiCategoryStream.add(
-          List<CategoryModel>.from(categories),
-        );
+        mainApiCategoryStream.add(List<CategoryModel>.from(categories));
       }
 
       if (!mounted) return;
 
       setState(() {
         isLoading = false;
-        selectedIndex = null;
+        isMoreLoading = false;
       });
     } catch (e, stackTrace) {
-      debugPrint('CATEGORY API ERROR');
-      debugPrint('$e');
-      debugPrint('$stackTrace');
+      debugPrint('CATEGORY API ERROR: $e');
 
       if (!mounted) return;
 
-      categories = [];
-      apiCategories = [];
-
-      if (!mainApiCategoryStream.isClosed) {
-        mainApiCategoryStream.add([]);
-      }
-
       setState(() {
         isLoading = false;
-        selectedIndex = null;
+        isMoreLoading = false;
       });
     }
   }
@@ -308,18 +317,24 @@ class _CategoryRadiosListsScreenState
                   }
 
                   return ListView.builder(
+                    controller: _scrollController,
                     padding: EdgeInsets.zero,
-                    itemCount: catData.length,
+                    itemCount: catData.length + (isMoreLoading ? 1 : 0),
                     itemBuilder: (context, index) {
+                      if (index == catData.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
                       final category = catData[index];
 
                       return _buildTile(
-                        categoryName:
-                        category.name ?? '',
-                        img:
-                        category.imageUrl ?? '',
-                        isSelected:
-                        selectedIndex == index,
+                        categoryName: category.name ?? '',
+                        img: category.imageUrl ?? '',
+                        isSelected: selectedIndex == index,
                         value: index,
                       );
                     },

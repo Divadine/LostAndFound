@@ -54,7 +54,9 @@ class AuthControllers {
 
       await AppPreferences.saveUserId(user.userId);
       await AppPreferences.savePhone(user.phoneno);
+      await AppPreferences.setProfileStatus(user.status);
       await AppPreferences.setIsLoggedIn(true);
+      await AppPreferences.setLastAuthScreen('');
     }
     // if (response.status == 1 && response.data?.token != null) {
     //   await AppPreferences.saveToken(response.data!.token);

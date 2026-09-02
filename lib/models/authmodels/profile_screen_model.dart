@@ -14,13 +14,28 @@ class ProfileScreenModel {
   final String? landmark;
   final String? latitude;
   final String? longitude;
+  final int? status;
 
+  ProfileScreenModel({
+    required this.isFromEdit,
+    this.name,
+    this.mobile,
+    this.userId,
+    this.altMobile,
+    required this.altMobileVerified,
+    this.pincode,
+    this.country,
+    this.state,
+    this.city,
+    this.address,
+    this.landmark,
+    this.latitude,
+    this.longitude,
+    this.profileImageUrl,
+    this.status,
+  });
 
-
-  ProfileScreenModel({required this.isFromEdit, this.name, this.mobile, this.userId, this.altMobile, required this.altMobileVerified, this.pincode, this.country, this.state, this.city, this.address, this.landmark, this.latitude, this.longitude, this.profileImageUrl});
-
-
-  factory ProfileScreenModel.fromJson(Map<String , dynamic> json) {
+  factory ProfileScreenModel.fromJson(Map<String, dynamic> json) {
     return ProfileScreenModel(
       isFromEdit: false,
       altMobileVerified: json['alt_status']?.toString() == '1',
@@ -37,15 +52,11 @@ class ProfileScreenModel {
       landmark: json['landmark'],
       latitude: json['latitude']?.toString(),
       longitude: json['longitude']?.toString(),
-
-
+      status: json['status'],
     );
-
-
   }
 
-
-  ProfileScreenModel copyWith({bool? isFromEdit}) {
+  ProfileScreenModel copyWith({bool? isFromEdit, int? status}) {
     return ProfileScreenModel(
       isFromEdit: isFromEdit ?? this.isFromEdit,
       userId: userId,
@@ -62,7 +73,7 @@ class ProfileScreenModel {
       latitude: latitude,
       longitude: longitude,
       profileImageUrl: profileImageUrl,
+      status: status ?? this.status,
     );
   }
-
 }

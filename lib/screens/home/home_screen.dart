@@ -43,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen>
     ),
   );
 
+  final List<TextEditingController> _controller = List.generate(6, (_) => TextEditingController());
   List<Map<String, dynamic>> details = [
     {
       'imageUrl': '',
@@ -65,20 +66,26 @@ class _HomeScreenState extends State<HomeScreen>
   // ============================================================
 
   List<PostModel> lostPosts = [];
-
   bool isLoadingLost = true;
-
+  bool isMoreLoadingLost = false;
+  int currentPageLost = 1;
+  int totalLost = 0;
+  final int limitLost = 10;
   String? lostErrorMessage;
+  final ScrollController _lostScrollController = ScrollController();
 
   // ============================================================
   // FOUND POSTS
   // ============================================================
 
   List<PostModel> foundPosts = [];
-
   bool isLoadingFound = true;
-
+  bool isMoreLoadingFound = false;
+  int currentPageFound = 1;
+  int totalFound = 0;
+  final int limitFound = 10;
   String? foundErrorMessage;
+  final ScrollController _foundScrollController = ScrollController();
 
   // ============================================================
   // FILTER
@@ -204,10 +211,16 @@ class _HomeScreenState extends State<HomeScreen>
   // FETCH LOST POSTS
   // ============================================================
 
-  Future<void> _fetchLostPosts() async {
+  Future<void> _fetchLostPosts({bool isLoadMore = false}) async {
     if (mounted) {
       setState(() {
-        isLoadingLost = true;
+        if (isLoadMore) {
+          isMoreLoadingLost = true;
+        } else {
+          isLoadingLost = true;
+          currentPageLost = 1;
+          lostPosts.clear();
+        }
         lostErrorMessage = null;
       });
     }
@@ -217,97 +230,61 @@ class _HomeScreenState extends State<HomeScreen>
 
       final response = filterState.filterApplied
           ? await authController.filterPosts(
-        userId: userId ?? 0,
-        postType: 0,
-        dateFilter: filterState.dateFilter,
-        startDate: filterState.customRange != null
-            ? DateFormat('yyyy-MM-dd').format(
-          filterState.customRange!.start,
-        )
-            : null,
-        endDate: filterState.customRange != null
-            ? DateFormat('yyyy-MM-dd').format(
-          filterState.customRange!.end,
-        )
-            : null,
-      )
+              userId: userId ?? 0,
+              postType: 0,
+              dateFilter: filterState.dateFilter,
+              startDate: filterState.customRange != null
+                  ? DateFormat('yyyy-MM-dd').format(
+                      filterState.customRange!.start,
+                    )
+                  : null,
+              endDate: filterState.customRange != null
+                  ? DateFormat('yyyy-MM-dd').format(
+                      filterState.customRange!.end,
+                    )
+                  : null,
+              page: currentPageLost,
+              limit: limitLost,
+            )
           : await authController.getPost(
-        userId: userId ?? 0,
-        postType: 0,
-      );
+              userId: userId ?? 0,
+              postType: 0,
+              page: currentPageLost,
+              limit: limitLost,
+            );
 
       if (!mounted) {
         return;
       }
 
-      if (response.isSuccess &&
-          response.data != null) {
+      if (response.isSuccess && response.data != null) {
         var posts = response.data!.posts;
-        debugPrint('FILTER DEBUG: API returned ${posts.length} posts');
-
-        // Local filtering based on postDate (event date)
-        if (filterState.filterApplied) {
-          final range = filterState.effectiveRange;
-          debugPrint('FILTER DEBUG: Applying local filter for range: ${filterState.displayText}');
-          
-          if (range != null) {
-            final sDate = DateTime(
-              range.start.year,
-              range.start.month,
-              range.start.day,
-            );
-            final eDate = DateTime(
-              range.end.year,
-              range.end.month,
-              range.end.day,
-            );
-            debugPrint('FILTER DEBUG: Local Range Normalized: $sDate to $eDate');
-
-            posts = posts.where((post) {
-              if (post.postDate == null) {
-                debugPrint('FILTER DEBUG: Post ${post.id} has no postDate. Removing.');
-                return false;
-              }
-
-              final pDate = DateTime(
-                post.postDate!.year,
-                post.postDate!.month,
-                post.postDate!.day,
-              );
-
-              final keep = !pDate.isBefore(sDate) && !pDate.isAfter(eDate);
-              debugPrint('FILTER DEBUG: Post ${post.id} date: $pDate -> Keep: $keep');
-              return keep;
-            }).toList();
-            debugPrint('FILTER DEBUG: After local filtering: ${posts.length} posts remaining');
-          }
-        }
+        totalLost = response.data!.total;
 
         setState(() {
-          lostPosts = posts;
+          if (isLoadMore) {
+            lostPosts.addAll(posts);
+          } else {
+            lostPosts = posts;
+          }
           isLoadingLost = false;
+          isMoreLoadingLost = false;
         });
 
-        _fetchMatchCounts(
-          lostPosts,
-        );
+        _fetchMatchCounts(posts);
       } else {
         setState(() {
           isLoadingLost = false;
+          isMoreLoadingLost = false;
         });
       }
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       setState(() {
         isLoadingLost = false;
+        isMoreLoadingLost = false;
       });
-
-      debugPrint(
-        'Lost posts error: $e',
-      );
+      debugPrint('Lost posts error: $e');
     }
   }
 
@@ -315,10 +292,16 @@ class _HomeScreenState extends State<HomeScreen>
   // FETCH FOUND POSTS
   // ============================================================
 
-  Future<void> _fetchFoundPosts() async {
+  Future<void> _fetchFoundPosts({bool isLoadMore = false}) async {
     if (mounted) {
       setState(() {
-        isLoadingFound = true;
+        if (isLoadMore) {
+          isMoreLoadingFound = true;
+        } else {
+          isLoadingFound = true;
+          currentPageFound = 1;
+          foundPosts.clear();
+        }
         foundErrorMessage = null;
       });
     }
@@ -328,78 +311,59 @@ class _HomeScreenState extends State<HomeScreen>
 
       final response = filterState.filterApplied
           ? await authController.filterPosts(
-        userId: userId ?? 0,
-        postType: 1,
-        dateFilter: filterState.dateFilter,
-        startDate: filterState.customRange != null
-            ? DateFormat('yyyy-MM-dd').format(
-          filterState.customRange!.start,
-        )
-            : null,
-        endDate: filterState.customRange != null
-            ? DateFormat('yyyy-MM-dd').format(
-          filterState.customRange!.end,
-        )
-            : null,
-      )
+              userId: userId ?? 0,
+              postType: 1,
+              dateFilter: filterState.dateFilter,
+              startDate: filterState.customRange != null
+                  ? DateFormat('yyyy-MM-dd').format(
+                      filterState.customRange!.start,
+                    )
+                  : null,
+              endDate: filterState.customRange != null
+                  ? DateFormat('yyyy-MM-dd').format(
+                      filterState.customRange!.end,
+                    )
+                  : null,
+              page: currentPageFound,
+              limit: limitFound,
+            )
           : await authController.getPost(
-        userId: userId ?? 0,
-        postType: 1,
-      );
+              userId: userId ?? 0,
+              postType: 1,
+              page: currentPageFound,
+              limit: limitFound,
+            );
 
       if (!mounted) {
         return;
       }
 
-      if (response.isSuccess &&
-          response.data != null) {
+      if (response.isSuccess && response.data != null) {
         var posts = response.data!.posts;
-        debugPrint('FILTER DEBUG (Found): API returned ${posts.length} posts');
-
-        // Local filtering based on postDate (event date)
-        if (filterState.filterApplied) {
-          final range = filterState.effectiveRange;
-          if (range != null) {
-            final sDate = DateTime(range.start.year, range.start.month, range.start.day);
-            final eDate = DateTime(range.end.year, range.end.month, range.end.day);
-
-            posts = posts.where((post) {
-              if (post.postDate == null) return false;
-
-              final pDate = DateTime(
-                post.postDate!.year,
-                post.postDate!.month,
-                post.postDate!.day,
-              );
-
-              final keep = !pDate.isBefore(sDate) && !pDate.isAfter(eDate);
-              return keep;
-            }).toList();
-            debugPrint('FILTER DEBUG (Found): After local filtering: ${posts.length} posts remaining');
-          }
-        }
+        totalFound = response.data!.total;
 
         setState(() {
-          foundPosts = posts;
+          if (isLoadMore) {
+            foundPosts.addAll(posts);
+          } else {
+            foundPosts = posts;
+          }
           isLoadingFound = false;
+          isMoreLoadingFound = false;
         });
       } else {
         setState(() {
           isLoadingFound = false;
+          isMoreLoadingFound = false;
         });
       }
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       setState(() {
         isLoadingFound = false;
+        isMoreLoadingFound = false;
       });
-
-      debugPrint(
-        'Found posts error: $e',
-      );
+      debugPrint('Found posts error: $e');
     }
   }
 
@@ -442,16 +406,31 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
     );
 
-    _tabController.addListener(
-          () {
-        if (_tabController.indexIsChanging ||
-            _tabController.index != _selectedIndex) {
-          setState(() {
-            _selectedIndex = _tabController.index;
-          });
-        }
-      },
-    );
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging || _tabController.index != _selectedIndex) {
+        setState(() {
+          _selectedIndex = _tabController.index;
+        });
+      }
+    });
+
+    _lostScrollController.addListener(() {
+      if (_lostScrollController.position.pixels >= _lostScrollController.position.maxScrollExtent - 200 &&
+          !isMoreLoadingLost &&
+          lostPosts.length < totalLost) {
+        currentPageLost++;
+        _fetchLostPosts(isLoadMore: true);
+      }
+    });
+
+    _foundScrollController.addListener(() {
+      if (_foundScrollController.position.pixels >= _foundScrollController.position.maxScrollExtent - 200 &&
+          !isMoreLoadingFound &&
+          foundPosts.length < totalFound) {
+        currentPageFound++;
+        _fetchFoundPosts(isLoadMore: true);
+      }
+    });
 
     _fetchLostPosts();
     _fetchFoundPosts();
@@ -465,6 +444,8 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _tabController.dispose();
     filterStateStream.close();
+    _lostScrollController.dispose();
+    _foundScrollController.dispose();
 
     super.dispose();
   }
@@ -777,6 +758,13 @@ class _HomeScreenState extends State<HomeScreen>
                         fontWeight: FontWeight.w600,
                       ),
 
+                      // AppContainer(widget:
+                      //     Row(children: [
+                      //       AppIconWidget(assetPath: AssetImages.trophy),
+                      //       AppText(text: 'Community Success',color: AppColors.white,fontSize: 12,fontWeight: FontWeight.w500,),
+                      //     ],)
+                      // ),
+
                       // ========================================
                       // NOTIFICATION
                       // ========================================
@@ -799,6 +787,32 @@ class _HomeScreenState extends State<HomeScreen>
                     color: AppColors.white,
                     fontSize: 14,
                   ),
+
+
+                  // Row(
+                  //   crossAxisAlignment: CrossAxisAlignment.center,
+                  //   mainAxisAlignment: MainAxisAlignment.center,
+                  //   spacing: 10,
+                  //   children: List.generate(_controller.length,(index) {
+                  //     return Container(
+                  //       height: 50,
+                  //       width: 50,
+                  //       child: TextField(
+                  //         readOnly: true,
+                  //         controller: _controller[index],
+                  //
+                  //
+                  //
+                  //
+                  //
+                  //
+                  //       ),
+                  //     );
+                  //   }
+                  //   )),
+
+
+                  //AppText(text: "Users benefited",fontWeight: FontWeight.w400,fontSize: 12,color: AppColors.white,)
                 ],
               ),
             ),
@@ -919,101 +933,61 @@ class _HomeScreenState extends State<HomeScreen>
           Expanded(
             child: lostPosts.isEmpty
                 ? const Center(
-              child: AppText(
-                text: 'No lost items posted yet',
-              ),
-            )
-                : ListView(
-              children: [
-                for (final post in lostPosts)
-                  ItemCard(
-                    imgUrl: post.images.isNotEmpty
-                        ? post.images.first
-                        : '',
-
-                    title: post.name,
-
-                    location: post.location,
-
-                    date: _formatDate(
-                      post.postDate,
+                    child: AppText(
+                      text: 'No lost items posted yet',
                     ),
-
-                    postId: post.postUid,
-
-                    foundCount:
-                    matchingCounts[post.id],
-
-                    postIntId: post.id,
-
-                    onDeleted:
-                    _fetchLostPosts,
-
-                    newMessageCount:
-                    post.enquiriesCount > 0
-                        ? post.enquiriesCount
-                        .toString()
-                        : null,
-
-                    enquiredProfile:
-                    post.enquirerAvatars.isNotEmpty
-                        ? post.enquirerAvatars
-                        .map(
-                          (e) => e.imageUrl,
-                    )
-                        .where(
-                          (url) =>
-                      url.isNotEmpty,
-                    )
-                        .toList()
-                        : null,
-
-                    onViewAll: () =>
-                        _openAvailableMatching(
-                          post,
-                        ),
-                    status: post.status,
-                    onTap: () {
-                      AppRoutes.pushNamed(
-                        AppRoutes
-                            .availableMatchingScreen,
-
-                        arguments: {
-                          'postId': post.id,
-
-                          'imgUrl':
-                          post.images.isNotEmpty
-                              ? post.images.first
-                              : '',
-
-                          'title':
-                          post.name,
-
-                          'location':
-                          post.location,
-
-                          'date':
-                          _formatDate(
-                            post.postDate,
+                  )
+                : ListView.builder(
+                    controller: _lostScrollController,
+                    itemCount: lostPosts.length + (isMoreLoadingLost ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == lostPosts.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
                           ),
-
-                          'postUid':
-                          post.postUid,
-
-                          'foundCount':
-                          post.enquiriesCount,
-
-                          'isReceived':
-                          false,
-                          'status': post.status,
+                        );
+                      }
+                      final post = lostPosts[index];
+                      return ItemCard(
+                        imgUrl: post.images.isNotEmpty ? post.images.first : '',
+                        title: post.name,
+                        location: post.location,
+                        date: _formatDate(post.postDate),
+                        postId: post.postUid,
+                        foundCount: matchingCounts[post.id],
+                        postIntId: post.id,
+                        onDeleted: _fetchLostPosts,
+                        newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
+                        enquiredProfile: post.enquirerAvatars.isNotEmpty
+                            ? post.enquirerAvatars
+                                .map((e) => e.imageUrl)
+                                .where((url) => url.isNotEmpty)
+                                .toList()
+                            : null,
+                        onViewAll: () => _openAvailableMatching(post),
+                        status: post.status,
+                        onTap: () {
+                          AppRoutes.pushNamed(
+                            AppRoutes.availableMatchingScreen,
+                            arguments: {
+                              'postId': post.id,
+                              'imgUrl': post.images.isNotEmpty ? post.images.first : '',
+                              'title': post.name,
+                              'location': post.location,
+                              'date': _formatDate(post.postDate),
+                              'postUid': post.postUid,
+                              'foundCount': post.enquiriesCount,
+                              'isReceived': false,
+                              'status': post.status,
+                            },
+                          );
                         },
-                      );
+                        showPostId: true,
+                      ).pad();
                     },
-
-                    showPostId: true,
-                  ).pad(),
-              ],
-            ),
+                  ),
           ),
         ],
       ),
@@ -1131,68 +1105,52 @@ class _HomeScreenState extends State<HomeScreen>
           Expanded(
             child: foundPosts.isEmpty
                 ? const Center(
-              child: AppText(
-                text: 'No found items posted yet',
-              ),
-            )
-                : ListView(
-              children: [
-                for (final post in foundPosts)
-                  ItemCard(
-                    imgUrl: post.images.isNotEmpty
-                        ? post.images.first
-                        : '',
-
-                    title: post.name,
-
-                    location: post.location,
-
-                    date: _formatDate(
-                      post.postDate,
+                    child: AppText(
+                      text: 'No found items posted yet',
                     ),
-
-                    isFound: true,
-
-                    postId: post.postUid,
-
-                    postIntId: post.id,
-
-                    onDeleted:
-                    _fetchFoundPosts,
-
-                    newMessageCount:
-                    post.enquiriesCount > 0
-                        ? post.enquiriesCount
-                        .toString()
-                        : null,
-
-                    enquiredProfile:
-                    post.enquirerAvatars.isNotEmpty
-                        ? post.enquirerAvatars
-                        .map(
-                          (e) => e.imageUrl,
-                    )
-                        .where(
-                          (url) =>
-                      url.isNotEmpty,
-                    )
-                        .toList()
-                        : null,
-                    status: post.status,
-                    onTap: () {
-                      AppRoutes.pushNamed(
-                        AppRoutes.enquiryListScreen,
-
-                        arguments: {
-                          'postId': post.id,
+                  )
+                : ListView.builder(
+                    controller: _foundScrollController,
+                    itemCount: foundPosts.length + (isMoreLoadingFound ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == foundPosts.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+                      final post = foundPosts[index];
+                      return ItemCard(
+                        imgUrl: post.images.isNotEmpty ? post.images.first : '',
+                        title: post.name,
+                        location: post.location,
+                        date: _formatDate(post.postDate),
+                        isFound: true,
+                        postId: post.postUid,
+                        postIntId: post.id,
+                        onDeleted: _fetchFoundPosts,
+                        newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
+                        enquiredProfile: post.enquirerAvatars.isNotEmpty
+                            ? post.enquirerAvatars
+                                .map((e) => e.imageUrl)
+                                .where((url) => url.isNotEmpty)
+                                .toList()
+                            : null,
+                        status: post.status,
+                        onTap: () {
+                          AppRoutes.pushNamed(
+                            AppRoutes.enquiryListScreen,
+                            arguments: {
+                              'postId': post.id,
+                            },
+                          );
                         },
-                      );
+                        showPostId: true,
+                      ).pad();
                     },
-
-                    showPostId: true,
-                  ).pad(),
-              ],
-            ),
+                  ),
           ),
         ],
       ),
