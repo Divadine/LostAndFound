@@ -39,7 +39,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    AppPreferences.setLastAuthScreen('register');
 
     authController = AuthControllers(
       authRepository: AuthRepository(

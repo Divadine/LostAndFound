@@ -96,10 +96,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ? Icon(Icons.person)
                     : null,
               ),
-              AppText(
-                  text: profile?.name ?? '',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16),
+              Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.idCardColor,
+                  borderRadius: BorderRadius.circular(10)),
+                child: AppText(
+                    text: profile?.userId ?? '',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16),
+              ),
               SizedBox(height: 10),
               AppButton(
               title: "Edit Profile",

@@ -47,7 +47,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    AppPreferences.setLastAuthScreen('login');
    // phoneController.text = AppPreferences.getPhone() ?? '';
   }
 

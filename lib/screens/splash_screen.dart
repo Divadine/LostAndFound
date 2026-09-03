@@ -36,12 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
         return;
       }
 
-      final lastAuth = AppPreferences.getLastAuthScreen();
-      if (lastAuth == 'register') {
-        AppRoutes.pushAndRemoveUntil(AppRoutes.registerScreen);
-      } else {
-        AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
-      }
+      AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
       return;
     }
 
