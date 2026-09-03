@@ -1,5 +1,6 @@
 class ProfileScreenModel {
   final int? userId;
+  final String? userUid;
   final bool isFromEdit;
   final String? profileImageUrl;
   final String? name;
@@ -21,6 +22,7 @@ class ProfileScreenModel {
     this.name,
     this.mobile,
     this.userId,
+    this.userUid,
     this.altMobile,
     required this.altMobileVerified,
     this.pincode,
@@ -40,6 +42,7 @@ class ProfileScreenModel {
       isFromEdit: false,
       altMobileVerified: json['alt_status']?.toString() == '1',
       userId: json['id'],
+      userUid: json['user_uid'],
       profileImageUrl: json['profile_image'],
       name: json['name'],
       mobile: json['phoneno'],
@@ -60,6 +63,7 @@ class ProfileScreenModel {
     return ProfileScreenModel(
       isFromEdit: isFromEdit ?? this.isFromEdit,
       userId: userId,
+      userUid: userUid,
       name: name,
       mobile: mobile,
       altMobile: altMobile,

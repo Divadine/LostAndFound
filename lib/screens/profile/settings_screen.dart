@@ -96,17 +96,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ? Icon(Icons.person)
                     : null,
               ),
+              const SizedBox(height: 10),
               Container(
-                padding: EdgeInsets.all(10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.idCardColor,
-                  borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: AppText(
-                    text: profile?.userId ?? '',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 16),
+                  text: 'ID : ${profile?.userUid ?? ''}',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 10,
+                  color: AppColors.primaryColor,
+                ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               AppButton(
               title: "Edit Profile",
               onTap: _isLoadingProfile ? null : () async {
