@@ -747,7 +747,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: 'City',
                         fieldWidget: AppDropdownField<String>(
                           value: selectedCityName,
-                          menuHeight: 300,
+                          menuHeight: 250,
                           borderColor: AppColors.fieldGrey.withAlpha(20),
                           hintText: cityOptions.isEmpty ? 'Fetch pincode first' : 'Select city',
                           items: cityOptions.map((a) => a.name).toList(),
