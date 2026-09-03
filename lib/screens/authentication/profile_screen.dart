@@ -179,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final valid = isNameValid &&
         isMobileValid &&
         isPinValid &&
-        isLandmarkValid &&
+        // isLandmarkValid && // Landmark is required but we allow clicking Save to show the error
         isAddressValid &&
         isCityValid &&
         isStateValid &&
@@ -402,6 +402,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     readOnly: !widget.profileModel.isFromEdit,
                     onSubmit: (v) {},
                     onChange: (v) => _checkFormValidity(),
+                    validator: (v) => AppUtils.required(v),
                   ),
                 ),
                 // Mobile Number
@@ -434,6 +435,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                           onSubmit: (v) {},
                           textInputType: TextInputType.phone,
+                          validator: (v) => AppUtils.validateMobileNumber(v),
                         ),
                       ),
                     ],
@@ -727,6 +729,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           textController: countryController,
                           onChange: (v) {},
                           onSubmit: (v) {},
+                          validator: (v) => AppUtils.required(v),
                         ),
                       ),
 
@@ -740,6 +743,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           textController: stateController,
                           onChange: (v) {},
                           onSubmit: (v) {},
+                          validator: (v) => AppUtils.required(v),
                         ),
                       ),
 
@@ -848,6 +852,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _checkFormValidity();
                     },
                     onSubmit: (v) {},
+                    validator: (v) => AppUtils.required(v),
                   ),
                 ),
 
@@ -887,6 +892,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             radius: BorderRadius.circular(7),
             onTap: _isFormValid ? () async {
               if (!_formKey.currentState!.validate()) return;
+              if (!_isFormValid) return;
 
               // profile_status:
               //  0 -> register flow (first time setup) OR edit flow with a new image picked
@@ -938,7 +944,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 );
               }
-            } : null,
+              } : null,
 
             bgColor: _isFormValid
                 ? AppColors.primaryColor

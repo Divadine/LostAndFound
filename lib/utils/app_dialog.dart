@@ -1438,7 +1438,9 @@ class PostLive extends StatelessWidget {
         AppButton(
           title: 'Go to Home',
           fontSize: 14,
-          onTap: () {
+          onTap: () async {
+            await AppPreferences.setIsItemPosted(true);
+            if (!context.mounted) return;
             Navigator.of(context).pop();
             AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
           },

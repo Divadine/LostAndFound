@@ -75,6 +75,8 @@ class AppPreferences {
     await _prefs.remove(_userIdKey);
     await _prefs.remove(_userNameKey);
     await _prefs.remove(_phoneKey);
+    await _prefs.remove(_isItemPosted);
+    await _prefs.setInt(_profileStatus, 0);
 
     await _prefs.setBool(
       _isLoggedIn,
@@ -150,5 +152,15 @@ class AppPreferences {
 
   static String? getLastAuthScreen() {
     return _prefs.getString(_lastAuthScreen);
+  }
+
+  static const String _isItemPosted = 'is_item_posted';
+
+  static Future<bool> setIsItemPosted(bool isPosted) async {
+    return _prefs.setBool(_isItemPosted, isPosted);
+  }
+
+  static bool getIsItemPosted() {
+    return _prefs.getBool(_isItemPosted) ?? false;
   }
 }

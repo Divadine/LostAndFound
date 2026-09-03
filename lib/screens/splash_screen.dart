@@ -52,7 +52,11 @@ class _SplashScreenState extends State<SplashScreen> {
     final isProfileComplete = AppPreferences.getProfileStatus() == 1;
 
     if (isProfileComplete) {
-      AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+      if (AppPreferences.getIsItemPosted()) {
+        AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+      } else {
+        AppRoutes.pushAndRemoveUntil(AppRoutes.firstHomeScreen);
+      }
       return;
     }
 
