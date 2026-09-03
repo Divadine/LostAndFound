@@ -925,9 +925,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (!mounted) return;
               if (response.status == 1) {
                 await AppPreferences.setProfileStatus(1);
-                widget.profileModel.isFromEdit
-                    ? AppRoutes.pop()
-                    : AppRoutes.pushNamed(AppRoutes.firstHomeScreen);
+                if (widget.profileModel.isFromEdit) {
+                  context.pop();
+                } else {
+                  AppRoutes.pushAndRemoveUntil(AppRoutes.firstHomeScreen);
+                }
               } else {
                 AppDialogue.showPopup(
                   context: context,

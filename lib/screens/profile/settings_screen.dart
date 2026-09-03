@@ -39,6 +39,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   );
   bool isEnable = false;
 
+  bool _isLoadingProfile = false;
+
   ProfileScreenModel? profile;
   Future<void> _loadProfile() async {
     final userId = AppPreferences.getUserId();
@@ -49,6 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() => profile = result.data);
     }
   }
+
   getEmoji(int ratingsEmoji) {
     switch (ratingsEmoji) {
       case 1:
@@ -77,7 +80,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
-
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -86,42 +88,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               CircleAvatar(
                 radius: 40,
-                backgroundImage:profile?.profileImageUrl != null && profile!.profileImageUrl!.isNotEmpty ? CachedNetworkImageProvider(profile!.profileImageUrl!) : null,
-                child: profile?.profileImageUrl == null ? Icon(Icons.person) : null,
+                backgroundImage: profile?.profileImageUrl != null &&
+                        profile!.profileImageUrl!.isNotEmpty
+                    ? CachedNetworkImageProvider(profile!.profileImageUrl!)
+                    : null,
+                child: profile?.profileImageUrl == null
+                    ? Icon(Icons.person)
+                    : null,
               ),
-
-              AppText(text: profile?.name ?? '', fontWeight: FontWeight.w500, fontSize: 16),
-
+              AppText(
+                  text: profile?.name ?? '',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16),
               SizedBox(height: 10),
-
               AppButton(
-                title: "Edit Profile",
-                onTap: () async {
-                  final userId = AppPreferences.getUserId();
-                  if (userId == null) return;
+              title: "Edit Profile",
+              onTap: _isLoadingProfile ? null : () async {
+                final userId = AppPreferences.getUserId();
+                if (userId == null) return;
 
-                  final result = await authController.getProfile(userId: userId);
+                setState(() => _isLoadingProfile = true);
+                final result = await authController.getProfile(userId: userId);
+                
+                if (!mounted) {
+                  _isLoadingProfile = false;
+                  return;
+                }
+
+                if (result.status == 1 && result.data != null) {
+                  await context.pushNamed(
+                    AppRoutes.profileScreen,
+                    extra: result.data!.copyWith(isFromEdit: true),
+                  );
                   if (!mounted) return;
-
-                  if (result.status == 1 && result.data != null) {
-                    await context.pushNamed(
-                      AppRoutes.profileScreen,
-                      extra: result.data!.copyWith(isFromEdit: true),
-                    );
-                    if (!mounted) return;
-                    await _loadProfile();
-                  } else {
-                    AppDialogue.showPopup(
-                      context: context,
-                      content: AppText(text: result.message),
-                    );
-                  }
-
-                },
-                height: 35,
-                fontSize: 12,
-                prefixIcon: AssetImages.pen,
-              ).padHorizontal(105),
+                  setState(() => _isLoadingProfile = false);
+                  await _loadProfile();
+                } else {
+                  setState(() => _isLoadingProfile = false);
+                  AppDialogue.showPopup(
+                    context: context,
+                    content: AppText(text: result.message),
+                  );
+                }
+              },
+              height: 35,
+              fontSize: 12,
+              prefixIcon: AssetImages.pen,
+            ).padHorizontal(105),
 
               SizedBox(height: 10),
 
