@@ -833,7 +833,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 buildTextFieldWithHeading(
                   title: 'Full Address',
                   fieldWidget: AppTextField(
-                    textAlign: TextAlign.center,
+                    textAlign: TextAlign.left,
                     contentPadding: const EdgeInsets.symmetric(
                       vertical: 16,
                       horizontal: 12,

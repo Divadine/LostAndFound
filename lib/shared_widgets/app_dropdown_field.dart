@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
@@ -82,22 +83,17 @@ class _AppDropdownFieldState<T>
     super.initState();
 
 
+    focusNode = FocusNode(
+      canRequestFocus: false, // <-- prevents keyboard/cursor, tap-to-open still works
+    );
+
     focusNode = FocusNode();
-
-
     controller = TextEditingController(
-
       text: widget.value == null
           ? ""
           : widget.itemLabel(widget.value as T),
-
     );
-
-
   }
-
-
-
 
   @override
   void didUpdateWidget(
@@ -119,13 +115,9 @@ class _AppDropdownFieldState<T>
 
   @override
   void dispose() {
-
     focusNode.dispose();
-
     controller.dispose();
-
     super.dispose();
-
   }
 
   @override
@@ -145,14 +137,15 @@ class _AppDropdownFieldState<T>
             requestFocusOnTap: false,
             enableSearch: false,
             enableFilter: false,
+            inputFormatters: [
+              FilteringTextInputFormatter.deny(RegExp(r'.*')), // <-- blocks any typed char
+            ],
             initialSelection: widget.value,
             trailingIcon:AppIconWidget(assetPath: AssetImages.dropDown),
             selectedTrailingIcon: AppIconWidget(assetPath: AssetImages.dropUp),
             hintText: widget.hintText,
             textStyle: appTextStyle(
-              fontSize: 16,
               color: AppColors.black
-
             ),
             inputDecorationTheme: InputDecorationTheme(
               filled: true,
@@ -165,8 +158,8 @@ class _AppDropdownFieldState<T>
               ),
 
 
+
               hintStyle: appTextStyle(
-                fontSize: 16,
                 color: Colors.grey,
               ),
 
@@ -237,9 +230,7 @@ class _AppDropdownFieldState<T>
                   ),
                   textStyle:
                   WidgetStateProperty.all(
-                    appTextStyle(
-                      fontSize:16,
-                    ),
+                    appTextStyle(),
                   ),
                 ),
               );

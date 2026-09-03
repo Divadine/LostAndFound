@@ -3,6 +3,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 
 class MapScreen extends StatefulWidget {
@@ -88,6 +89,7 @@ class MapScreenState extends State<MapScreen> {
           Padding(
             padding: const EdgeInsets.all(60),
             child: TextField(
+              inputFormatters: [NoLeadingSpaceFormatter()],
               onChanged: (value){
                 searchedLocation(value);
               },

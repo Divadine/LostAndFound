@@ -178,14 +178,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             'autoSend': false,
                           });
                         }else if (response.currentState == CurrentState.noInternet) {
-                          AppDialogue.showPopup(
+                          AppSnackBar.show(
                             context: context,
-                            content: AppText(text: 'No internet connection. Please check your network and try again.'),
+                            message: 'No internet connection. Please check your network and try again.',
                           );
                         }
 
                         else{
-                          AppDialogue.showPopup(context: context, content: AppText(text:  response.message.isNotEmpty ? response.message  : 'OTP generation failed'));
+                          AppSnackBar.show(context: context, message: response.message.isNotEmpty ? response.message  : 'OTP generation failed');
                         }
                       }
 

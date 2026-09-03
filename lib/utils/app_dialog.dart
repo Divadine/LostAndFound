@@ -2179,6 +2179,7 @@ class _ReportChatReasonSheetState extends State<ReportChatReasonSheet> {
             ),
             child: TextField(
               controller: othersController,
+              inputFormatters: [NoLeadingSpaceFormatter()],
               maxLines: 3,
               onChanged: (_) => setState(() {}),
               decoration: const InputDecoration(

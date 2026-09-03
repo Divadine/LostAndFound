@@ -14,7 +14,7 @@ import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
-
+import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
@@ -331,6 +331,7 @@ class _SubCategoryScreenState
                 widget: TextField(
                   controller:
                   searchController,
+                  inputFormatters: [NoLeadingSpaceFormatter()],
                   onChanged:
                   searchCategory,
                   textInputAction:

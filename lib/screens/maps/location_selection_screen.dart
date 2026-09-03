@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -72,6 +73,15 @@ class _LocationSelectionScreenState
 
   final AppPermissions _appPermissions =
   AppPermissions();
+
+  // ===========================================================================
+  // CONNECTIVITY
+  // ===========================================================================
+
+  StreamSubscription<List<ConnectivityResult>>?
+  _connectivitySub;
+
+  bool _isOffline = false;
 
   // ===========================================================================
   // SEARCH
@@ -152,6 +162,12 @@ class _LocationSelectionScreenState
     _loadPinIcon();
 
     // -------------------------------------------------------------------------
+    // LISTEN FOR CONNECTIVITY CHANGES
+    // -------------------------------------------------------------------------
+
+    _initConnectivityListener();
+
+    // -------------------------------------------------------------------------
     // INITIALIZE LOCATION
     // -------------------------------------------------------------------------
 
@@ -166,7 +182,67 @@ class _LocationSelectionScreenState
 
     _debounce?.cancel();
 
+    _connectivitySub?.cancel();
+
     super.dispose();
+  }
+
+  // ===========================================================================
+  // CONNECTIVITY HELPERS
+  // ===========================================================================
+
+  void _initConnectivityListener() {
+    _connectivitySub = Connectivity()
+        .onConnectivityChanged
+        .listen((results) {
+      final offline =
+          results.contains(ConnectivityResult.none) ||
+              results.isEmpty;
+
+      if (!mounted) return;
+
+      // Only react on a change of state, and only show the toast
+      // when we transition from online -> offline.
+      if (offline && !_isOffline) {
+        _showNoInternetToast();
+      }
+
+      setState(() {
+        _isOffline = offline;
+      });
+    });
+  }
+
+  Future<bool> _hasInternetConnection() async {
+    final result =
+    await Connectivity().checkConnectivity();
+
+    final offline = result.contains(
+      ConnectivityResult.none,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isOffline = offline;
+      });
+    }
+
+    return !offline;
+  }
+
+  void _showNoInternetToast() {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No internet connection. Please check your network.',
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
   }
 
   // ===========================================================================
@@ -201,6 +277,11 @@ class _LocationSelectionScreenState
   // ===========================================================================
 
   Future<void> _initLocation() async {
+    if (!await _hasInternetConnection()) {
+      _showNoInternetToast();
+      return;
+    }
+
     final granted =
     await _appPermissions.requestLocationPermission(
       context,
@@ -277,6 +358,11 @@ class _LocationSelectionScreenState
   // ===========================================================================
 
   Future<void> _useCurrentLocation() async {
+    if (!await _hasInternetConnection()) {
+      _showNoInternetToast();
+      return;
+    }
+
     final granted =
     await _appPermissions.requestLocationPermission(
       context,
@@ -352,6 +438,16 @@ class _LocationSelectionScreenState
         milliseconds: 400,
       ),
           () async {
+        if (!await _hasInternetConnection()) {
+          _showNoInternetToast();
+
+          if (!_suggestionsController.isClosed) {
+            _suggestionsController.add([]);
+          }
+
+          return;
+        }
+
         try {
           final query = value.trim();
 
@@ -400,6 +496,11 @@ class _LocationSelectionScreenState
   Future<void> _onSuggestionTap(
       LocationSuggestionModel suggestion,
       ) async {
+    if (!await _hasInternetConnection()) {
+      _showNoInternetToast();
+      return;
+    }
+
     debugPrint(
       '[LocationSearch] Selected: '
           '${suggestion.description}',
@@ -447,6 +548,11 @@ class _LocationSelectionScreenState
   Future<void> _onMapTap(
       LatLng latLng,
       ) async {
+    if (!await _hasInternetConnection()) {
+      _showNoInternetToast();
+      return;
+    }
+
     debugPrint(
       '[Map] Tapped: '
           '${latLng.latitude}, '
@@ -468,6 +574,16 @@ class _LocationSelectionScreenState
     required double longitude,
   }) async {
     if (!mounted) return;
+
+    if (!await _hasInternetConnection()) {
+      _showNoInternetToast();
+
+      setState(() {
+        _loadingPoliceStations = false;
+      });
+
+      return;
+    }
 
     setState(() {
       _loadingPoliceStations = true;
@@ -628,6 +744,50 @@ class _LocationSelectionScreenState
           '[Map] Camera animation error: $e',
         );
       }
+    }
+
+    // =========================================================================
+    // CHECK CONNECTIVITY BEFORE NETWORK CALLS
+    //
+    // Marker/pin stays visible on the map (already added above) even if we
+    // are offline; we just can't resolve the address or nearby stations.
+    // =========================================================================
+
+    final online = await _hasInternetConnection();
+
+    if (!online) {
+      _showNoInternetToast();
+
+      if (!mounted || requestId != _locationRequestId) {
+        return;
+      }
+
+      final offlineLocation = SelectedLocationModel(
+        address: knownAddress ??
+            'Dropped pin '
+                '(${latLng.latitude.toStringAsFixed(5)}, '
+                '${latLng.longitude.toStringAsFixed(5)})',
+        latitude: latLng.latitude,
+        longitude: latLng.longitude,
+      );
+
+      setState(() {
+        _resolvingPin = false;
+
+        if (!_addingNewLocation) {
+          if (_selectedLocations.isEmpty) {
+            _selectedLocations.add(offlineLocation);
+          } else {
+            _selectedLocations[0] = offlineLocation;
+          }
+
+          _pendingLocation = null;
+        } else {
+          _pendingLocation = offlineLocation;
+        }
+      });
+
+      return;
     }
 
     // =========================================================================
@@ -924,6 +1084,18 @@ class _LocationSelectionScreenState
           ),
 
           // ===================================================================
+          // OFFLINE BANNER
+          // ===================================================================
+
+          // if (_isOffline)
+          //   Positioned(
+          //     top: MediaQuery.of(context).padding.top,
+          //     left: 0,
+          //     right: 0,
+          //     child: _buildOfflineBanner(),
+          //   ),
+
+          // ===================================================================
           // SEARCH BAR
           // ===================================================================
 
@@ -932,6 +1104,7 @@ class _LocationSelectionScreenState
             MediaQuery.of(context)
                 .padding
                 .top +
+                (_isOffline ? 40 : 0) +
                 12,
 
             left: 16,
@@ -952,6 +1125,7 @@ class _LocationSelectionScreenState
               MediaQuery.of(context)
                   .padding
                   .top +
+                  (_isOffline ? 40 : 0) +
                   68,
 
               left: 16,
@@ -975,6 +1149,7 @@ class _LocationSelectionScreenState
               MediaQuery.of(context)
                   .padding
                   .top +
+                  (_isOffline ? 40 : 0) +
                   70,
 
               right: 16,
@@ -997,6 +1172,40 @@ class _LocationSelectionScreenState
             child:
             _buildBottomSheet(
               canAddMore,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // OFFLINE BANNER
+  // ===========================================================================
+
+  Widget _buildOfflineBanner() {
+    return Container(
+      width: double.infinity,
+      color: Colors.redAccent,
+      padding: const EdgeInsets.symmetric(
+        vertical: 6,
+        horizontal: 12,
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.wifi_off,
+            size: 14,
+            color: Colors.white,
+          ),
+          SizedBox(width: 6),
+          Text(
+            'No internet connection',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

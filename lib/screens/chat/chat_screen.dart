@@ -8,6 +8,7 @@ import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 
 import 'package:lost_and_found/utils/app_colors.dart';
+import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
@@ -41,24 +42,19 @@ class _ChatScreenState
     debugPrint(
       '[ChatScreen] Current user ID: $currentUserId',
     );
+
+    if (currentUserId == null || currentUserId!.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppSnackBar.show(
+          context: context,
+          message: 'User not found',
+        );
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (currentUserId == null ||
-        currentUserId!.isEmpty) {
-      return Scaffold(
-        backgroundColor:
-        AppColors.white,
-
-        body: const Center(
-          child: AppText(
-            text: 'User not found',
-          ),
-        ),
-      );
-    }
-
     return DefaultTabController(
       length: 2,
 
@@ -97,9 +93,17 @@ class _ChatScreenState
               const SizedBox(height: 10),
 
               Expanded(
-                child: StreamBuilder<
-                    QuerySnapshot<
-                        Map<String, dynamic>>>(
+                child: (currentUserId == null || currentUserId!.isEmpty)
+                    ? Center(
+                        child: AppText(
+                          text: 'Please login to see chats',
+                          color: AppColors.grey,
+                          fontSize: 14,
+                        ),
+                      )
+                    : StreamBuilder<
+                        QuerySnapshot<
+                            Map<String, dynamic>>>(
                   stream:
                   ChatService.chatRoomsStream(
                     currentUserId!,

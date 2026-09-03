@@ -238,6 +238,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     Expanded(
                                       flex: 2,
                                       child: AppTextField(
+                                        readOnly: true,
                                         hintText: '+91',
                                         textController: TextEditingController(),
                                         onChange: (v) {},

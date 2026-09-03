@@ -91,7 +91,10 @@ class AppTextField extends StatelessWidget {
                 obscureText: obscureText ?? false,
                 textCapitalization:
                 textCapitalization ?? TextCapitalization.none,
-                inputFormatters: inputFormatters,
+                inputFormatters: [
+                  NoLeadingSpaceFormatter(),
+                  ...?inputFormatters,
+                ],
                 keyboardType: textInputType ??
                     (maxLines != null && maxLines! > 1
                         ? TextInputType.multiline
@@ -204,4 +207,23 @@ Widget buildErrorText({required String errorText}) {
       ],
     ),
   );
+}
+
+class NoLeadingSpaceFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.startsWith(' ')) {
+      final String trimmedText = newValue.text.trimLeft();
+      int selectionOffset = newValue.selection.baseOffset - (newValue.text.length - trimmedText.length);
+      if (selectionOffset < 0) selectionOffset = 0;
+      return newValue.copyWith(
+        text: trimmedText,
+        selection: TextSelection.collapsed(offset: selectionOffset),
+      );
+    }
+    return newValue;
+  }
 }
