@@ -937,11 +937,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               }
             },
 
-            bgColor: _isFormValid
+            bgColor: widget.profileModel.isFromEdit || _isFormValid
                 ? AppColors.primaryColor
                 : AppColors.idCardColor,
 
-            textColor: _isFormValid ? AppColors.white : AppColors.black,
+            textColor: widget.profileModel.isFromEdit || _isFormValid
+                ? AppColors.white
+                : AppColors.black,
           ).pad(16),
         ),
       ),
