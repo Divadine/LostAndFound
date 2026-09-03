@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/enums/current_state.dart';
@@ -127,11 +126,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
           if (response.status == 1) {
             AppRoutes.pop();
-            // TODO: Replace AppRoutes.profileScreen below with your bottom
-            // navigation / home screen route so a newly registered user
-            // lands there instead of the profile screen. pushAndRemoveUntil
-            // already clears the whole stack (register + login + otp), so
-            // pressing back from that screen won't return here.
             AppRoutes.pushAndRemoveUntil(
               AppRoutes.profileScreen,
               arguments: ProfileScreenModel(
@@ -160,141 +154,130 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      // Register is an entry screen with nowhere sensible to go "back" to,
-      // so back should exit the app instead of revealing a previous screen.
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        SystemNavigator.pop();
-      },
-      child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        backgroundColor: AppColors.white,
-        appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
-        body: Center(
-          child: Form(
-            key: _formKey,
-            child: AppContainer(
-              widget: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 20,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    spacing: 20,
-                    children: [
-                      AppText(
-                        text: 'Register Screen',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primaryColor,
-                      ),
-                      AppText(
-                        text:
-                        'Start your journey by registering now. Fill in Your details to create an account.',
-                        fontWeight: FontWeight.w400,
-                        fontSize: 14,
-                        color: AppColors.primaryColor,
-                        textAlign: TextAlign.center,
-                      ).padHorizontal(),
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      backgroundColor: AppColors.white,
+      appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
+      body: Center(
+        child: Form(
+          key: _formKey,
+          child: AppContainer(
+            widget: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: 20,
+                  children: [
+                    AppText(
+                      text: 'Register Screen',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryColor,
+                    ),
+                    AppText(
+                      text:
+                      'Start your journey by registering now. Fill in Your details to create an account.',
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      color: AppColors.primaryColor,
+                      textAlign: TextAlign.center,
+                    ).padHorizontal(),
 
-                      StreamBuilder(
-                        stream: nameStream.stream,
-                        builder: (context, asyncSnapshot) {
-                          final nameData = asyncSnapshot.data;
-                          return buildTextFieldWithHeading(
-                            title: 'Name',
-                            fieldWidget: Column(
-                              children: [
-                                AppTextField(
-                                  hintText: 'Enter Name',
-                                  textController: textController,
-                                  onChange: _onNameChanged,
-                                  onSubmit: (v) {},
-                                ),
-                                if (nameData != null)
-                                  buildErrorText(errorText: nameData),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                    StreamBuilder(
+                      stream: nameStream.stream,
+                      builder: (context, asyncSnapshot) {
+                        final nameData = asyncSnapshot.data;
+                        return buildTextFieldWithHeading(
+                          title: 'Name',
+                          fieldWidget: Column(
+                            children: [
+                              AppTextField(
+                                hintText: 'Enter Name',
+                                textController: textController,
+                                onChange: _onNameChanged,
+                                onSubmit: (v) {},
+                              ),
+                              if (nameData != null)
+                                buildErrorText(errorText: nameData),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
 
-                      // +91
-                      StreamBuilder(
-                        stream: numberStream.stream,
-                        builder: (context, asyncSnapshot) {
-                          final numberData = asyncSnapshot.data;
-                          return buildTextFieldWithHeading(
-                            title: 'Mobile Number',
-                            fieldWidget: Column(
-                              children: [
-                                Row(
-                                  spacing: 10,
-                                  children: [
-                                    Expanded(
-                                      flex: 2,
-                                      child: AppTextField(
-                                        readOnly: true,
-                                        hintText: '+91',
-                                        textController: TextEditingController(),
-                                        onChange: (v) {},
-                                        onSubmit: (v) {},
-                                      ),
+                    // +91
+                    StreamBuilder(
+                      stream: numberStream.stream,
+                      builder: (context, asyncSnapshot) {
+                        final numberData = asyncSnapshot.data;
+                        return buildTextFieldWithHeading(
+                          title: 'Mobile Number',
+                          fieldWidget: Column(
+                            children: [
+                              Row(
+                                spacing: 10,
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: AppTextField(
+                                      readOnly: true,
+                                      hintText: '+91',
+                                      textController: TextEditingController(),
+                                      onChange: (v) {},
+                                      onSubmit: (v) {},
                                     ),
-                                    Expanded(
-                                      flex: 8,
-                                      child: AppTextField(
-                                        maxLength: 10,
-                                        hintText: 'Enter a mobile number',
-                                        textController: phoneController,
-                                        onChange: (v) {
-                                          final error = AppUtils.validateMobileNumber(v);
-                                          numberStream.add(error);
-                                          setState(() {
-                                            errorText = error;
-                                          });
-                                        },
-                                        onSubmit: (v) {},
-                                        textInputType: TextInputType.phone,
-                                      ),
+                                  ),
+                                  Expanded(
+                                    flex: 8,
+                                    child: AppTextField(
+                                      maxLength: 10,
+                                      hintText: 'Enter a mobile number',
+                                      textController: phoneController,
+                                      onChange: (v) {
+                                        final error = AppUtils.validateMobileNumber(v);
+                                        numberStream.add(error);
+                                        setState(() {
+                                          errorText = error;
+                                        });
+                                      },
+                                      onSubmit: (v) {},
+                                      textInputType: TextInputType.phone,
                                     ),
-                                  ],
-                                ),
-                                if (numberData != null)
-                                  buildErrorText(errorText: numberData),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                                  ),
+                                ],
+                              ),
+                              if (numberData != null)
+                                buildErrorText(errorText: numberData),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
 
-                      AppButton(
-                        title: 'Register',
-                        onTap: _onRegisterTap,
-                        radius: BorderRadius.circular(8),
-                      ).padHorizontal(30),
+                    AppButton(
+                      title: 'Register',
+                      onTap: _onRegisterTap,
+                      radius: BorderRadius.circular(8),
+                    ).padHorizontal(30),
 
-                      SizedBox(height: 15),
+                    SizedBox(height: 15),
 
-                      AuthChangeText(
-                        text1: "Already have an Account?",
-                        tappableText: 'Login',
-                        onTap: () {
-                          // pushReplacementNamed instead of pushNamed so bouncing
-                          // between Register <-> Login doesn't keep stacking screens.
-                          AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
-                        },
-                      ),
-                    ],
-                  ),
+                    AuthChangeText(
+                      text1: "Already have an Account?",
+                      tappableText: 'Login',
+                      onTap: () {
+                        AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
+                      },
+                    ),
+                  ],
                 ),
               ),
-            ).pad(18),
-          ),
+            ),
+          ).pad(18),
         ),
       ),
     );

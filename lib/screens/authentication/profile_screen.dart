@@ -172,9 +172,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isStateValid = stateController.text.isNotEmpty;
     final isCountryValid = countryController.text.isNotEmpty;
 
-    final isImageValid = choosenImage != null ||
-        (widget.profileModel.profileImageUrl != null &&
-            widget.profileModel.profileImageUrl!.isNotEmpty);
+    final isAltValid = alternativeController.text.isEmpty ||
+        (AppUtils.validateMobileNumber(alternativeController.text) == null &&
+            alternativeController.text != mobileController.text);
 
     final valid = isNameValid &&
         isMobileValid &&
@@ -184,7 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         isCityValid &&
         isStateValid &&
         isCountryValid &&
-        isImageValid;
+        isAltValid;
 
     if (valid != _isFormValid) {
       setState(() => _isFormValid = valid);
@@ -474,7 +474,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     bool isValid = false;
                                     if (v.isEmpty) {
                                       mobileStream.add(null);
-                                      isValid = false;
+                                      isValid = true;
                                     } else if (v == mobileController.text) {
                                       mobileStream.add(
                                           "Alternate number cannot be same as mobile number");
@@ -495,6 +495,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       setState(() => _isAltVerified = false);
                                       verifyMobileStream.add(false);
                                     }
+                                    _checkFormValidity();
                                   },
                                   onSubmit: (v) {},
                                   textInputType: TextInputType.phone,
@@ -884,7 +885,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: AppButton(
             title: widget.profileModel.isFromEdit ? 'Save' : 'Save & Next',
             radius: BorderRadius.circular(7),
-            onTap: () async {
+            onTap: _isFormValid ? () async {
               if (!_formKey.currentState!.validate()) return;
 
               // profile_status:
@@ -935,13 +936,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 );
               }
-            },
+            } : null,
 
-            bgColor: widget.profileModel.isFromEdit || _isFormValid
+            bgColor: _isFormValid
                 ? AppColors.primaryColor
                 : AppColors.idCardColor,
 
-            textColor: widget.profileModel.isFromEdit || _isFormValid
+            textColor: _isFormValid
                 ? AppColors.white
                 : AppColors.black,
           ).pad(16),

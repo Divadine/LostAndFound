@@ -5,7 +5,7 @@ import 'package:lost_and_found/utils/app_colors.dart';
 
 class AppButton extends StatelessWidget {
   final String title;
-  final void Function() onTap;
+  final void Function()? onTap;
   final String? icon;
   final String? prefixIcon;
   final Color? textColor;
