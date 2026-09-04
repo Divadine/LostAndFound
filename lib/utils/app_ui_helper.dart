@@ -92,6 +92,7 @@ class AppUiHelper {
     bool showCloseIcon = false,
     Color? color,
     Color? iconColor,
+    Color bgColor = AppColors.white,
   }) {
     return showModalBottomSheet<T>(
       context: context,
@@ -118,9 +119,9 @@ class AppUiHelper {
                     horizontal: 16,
                     vertical: 12,
                   ),
-                  decoration: const BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.vertical(
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(24),
                     ),
                   ),

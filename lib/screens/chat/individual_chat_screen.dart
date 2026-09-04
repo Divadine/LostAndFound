@@ -2134,12 +2134,14 @@ class _IndividualChatScreenState
                   onTap: () {
                     AppUiHelper
                         .showBottomSheet(
+
                       context: context,
                       showHandle: false,
                       showCloseIcon:
                       false,
                       color: AppColors
                           .primaryColor,
+                      bgColor: Colors.transparent,
                       iconColor:
                       AppColors.white,
 
