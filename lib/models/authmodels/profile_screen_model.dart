@@ -40,10 +40,11 @@ class ProfileScreenModel {
   factory ProfileScreenModel.fromJson(Map<String, dynamic> json) {
     return ProfileScreenModel(
       isFromEdit: false,
-      altMobileVerified: json['alt_status']?.toString() == '1',
+      altMobileVerified:
+      json['alt_status']?.toString() == '1',
       userId: json['id'],
       userUid: json['user_uid'],
-      profileImageUrl: json['profile_image'],
+      profileImageUrl: _parseProfileImage(json['profile_image']),
       name: json['name'],
       mobile: json['phoneno'],
       altMobile: json['altno'],
@@ -59,7 +60,25 @@ class ProfileScreenModel {
     );
   }
 
-  ProfileScreenModel copyWith({bool? isFromEdit, int? status}) {
+  static String? _parseProfileImage(dynamic value) {
+    if (value == null) return null;
+
+    final imageUrl = value.toString().trim();
+
+    if (imageUrl.isEmpty ||
+        imageUrl.toLowerCase() == 'null' ||
+        imageUrl.toLowerCase() == 'undefined') {
+      return null;
+    }
+
+    return imageUrl;
+  }
+
+  ProfileScreenModel copyWith({
+    bool? isFromEdit,
+    int? status,
+    String? profileImageUrl,
+  }) {
     return ProfileScreenModel(
       isFromEdit: isFromEdit ?? this.isFromEdit,
       userId: userId,
@@ -76,7 +95,8 @@ class ProfileScreenModel {
       landmark: landmark,
       latitude: latitude,
       longitude: longitude,
-      profileImageUrl: profileImageUrl,
+      profileImageUrl:
+      profileImageUrl ?? this.profileImageUrl,
       status: status ?? this.status,
     );
   }

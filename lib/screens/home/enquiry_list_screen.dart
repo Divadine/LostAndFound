@@ -28,8 +28,9 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 class EnquiryListScreen extends StatefulWidget {
   final int postId;
+  final bool isFound;
 
-  const EnquiryListScreen({super.key, required this.postId});
+  const EnquiryListScreen({super.key, required this.postId, this.isFound = true});
 
   @override
   State<EnquiryListScreen> createState() => _EnquiryListScreenState();
@@ -76,6 +77,9 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
       final roomId = await ChatService.createChatRoom(
         currentUserId: currentUserId.toString(),
         otherUserId: otherUserId.toString(),
+
+        currentUserName: AppPreferences.getUserName() ?? '',
+        otherUserName: enquiry.enquirerName ?? '',
 
         /// Pass item details to ensure consistency
         itemName: post?.name ?? '',
@@ -140,6 +144,8 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
       postId: widget.postId,
     );
 
+    print('viewenquiry #############################%%%%%%%%%%%%%%%%%%^^^^^^^^');
+    print('response----------------------------------------------$response');
     print('Response success: ${response.isSuccess}');
     print('Response message: ${response.message}');
     print('Enquiries count: ${response.data?.enquiriesCount}');
@@ -170,6 +176,17 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     }
   }
 
+  String _getMediaUrl(String? url) {
+    if (url == null || url.trim().isEmpty) {
+      return '';
+    }
+    final cleanUrl = url.trim();
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      return cleanUrl;
+    }
+    return 'https://lost-and-found.skyraantech.com/backend/$cleanUrl';
+  }
+
   String _timeAgo(DateTime? date) {
     if (date == null) return '';
     final diff = DateTime.now().difference(date);
@@ -181,15 +198,30 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isClosed = enquiryData?.post?.status == 2;
+    final post = enquiryData?.post;
+    final enquiries = enquiryData?.enquiries ?? [];
+    final isClosed = post?.status == 2;
+
+    // Find winner enquirer (status == 2)
+    EnquiryItem? winnerEnquiry;
+    if (isClosed) {
+      for (final e in enquiries) {
+        if (e.status == 2) {
+          winnerEnquiry = e;
+          break;
+        }
+      }
+    }
 
     return Scaffold(
-      backgroundColor: isClosed ? AppColors.closedColor : AppColors.white,
+      backgroundColor: AppColors.white,
       appBar: CustomAppBar(
         title: "Enquires",
         centerTitle: true,
+        titleColor: AppColors.primaryColor,
+        leadingIconColor: AppColors.primaryColor,
         leadingSvg: AssetImages.backArrow,
-        backgroundColor: isClosed ? AppColors.closedColor : AppColors.white,
+        backgroundColor: AppColors.white,
       ),
       body: SafeArea(
         child: _buildBody(),
@@ -197,12 +229,13 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
       bottomNavigationBar: isClosed
           ? SafeArea(
         child: SucessCard(
-          name: 'Karthi Kumar', // TODO: Get actual owner name from handover details
-          location: enquiryData?.post?.postDate != null
-              ? DateFormat('d MMM yyyy').format(enquiryData!.post!.postDate!)
+          name: winnerEnquiry?.enquirerName ?? (widget.isFound ? 'Owner' : 'Finder'),
+          location: post?.postDate != null
+              ? DateFormat('d MMM yyyy').format(post!.postDate!)
               : '',
-          isReceiver: false,
+          isReceiver: !widget.isFound,
           onTap: () {
+            if (winnerEnquiry == null) return;
             // Show Handover Details bottom sheet directly
             AppUiHelper.showBottomSheet(
               context: context,
@@ -211,16 +244,15 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               child: ReceivedDetails(
                 type: TransferType.handOverToOwner,
                 data: TransferData(
-                  name: 'Karthi Kumar',
-                  avatarUrl: '',
-                  userId: 'LF2489',
-                  phoneNumber: '9751333333',
-                  description:
-                  'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-                  proofPhotos: [
-                    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_u2Fv-qj6_jO_Z_qX_L9f-l4Xj_Y_Y7_Lw&s'
-                  ],
-                  matchPercentage: 95,
+                  name: winnerEnquiry.enquirerName,
+                  avatarUrl: winnerEnquiry.enquirerProfileImg,
+                  userId: winnerEnquiry.userUid,
+                  phoneNumber: '',
+                  description: winnerEnquiry.description,
+                  proofPhotos: (post?.images ?? [])
+                      .map((img) => _getMediaUrl(img))
+                      .toList(),
+                  matchPercentage: winnerEnquiry.matchPercentage,
                 ),
               ),
             );
@@ -250,7 +282,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                     context: context,
                     child: ReceiveHandoverSheet(
                       title: enquiryData?.post?.name ?? '',
-                      isReceiver: false, // this is the Found-item post -> hand over flow
+                      isReceiver: !widget.isFound, // If I found it, I am the giver (isReceiver=false). If I lost it, I am the receiver (isReceiver=true).
                       postId: widget.postId,
                     ),
                   );
@@ -281,7 +313,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
         ItemCard(
           imageWidth: 170,
           isFromEnquiry: true,
-          isFound: true,
+          isFound: widget.isFound,
           imgUrl: post != null && post.images.isNotEmpty ? post.images.first : '',
           title: post?.name ?? '',
           location: post?.location ?? '',
@@ -291,23 +323,46 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
           postId: post?.postUid ?? '',
           bg: AppColors.lightBlue_2,
           onTap: () {
-            AppRoutes.pushNamed(AppRoutes.lostItemsDetailsScreen);
+            if (post != null) {
+              AppRoutes.pushNamed(
+                AppRoutes.lostItemsDetailsScreen,
+                arguments: {
+                  'postId': post.id,
+                  'userId': post.userId,
+                  'isLostPost': !widget.isFound,
+                },
+              );
+            }
           },
           showPostId: true,
           status: post?.status,
+          showClosedStamp: false,
         ).pad(10),
 
         Row(
+          spacing: 10,
           children: [
-            AppText(
+            const AppText(
               text: 'Enquires Received',
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primaryColor,
-              textAlign: TextAlign.center,
-            ).pad(12),
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.black,
+            ),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: AppColors.primaryColor,
+                shape: BoxShape.circle,
+              ),
+              child: AppText(
+                text: '${enquiryData?.enquiriesCount ?? 0}',
+                color: AppColors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
-        ),
+        ).pad(12),
 
         Expanded(
           child: enquiries.isEmpty
@@ -338,6 +393,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                   bgColor: isWinner ? AppColors.closedColor : AppColors.white,
                   profileImage: e.enquirerProfileImg,
                   name: e.enquirerName,
+                  userId: e.userUid,
                   time: _timeAgo(e.createdAt),
                   matchPercentage: '${e.matchPercentage}%',
                   description: e.description,
@@ -354,6 +410,8 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                         'posterName': e.enquirerName,
                         'posterAvatar': e.enquirerProfileImg,
                         'originalPostId': widget.postId,
+                        'hideEnquiryButton': true,
+                        'isLostPost': widget.isFound,
                       },
                     );
                   },
@@ -370,6 +428,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     required BuildContext context,
     required String profileImage,
     required String name,
+    required String userId,
     required String time,
     required String matchPercentage,
     required String description,
@@ -382,84 +441,116 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
       widget: InkWell(
         onTap: detailOnTap,
         child: Column(
-          spacing: 10,
+          spacing: 15,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              spacing: 10,
-              mainAxisAlignment: MainAxisAlignment.start,
+              spacing: 12,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
-                  radius: 20,
+                  radius: 24,
+                  backgroundColor: Colors.transparent,
                   child: profileImage.isNotEmpty
                       ? AppCachedNetworkImage(
-                    borderRadius: BorderRadius.circular(20),
-                    imageUrl: profileImage,
-                  )
-                      : Icon(
-                    Icons.person,
-                    color: AppColors.primaryColor,
-                  ),
+                          borderRadius: BorderRadius.circular(24),
+                          imageUrl: profileImage,
+                          fit: BoxFit.cover,
+                          height: 48,
+                          width: 48,
+                        )
+                      : const Icon(
+                          Icons.person,
+                          size: 30,
+                          color: AppColors.primaryColor,
+                        ),
                 ),
-
-                Flexible(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AppText(
-                        text: name,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        color: AppColors.primaryColor,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: AppText(
+                                    text: name,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                    color: AppColors.primaryColor,
+                                    textOverflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (userId.isNotEmpty)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.idCardColor,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: AppText(
+                                      text: 'ID : $userId',
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 10,
+                                      color: AppColors.primaryColor,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.purple.withAlpha(30),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: AppText(
+                              text: '$matchPercentage match',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 10,
+                              color: AppColors.purple,
+                            ),
+                          ),
+                        ],
                       ),
-
                       const SizedBox(height: 2),
-
                       AppText(
                         text: 'Enquired $time',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
                         color: AppColors.grey,
                       ),
-
-                      const SizedBox(height: 5),
-
+                      const SizedBox(height: 12),
                       AppText(
                         text: description,
                         fontWeight: FontWeight.w400,
-                        fontSize: 12,
+                        fontSize: 14,
                         color: AppColors.black,
+                        maxLine: 2,
+                        textOverflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-
-                Spacer(),
-                Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: AppColors.purple.withAlpha(30),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: AppText(
-                    text: '$matchPercentage match',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 10,
-                    color: AppColors.purple,
-                  ),
-                ),
               ],
             ),
-
             Row(
-              spacing: 10,
+              spacing: 12,
               children: [
                 Expanded(
                   child: AppButton(
                     title: 'Message',
-                    fontSize: 14,
-                    height: 30,
+                    fontSize: 16,
+                    height: 40,
                     onTap: messageOnTap,
                     border: Border.all(
                       color: AppColors.primaryColor,
@@ -470,16 +561,12 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                     textColor: AppColors.primaryColor,
                   ),
                 ),
-
                 Expanded(
                   child: AppButton(
                     title: 'View Details',
-                    height: 30,
-                    fontSize: 14,
+                    height: 40,
+                    fontSize: 16,
                     onTap: detailOnTap,
-                    border: Border.all(
-                      color: AppColors.primaryColor,
-                    ),
                     radius: BorderRadius.circular(10),
                     bgColor: AppColors.primaryColor,
                     textColor: AppColors.white,
@@ -488,8 +575,8 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               ],
             ),
           ],
-        ).pad(),
+        ).pad(12),
       ),
-    ).pad(10);
+    ).padHorizontal(16).padVertical(8);
   }
 }

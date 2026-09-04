@@ -117,10 +117,10 @@ class AuthRepository {
 
   Future<ResponseModel> updateProfile(UpdateProfileForm profile) async {
     final map  =  profile.toMap();
-    final file = map.remove('profileImg') as File?;
+    final file = map.remove('profileimg') as File?;
     final formData = dio.FormData.fromMap({...map,
       if(file != null)
-        'profileImg' : await dio.MultipartFile.fromFile(file.path,filename: file.path.split('/').last,)
+        'profileimg' : await dio.MultipartFile.fromFile(file.path,filename: file.path.split('/').last,)
     });
     
     return  await apiClient.post(ApiEndPoints.updateProfile,data: formData,addToken: false);
@@ -142,34 +142,71 @@ class AuthRepository {
   //   return ResponseModel<dynamic>.fromJson(response.data,(json) => json);
   // }
 
-
-  Future<ResponseModel<ProfileScreenModel>> getProfile({required int userId}) async {
-    final response = await apiClient.post(ApiEndPoints.getUserInfo,data:{"id": userId},addToken: false );
+  Future<ResponseModel<ProfileScreenModel>> getProfile({
+    required int userId,
+  }) async {
+    final response = await apiClient.post(
+      ApiEndPoints.getUserInfo,
+      data: {
+        "id": userId,
+      },
+      addToken: false,
+    );
 
     if (!response.isSuccess) {
       return ResponseModel<ProfileScreenModel>(
         status: response.status,
         message: response.message,
-          currentState: response.currentState
+        currentState: response.currentState,
       );
     }
 
     final list = response.data as List;
-    if(list.isEmpty){
+
+    if (list.isEmpty) {
       return ResponseModel<ProfileScreenModel>(
         status: 0,
         message: "Profile data not found.",
-          currentState: response.currentState
+        currentState: response.currentState,
       );
     }
+
     return ResponseModel<ProfileScreenModel>(
       status: response.status,
       message: response.message,
       currentState: response.currentState,
-      data: ProfileScreenModel.fromJson(list.first as Map<String, dynamic>,),
-
+      data: ProfileScreenModel.fromJson(
+        list.first as Map<String, dynamic>,
+      ),
     );
   }
+  // Future<ResponseModel<ProfileScreenModel>> getProfile({required int userId}) async {
+  //   final response = await apiClient.post(ApiEndPoints.getUserInfo,data:{"id": userId},addToken: false );
+  //
+  //   if (!response.isSuccess) {
+  //     return ResponseModel<ProfileScreenModel>(
+  //       status: response.status,
+  //       message: response.message,
+  //         currentState: response.currentState
+  //     );
+  //   }
+  //
+  //   final list = response.data as List;
+  //   if(list.isEmpty){
+  //     return ResponseModel<ProfileScreenModel>(
+  //       status: 0,
+  //       message: "Profile data not found.",
+  //         currentState: response.currentState
+  //     );
+  //   }
+  //   return ResponseModel<ProfileScreenModel>(
+  //     status: response.status,
+  //     message: response.message,
+  //     currentState: response.currentState,
+  //     data: ProfileScreenModel.fromJson(list.first as Map<String, dynamic>,),
+  //
+  //   );
+  // }
   // Future<ResponseModel<ProfileScreenModel>> getProfile({required int userId}) async {
   //   final response = await apiClient.post(ApiEndPoints.getUserInfo, {"id": userId});
   //   return ResponseModel<ProfileScreenModel>.fromJson(
@@ -507,7 +544,7 @@ class AuthRepository {
   Future<ResponseModel> deletePost({required int postId, required String reason}) async {
    return  await  apiClient.delete(ApiEndPoints.deletePost,
       data: {
-        'postId': postId,
+        'post_id': postId,
         'reason': reason,
     },
     addToken: false,
@@ -647,16 +684,16 @@ class AuthRepository {
     required int handoverType,
   }) async {
     final body = {
-      'enquiry_id': enquiryId ?? 0,
+      'enquiry_id': (handoverType == 2 || handoverType == 3) ? 0 : (enquiryId ?? 0),
       'type': type,
       'user_id': userId,
       'post_id': postId,
-      'receiver_id': receiverId ?? 0,
-      'receiver_postid': receiverPostId ?? 0,
+      'receiver_id': (handoverType == 2 || handoverType == 3) ? 0 : (receiverId ?? 0),
+      'receiver_postid': (handoverType == 2 || handoverType == 3) ? 0 : (receiverPostId ?? 0),
       'handover_img': handoverImg ?? "",
-      if (stationName != null) 'stationd_name': stationName,
-      if (stationAddress != null) 'station_address': stationAddress,
-      if (name != null) 'name': name,
+      'station_name': stationName ?? "",
+      'station_address': stationAddress ?? "",
+      'name': name ?? "",
       'description': description,
       'phoneno': phoneno,
       'handover_type': handoverType,
@@ -857,3 +894,4 @@ class AuthRepository {
     return response;
   }
 }
+

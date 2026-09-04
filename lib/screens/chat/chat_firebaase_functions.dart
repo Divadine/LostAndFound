@@ -534,6 +534,12 @@ class ChatService {
         .collection('messages')
         .doc('itemCard');
 
+    final doc = await itemCardRef.get();
+
+    if (doc.exists) {
+      return;
+    }
+
     await itemCardRef.set(
       {
         'messageType': 'item',

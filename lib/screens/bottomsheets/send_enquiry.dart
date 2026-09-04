@@ -22,7 +22,7 @@ import '../post/first_stepper_screen.dart';
 
 class SendEnquiry extends StatefulWidget {
   // ============================================================
-  // ENQUIRER'S POST
+  // TARGET POST (the post being enquired against)
   // ============================================================
 
   final String name;
@@ -30,7 +30,7 @@ class SendEnquiry extends StatefulWidget {
   final int postId;
 
   // ============================================================
-  // MATCHED / FOUND POST
+  // SOURCE POST (enquirer's own matching post)
   // ============================================================
 
   final int matchedPostId;
@@ -52,6 +52,7 @@ class SendEnquiry extends StatefulWidget {
   final String itemImage;
   final String itemLocation;
   final String itemPostDate;
+  final bool isLostPost;
 
   const SendEnquiry({
     super.key,
@@ -67,6 +68,7 @@ class SendEnquiry extends StatefulWidget {
     this.itemImage = '',
     this.itemLocation = '',
     this.itemPostDate = '',
+    this.isLostPost = false,
   });
 
   @override
@@ -127,6 +129,9 @@ class _SendEnquiryState extends State<SendEnquiry> {
 
     debugPrint(
       '[SendEnquiry] matchedPostId: ${widget.matchedPostId}',
+    );
+    debugPrint(
+      '[SendEnquiry] PostId: ${widget.postId}',
     );
   }
 
@@ -241,7 +246,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
       // ==========================================================
 
       final users = [currentUserId, otherUserId]..sort();
-      final roomIdCheck = '${users[0]}_${users[1]}_${widget.matchedPostId}';
+      final roomIdCheck = '${users[0]}_${users[1]}_${widget.postId}';
 
       debugPrint('[SendEnquiry] Checking for existing room: $roomIdCheck');
       final existingRoom = await ChatService.getRoom(roomIdCheck);
@@ -270,7 +275,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
             'itemImage': widget.itemImage,
             'itemLocation': widget.itemLocation,
             'itemPostDate': widget.itemPostDate,
-            'itemPostId': widget.matchedPostId.toString(),
+            'itemPostId': widget.postId.toString(),
             'enquirySenderId': currentUserId,
           },
         );
@@ -328,6 +333,8 @@ class _SendEnquiryState extends State<SendEnquiry> {
         description:
         descriptionController.text.trim(),
       );
+      print('-------------------------------------------------');
+      print('enquiry....##########################$response');
 
       if (!mounted) {
         return;
@@ -438,7 +445,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
         // IMPORTANT:
         // This makes the room unique per post.
         postId:
-        widget.matchedPostId.toString(),
+        widget.postId.toString(),
       );
 
       debugPrint(
@@ -545,7 +552,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
           widget.itemPostDate,
 
           'itemPostId':
-          widget.matchedPostId.toString(),
+          widget.postId.toString(),
 
           'enquirySenderId':
           currentUserId,
@@ -637,7 +644,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
             hintText: '',
             textController:
             nameController,
-            readOnly: true,
+            readOnly: false,
             onChange: (v) {},
             onSubmit: (v) {},
           ),
@@ -653,7 +660,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
             hintText: '',
             textController:
             descriptionController,
-            readOnly: true,
+            readOnly: false,
             onChange: (v) {},
             onSubmit: (v) {},
             maxLines: 5,

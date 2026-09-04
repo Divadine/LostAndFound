@@ -36,6 +36,8 @@ class _AppRecorderState extends State<AppRecorder> {
     super.dispose();
   }
 
+  bool _isSaving = false;
+
   @override
   Widget build(BuildContext context) {
     switch (_service.state) {
@@ -116,13 +118,25 @@ class _AppRecorderState extends State<AppRecorder> {
               ),
               const SizedBox(width: 10),
               GestureDetector(
-                onTap: ()async{
-                  print("Function Called");
-                  final a = await _service.saveRecording();
-                  print('================');
-                  print(a);
-                },
-                child: AppIconWidget(assetPath: AssetImages.recordTick),
+                onTap: _isSaving
+                    ? null
+                    : () async {
+                        setState(() => _isSaving = true);
+                        try {
+                          print("Function Called");
+                          final a = await _service.saveRecording();
+                          print('================');
+                          print(a);
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isSaving = false);
+                          }
+                        }
+                      },
+                child: Opacity(
+                  opacity: _isSaving ? 0.5 : 1.0,
+                  child: AppIconWidget(assetPath: AssetImages.recordTick),
+                ),
               ),
             ],
           ),

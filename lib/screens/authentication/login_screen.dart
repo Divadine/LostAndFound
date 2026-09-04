@@ -52,7 +52,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    phoneController.dispose();
+    phoneController.dispose(
+
+
+    );
     numberStream.close();
     super.dispose();
   }

@@ -203,6 +203,7 @@ class _HomeScreenState extends State<HomeScreen>
         'foundCount': matchingCounts[post.id] ?? 0,
         'isReceived': false,
         'status': post.status,
+        'isFound': _tabController.index == 1,
       },
     );
   }
@@ -232,15 +233,17 @@ class _HomeScreenState extends State<HomeScreen>
           ? await authController.filterPosts(
               userId: userId ?? 0,
               postType: 0,
-              dateFilter: filterState.dateFilter,
-              startDate: filterState.customRange != null
+              dateFilter: filterState.effectiveRange != null
+                  ? 'custom'
+                  : filterState.dateFilter,
+              startDate: filterState.effectiveRange != null
                   ? DateFormat('yyyy-MM-dd').format(
-                      filterState.customRange!.start,
+                      filterState.effectiveRange!.start,
                     )
                   : null,
-              endDate: filterState.customRange != null
+              endDate: filterState.effectiveRange != null
                   ? DateFormat('yyyy-MM-dd').format(
-                      filterState.customRange!.end,
+                      filterState.effectiveRange!.end,
                     )
                   : null,
               page: currentPageLost,
@@ -313,15 +316,17 @@ class _HomeScreenState extends State<HomeScreen>
           ? await authController.filterPosts(
               userId: userId ?? 0,
               postType: 1,
-              dateFilter: filterState.dateFilter,
-              startDate: filterState.customRange != null
+              dateFilter: filterState.effectiveRange != null
+                  ? 'custom'
+                  : filterState.dateFilter,
+              startDate: filterState.effectiveRange != null
                   ? DateFormat('yyyy-MM-dd').format(
-                      filterState.customRange!.start,
+                      filterState.effectiveRange!.start,
                     )
                   : null,
-              endDate: filterState.customRange != null
+              endDate: filterState.effectiveRange != null
                   ? DateFormat('yyyy-MM-dd').format(
-                      filterState.customRange!.end,
+                      filterState.effectiveRange!.end,
                     )
                   : null,
               page: currentPageFound,
@@ -351,6 +356,8 @@ class _HomeScreenState extends State<HomeScreen>
           isLoadingFound = false;
           isMoreLoadingFound = false;
         });
+
+        _fetchMatchCounts(posts);
       } else {
         setState(() {
           isLoadingFound = false;
@@ -966,6 +973,15 @@ class _HomeScreenState extends State<HomeScreen>
                                 .where((url) => url.isNotEmpty)
                                 .toList()
                             : null,
+                        onEnquiryTap: () {
+                          AppRoutes.pushNamed(
+                            AppRoutes.enquiryListScreen,
+                            arguments: {
+                              'postId': post.id,
+                              'isFound': false,
+                            },
+                          );
+                        },
                         onViewAll: () => _openAvailableMatching(post),
                         status: post.status,
                         onTap: () {
@@ -978,9 +994,10 @@ class _HomeScreenState extends State<HomeScreen>
                               'location': post.location,
                               'date': _formatDate(post.postDate),
                               'postUid': post.postUid,
-                              'foundCount': post.enquiriesCount,
+                              'foundCount': matchingCounts[post.id] ?? post.enquiriesCount,
                               'isReceived': false,
                               'status': post.status,
+                              'isFound': false,
                             },
                           );
                         },
@@ -1130,6 +1147,7 @@ class _HomeScreenState extends State<HomeScreen>
                         isFound: true,
                         postId: post.postUid,
                         postIntId: post.id,
+                        foundCount: matchingCounts[post.id],
                         onDeleted: _fetchFoundPosts,
                         newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
                         enquiredProfile: post.enquirerAvatars.isNotEmpty
@@ -1138,12 +1156,23 @@ class _HomeScreenState extends State<HomeScreen>
                                 .where((url) => url.isNotEmpty)
                                 .toList()
                             : null,
+                        onEnquiryTap: () {
+                          AppRoutes.pushNamed(
+                            AppRoutes.enquiryListScreen,
+                            arguments: {
+                              'postId': post.id,
+                              'isFound': true,
+                            },
+                          );
+                        },
+                        onViewAll: () => _openAvailableMatching(post),
                         status: post.status,
                         onTap: () {
                           AppRoutes.pushNamed(
                             AppRoutes.enquiryListScreen,
                             arguments: {
                               'postId': post.id,
+                              'isFound': true,
                             },
                           );
                         },

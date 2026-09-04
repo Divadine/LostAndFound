@@ -133,13 +133,16 @@ class AppRecorderService extends ChangeNotifier {
     audioPath = path;
     recordedDuration = elapsed;
 
-    await _player.setFilePath(audioPath!);
+    try {
+      await _player.setFilePath(audioPath!);
+    } catch (e) {
+      debugPrint("Error loading recording into player: $e");
+    }
 
     state = RecorderState.recorded;
     notifyListeners();
 
     return audioPath;
-
   }
 
   Future<void> cancelRecording() async {

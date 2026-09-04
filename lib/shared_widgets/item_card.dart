@@ -28,6 +28,7 @@ class ItemCard extends StatelessWidget {
   final bool isFound;
   final String? description;
   final void Function() onTap;
+  final void Function()? onEnquiryTap; // NEW
   final String? profileId;
   final bool? isFromHomePage;
   final bool showPostId;
@@ -37,6 +38,7 @@ class ItemCard extends StatelessWidget {
   final VoidCallback? onDeleted; // NEW — refresh trigger after successful delete
   final VoidCallback? onViewAll;
   final int? status;
+  final bool showClosedStamp;
 
   const ItemCard({
     super.key,
@@ -56,6 +58,7 @@ class ItemCard extends StatelessWidget {
     required this.postId,
     this.time,
     required this.onTap,
+    this.onEnquiryTap, // NEW
     this.bg,
     this.profileId,
     this.isFromHomePage,
@@ -66,6 +69,7 @@ class ItemCard extends StatelessWidget {
     this.onDeleted,
     this.onViewAll,
     this.status,
+    this.showClosedStamp = true,
   });
 
   @override
@@ -104,14 +108,18 @@ class ItemCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     if (profileUrl != null && profileUrl!.trim().isNotEmpty)
-                      CircleAvatar(
-                        radius: 20,
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.white,
+                        ),
+                        clipBehavior: Clip.antiAlias,
                         child: AppCachedNetworkImage(
-                          width: 40,
-                          // height: 40,
                           imageUrl: profileUrl!,
                           fit: BoxFit.cover,
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                       ).padVertical(5),
                     if (profileName != null && profileName!.trim().isNotEmpty)
@@ -260,7 +268,7 @@ class ItemCard extends StatelessWidget {
                       ),
                   ],
                 ).pad(),
-                if (status == 2)
+                if (status == 2 && showClosedStamp)
                   Positioned.fill(
                     child: IgnorePointer(
                       child: Container(
@@ -299,7 +307,7 @@ class ItemCard extends StatelessWidget {
                 ],
               ),
             SizedBox(height: 10),
-            if (foundCount != null && status != 2)
+            if (foundCount != null && status != 2 && !isFound)
               GestureDetector(
                 onTap: onViewAll,
                 child: Container(
@@ -363,7 +371,7 @@ class ItemCard extends StatelessWidget {
                     if (enquiredProfile != null && enquiredProfile!.isNotEmpty)
                       EnquiredPersonsAvatar(images: enquiredProfile!),
                     GestureDetector(
-                      onTap: () {},
+                      onTap: onEnquiryTap,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         spacing: 10,

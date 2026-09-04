@@ -39,8 +39,8 @@ class PostModel{
         postDate: json['post_date'] != null ? DateTime.tryParse(json['post_date'].toString())  : null,
         images: (json['images'] as List? ?? []).map((e) => e.toString()).toList(),
         status:  json['status'] ?? 0,
-        enquiriesCount: json['enquiries_count'] ?? 0,
-        enquirerAvatars: (json['enquirer_avatars'] as List? ?? []).map((e) => EnquirerAvatarModel.fromJson(e as Map<String,dynamic>)).toList(),
+        enquiriesCount: json['enquiries_count'] ?? json['enquiriesCount'] ?? json['enquiry_count'] ?? 0,
+        enquirerAvatars: (json['enquirer_avatars'] as List? ?? json['enquirerAvatars'] as List? ?? []).map((e) => EnquirerAvatarModel.fromJson(e as Map<String,dynamic>)).toList(),
     );
   }
 
@@ -54,8 +54,10 @@ class EnquirerAvatarModel {
 
   factory EnquirerAvatarModel.fromJson(Map<String, dynamic> json) {
     return EnquirerAvatarModel(
-      name: json['name']?.toString() ?? '',
-      imageUrl: json['image_url']?.toString() ?? '',
+      name: json['name']?.toString() ?? json['enquirer_name']?.toString() ?? '',
+      imageUrl: json['image_url']?.toString() ??
+          json['enquirer_profile_img']?.toString() ??
+          json['profile_img']?.toString() ?? '',
     );
   }
 }

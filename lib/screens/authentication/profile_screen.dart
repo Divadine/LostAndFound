@@ -71,6 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   StreamController<File?> imageStream = StreamController.broadcast();
 
   bool _isAltVerified = false;
+  bool _isImageDeleted = false;
   String? latitude;
   String? longitude;
   final _formKey = GlobalKey<FormState>();
@@ -201,15 +202,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final XFile? pic = await picker.pickImage(source: ImageSource.gallery);
 
     if (pic != null) {
-      choosenImage = File(pic.path);
+      setState(() {
+        choosenImage = File(pic.path);
+        _isImageDeleted = false;
+      });
       imageStream.add(File(pic.path));
       _checkFormValidity();
     }
   }
 
   void deleteProfilePicture() {
-    if (choosenImage == null) return;
-    choosenImage = null;
+    setState(() {
+      choosenImage = null;
+      _isImageDeleted = true;
+    });
 
     imageStream.add(null);
     AppRoutes.pop();
@@ -220,12 +226,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void dispose() {
     nameStream.close();
     mobileStream.close();
+    verifyMobileStream.close();
     pinStream.close();
+    imageStream.close();
 
     nameController.dispose();
     mobileController.dispose();
     alternativeController.dispose();
     pinController.dispose();
+    countryController.dispose();
+    stateController.dispose();
+    cityController.dispose();
+    addressController.dispose();
+    landmarkController.dispose();
+    countryCodeController.dispose();
+    countryCodeController2.dispose();
+
+    for (final controller in _controller) {
+      controller.dispose();
+    }
 
     timer?.cancel();
 
@@ -261,31 +280,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fontWeight: FontWeight.w600,
                 ),
 
-                StreamBuilder(
+                StreamBuilder<File?>(
                   stream: imageStream.stream,
                   builder: (context, asyncSnapshot) {
-                    final selectedImage = asyncSnapshot.data;
+                    final File? selectedImage = asyncSnapshot.data;
+
+                    final String? profileImageUrl =
+                    widget.profileModel.profileImageUrl?.trim();
+
+                    final bool hasNetworkImage = !_isImageDeleted &&
+                        profileImageUrl != null &&
+                        profileImageUrl.isNotEmpty &&
+                            profileImageUrl.toLowerCase() != 'null' &&
+                            profileImageUrl.toLowerCase() != 'undefined';
+
                     return Stack(
                       children: [
                         CircleAvatar(
+                          radius: 50,
+                          backgroundColor:
+                          AppColors.fieldGrey.withAlpha(40),
                           backgroundImage: selectedImage != null
                               ? FileImage(selectedImage)
                               : null,
-                          radius: 50,
-                          child: selectedImage == null
-                              ? ((widget.profileModel.profileImageUrl != null && widget.profileModel.profileImageUrl!.isNotEmpty)
+                          child: selectedImage != null
+                              ? null
+                              : hasNetworkImage
                               ? ClipOval(
                             child: CachedNetworkImage(
-                              imageUrl: widget
-                                  .profileModel
-                                  .profileImageUrl!,
+                              imageUrl: profileImageUrl,
                               width: 100,
                               height: 100,
                               fit: BoxFit.cover,
+                              placeholder: (context, url) {
+                                return const SizedBox(
+                                  width: 100,
+                                  height: 100,
+                                  child: Center(
+                                    child:
+                                    CircularProgressIndicator(),
+                                  ),
+                                );
+                              },
+                              errorWidget:
+                                  (context, url, error) {
+                                return const Icon(
+                                  Icons.person,
+                                  size: 50,
+                                );
+                              },
                             ),
                           )
-                              : Icon(Icons.person))
-                              : null,
+                              : const Icon(
+                            Icons.person,
+                            size: 50,
+                          ),
                         ),
 
                         Positioned(
@@ -483,14 +532,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       isValid = false;
                                     } else {
                                       final error =
-                                          AppUtils.validateMobileNumber(v);
+                                      AppUtils.validateMobileNumber(v);
                                       mobileStream.add(error);
                                       isValid = error == null;
                                     }
 
                                     if (isValid != isAlternativeNumberValid) {
                                       setState(() =>
-                                          isAlternativeNumberValid = isValid);
+                                      isAlternativeNumberValid = isValid);
                                     }
 
                                     if (_isAltVerified) {
@@ -503,65 +552,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   textInputType: TextInputType.phone,
                                   suffixIcon: GestureDetector(
                                     onTap: _isAltVerified ||
-                                            !isAlternativeNumberValid
+                                        !isAlternativeNumberValid
                                         ? null
                                         : () {
-                                            if (AppUtils.validateMobileNumber(
-                                                    alternativeController
-                                                        .text) ==
-                                                null) {
-                                              AppDialogue.showPopup(
-                                                context: context,
-                                                content: OtpSharedScreen(
-                                                  isAlternateNumber: true,
-                                                  mobileNumber:
-                                                      alternativeController
-                                                          .text,
-                                                  onVerifyOtp:
-                                                      (String otp) async {
-                                                    final response =
-                                                        await authController
-                                                            .verifyMobileOtp(
-                                                      phone:
-                                                          alternativeController
-                                                              .text,
-                                                      otp: otp,
-                                                      userId: widget
-                                                          .profileModel.userId!,
-                                                    );
-                                                    if (response.status == 1) {
-                                                      setState(() {
-                                                        _isAltVerified = true;
-                                                      });
-                                                      verifyMobileStream
-                                                          .add(true);
-                                                      AppRoutes.pop();
-                                                      return null;
-                                                    }
-                                                    return response.message;
-                                                  },
-                                                  onSendOtp: () async {
-                                                    final response =
-                                                        await authController
-                                                            .generateMobileOtp(
-                                                                alternativeController
-                                                                    .text);
-                                                    if (response.isSuccess)
-                                                      return null;
-                                                    if (response.currentState ==
-                                                        CurrentState
-                                                            .noInternet) {
-                                                      return 'No internet connection. Please check your network.';
-                                                    }
-                                                    return response
-                                                            .message.isNotEmpty
-                                                        ? response.message
-                                                        : 'Failed to send OTP';
-                                                  },
-                                                ),
+                                      if (AppUtils.validateMobileNumber(
+                                          alternativeController
+                                              .text) ==
+                                          null) {
+                                        AppDialogue.showPopup(
+                                          context: context,
+                                          content: OtpSharedScreen(
+                                            isAlternateNumber: true,
+                                            mobileNumber:
+                                            alternativeController
+                                                .text,
+                                            onVerifyOtp:
+                                                (String otp) async {
+                                              final response =
+                                              await authController
+                                                  .verifyMobileOtp(
+                                                phone:
+                                                alternativeController
+                                                    .text,
+                                                otp: otp,
+                                                userId: widget
+                                                    .profileModel.userId!,
                                               );
-                                            }
-                                          },
+                                              if (response.status == 1) {
+                                                setState(() {
+                                                  _isAltVerified = true;
+                                                });
+                                                verifyMobileStream
+                                                    .add(true);
+                                                AppRoutes.pop();
+                                                return null;
+                                              }
+                                              return response.message;
+                                            },
+                                            onSendOtp: () async {
+                                              final response =
+                                              await authController
+                                                  .generateMobileOtp(
+                                                  alternativeController
+                                                      .text);
+                                              if (response.isSuccess)
+                                                return null;
+                                              if (response.currentState ==
+                                                  CurrentState
+                                                      .noInternet) {
+                                                return 'No internet connection. Please check your network.';
+                                              }
+                                              return response
+                                                  .message.isNotEmpty
+                                                  ? response.message
+                                                  : 'Failed to send OTP';
+                                            },
+                                          ),
+                                        );
+                                      }
+                                    },
                                     child: SizedBox(
                                       width: 100,
                                       child: Container(
@@ -599,8 +648,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 color: _isAltVerified
                                                     ? AppColors.green
                                                     : (isAlternativeNumberValid
-                                                        ? AppColors.primaryColor
-                                                        : AppColors.grey),
+                                                    ? AppColors.primaryColor
+                                                    : AppColors.grey),
                                               ),
                                             ],
                                           ),
@@ -897,9 +946,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // profile_status:
               //  0 -> register flow (first time setup) OR edit flow with a new image picked
               //  1 -> edit flow, image unchanged
-              final int profileStatus = !widget.profileModel.isFromEdit
+
+
+
+              final int profileStatus = (choosenImage != null ||
+                      (!_isImageDeleted &&
+                          widget.profileModel.profileImageUrl != null &&
+                          widget.profileModel.profileImageUrl!.isNotEmpty))
                   ? 0
-                  : (choosenImage != null ? 0 : 1);
+                  : 1;
 
               // alt_status:
               //  1 -> alternate number verified
@@ -931,6 +986,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (!mounted) return;
               if (response.status == 1) {
                 await AppPreferences.setProfileStatus(1);
+                await AppPreferences.saveUserName(nameController.text);
                 if (widget.profileModel.isFromEdit) {
                   context.pop();
                 } else {
@@ -944,7 +1000,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 );
               }
-              } : null,
+            } : null,
 
             bgColor: _isFormValid
                 ? AppColors.primaryColor

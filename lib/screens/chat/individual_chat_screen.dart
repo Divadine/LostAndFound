@@ -1080,7 +1080,9 @@ class _IndividualChatScreenState
           const SizedBox(width: 8),
 
           InkWell(
-            onTap: () {},
+            onTap: () {
+              AppRoutes.pop();
+            },
             child: AppIconWidget(
               assetPath:
               AssetImages.crossIcon,

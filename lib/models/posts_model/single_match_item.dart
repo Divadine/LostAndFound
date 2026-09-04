@@ -14,8 +14,8 @@ class SingleMatchModel {
   final String imageUrl;
   final String? audioUrl;
   final String? videoUrl;
-  final String posterName;      // NEW
-  final String posterAvatar;    // NEW
+  final String posterName;
+  final String posterAvatar;
   final List<SingleMatchValue> values;
 
   SingleMatchModel({
@@ -40,49 +40,107 @@ class SingleMatchModel {
   });
 
   factory SingleMatchModel.fromJson(Map<String, dynamic> json) {
-    return SingleMatchModel(
-      id: json['id'] as int? ?? 0,
-      postUid: json['post_uid']?.toString() ?? '',
-      userId: json['user_id'] as int? ?? 0,
-      postType: json['post_type'] as int? ?? 0,
-      categoryId: json['category_id'] as int? ?? 0,
-      subcategoryId: json['subcategory_id'] as int? ?? 0,
-      itemName: json['item_name']?.toString() ?? '',
-      color: json['color']?.toString() ?? '',
-      description: json['description']?.toString() ?? '',
-      location: json['location']?.toString() ?? '',
-      postDate: json['post_date'] != null ? DateTime.tryParse(json['post_date'].toString()) : null,
-      status: json['status'] as int? ?? 0,
-      imageUrl: json['imageUrl']?.toString() ?? json['image_url']?.toString() ?? '',
-      audioUrl: json['audioUrl']?.toString() ?? json['audio_url']?.toString(),
-      videoUrl: (json['videoUrl'] as String?)?.isNotEmpty == true
-          ? json['videoUrl'] as String
-          : (json['video_url'] as String?),
+    // 1. Handle API response wrapping (check for 'data' key)
+    final Map<String, dynamic> data = (json.containsKey('data') && json['data'] is Map)
+        ? json['data'] as Map<String, dynamic>
+        : json;
 
-      posterName: json['poster_name']?.toString() ?? json['user_name']?.toString() ?? '',
-      posterAvatar: json['poster_avatar']?.toString() ?? json['user_avatar']?.toString() ?? '',
-      values: (json['values'] as List? ?? [])
+    // 2. Collect ALL potential media fields from the 'data' object
+    final candidates = <String>[];
+
+    void addCandidate(dynamic val) {
+      if (val == null) return;
+      if (val is List) {
+        for (var item in val) {
+          addCandidate(item);
+        }
+      } else if (val is String) {
+        String s = val.trim();
+        if (s.isEmpty || s == '[]') return;
+        if (s.startsWith('[') && s.endsWith(']')) {
+          final inner = s.substring(1, s.length - 1);
+          if (inner.isNotEmpty) {
+            for (var p in inner.split(',')) {
+              addCandidate(p.trim().replaceAll('"', '').replaceAll("'", ""));
+            }
+          }
+        } else {
+          candidates.add(s);
+        }
+      }
+    }
+
+    addCandidate(data['images']);
+    addCandidate(data['postimages']);
+    addCandidate(data['post_images']);
+    addCandidate(data['imageUrl']);
+    addCandidate(data['image_url']);
+    addCandidate(data['post_img']);
+    addCandidate(data['post_image']);
+
+    String? foundImage;
+    String? foundVideo;
+
+    // 3. Separate images from videos found in candidates
+    for (var c in candidates) {
+      if (_isVideo(c)) {
+        foundVideo ??= c;
+      } else {
+        foundImage ??= c;
+      }
+    }
+
+    // 4. Check explicit video fields as fallback
+    foundVideo ??= data['videoUrl']?.toString() ??
+        data['video_url']?.toString() ??
+        data['post_video']?.toString();
+
+    // 5. Finalize the model with unwrapped data
+    return SingleMatchModel(
+      id: data['id'] as int? ?? 0,
+      postUid: data['post_uid']?.toString() ?? '',
+      userId: data['user_id'] as int? ?? 0,
+      postType: data['post_type'] as int? ?? 0,
+      categoryId: data['category_id'] as int? ?? 0,
+      subcategoryId: data['subcategory_id'] as int? ?? 0,
+      itemName: data['item_name']?.toString() ?? '',
+      color: data['color']?.toString() ?? '',
+      description: data['description']?.toString() ?? '',
+      location: data['location']?.toString() ?? '',
+      postDate: data['post_date'] != null ? DateTime.tryParse(data['post_date'].toString()) : null,
+      status: data['status'] as int? ?? 0,
+      imageUrl: foundImage ?? '',
+      audioUrl: data['audioUrl']?.toString() ?? data['audio_url']?.toString(),
+      videoUrl: foundVideo,
+      posterName: data['poster_name']?.toString() ?? data['user_name']?.toString() ?? '',
+      posterAvatar: data['poster_avatar']?.toString() ?? data['user_avatar']?.toString() ?? '',
+      values: (data['values'] as List? ?? [])
           .map((e) => SingleMatchValue.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
+
+  static bool _isVideo(String path) {
+    final lower = path.toLowerCase();
+    return lower.contains('.mp4') || lower.contains('.mov') || lower.contains('.avi');
+  }
 }
 
 class SingleMatchValue {
-  final String fieldName;
-  final String fieldValue;
-  final int step; // NEW — 1 = item details box, 2 = location/landmark box. Defaults to 2.
+  final String? fieldName;
+  final String? fieldValue;
+  final int step;
 
   SingleMatchValue({
-    required this.fieldName,
-    required this.fieldValue,
+    this.fieldName,
+    this.fieldValue,
     this.step = 2,
   });
 
   factory SingleMatchValue.fromJson(Map<String, dynamic> json) {
     return SingleMatchValue(
-      fieldName: json['field_name']?.toString() ?? '',
-      fieldValue: json['field_value']?.toString() ?? '',
+      fieldName: json['field_name']?.toString(),
+      fieldValue: json['field_value']?.toString(),
       step: json['step'] as int? ?? 2,
     );
   }

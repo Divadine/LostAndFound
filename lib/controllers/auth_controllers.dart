@@ -54,6 +54,7 @@ class AuthControllers {
 
       await AppPreferences.saveUserId(user.userId);
       await AppPreferences.savePhone(user.phoneno);
+      await AppPreferences.saveUserName(user.name);
       await AppPreferences.setProfileStatus(user.status);
       await AppPreferences.setIsLoggedIn(true);
       await AppPreferences.setLastAuthScreen('');
@@ -84,7 +85,13 @@ class AuthControllers {
   }
 
 
-  Future<ResponseModel<ProfileScreenModel>> getProfile({required int userId}) => authRepository.getProfile(userId: userId);
+  Future<ResponseModel<ProfileScreenModel>> getProfile({required int userId}) async {
+    final response = await authRepository.getProfile(userId: userId);
+    if (response.isSuccess && response.data != null) {
+      await AppPreferences.saveUserName(response.data!.name ?? '');
+    }
+    return response;
+  }
 
   Future<ResponseModel<CategoryListModel>> getCategories({required int page,required int limit, String? search }) async {
     return await authRepository.getCategories(page: page, limit: limit,search: search);
@@ -227,12 +234,12 @@ class AuthControllers {
   }
 
   Future<ResponseModel> createHandover({
-    int? enquiryId,
+    int? enquiryId = 0,
     required int type,
     required int userId,
     required int postId,
-    int? receiverId,
-    int? receiverPostId,
+    int? receiverId = 0,
+    int? receiverPostId = 0,
     String? handoverImg,
     String? stationName,
     String? stationAddress,
@@ -242,12 +249,12 @@ class AuthControllers {
     required int handoverType,
   }) async {
     return await authRepository.createHandover(
-      enquiryId: enquiryId,
+      enquiryId: enquiryId ?? 0,
       type: type,
       userId: userId,
       postId: postId,
-      receiverId: receiverId,
-      receiverPostId: receiverPostId,
+      receiverId: receiverId ?? 0,
+      receiverPostId: receiverPostId ?? 0,
       handoverImg: handoverImg,
       stationName: stationName,
       stationAddress: stationAddress,

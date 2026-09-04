@@ -30,6 +30,7 @@ class AvailableMatchingScreen extends StatefulWidget {
   final int? foundCount;
   final bool isReceived;
   final int? status;
+  final bool isFound;
 
   const AvailableMatchingScreen({
     super.key,
@@ -42,6 +43,7 @@ class AvailableMatchingScreen extends StatefulWidget {
     this.foundCount,
     this.isReceived = false,
     this.status,
+    this.isFound = false,
   });
 
   @override
@@ -104,7 +106,8 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
         'percentageMatch': match.matchPercentage,
         'posterName': match.posterName,
         'posterAvatar': match.posterAvatar,
-        'originalPostId': widget.postId,   // NEW — needed for creating an enquiry later
+        'originalPostId': widget.postId,
+        'isLostPost': !widget.isFound, // If the main post is Lost (widget.isFound=false), then the matching item is Found (!isFound=true? No wait).
       },
     );
   }
@@ -128,7 +131,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
 
             ItemCard(
               isFromEnquiry: true,
-              isFound: false,
+              isFound: widget.isFound,
               imgUrl: widget.imgUrl,
               title: widget.title,
               location: widget.location,
@@ -160,11 +163,12 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                 itemCount: matches.length,
                 itemBuilder: (context, index) {
                   final match = matches[index];
+                  
                   return ItemCard(
                     imageWidth: 170,
                     isFromEnquiry: true,
-                    isFound: true,
-                    imgUrl: match.postImages.trim(),
+                    isFound: !widget.isFound, // Matches for Lost item are Found, matches for Found item are Lost.
+                    imgUrl: match.postImages,
                     title: match.name,
                     location: match.location,
                     date: _formatDate(match.postDate),

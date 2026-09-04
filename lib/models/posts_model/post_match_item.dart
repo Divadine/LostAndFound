@@ -44,8 +44,18 @@ class MatchedPostSummary {
       userId: json['user_id'] as int? ?? 0,
       location: json['location']?.toString() ?? '',
       postDate: json['post_date'] != null ? DateTime.tryParse(json['post_date'].toString()) : null,
-      images: (json['images'] as List? ?? []).map((e) => e.toString()).toList(),
+      images: _parseImages(json['images']),
     );
+  }
+
+  static List<String> _parseImages(dynamic value) {
+    if (value == null) return [];
+    if (value is List) {
+      return value.map((e) => e.toString()).toList();
+    }
+    final str = value.toString().trim();
+    if (str.isEmpty || str == '[]') return [];
+    return [str];
   }
 }
 
@@ -89,7 +99,7 @@ class MatchItemModel {
       posterName: json['poster_name']?.toString() ?? '',
       posterAvatar: json['poster_avatar']?.toString() ?? '',
       userUid: json['user_uid']?.toString() ?? '',
-      postImages: json['postimages']?.toString() ?? '',
+      postImages: _parseImages(json['postimages']),
       name: json['name']?.toString() ?? '',
       userId: json['user_id'] as int? ?? 0,
       location: json['location']?.toString() ?? '',
@@ -99,5 +109,25 @@ class MatchItemModel {
       matchTier: json['matchTier'] as int? ?? 0,
       hasImageMatch: json['hasImageMatch'] as bool? ?? false,
     );
+  }
+
+  static String _parseImages(dynamic value) {
+    if (value == null) return '';
+    if (value is List) {
+      return value.isNotEmpty ? value.first.toString() : '';
+    }
+    final str = value.toString().trim();
+    if (str.isEmpty || str == '[]') return '';
+
+    var clean = str;
+    if (clean.startsWith('[') && clean.endsWith(']')) {
+      clean = clean.substring(1, clean.length - 1).trim();
+    }
+    if (clean.isEmpty) return '';
+
+    if (clean.contains(',')) {
+      return clean.split(',').first.trim().replaceAll('"', '').replaceAll("'", "");
+    }
+    return clean.replaceAll('"', '').replaceAll("'", "");
   }
 }

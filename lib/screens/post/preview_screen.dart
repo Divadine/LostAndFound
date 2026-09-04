@@ -29,6 +29,8 @@ class PostPreviewScreen extends StatefulWidget {
   final List<String> locations;
   final DateTime? selectedDate;
   final String description;
+  final String itemTypeLabel;
+  final String itemTypeValue;
 
   final String? audioPath;
   final String? videoPath;
@@ -45,6 +47,8 @@ class PostPreviewScreen extends StatefulWidget {
     required this.locations,
     required this.selectedDate,
     required this.description,
+    required this.itemTypeLabel,
+    required this.itemTypeValue,
     this.audioPath,
     this.videoPath,
   });
@@ -79,16 +83,11 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildImagePreview(),
+                    _buildFirstContainer(),
 
                     const SizedBox(height: 16),
 
-
-                     _buildBasicInformation(),
-
-                    const SizedBox(height: 16),
-
-                    _buildStepTwoInformation(),
+                    _buildSecondContainer(),
 
                     const SizedBox(height: 20),
                   ],
@@ -99,7 +98,6 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
             AppButton(
               title: 'Submit',
               onTap: () {
-                //Navigator.pop(context, true);
                 AppDialogue.showPopup(context: context, content: PostLive());
               },
               radius: BorderRadius.circular(10),
@@ -112,15 +110,24 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
   }
 
   // ============================================================
-  // IMAGE PREVIEW
+  // FIRST CONTAINER: Item Image + Basic Details
   // ============================================================
 
-  Widget _buildImagePreview() {
+  Widget _buildFirstContainer() {
     if (widget.imagePaths.isEmpty) {
       return const SizedBox.shrink();
     }
 
     final imagePath = widget.imagePaths.first;
+
+    final brandField = widget.stepOneFields.firstWhere(
+      (f) => f['field']?.toLowerCase().trim() == 'brand',
+      orElse: () => {},
+    );
+    final modelField = widget.stepOneFields.firstWhere(
+      (f) => f['field']?.toLowerCase().trim() == 'model',
+      orElse: () => {},
+    );
 
     return AppContainer(
       widget: Row(
@@ -130,49 +137,36 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
             borderRadius: BorderRadius.circular(12),
             child: Image.file(
               File(imagePath),
-              width: 100,
-              height: 200,
+              width: 120,
+              height: 120,
               fit: BoxFit.cover,
             ),
           ),
-
-
-
-
-
-
-
           const SizedBox(width: 14),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildSmallRow(
                   'Item Type',
-                  widget.subCategory.isNotEmpty
-                      ? widget.subCategory
-                      : widget.category,
+                  widget.itemTypeValue,
                 ),
-
-                if (widget.itemName.isNotEmpty)
+                if (brandField.isNotEmpty && brandField['value']?.isNotEmpty == true)
                   _buildSmallRow(
-                    'Item Name',
-                    widget.itemName,
+                    'Brand',
+                    brandField['value']!,
                   ),
-
+                if (modelField.isNotEmpty && modelField['value']?.isNotEmpty == true)
+                  _buildSmallRow(
+                    'Model',
+                    modelField['value']!,
+                  ),
                 if (widget.color.isNotEmpty)
                   _buildSmallRow(
                     'Color',
                     widget.color,
                   ),
-
-                for (final field in widget.stepOneFields)
-                  if (field['value']?.trim().isNotEmpty == true)
-                    _buildSmallRow(
-                      field['field'] ?? '',
-                      field['value'] ?? '',
-                    ),
               ],
             ),
           ),
@@ -192,7 +186,7 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 80,
+            width: 85,
             child: AppText(
               text: title,
               fontSize: 11,
@@ -212,72 +206,58 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
   }
 
   // ============================================================
-  // STEP 1 INFORMATION
+  // SECOND CONTAINER: Landmark, Dynamic Fields, Location, Date, Description, Media
   // ============================================================
 
-  Widget _buildBasicInformation() {
+  Widget _buildSecondContainer() {
+    final otherStepOneFields = widget.stepOneFields.where((f) {
+      final name = f['field']?.toLowerCase().trim();
+      return name != 'brand' && name != 'model' && name != 'subcategory' && name != 'color';
+    }).toList();
+
     return AppContainer(
       widget: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final field in widget.stepOneFields)
-            _buildInfoRow(
-              field['field'] ?? '',
-              field['value'] ?? '',
-            ),
-
-          if (widget.itemName.isNotEmpty)
-            _buildInfoRow(
-              'Item Name',
-              widget.itemName,
-            ),
-
-          if (widget.color.isNotEmpty)
-            _buildInfoRow(
-              'Color',
-              widget.color,
-            ),
-        ],
-      ).pad(12),
-    );
-  }
-
-  // ============================================================
-  // STEP 2 INFORMATION
-  // ============================================================
-
-  Widget _buildStepTwoInformation() {
-    return AppContainer(
-      widget: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          // 1. Land Mark
           if (widget.whereDidYouLose.trim().isNotEmpty)
             _buildLabeledBlock(
-              'Where did you lose it ?',
+              'Land Mark',
               widget.whereDidYouLose,
             ),
 
+          // 2. Step 1 Other fields (IMEI, Serial, Watch Face Type, etc.)
+          for (final field in otherStepOneFields)
+            if (field['value']?.trim().isNotEmpty == true)
+              _buildLabeledBlock(
+                field['field'] ?? '',
+                field['value'] ?? '',
+              ),
+
+          // 3. Location
           if (widget.locations.isNotEmpty)
             _buildLocations(),
 
+          // 4. Date
           if (widget.selectedDate != null)
             _buildLabeledBlock(
               'Date',
               _formatDate(widget.selectedDate),
             ),
 
+          // 5. Description
           if (widget.description.trim().isNotEmpty)
             _buildLabeledBlock(
               'Description',
               widget.description,
             ),
 
-          if (widget.audioPath != null &&
-              widget.audioPath!.trim().isNotEmpty)
+          // 6. Voice
+          if (widget.audioPath != null && widget.audioPath!.trim().isNotEmpty)
             _buildAudioPreview(),
 
-          if (widget.videoPath != null &&
-              widget.videoPath!.trim().isNotEmpty)
+          // 7. Video
+          if (widget.videoPath != null && widget.videoPath!.trim().isNotEmpty)
             _buildVideoPreview(),
         ],
       ).pad(12),
@@ -299,7 +279,7 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
 
         for (int i = 0; i < widget.locations.length; i++)
           Padding(
-            padding: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -321,7 +301,9 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
             ),
           ),
 
+        const SizedBox(height: 4),
         const Divider(),
+        const SizedBox(height: 14),
       ],
     );
   }
@@ -343,6 +325,8 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
           url: widget.audioPath!,
         ),
 
+        const SizedBox(height: 14),
+        const Divider(),
         const SizedBox(height: 14),
       ],
     );
@@ -368,74 +352,35 @@ class _PostPreviewScreenState extends State<PostPreviewScreen> {
     );
   }
 
-  // ============================================================
-  // COMMON DETAILS
-  // ============================================================
-
-  Widget _buildInfoRow(String title, String value) {
+  Widget _buildLabeledBlock(String title, String value) {
     if (value.trim().isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: AppText(
-              text: title,
-              fontWeight: FontWeight.w500,
-              fontSize: 14,
-            ),
-          ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppText(
+          text: title,
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+          color: AppColors.primaryColor,
+        ),
 
-          Expanded(
-            child: AppText(
-              text: value,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        const SizedBox(height: 4),
 
-  Widget _buildLabeledBlock(
-      String title,
-      String value,
-      ) {
-    if (value.trim().isEmpty) {
-      return const SizedBox.shrink();
-    }
+        AppText(
+          text: value,
+          fontWeight: FontWeight.w400,
+          fontSize: 12,
+        ),
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppText(
-            text: title,
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-            color: AppColors.primaryColor,
-          ),
+        const SizedBox(height: 8),
 
-          const SizedBox(height: 4),
+        const Divider(),
 
-          AppText(
-            text: value,
-            fontWeight: FontWeight.w400,
-            fontSize: 12,
-          ),
-
-          const SizedBox(height: 6),
-
-          const Divider(),
-        ],
-      ),
+        const SizedBox(height: 14),
+      ],
     );
   }
 }

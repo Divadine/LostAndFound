@@ -56,13 +56,13 @@ class _AppCachedNetworkImageState extends State<AppCachedNetworkImage> {
         width: widget.width,
         height: widget.height,
         fit: widget.fit,
-        placeholder: (context, url) => SizedBox(
-          height: 15,
-          width: 15,
+        placeholder: (context, url) => const SizedBox(
+          height: 20,
+          width: 20,
           child: Center(
             child: CircularProgressIndicator(
+              strokeWidth: 2,
               color: AppColors.primaryColor,
-              padding: EdgeInsets.all(30),
             ),
           ),
         ),
@@ -97,11 +97,13 @@ class EnquiredPersonsAvatar extends StatelessWidget {
               left: startOffset + (i * 14),
               child: CircleAvatar(
                 radius: 10,
-                backgroundColor: AppColors.white,
-
+                backgroundColor: Colors.transparent,
                 child: AppCachedNetworkImage(
                   imageUrl: images[i],
                   borderRadius: BorderRadius.circular(40),
+                  height: 20,
+                  width: 20,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),

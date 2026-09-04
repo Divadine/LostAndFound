@@ -59,7 +59,7 @@ class UpdateProfileForm {
       'landmark': landMark,
       'latitude': lat,
       'longitude': log,
-      'profile_image': profileImg,
+      'profileimg': profileImg,
     };
   }
 }

@@ -34,18 +34,24 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      routerConfig: AppRoutes.router,
+    return MediaQuery(
+      data: MediaQuery.of(
+        context,
+      ).copyWith(textScaler: TextScaler.linear(1.0), boldText: false),
+      child: MaterialApp.router(
+        routerConfig: AppRoutes.router,
 
-      theme: ThemeData(
-        appBarTheme: AppBarTheme(
-          systemOverlayStyle:SystemUiOverlayStyle(
-            statusBarColor: AppColors.primaryColor
+
+        theme: ThemeData(
+          appBarTheme: AppBarTheme(
+            systemOverlayStyle:SystemUiOverlayStyle(
+              statusBarColor: AppColors.primaryColor
+            )
           )
-        )
+        ),
+        title: 'LostAndFound',
+        debugShowCheckedModeBanner: false,
       ),
-      title: 'LostAndFound',
-      debugShowCheckedModeBanner: false,
     );
   }
 }

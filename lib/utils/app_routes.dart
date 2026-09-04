@@ -209,6 +209,8 @@ class AppRoutes {
             posterName: data?['posterName'] as String? ?? '',
             posterAvatar: data?['posterAvatar'] as String? ?? '',
             originalPostId: data?['originalPostId'] as int? ?? 0,
+            isLostPost: data?['isLostPost'] as bool? ?? false,
+            hideEnquiryButton: data?['hideEnquiryButton'] as bool? ?? false,
           );
         },
       ),

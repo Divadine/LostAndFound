@@ -32,6 +32,8 @@ class LostItemsDetailsScreen extends StatefulWidget {
   final String posterName;
   final String posterAvatar;
   final int originalPostId;
+  final bool isLostPost;
+  final bool hideEnquiryButton;
 
   const LostItemsDetailsScreen({
     super.key,
@@ -40,7 +42,9 @@ class LostItemsDetailsScreen extends StatefulWidget {
     this.percentageMatch,
     this.posterName = '',
     this.posterAvatar = '',
-     this.originalPostId = 0,
+    this.originalPostId = 0,
+    this.isLostPost = false,
+    this.hideEnquiryButton = false,
   });
 
   @override
@@ -95,17 +99,13 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
 
     final cleanUrl = url.trim();
 
-    // Already a complete URL
-    if (cleanUrl.startsWith('http://') ||
-        cleanUrl.startsWith('https://')) {
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
       return cleanUrl;
     }
 
-    // API returns relative paths such as:
-    // uploads/video/xxxxx.mp4
-    // uploads/audio/xxxxx.m4a
     return 'https://lost-and-found.skyraantech.com/backend/$cleanUrl';
   }
+
   Future<void> _fetchPostDetails() async {
     setState(() {
       isLoading = true;
@@ -138,8 +138,6 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
     return DateFormat('d MMM yyyy').format(date);
   }
 
-  // Prefer the value forwarded from AvailableMatchingScreen; fall back to
-  // whatever the single-match API itself returned.
   String get _posterName =>
       widget.posterName.isNotEmpty ? widget.posterName : (postDetails?.posterName ?? '');
 
@@ -159,10 +157,10 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : errorMessage != null
-          ? _buildError()
-          : postDetails == null
-          ? const Center(child: AppText(text: 'No details found'))
-          : _buildDetails(),
+              ? _buildError()
+              : postDetails == null
+                  ? const Center(child: AppText(text: 'No details found'))
+                  : _buildDetails(),
     );
   }
 
@@ -182,19 +180,28 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
   Widget _buildDetails() {
     final post = postDetails!;
 
-    debugPrint('POST color: "${post.color}"');
-    debugPrint('POST values count: ${post.values.length}');
-    for (final v in post.values) {
-      debugPrint('  -> name="${v.fieldName}" value="${v.fieldValue}" step=${v.step}');
-    }
-    final stepOneFields = post.values.where((v) => v.step == 1).toList();
+    final brandField = post.values.firstWhere(
+      (v) => v.fieldName?.toLowerCase() == 'brand',
+      orElse: () => SingleMatchValue(fieldName: 'Brand', fieldValue: ''),
+    );
+    final modelField = post.values.firstWhere(
+      (v) => v.fieldName?.toLowerCase() == 'model',
+      orElse: () => SingleMatchValue(fieldName: 'Model', fieldValue: ''),
+    );
+    final subCategoryField = post.values.firstWhere(
+      (v) => v.fieldName?.toLowerCase() == 'subcategory',
+      orElse: () => SingleMatchValue(fieldName: 'Item Type', fieldValue: ''),
+    );
 
-    final stepOneNames = stepOneFields.map((v) => v.fieldName.toLowerCase()).toSet();
     final displayFields = post.values
-        .where((v) => v.fieldName.toLowerCase() != 'color' && v.fieldValue.trim().isNotEmpty)
-        .toList();
-    final stepTwoFields = post.values
-        .where((v) => v.step != 1 && !stepOneNames.contains(v.fieldName.toLowerCase()))
+        .where((v) =>
+            v.fieldName != null &&
+            v.fieldName!.toLowerCase() != 'color' &&
+            v.fieldName!.toLowerCase() != 'brand' &&
+            v.fieldName!.toLowerCase() != 'model' &&
+            v.fieldName!.toLowerCase() != 'subcategory' &&
+            v.fieldValue != null &&
+            v.fieldValue!.trim().isNotEmpty)
         .toList();
 
     final isClosed = post.status == 2;
@@ -202,7 +209,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
     return Column(
       children: [
         CustomAppBar(
-          title: 'Found Items',
+          title: widget.isLostPost ? 'Lost Item' : 'Found Item',
           leadingIconColor: AppColors.primaryColor,
           leadingSvg: AssetImages.backArrow,
           onLeadingTap: () => AppRoutes.pop(),
@@ -210,14 +217,10 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
           centerTitle: true,
           backgroundColor: isClosed ? AppColors.closedColor : AppColors.white,
         ),
-
-        // Scrollable body — grows/shrinks with however many fields this post has.
-        Expanded
-          (
+        Expanded(
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: 16,
               children: [
                 // 1. UPLOADED ITEM IMAGE
                 if (post.imageUrl.isNotEmpty)
@@ -227,28 +230,30 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                       imageUrl: post.imageUrl,
                       fit: BoxFit.cover,
                       width: double.infinity,
-                      height: 180,
+                      height: 220,
                     ),
                   ),
+                const SizedBox(height: 16),
 
-                // 2. NAME + PROFILE IMAGE (no box, sits directly on background)
+                // 2. NAME + PROFILE IMAGE
                 if (_posterName.isNotEmpty)
                   Row(
-                    spacing: 10,
                     children: [
                       ClipOval(
                         child: _posterAvatar.isNotEmpty
                             ? AppCachedNetworkImage(
-                          imageUrl: _posterAvatar,
-                          width: 34,
-                          height: 34,
-                          fit: BoxFit.cover,
-                        )
+                                imageUrl: _posterAvatar,
+                                width: 34,
+                                height: 34,
+                                fit: BoxFit.cover,
+                              )
                             : CircleAvatar(
-                          radius: 17,
-                          backgroundColor: AppColors.grey.withAlpha(60),
-                        ),
+                                radius: 17,
+                                backgroundColor: AppColors.grey.withAlpha(60),
+                                child: const Icon(Icons.person, size: 20, color: AppColors.primaryColor),
+                              ),
                       ),
+                      const SizedBox(width: 10),
                       AppText(
                         text: _posterName,
                         fontSize: 14,
@@ -257,105 +262,116 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                       ),
                     ],
                   ).padHorizontal(),
+                const SizedBox(height: 16),
 
-                // 3. STEP ONE FORM: ITEM TYPE / BRAND / MODEL / SUBCATEGORY / COLOR
+                // 3. STEP ONE FORM: ITEM TYPE / BRAND / MODEL / COLOR
                 AppContainer(
                   bgColor: isClosed ? AppColors.closedColor : AppColors.white,
                   widget: Column(
                     children: [
-                      for (final field in displayFields)
-                        _buildInfoRow(
-                          field.fieldName.toLowerCase() == 'subcategory' ? 'Item Type' : field.fieldName,
-                          field.fieldValue,
-                        ),
+                      _buildInfoRow(
+                          'Item Type',
+                          (subCategoryField.fieldValue?.isNotEmpty ?? false)
+                              ? subCategoryField.fieldValue!
+                              : (post.itemName.isNotEmpty ? post.itemName : 'Item')),
+                      if (brandField.fieldValue?.isNotEmpty ?? false)
+                        _buildInfoRow('Brand', brandField.fieldValue!),
+                      if (modelField.fieldValue?.isNotEmpty ?? false)
+                        _buildInfoRow('Model', modelField.fieldValue!),
                       _buildInfoRow('Color', post.color),
                     ],
                   ).padHorizontal(5),
                 ),
+                const SizedBox(height: 16),
 
                 // 4. MATCH
                 AppContainer(
                   bgColor: isClosed ? AppColors.closedColor : AppColors.white,
-                  height: 40,
+                  height: 50,
                   widget: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      AppText(text: 'matches', fontSize: 14, fontWeight: FontWeight.w500),
+                      const AppText(text: 'matches', fontSize: 16, fontWeight: FontWeight.w600),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppColors.green.withAlpha(50),
+                          color: AppColors.purple.withAlpha(30),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: AppText(
                           text: '${widget.percentageMatch ?? 0}% match',
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                           fontSize: 10,
-                          color: AppColors.green,
+                          color: AppColors.purple,
                         ),
                       ),
                     ],
                   ).padHorizontal(),
                 ),
+                const SizedBox(height: 16),
 
-                // 5. STEP TWO FORM: LANDMARK / MATERIAL / SPECIAL MARKS / LOCATION / DATE / DESCRIPTION / AUDIO / VIDEO
+                // 5. LANDMARK / LOCATION / DATE / DESCRIPTION / AUDIO / VIDEO
                 AppContainer(
                   bgColor: isClosed ? AppColors.closedColor : AppColors.white,
                   widget: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    spacing: 14,
                     children: [
-                      if (post.location.isNotEmpty)
-                        _buildLabeledBlock('Location', post.location),
-
+                      for (int i = 0; i < displayFields.length; i++)
+                        _buildDividerLabeledBlock(displayFields[i].fieldName!, displayFields[i].fieldValue!, isFirst: i == 0),
+                      
+                      _buildDividerLabeledBlock('Location', post.location, isFirst: displayFields.isEmpty),
+                      
                       if (post.postDate != null)
-                        _buildLabeledBlock('Date', _formatDate(post.postDate)),
-
+                        _buildDividerLabeledBlock('Date', _formatDate(post.postDate)),
+                      
                       if (post.description.isNotEmpty)
-                        _buildLabeledBlock('Description', post.description),
+                        _buildDividerLabeledBlock('Description', post.description),
 
                       if (post.audioUrl?.isNotEmpty == true)
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          spacing: 8,
                           children: [
-                            AppText(
+                            const Divider(color: AppColors.fieldGrey, thickness: 0.5),
+                            const SizedBox(height: 8),
+                            const AppText(
                               text: 'Voice Description',
                               fontWeight: FontWeight.w500,
                               fontSize: 14,
                               color: AppColors.primaryColor,
                             ),
+                            const SizedBox(height: 8),
                             AppAudioPlayer(
                               url: _getMediaUrl(post.audioUrl),
                             ),
+                            const SizedBox(height: 8),
                           ],
                         ),
 
                       if (post.videoUrl?.isNotEmpty == true)
-                        Column(
+                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          spacing: 8,
                           children: [
-                            AppText(
+                            const Divider(color: AppColors.fieldGrey, thickness: 0.5),
+                            const SizedBox(height: 8),
+                            const AppText(
                               text: 'Video Description',
                               fontWeight: FontWeight.w500,
                               fontSize: 14,
                               color: AppColors.primaryColor,
                             ),
+                            const SizedBox(height: 8),
                             AppVideoPlayer(
                               url: _getMediaUrl(post.videoUrl),
                             ),
                           ],
                         ),
                     ],
-                  ).pad(5),
+                  ).pad(10),
                 ),
               ],
             ).pad(16),
           ).padBottom(20),
         ),
-
-        // Send Enquiry or Success Card stays pinned below the scroll area.
         if (post.status == 2)
           SafeArea(
             child: SucessCard(
@@ -373,11 +389,10 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                     data: TransferData(
                       name: _posterName,
                       avatarUrl: _posterAvatar,
-                      userId: 'LF2489',
-                      phoneNumber: '', // Not directly available here
+                      userId: post.userId.toString(),
+                      phoneNumber: '',
                       description: post.description,
-                      proofPhotos:
-                          post.imageUrl.isNotEmpty ? [post.imageUrl] : [],
+                      proofPhotos: post.imageUrl.isNotEmpty ? [post.imageUrl] : [],
                       matchPercentage: widget.percentageMatch,
                     ),
                   ),
@@ -386,10 +401,11 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
               isReceiver: post.postType == 0,
             ).padHorizontal(16).padBottom(16),
           )
-        else
+        else if (!widget.hideEnquiryButton)
           AppButton(
             title: 'Send Enquiry',
             onTap: () {
+
               if (hasEnquired) {
                 AppSnackBar.show(
                   context: context,
@@ -404,7 +420,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                     'otherUserId': widget.userId.toString(),
                     'otherUserName': _posterName,
                     'otherUserAvatar': _posterAvatar,
-                    'otherUserPhone': postDetails?.posterName ?? '', // Fallback or correct phone if available
+                    'otherUserPhone': postDetails?.posterName ?? '',
                     'itemName': postDetails?.itemName ?? '',
                     'itemImage': postDetails?.imageUrl ?? '',
                     'itemLocation': postDetails?.location ?? '',
@@ -415,29 +431,66 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                 );
                 return;
               }
+
+
+              debugPrint('========== SEND ENQUIRY DEBUG ==========');
+
+              debugPrint('CURRENT USER ID       : ${AppPreferences.getUserId()}');
+              debugPrint('CURRENT USER NAME     : ${AppPreferences.getUserName()}');
+
+              debugPrint('----------------------------------------');
+
+              debugPrint('post.id               : ${post.id}');
+              debugPrint('post.userId            : ${post.userId}');
+              debugPrint('post.itemName          : ${post.itemName}');
+              debugPrint('post.imageUrl          : ${post.imageUrl}');
+              debugPrint('post.location          : ${post.location}');
+              debugPrint('post.postDate          : ${post.postDate}');
+              debugPrint('post.description       : ${post.description}');
+              debugPrint('post.postType          : ${post.postType}');
+              debugPrint('post.status            : ${post.status}');
+
+              debugPrint('----------------------------------------');
+
+              debugPrint('widget.postId          : ${widget.postId}');
+              debugPrint('widget.userId          : ${widget.userId}');
+              debugPrint('widget.originalPostId  : ${widget.originalPostId}');
+              debugPrint('widget.isLostPost      : ${widget.isLostPost}');
+              debugPrint('widget.percentageMatch : ${widget.percentageMatch}');
+
+              debugPrint('----------------------------------------');
+
+              debugPrint('_posterName            : $_posterName');
+              debugPrint('_posterAvatar          : $_posterAvatar');
+
               AppUiHelper.showBottomSheet(
                 showHandle: false,
                 showCloseIcon: false,
                 context: context,
                 child: SendEnquiry(
-                  name: _posterName,
+                  name: AppPreferences.getUserName() ?? '',
                   description: post.description,
-                  postId: widget.originalPostId, // the enquirer's own lost post
-                  matchedPostId: post.id,
-                  otherUserId: widget.userId, // owner of the matched post
+                  postId: post.id,
+                  matchedPostId: widget.originalPostId,
+                  otherUserId: widget.userId,
                   otherUserName: _posterName,
                   otherUserAvatar: _posterAvatar,
-                  itemName: post.itemName, // adjust field name if different on SingleMatchModel
+                  itemName: post.itemName,
                   itemImage: post.imageUrl,
                   itemLocation: post.location,
                   itemPostDate: _formatDate(post.postDate),
+                  isLostPost: widget.isLostPost,
                 ),
+
               );
+
             },
             fontSize: 14,
             radius: BorderRadius.circular(10),
+
           ).pad(16),
       ],
+
     );
   }
 
@@ -460,14 +513,23 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
     );
   }
 
-  Widget _buildLabeledBlock(String title, String value) {
+  Widget _buildDividerLabeledBlock(String title, String value, {bool isFirst = false}) {
     if (value.trim().isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 4,
       children: [
-        AppText(text:title, fontWeight: FontWeight.w500, fontSize: 14, color: AppColors.primaryColor,textAlign: TextAlign.left,),
-        AppText(text:value , fontWeight: FontWeight.w400, fontSize: 12),
+        if (!isFirst) const Divider(color: AppColors.fieldGrey, thickness: 0.5),
+        const SizedBox(height: 8),
+        AppText(
+          text: title,
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+          color: AppColors.primaryColor,
+          textAlign: TextAlign.left,
+        ),
+        const SizedBox(height: 4),
+        AppText(text: value, fontWeight: FontWeight.w400, fontSize: 12),
+        const SizedBox(height: 8),
       ],
     );
   }

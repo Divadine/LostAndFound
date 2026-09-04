@@ -192,6 +192,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
     final response = await authController.getDynamicValues(brandMasterName: field.dropdownMaster);
 
+    print('23333333333333333333333333333333333333333$response');
     if (!mounted) return;
 
     setState(() {
@@ -215,8 +216,9 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
     final response = await authController.getDynamicNestedValues(
       parentValue: parentValue,
-      brandMasterName: field.displayName,
+      brandMasterName: field.dropdownMaster,
     );
+    print('DynamicNestedValue is -------------------->$response');
 
     if (!mounted) return;
 
@@ -281,8 +283,13 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     // gather dynamic field values — only relevant in normal mode.
     // Color is deliberately excluded here; it's sent as its own top-level field.
     final postValues = <Map<String, String>>[];
+    String? brandValue;
 
     if (!_isGenericMode) {
+      postValues.add({
+        'field': 'Subcategory',
+        'value': widget.subCategory?.name ?? widget.category.name ?? ''
+      });
       for (final field in dynamicFields) {
         String? value;
 
@@ -293,6 +300,9 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         }
         if (value != null && value.isNotEmpty) {
           postValues.add({'field': field.displayName, 'value': value});
+          if (field.displayName.toLowerCase() == 'brand') {
+            brandValue = value;
+          }
         }
       }
     }
@@ -311,7 +321,9 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         'postType': widget.postType,
         'categoryId': widget.category.id,
         'subcategoryId': widget.subCategory?.id ?? 0,
-        'itemName': _isGenericMode ? itemNameController.text.trim() : '',
+        'itemName': _isGenericMode
+            ? itemNameController.text.trim()
+            : (brandValue ?? itemTypeValue),
         'selectedImages': selectedImages,
         'fieldValues': postValues,
         'prefillDescription': _isGenericMode ? descriptionController.text.trim() : '',
@@ -451,6 +463,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       title: 'Color',
       fieldWidget: AppDropdownField<String>(
         borderColor: AppColors.fieldGrey,
+        menuHeight: 250,
         value: selectedColor,
         hintText: isLoadingColors ? 'Loading...' : 'Select color',
         items: colorOptions.map((c) => c.colorName).toList(),
@@ -590,6 +603,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
           fieldWidget: AppDropdownField<String>(
             borderColor: AppColors.fieldGrey,
             value: selectedDropdownValues[field.id],
+            menuHeight: 250,
             hintText: hint,
             items: options.map((e) => e.value).toList(),
             itemLabel: (value) => value,

@@ -51,11 +51,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
   Future<void> _openCamera() async {
     if (_loading) return;
     try {
-      setState(() {
-        _loading = true;
-        _loadingText = 'Opening camera...';
-      });
-
+      setState(() => _loading = true);
       final XFile? pickedFile = await _imagePicker.pickImage(
         source: ImageSource.camera,
         imageQuality: 85,
@@ -75,10 +71,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       }
 
       if (!mounted) return;
-
-      setState(() {
-        _loadingText = 'Uploading photo...';
-      });
 
       // ========================================================
       // UPLOAD VIA createImage API
@@ -103,10 +95,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       }
 
       if (!mounted) return;
-
-      setState(() {
-        _loadingText = 'Sending photo...';
-      });
 
       // ========================================================
       // SAVE URL TO FIRESTORE
@@ -140,11 +128,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
     if (_loading) return;
 
     try {
-      setState(() {
-        _loading = true;
-        _loadingText = 'Opening gallery...';
-      });
-
+      setState(() => _loading = true);
       final XFile? pickedFile = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 85,
@@ -164,10 +148,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       }
 
       if (!mounted) return;
-
-      setState(() {
-        _loadingText = 'Uploading photo...';
-      });
 
       // ========================================================
       // UPLOAD VIA createImage API
@@ -192,10 +172,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       }
 
       if (!mounted) return;
-
-      setState(() {
-        _loadingText = 'Sending photo...';
-      });
 
       // ========================================================
       // SAVE URL TO FIRESTORE
@@ -229,10 +205,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
     if (_loading) return;
 
     try {
-      setState(() {
-        _loading = true;
-        _loadingText = 'Getting your location...';
-      });
+      setState(() => _loading = true);
 
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
@@ -311,10 +284,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
     if (_loading) return;
 
     try {
-      setState(() {
-        _loading = true;
-        _loadingText = 'Getting your address...';
-      });
+      setState(() => _loading = true);
 
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
@@ -530,7 +500,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
   }
 
   // ============================================================
-  // BUILD
+  // BUILD  (DESIGN UPDATED TO MATCH REFERENCE — logic unchanged)
   // ============================================================
 
   @override
@@ -540,26 +510,17 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Options card — larger radius, no drag handle, to match reference
               Container(
-                width: 38,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD6D6D6),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-
-              Container(
-                width: double.infinity,
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -593,62 +554,31 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
               const SizedBox(height: 10),
 
-              SizedBox(
-                width: double.infinity,
-                child: Material(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: _loading
-                        ? null
-                        : () {
-                      Navigator.of(context).pop();
-                    },
-                    child: Container(
-                      height: 54,
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Cancel',
-                        style: const TextStyle(
-                          color: AppColors.red,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
+              // Cancel button — same radius/style as the card above
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: _loading
+                      ? null
+                      : () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    height: 54,
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: AppColors.red,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                 ),
               ),
-
-              if (_loading) ...[
-                const SizedBox(height: 12),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                      ),
-                    ),
-
-                    const SizedBox(width: 10),
-
-                    Flexible(
-                      child: Text(
-                        _loadingText,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ],
           ),
         ),
@@ -659,10 +589,10 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
   Widget _buildDivider() {
     return const Divider(
       height: 1,
-      thickness: 0.6,
+      thickness: 0.7,
       indent: 0,
       endIndent: 0,
-      color: Color(0x29808080),
+      color: Color(0xFFE6E6E6),
     );
   }
 
@@ -679,15 +609,15 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
         highlightColor: AppColors.primaryColor.withAlpha(8),
         child: Container(
           width: double.infinity,
-          height: 56,
+          height: 54,
           alignment: Alignment.center,
           color: Colors.white,
           child: Text(
             title,
             style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w400,
-              color: Colors.black87,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF1C1C1E),
             ),
           ),
         ),

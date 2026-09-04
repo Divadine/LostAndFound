@@ -321,7 +321,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: CustomAppBar(
-        title: 'Post Lost Item',
+        title: widget.postType == 0 ? 'Post Lost Item' : 'Post Found Item',
         leadingSvg: AssetImages.backArrow,
         leadingIconColor: AppColors.primaryColor,
         onLeadingTap: () {
@@ -338,7 +338,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                 child: Column(
                   children: [
                     buildTextFieldWithHeading(
-                      title: 'Where did you lose it ?',
+                      title: widget.postType == 0 ? 'Where did you lose it ?' : 'Where did you find it ?',
                       fieldWidget: AppTextField(
                         hintText: 'Chennai, Tamil Nadu, India',
                         textController: textController,

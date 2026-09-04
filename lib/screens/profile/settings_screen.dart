@@ -21,6 +21,7 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_urls.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -73,6 +74,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState()  {
     super.initState();
     _loadProfile();
+
+  }
+
+
+  // Check current permission status and sync the switch on screen load
+  Future<void> _checkNotificationPermission() async {
+    final status = await Permission.notification.status;
+    if (!mounted) return;
+    setState(() {
+      isEnable = status.isGranted;
+    });
+  }
+
+  // Called when user taps the switch
+  Future<void> _onNotificationToggle(bool value) async {
+    if (value) {
+      // User is trying to turn ON -> must ask permission first
+      final status = await Permission.notification.request();
+
+      if (!mounted) return;
+
+      if (status.isGranted) {
+        setState(() => isEnable = true);
+      } else if (status.isPermanentlyDenied) {
+        // User denied permanently (e.g. "Don't ask again") -> send to settings
+        setState(() => isEnable = false);
+        AppDialogue.showPopup(
+          context: context,
+          content: AppText(
+            text:
+            'Notification permission is disabled. Please enable it from app settings.',
+          ),
+        );
+        await openAppSettings();
+      } else {
+        // Denied (but can ask again later)
+        setState(() => isEnable = false);
+      }
+    } else {
+      // User is turning OFF -> no permission prompt needed
+      setState(() => isEnable = false);
+      // Optionally: call your API/local logic to disable notifications here
+    }
   }
 
   @override
@@ -86,15 +130,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              CircleAvatar(
-                radius: 40,
-                backgroundImage: profile?.profileImageUrl != null &&
-                        profile!.profileImageUrl!.isNotEmpty
-                    ? CachedNetworkImageProvider(profile!.profileImageUrl!)
-                    : null,
-                child: profile?.profileImageUrl == null
-                    ? Icon(Icons.person)
-                    : null,
+              Builder(
+                builder: (context) {
+                  final String? profileImageUrl =
+                  profile?.profileImageUrl?.trim();
+
+                  final bool hasProfileImage =
+                      profileImageUrl != null &&
+                          profileImageUrl.isNotEmpty &&
+                          profileImageUrl.toLowerCase() != 'null' &&
+                          profileImageUrl.toLowerCase() != 'undefined';
+
+                  return CircleAvatar(
+                    radius: 40,
+                    backgroundColor:
+                    AppColors.fieldGrey.withAlpha(40),
+                    child: hasProfileImage
+                        ? ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: profileImageUrl,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) {
+                          return const SizedBox(
+                            width: 80,
+                            height: 80,
+                            child: Center(
+                              child:
+                              CircularProgressIndicator(),
+                            ),
+                          );
+                        },
+                        errorWidget:
+                            (context, url, error) {
+                          return const Icon(
+                            Icons.person,
+                            size: 40,
+                          );
+                        },
+                      ),
+                    )
+                        : const Icon(
+                      Icons.person,
+                      size: 40,
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 10),
               Container(
@@ -112,39 +194,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 10),
               AppButton(
-              title: "Edit Profile",
-              onTap: _isLoadingProfile ? null : () async {
-                final userId = AppPreferences.getUserId();
-                if (userId == null) return;
+                title: "Edit Profile",
+                onTap: _isLoadingProfile ? null : () async {
+                  final userId = AppPreferences.getUserId();
+                  if (userId == null) return;
 
-                setState(() => _isLoadingProfile = true);
-                final result = await authController.getProfile(userId: userId);
-                
-                if (!mounted) {
-                  _isLoadingProfile = false;
-                  return;
-                }
+                  setState(() => _isLoadingProfile = true);
+                  final result = await authController.getProfile(userId: userId);
 
-                if (result.status == 1 && result.data != null) {
-                  await context.pushNamed(
-                    AppRoutes.profileScreen,
-                    extra: result.data!.copyWith(isFromEdit: true),
-                  );
-                  if (!mounted) return;
-                  setState(() => _isLoadingProfile = false);
-                  await _loadProfile();
-                } else {
-                  setState(() => _isLoadingProfile = false);
-                  AppDialogue.showPopup(
-                    context: context,
-                    content: AppText(text: result.message),
-                  );
-                }
-              },
-              height: 35,
-              fontSize: 12,
-              prefixIcon: AssetImages.pen,
-            ).padHorizontal(105),
+                  if (!mounted) {
+                    _isLoadingProfile = false;
+                    return;
+                  }
+
+                  if (result.status == 1 && result.data != null) {
+                    await context.pushNamed(
+                      AppRoutes.profileScreen,
+                      extra: result.data!.copyWith(isFromEdit: true),
+                    );
+                    if (!mounted) return;
+                    setState(() => _isLoadingProfile = false);
+                    await _loadProfile();
+                  } else {
+                    setState(() => _isLoadingProfile = false);
+                    AppDialogue.showPopup(
+                      context: context,
+                      content: AppText(text: result.message),
+                    );
+                  }
+                },
+                height: 35,
+                fontSize: 12,
+                prefixIcon: AssetImages.pen,
+              ).padHorizontal(105),
 
               SizedBox(height: 10),
 
@@ -158,17 +240,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         scale: 0.8,
                         child: Switch(
                           materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
+                          MaterialTapTargetSize.shrinkWrap,
                           padding: EdgeInsets.zero,
                           activeColor: AppColors.white,
                           activeTrackColor: AppColors.primaryColor,
                           inactiveThumbColor: AppColors.grey,
                           // inactiveTrackColor: Colors.grey.shade300,
                           value: isEnable,
-                          onChanged: (e) {
-                            isEnable = !isEnable;
-                            setState(() {});
-                          },
+                          // onChanged: (e) {
+                          //   isEnable = !isEnable;
+                          //   setState(() {});
+                          // },
+
+                          onChanged: _onNotificationToggle,
                         ),
                       ),
                       onTap: () {},
@@ -303,19 +387,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     radius: 25,
                                     child: AppIconWidget(
                                       assetPath:
-                                          getEmoji(rating) ??
+                                      getEmoji(rating) ??
                                           AssetImages.one_star,
                                     ),
                                   ),
                                   Flexible(
                                     child: Row(
                                       mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      MainAxisAlignment.center,
                                       crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      CrossAxisAlignment.start,
                                       children: List.generate(
                                         5,
-                                        (stars) => GestureDetector(
+                                            (stars) => GestureDetector(
                                           onTap: () {
                                             if (rating < 2) return;
                                             setDialogState(() {
@@ -342,7 +426,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     onTap: () async {
                                       Uri url = Uri.parse(AppUrls.rateUs);
                                       bool hasNet =
-                                          await AppUtils.checkConnectivity();
+                                      await AppUtils.checkConnectivity();
                                       if (rating > 3) {
                                         if (hasNet) {
                                           if (!context.mounted) return;
@@ -353,7 +437,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           AppSnackBar.show(
                                             context: context,
                                             message:
-                                                'PleaseCheck your Internet',
+                                            'PleaseCheck your Internet',
                                           );
                                         }
                                       } else {

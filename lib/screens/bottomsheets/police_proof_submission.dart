@@ -98,16 +98,35 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
 
     final uploadedImageRef = imageResponse.data!.first.id.toString();
 
+    debugPrint('========== CREATE HANDOVER REQUEST ==========');
+
+    debugPrint('enquiryId      : ${widget.enquiryId ?? 0}');
+    debugPrint('type           : ${widget.isReceiver ? 2 : 1}');
+    debugPrint('userId         : ${widget.userId}');
+    debugPrint('postId         : ${widget.postId}');
+    debugPrint('receiverId     : ${widget.receiverId ?? 0}');
+    debugPrint('receiverPostId : ${widget.receiverPostId ?? 0}');
+    debugPrint('handoverImg    : $uploadedImageRef');
+    debugPrint('stationName    : ${widget.stationName}');
+    debugPrint('stationAddress : ${widget.stationAddress}');
+    debugPrint('name           : ${widget.stationName}');
+    debugPrint('description    : ${textController.text.trim()}');
+    debugPrint('phoneno        : ${widget.phoneNumber}');
+    debugPrint('handoverType   : ${widget.handoverType}');
+
+    debugPrint('=============================================');
+
     final response = await authController.createHandover(
-      enquiryId: widget.enquiryId,
+      enquiryId: widget.enquiryId ?? 0,
       type: widget.isReceiver ? 2 : 1,
       userId: widget.userId,
       postId: widget.postId,
-      receiverId: widget.receiverId,
-      receiverPostId: widget.receiverPostId,
+      receiverId: widget.receiverId ?? 0,
+      receiverPostId: widget.receiverPostId ?? 0,
       handoverImg: uploadedImageRef,
       stationName: widget.stationName,
       stationAddress: widget.stationAddress,
+      name: widget.stationName,
       description: textController.text.trim(),
       phoneno: widget.phoneNumber,
       handoverType: widget.handoverType,

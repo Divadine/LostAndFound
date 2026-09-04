@@ -1,28 +1,34 @@
 class EnquiryPostModel {
   final int id;
-  final int userId;          // NEW
+  final int userId;
+  final String userUid;
   final String postUid;
   final String name;
   final List<String> images;
   final String location;
   final DateTime? postDate;
   final int status;
+  final int postType;
 
   EnquiryPostModel({
     required this.id,
-    required this.userId,     // NEW
+    required this.userId,
+    required this.userUid,
     required this.postUid,
     required this.name,
     required this.images,
     required this.location,
     this.postDate,
     this.status = 0,
+    this.postType = 0,
   });
 
   factory EnquiryPostModel.fromJson(Map<String, dynamic> json) {
     return EnquiryPostModel(
       id: json['id'] as int? ?? 0,
-      userId: json['user_id'] as int? ?? 0,   // NEW
+      userId: json['user_id'] as int? ??
+          int.tryParse(json['user_uid']?.toString().replaceAll(RegExp(r'[^0-9]'), '') ?? '') ?? 0,
+      userUid: json['user_uid']?.toString() ?? '',
       postUid: json['post_uid']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       images: (json['images'] as List? ?? []).map((e) => e.toString()).toList(),
@@ -30,7 +36,8 @@ class EnquiryPostModel {
       postDate: json['post_date'] != null
           ? DateTime.tryParse(json['post_date'].toString())
           : null,
-      status: json['status'] as int? ?? 0,
+      status: json['post_status'] as int? ?? json['status'] as int? ?? 0,
+      postType: json['post_type'] as int? ?? 0,
     );
   }
 }
@@ -62,7 +69,8 @@ class PostEnquiriesModel {
 class EnquiryItem {
   final int enquiryId;
   final int matchedPostId;
-  final int enquirerUserId;      // NEW
+  final int enquirerUserId;
+  final String userUid;
   final String postUid;
   final String enquirerName;
   final String enquirerProfileImg;
@@ -74,7 +82,8 @@ class EnquiryItem {
   EnquiryItem({
     required this.enquiryId,
     required this.matchedPostId,
-    required this.enquirerUserId,   // NEW
+    required this.enquirerUserId,
+    required this.userUid,
     required this.postUid,
     required this.enquirerName,
     required this.enquirerProfileImg,
@@ -87,17 +96,25 @@ class EnquiryItem {
   factory EnquiryItem.fromJson(Map<String, dynamic> json) {
     return EnquiryItem(
       enquiryId: json['enquiry_id'] as int? ?? 0,
-      matchedPostId: json['matched_postid'] as int? ?? 0,
-      enquirerUserId: json['user_id'] as int? ?? 0,   // NEW — clean, no fallback needed
+      matchedPostId: json['matched_postid'] as int? ??
+          json['matched_id'] as int? ??
+          json['post_id'] as int? ?? 0,
+      enquirerUserId: json['user_id'] as int? ??
+          int.tryParse(json['user_uid']?.toString().replaceAll(RegExp(r'[^0-9]'), '') ?? '') ?? 0,
+      userUid: json['user_uid']?.toString() ?? '',
       postUid: json['post_uid']?.toString() ?? '',
       enquirerName: json['enquirer_name']?.toString() ?? '',
-      enquirerProfileImg: json['enquirer_profile_img']?.toString() ?? '',
+      enquirerProfileImg: json['enquirer_profile_img']?.toString() ??
+          json['profile_img']?.toString() ??
+          '',
       description: json['description']?.toString() ?? '',
       matchPercentage: json['matchPercentage'] as int? ?? 0,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : null,
-      status: json['status'] as int? ?? 0,
+      status: json['enquiry_status'] as int? ??
+          json['enquirystatus'] as int? ??
+          json['status'] as int? ?? 0,
     );
   }
 }
