@@ -35,7 +35,7 @@ class ItemCard extends StatelessWidget {
   final bool isTopAvailabilityCard;
   final double? imageWidth;
   final int? postIntId; // NEW — numeric id for API calls
-  final VoidCallback? onDeleted; // NEW — refresh trigger after successful delete
+  final void Function(int)? onDeleted; // NEW — refresh trigger after successful delete
   final VoidCallback? onViewAll;
   final int? status;
   final bool showClosedStamp;

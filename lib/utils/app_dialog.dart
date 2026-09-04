@@ -1455,7 +1455,7 @@ class PostLive extends StatelessWidget {
 
 class DeletePostReasonsDialog extends StatefulWidget {
   final int postId;
-  final VoidCallback? onDeleted;
+  final void Function(int)? onDeleted;
   const DeletePostReasonsDialog({super.key, required this.postId, this.onDeleted});
 
   @override
@@ -1470,7 +1470,6 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
   );
 
   int presentIndex = 0;
-  PageController pageController = PageController();
 
   TextEditingController reasonController = TextEditingController();
   List<DeletePostReasons> reasons = [];
@@ -1479,10 +1478,19 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
   bool isLoading = true;
   String? errorMessage;
 
+  static const _othersId = -1;
+  static final DeletePostReasons _othersOption = DeletePostReasons(id: _othersId, text: 'Others');
+
   @override
   void initState() {
     super.initState();
     fetchReasons();
+  }
+
+  @override
+  void dispose() {
+    reasonController.dispose();
+    super.dispose();
   }
 
   Future<void> fetchReasons() async {
@@ -1496,8 +1504,10 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
     if (!mounted) return;
 
     if(response.isSuccess && response.data != null){
+      final fetched = response.data!;
+      final hasOthers = fetched.any((r) => r.text.toLowerCase() == 'others');
       setState(() {
-        reasons = response.data!;
+        reasons = hasOthers ? fetched : [...fetched, _othersOption];
         isLoading = false;
       });
     }else{
@@ -1509,7 +1519,7 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
 
 
   }
-  bool get _isOthersSelected =>selectedReason?.text.toLowerCase() == 'others';
+  bool get _isOthersSelected => selectedReason?.id == _othersId || selectedReason?.text.toLowerCase() == 'others';
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -1661,7 +1671,7 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
 class DeletePostDialog extends StatefulWidget {
   final int postId;
   final String reason;
-  final VoidCallback? onDeleted;
+  final void Function(int)? onDeleted;
   const DeletePostDialog({super.key, required this.postId, required this.reason, this.onDeleted});
 
   @override
@@ -1685,8 +1695,14 @@ class _DeletePostDialogState extends State<DeletePostDialog> {
     setState(() => isDeleting = false);
 
     if(response.isSuccess) {
+      AppSnackBar.show(
+        context: context,
+        message: response.message.isNotEmpty ? response.message : 'Post deleted successfully',
+        backgroundColor: AppColors.primaryColor,
+        textColor: AppColors.white,
+      );
       AppRoutes.pop();
-      widget.onDeleted?.call();
+      widget.onDeleted?.call(widget.postId);
     }else {
       AppDialogue.showPopup(context: context, content: AppText(text: response.message.isNotEmpty ? response.message : 'Failed to delete post',),);
     }

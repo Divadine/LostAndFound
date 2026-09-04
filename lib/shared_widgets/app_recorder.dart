@@ -297,7 +297,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       body: Column(
         children: [
           CustomAppBar(
-            title: 'Preview',
+            title: widget.postType == 0 ? 'Lost Item Preview' : 'Found Item Preview',
             centerTitle: true,
             leadingSvg: AssetImages.backArrow,
             leadingIconColor: AppColors.primaryColor,

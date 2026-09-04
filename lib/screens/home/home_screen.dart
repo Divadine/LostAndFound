@@ -965,7 +965,12 @@ class _HomeScreenState extends State<HomeScreen>
                         postId: post.postUid,
                         foundCount: matchingCounts[post.id],
                         postIntId: post.id,
-                        onDeleted: _fetchLostPosts,
+                        onDeleted: (id) {
+                          setState(() {
+                            lostPosts.removeWhere((p) => p.id == id);
+                          });
+                          _fetchLostPosts();
+                        },
                         newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
                         enquiredProfile: post.enquirerAvatars.isNotEmpty
                             ? post.enquirerAvatars
@@ -1148,7 +1153,12 @@ class _HomeScreenState extends State<HomeScreen>
                         postId: post.postUid,
                         postIntId: post.id,
                         foundCount: matchingCounts[post.id],
-                        onDeleted: _fetchFoundPosts,
+                        onDeleted: (id) {
+                          setState(() {
+                            foundPosts.removeWhere((p) => p.id == id);
+                          });
+                          _fetchFoundPosts();
+                        },
                         newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
                         enquiredProfile: post.enquirerAvatars.isNotEmpty
                             ? post.enquirerAvatars

@@ -544,7 +544,7 @@ class AuthRepository {
   Future<ResponseModel> deletePost({required int postId, required String reason}) async {
    return  await  apiClient.delete(ApiEndPoints.deletePost,
       data: {
-        'post_id': postId,
+        'postId': postId,
         'reason': reason,
     },
     addToken: false,
