@@ -14,6 +14,7 @@ import 'package:lost_and_found/screens/home/available_matching_screen.dart';
 import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
 import 'package:lost_and_found/screens/bottomsheets/handover_selection.dart';
 
+import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
@@ -463,283 +464,221 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(
-      BuildContext context,
-      ) {
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 0,
-        backgroundColor: AppColors.primaryColor,
-      ),
+    BuildContext context,
+  ) {
+    final currentUserId = AppPreferences.getUserId()?.toString() ?? '';
 
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // ====================================================
-            // BLUE BACKGROUND
-            // ====================================================
+    return StreamBuilder<Map<String, int>>(
+      stream: ChatService.seenEnquiryCountsStream(currentUserId),
+      builder: (context, seenSnapshot) {
+        final seenCounts = seenSnapshot.data ?? {};
 
-            Container(
-              height: double.infinity,
-              width: double.infinity,
-              color: AppColors.primaryColor,
-            ),
+        return Scaffold(
+          appBar: AppBar(
+            toolbarHeight: 0,
+            backgroundColor: AppColors.primaryColor,
+          ),
+          body: SafeArea(
+            child: Stack(
+              children: [
+                // ====================================================
+                // BLUE BACKGROUND
+                // ====================================================
 
-            // ====================================================
-            // HOME BOX IMAGE
-            // ====================================================
+                Container(
+                  height: double.infinity,
+                  width: double.infinity,
+                  color: AppColors.primaryColor,
+                ),
 
-            Positioned(
-              top: 30,
-              right: 0,
-              child: AppIconWidget(
-                assetPath: AssetImages.homeBox,
-              ),
-            ),
+                // ====================================================
+                // HOME BOX IMAGE
+                // ====================================================
 
-            // ====================================================
-            // WHITE CONTENT CONTAINER
-            // ====================================================
-
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-
-                height:
-                MediaQuery.of(context).size.height * 0.65,
-
-                width: double.infinity,
-
-                decoration: const BoxDecoration(
-                  color: AppColors.white,
-
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(35),
-                    topRight: Radius.circular(35),
+                Positioned(
+                  top: 30,
+                  right: 0,
+                  child: AppIconWidget(
+                    assetPath: AssetImages.homeBox,
                   ),
                 ),
 
-                child: Column(
-                  mainAxisAlignment:
-                  MainAxisAlignment.start,
+                // ====================================================
+                // WHITE CONTENT CONTAINER
+                // ====================================================
 
-                  children: [
-                    // ==========================================
-                    // TAB + FILTER
-                    // ==========================================
-
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    height: MediaQuery.of(context).size.height * 0.65,
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(35),
+                        topRight: Radius.circular(35),
                       ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        // ==========================================
+                        // TAB + FILTER
+                        // ==========================================
 
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              height: 40,
-
-                              decoration: BoxDecoration(
-                                color: AppColors.white,
-
-                                borderRadius:
-                                BorderRadius.circular(30),
-
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 8,
-                                    offset: Offset(0, 2),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.white,
+                                    borderRadius: BorderRadius.circular(30),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 8,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                  child: TabBar(
+                                    controller: _tabController,
+                                    indicatorSize: TabBarIndicatorSize.label,
+                                    indicator: const UnderlineTabIndicator(
+                                      borderSide: BorderSide(
+                                        color: AppColors.primaryColor,
+                                        width: 3,
+                                      ),
+                                      insets: EdgeInsets.symmetric(
+                                        vertical: -10,
+                                      ),
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    indicatorPadding: const EdgeInsets.only(
+                                      left: 1,
+                                      right: 1,
+                                    ),
+                                    dividerColor: Colors.transparent,
+                                    labelColor: AppColors.primaryColor,
+                                    unselectedLabelColor: AppColors.grey,
+                                    tabs: [
+                                      Tab(
+                                        child: buildTabBarView(
+                                          image: AssetImages.lostItemHome,
+                                          title: 'Lost Items',
+                                          isSelected: _selectedIndex == 0,
+                                        ),
+                                      ),
+                                      Tab(
+                                        child: buildTabBarView(
+                                          image: AssetImages.foundItem,
+                                          title: 'Found Items',
+                                          isSelected: _selectedIndex == 1,
+                                        ),
+                                      ),
+                                    ],
+                                  ).pad(),
+                                ),
                               ),
 
-                              child: TabBar(
-                                controller:
-                                _tabController,
+                              const SizedBox(
+                                width: 5,
+                              ),
 
-                                indicatorSize:
-                                TabBarIndicatorSize.label,
+                              // ====================================
+                              // FILTER BUTTON
+                              // ====================================
 
-                                indicator:
-                                const UnderlineTabIndicator(
-                                  borderSide: BorderSide(
-                                    color:
-                                    AppColors.primaryColor,
-                                    width: 3,
+                              GestureDetector(
+                                onTap: () async {
+                                  final filterData = await AppUiHelper.showBottomSheet(
+                                    context: context,
+                                    child: FilterScreen(),
+                                  );
+
+                                  if (!mounted) {
+                                    return;
+                                  }
+
+                                  if (filterData == 'clear') {
+                                    _emitFilter(
+                                      HomeFilterState.cleared(),
+                                    );
+
+                                    _fetchLostPosts();
+                                    _fetchFoundPosts();
+                                  } else if (filterData is Map) {
+                                    _emitFilter(
+                                      HomeFilterState(
+                                        customRange: filterData['customRange'],
+                                        filterApplied: true,
+                                        selectedRange: filterData['range'],
+                                        dateFilter: filterData['dateFilter'],
+                                      ),
+                                    );
+
+                                    _fetchLostPosts();
+                                    _fetchFoundPosts();
+                                  }
+                                },
+                                child: Container(
+                                  height: 40,
+                                  width: 40,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 8,
+                                      ),
+                                    ],
                                   ),
-
-                                  insets:
-                                  EdgeInsets.symmetric(
-                                    vertical: -10,
-                                  ),
-                                ),
-
-                                padding: EdgeInsets.zero,
-
-                                indicatorPadding:
-                                const EdgeInsets.only(
-                                  left: 1,
-                                  right: 1,
-                                ),
-
-                                dividerColor:
-                                Colors.transparent,
-
-                                labelColor:
-                                AppColors.primaryColor,
-
-                                unselectedLabelColor:
-                                AppColors.grey,
-
-                                tabs: [
-                                  Tab(
-                                    child:
-                                    buildTabBarView(
-                                      image: AssetImages
-                                          .lostItemHome,
-
-                                      title: 'Lost Items',
-
-                                      isSelected:
-                                      _selectedIndex ==
-                                          0,
+                                  child: Center(
+                                    child: AppIconWidget(
+                                      assetPath: AssetImages.filter,
+                                      fit: BoxFit.cover,
+                                      size: 20,
                                     ),
                                   ),
-
-                                  Tab(
-                                    child:
-                                    buildTabBarView(
-                                      image:
-                                      AssetImages.foundItem,
-
-                                      title: 'Found Items',
-
-                                      isSelected:
-                                      _selectedIndex ==
-                                          1,
-                                    ),
-                                  ),
-                                ],
-                              ).pad(),
-                            ),
-                          ),
-
-                          const SizedBox(
-                            width: 5,
-                          ),
-
-                          // ====================================
-                          // FILTER BUTTON
-                          // ====================================
-
-                          GestureDetector(
-                            onTap: () async {
-                              final filterData =
-                              await AppUiHelper
-                                  .showBottomSheet(
-                                context: context,
-                                child: FilterScreen(),
-                              );
-
-                              if (!mounted) {
-                                return;
-                              }
-
-                              if (filterData == 'clear') {
-                                _emitFilter(
-                                  HomeFilterState
-                                      .cleared(),
-                                );
-
-                                _fetchLostPosts();
-                                _fetchFoundPosts();
-                              } else if (filterData
-                              is Map) {
-                                _emitFilter(
-                                  HomeFilterState(
-                                    customRange:
-                                    filterData[
-                                    'customRange'],
-
-                                    filterApplied:
-                                    true,
-
-                                    selectedRange:
-                                    filterData[
-                                    'range'],
-
-                                    dateFilter:
-                                    filterData[
-                                    'dateFilter'],
-                                  ),
-                                );
-
-                                _fetchLostPosts();
-                                _fetchFoundPosts();
-                              }
-                            },
-
-                            child: Container(
-                              height: 40,
-                              width: 40,
-
-                              decoration:
-                              const BoxDecoration(
-                                color: AppColors.white,
-                                shape: BoxShape.circle,
-
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                    Colors.black12,
-                                    blurRadius: 8,
-                                  ),
-                                ],
-                              ),
-
-                              child: Center(
-                                child: AppIconWidget(
-                                  assetPath:
-                                  AssetImages.filter,
-
-                                  fit: BoxFit.cover,
-
-                                  size: 20,
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+
+                        const SizedBox(
+                          height: 10,
+                        ),
+
+                        // ==========================================
+                        // TAB CONTENT
+                        // ==========================================
+
+                        Expanded(
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              _buildLostTab(seenCounts),
+                              _buildFoundTab(seenCounts),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-
-                    const SizedBox(
-                      height: 10,
-                    ),
-
-                    // ==========================================
-                    // TAB CONTENT
-                    // ==========================================
-
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-
-                        children: [
-                          _buildLostTab(),
-                          _buildFoundTab(),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
 
-            // ====================================================
-            // HEADER
-            // ====================================================
+                // ====================================================
+                // HEADER
+                // ====================================================
+
 
             Positioned(
               top: 40,
@@ -827,13 +766,15 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
     );
-  }
+  },
+);
+}
 
-  // ============================================================
-  // LOST TAB
-  // ============================================================
+// ============================================================
+// LOST TAB
+// ============================================================
 
-  Widget _buildLostTab() {
+Widget _buildLostTab(Map<String, int> seenCounts) {
     if (isLoadingLost) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -850,9 +791,10 @@ class _HomeScreenState extends State<HomeScreen>
 
     return RefreshIndicator(
       onRefresh: _fetchLostPosts,
-
       child: Column(
         children: [
+          // ... (rest of filtering UI remains same)
+
           // ================================================
           // FILTER DISPLAY
           // ================================================
@@ -957,6 +899,10 @@ class _HomeScreenState extends State<HomeScreen>
                         );
                       }
                       final post = lostPosts[index];
+                      final seenCount = seenCounts[post.id.toString()] ?? 0;
+                      final effectiveEnquiries =
+                          (post.enquiriesCount - seenCount).clamp(0, 999);
+
                       return ItemCard(
                         imgUrl: post.images.isNotEmpty ? post.images.first : '',
                         title: post.name,
@@ -971,7 +917,9 @@ class _HomeScreenState extends State<HomeScreen>
                           });
                           _fetchLostPosts();
                         },
-                        newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
+                        newMessageCount: effectiveEnquiries > 0
+                            ? effectiveEnquiries.toString()
+                            : null,
                         enquiredProfile: post.enquirerAvatars.isNotEmpty
                             ? post.enquirerAvatars
                                 .map((e) => e.imageUrl)
@@ -1020,7 +968,7 @@ class _HomeScreenState extends State<HomeScreen>
   // FOUND TAB
   // ============================================================
 
-  Widget _buildFoundTab() {
+  Widget _buildFoundTab(Map<String, int> seenCounts) {
     if (isLoadingFound) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -1037,9 +985,10 @@ class _HomeScreenState extends State<HomeScreen>
 
     return RefreshIndicator(
       onRefresh: _fetchFoundPosts,
-
       child: Column(
         children: [
+          // ... (rest of filtering UI remains same)
+
           // ================================================
           // FILTER DISPLAY
           // ================================================
@@ -1144,6 +1093,10 @@ class _HomeScreenState extends State<HomeScreen>
                         );
                       }
                       final post = foundPosts[index];
+                      final seenCount = seenCounts[post.id.toString()] ?? 0;
+                      final effectiveEnquiries =
+                          (post.enquiriesCount - seenCount).clamp(0, 999);
+
                       return ItemCard(
                         imgUrl: post.images.isNotEmpty ? post.images.first : '',
                         title: post.name,
@@ -1159,7 +1112,9 @@ class _HomeScreenState extends State<HomeScreen>
                           });
                           _fetchFoundPosts();
                         },
-                        newMessageCount: post.enquiriesCount > 0 ? post.enquiriesCount.toString() : null,
+                        newMessageCount: effectiveEnquiries > 0
+                            ? effectiveEnquiries.toString()
+                            : null,
                         enquiredProfile: post.enquirerAvatars.isNotEmpty
                             ? post.enquirerAvatars
                                 .map((e) => e.imageUrl)

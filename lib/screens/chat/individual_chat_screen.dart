@@ -422,6 +422,7 @@ class _IndividualChatScreenState
   Future<void> _clearChat() async {
     await ChatService.clearChat(
       roomId: widget.roomId,
+      currentUserId: widget.currentUserId,
     );
   }
 

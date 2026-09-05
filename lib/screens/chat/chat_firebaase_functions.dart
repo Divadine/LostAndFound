@@ -1469,6 +1469,7 @@ class ChatService {
     await roomRef.set(
       {
         'unreadCounts': unreadCounts,
+        'seenBy': FieldValue.arrayUnion([userId]),
       },
       SetOptions(merge: true),
     );
@@ -1538,6 +1539,34 @@ class ChatService {
         SetOptions(merge: true),
       );
     }
+  }
+
+  // ============================================================
+  // SEEN ENQUIRIES
+  // ============================================================
+
+  static Stream<Map<String, int>> seenEnquiryCountsStream(String userId) {
+    return _rooms
+        .where('users', arrayContains: userId)
+        .snapshots()
+        .map((snapshot) {
+      final Map<String, int> counts = {};
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final seenBy = List<String>.from(data['seenBy'] ?? []);
+        final postId = data['postId']?.toString() ?? '';
+        final enquirySenderId = data['enquirySenderId']?.toString() ?? '';
+
+        // If I am NOT the enquirer (i.e., I am the owner)
+        // and I have seen this room.
+        if (postId.isNotEmpty &&
+            seenBy.contains(userId) &&
+            enquirySenderId != userId) {
+          counts[postId] = (counts[postId] ?? 0) + 1;
+        }
+      }
+      return counts;
+    });
   }
 
   // ============================================================
@@ -1714,6 +1743,7 @@ class ChatService {
 
   static Future<void> clearChat({
     required String roomId,
+    required String currentUserId,
   }) async {
     final roomRef =
     _rooms.doc(roomId);
@@ -1731,15 +1761,18 @@ class ChatService {
 
       for (final doc
       in messagesSnapshot.docs) {
-        batch.delete(doc.reference);
+        final data = doc.data();
+        final deletedFor = List<String>.from(data['deletedFor'] ?? []);
 
-        operationCount++;
+        if (!deletedFor.contains(currentUserId)) {
+          deletedFor.add(currentUserId);
+          batch.update(doc.reference, {'deletedFor': deletedFor});
+          operationCount++;
+        }
 
-        if (operationCount == 450) {
+        if (operationCount >= 450) {
           await batch.commit();
-
           batch = _firestore.batch();
-
           operationCount = 0;
         }
       }
@@ -1748,28 +1781,6 @@ class ChatService {
         await batch.commit();
       }
     }
-
-    await roomRef.set(
-      {
-        'lastMessage': '',
-
-        'lastMessageTime':
-        FieldValue.serverTimestamp(),
-
-        'lastMessageSenderId': '',
-
-        'lastMessageRead': false,
-
-        'lastMessageDelivered': false,
-
-        'lastMessageDeleted': false,
-
-        'lastMessageId': '',
-
-        'unreadCounts': {},
-      },
-      SetOptions(merge: true),
-    );
   }
 
   // ============================================================

@@ -394,7 +394,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                       imageUrl: _itemImageUrl,
                       fit: BoxFit.cover,
                       width: double.infinity,
-                      height: 220,
+                      height: 150,
                     ),
                   )
                 else
