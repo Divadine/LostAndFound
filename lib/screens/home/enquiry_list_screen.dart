@@ -241,13 +241,16 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               context: context,
               showHandle: false,
               showCloseIcon: true,
+              onClose: () {
+                AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+              },
               child: ReceivedDetails(
                 type: TransferType.handOverToOwner,
                 data: TransferData(
                   name: winnerEnquiry.enquirerName,
                   avatarUrl: winnerEnquiry.enquirerProfileImg,
                   userId: winnerEnquiry.userUid,
-                  phoneNumber: '',
+                  phoneNumber: winnerEnquiry.phoneno,
                   description: winnerEnquiry.description,
                   proofPhotos: (post?.images ?? [])
                       .map((img) => _getMediaUrl(img))
@@ -390,7 +393,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
 
                 return buildEnquiryCard(
                   context: context,
-                  bgColor: isWinner ? AppColors.closedColor : AppColors.white,
+                  bgColor: AppColors.white,
                   profileImage: e.enquirerProfileImg,
                   name: e.enquirerName,
                   userId: e.userUid,

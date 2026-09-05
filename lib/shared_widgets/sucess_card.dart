@@ -39,7 +39,7 @@ Widget SucessCard({
               children: [
                 AppText(
                   text: isReceiver
-                      ? 'Received to'
+                      ? 'Received by'
                       : 'Hand Over to',
                   fontSize: 12,
                   fontWeight: FontWeight.w500,

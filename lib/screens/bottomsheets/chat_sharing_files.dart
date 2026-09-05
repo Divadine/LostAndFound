@@ -20,11 +20,13 @@ import 'package:lost_and_found/utils/app_images.dart';
 class ChatSharingFiles extends StatefulWidget {
   final String roomId;
   final String currentUserId;
+  final Function(Map<String, dynamic>)? onAttachmentSelected;
 
   const ChatSharingFiles({
     super.key,
     required this.roomId,
     required this.currentUserId,
+    this.onAttachmentSelected,
   });
 
   @override
@@ -96,21 +98,27 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
       if (!mounted) return;
 
-      // ========================================================
-      // SAVE URL TO FIRESTORE
-      // ========================================================
-
-      await ChatService.sendImageMessageWithUrl(
-        roomId: widget.roomId,
-        senderId: widget.currentUserId,
-        imageUrl: imageUrl.trim(),
-      );
+      if (widget.onAttachmentSelected != null) {
+        widget.onAttachmentSelected!({
+          'type': 'image',
+          'url': imageUrl.trim(),
+        });
+      } else {
+        // Fallback to original behavior if no callback provided
+        await ChatService.sendImageMessageWithUrl(
+          roomId: widget.roomId,
+          senderId: widget.currentUserId,
+          imageUrl: imageUrl.trim(),
+        );
+      }
 
       if (!mounted) return;
 
       Navigator.of(context).pop();
 
-      _showSuccess('Photo sent');
+      if (widget.onAttachmentSelected == null) {
+        _showSuccess('Photo sent');
+      }
     } catch (e) {
       _stopLoading();
 
@@ -173,21 +181,27 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
       if (!mounted) return;
 
-      // ========================================================
-      // SAVE URL TO FIRESTORE
-      // ========================================================
-
-      await ChatService.sendImageMessageWithUrl(
-        roomId: widget.roomId,
-        senderId: widget.currentUserId,
-        imageUrl: imageUrl.trim(),
-      );
+      if (widget.onAttachmentSelected != null) {
+        widget.onAttachmentSelected!({
+          'type': 'image',
+          'url': imageUrl.trim(),
+        });
+      } else {
+        // Fallback to original behavior if no callback provided
+        await ChatService.sendImageMessageWithUrl(
+          roomId: widget.roomId,
+          senderId: widget.currentUserId,
+          imageUrl: imageUrl.trim(),
+        );
+      }
 
       if (!mounted) return;
 
       Navigator.of(context).pop();
 
-      _showSuccess('Photo sent');
+      if (widget.onAttachmentSelected == null) {
+        _showSuccess('Photo sent');
+      }
     } catch (e) {
       _stopLoading();
 
@@ -260,6 +274,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
             roomId: widget.roomId,
             currentUserId: widget.currentUserId,
             position: position,
+            onAttachmentSelected: widget.onAttachmentSelected,
           ),
         ),
       );
@@ -340,6 +355,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
             currentUserId: widget.currentUserId,
             position: position,
             addressOnly: true,
+            onAttachmentSelected: widget.onAttachmentSelected,
           ),
         ),
       );
@@ -634,6 +650,7 @@ class LocationConfirmationScreen extends StatefulWidget {
   final String roomId;
   final String currentUserId;
   final Position position;
+  final Function(Map<String, dynamic>)? onAttachmentSelected;
 
   /// If true, this screen is being used
   /// specifically for sharing the address.
@@ -645,6 +662,7 @@ class LocationConfirmationScreen extends StatefulWidget {
     required this.currentUserId,
     required this.position,
     this.addressOnly = false,
+    this.onAttachmentSelected,
   });
 
   @override
@@ -760,13 +778,37 @@ class _LocationConfirmationScreenState
         _sending = true;
       });
 
-      await ChatService.sendLocationMessage(
-        roomId: widget.roomId,
-        senderId: widget.currentUserId,
-        latitude: widget.position.latitude,
-        longitude: widget.position.longitude,
-        address: _address,
-      );
+      if (widget.onAttachmentSelected != null) {
+        if (widget.addressOnly) {
+          widget.onAttachmentSelected!({
+            'type': 'address',
+            'address': _address,
+          });
+        } else {
+          widget.onAttachmentSelected!({
+            'type': 'location',
+            'latitude': widget.position.latitude,
+            'longitude': widget.position.longitude,
+            'address': _address,
+          });
+        }
+      } else {
+        if (widget.addressOnly) {
+          await ChatService.sendMessage(
+            roomId: widget.roomId,
+            senderId: widget.currentUserId,
+            message: _address,
+          );
+        } else {
+          await ChatService.sendLocationMessage(
+            roomId: widget.roomId,
+            senderId: widget.currentUserId,
+            latitude: widget.position.latitude,
+            longitude: widget.position.longitude,
+            address: _address,
+          );
+        }
+      }
 
       if (!mounted) return;
 

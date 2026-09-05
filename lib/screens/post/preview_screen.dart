@@ -418,7 +418,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
   Widget _buildSecondContainer() {
     final dynamicFields = widget.fieldValues.where((field) {
       final name = field['field']?.trim().toLowerCase() ?? '';
-      if (name == 'brand' || name == 'model' || name == 'color') return false;
+      if (name == 'brand' || name == 'model' || name == 'color' || name == 'subcategory') return false;
       return (field['value']?.trim() ?? '').isNotEmpty;
     }).toList();
 
@@ -547,8 +547,6 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
         ),
         const SizedBox(width: 10),
         Expanded(child: _buildWave()),
-        const SizedBox(width: 10),
-        AppText(text: _formatDuration(_audioDuration), fontSize: 12),
       ],
     );
   }

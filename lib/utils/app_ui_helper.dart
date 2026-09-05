@@ -90,6 +90,7 @@ class AppUiHelper {
     bool isDismissible = true,
     bool showHandle = true,
     bool showCloseIcon = false,
+    VoidCallback? onClose,
     Color? color,
     Color? iconColor,
     Color bgColor = AppColors.white,
@@ -164,7 +165,7 @@ class AppUiHelper {
                     top: -35,
                     right: 10,
                     child: InkWell(
-                      onTap: () => Navigator.of(context).pop(),
+                      onTap: onClose ?? () => Navigator.of(context).pop(),
                       child: Container(
                         height: 30,
                         width: 30,

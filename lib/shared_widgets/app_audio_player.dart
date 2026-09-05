@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
+import 'package:lost_and_found/shared_widgets/app_text.dart';
 
 class AppAudioPlayer extends StatefulWidget {
   final String url;
@@ -137,6 +138,11 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
     super.dispose();
   }
 
+  String _formatDuration(Duration d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(d.inMinutes)}:${two(d.inSeconds % 60)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return _buildPlayer();
@@ -206,17 +212,13 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
                     // PLAY BUTTON
                     GestureDetector(
                       onTap: _toggleAudio,
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.primaryColor,
-                        ),
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: AppColors.primaryColor,
                         child: Icon(
                           isPlaying ? Icons.pause : Icons.play_arrow,
                           color: Colors.white,
-                          size: 22,
+                          size: 20,
                         ),
                       ),
                     ),
@@ -246,6 +248,11 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
                           );
                         },
                       ),
+                    ),
+                    const SizedBox(width: 10),
+                    AppText(
+                      text: _formatDuration(duration),
+                      fontSize: 12,
                     ),
                   ],
                 );

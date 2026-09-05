@@ -630,10 +630,10 @@ class TransferCompleted extends StatelessWidget {
 
   String get completedDescription {
     if (isReceive) {
-      return 'You have successfully received the item from';
+      return 'Received To';
     }
 
-    return 'You have successfully handed over the item to';
+    return 'Handovered To';
   }
 
   @override
@@ -698,6 +698,9 @@ class TransferCompleted extends StatelessWidget {
               AppUiHelper.showBottomSheet(
                 showHandle: false,
                 showCloseIcon: true,
+                onClose: () {
+                  AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+                },
                 context: context,
                 child: ReceivedDetails(
                   type: type,
@@ -759,9 +762,7 @@ class TransferCompleted extends StatelessWidget {
 
           Expanded(
             child: AppText(
-              text: data.name.isNotEmpty
-                  ? data.name
-                  : 'Unknown User',
+              text: data.name.isNotEmpty ? data.name : 'Unknown User',
               fontSize: 13,
               color: AppColors.primaryColor,
               fontWeight: FontWeight.w600,
@@ -817,7 +818,7 @@ class TransferCompleted extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
 
-                if (data.phoneNumber.isNotEmpty) ...[
+                if (data.phoneNumber.isNotEmpty && !isPolice) ...[
                   const SizedBox(height: 4),
 
                   AppText(

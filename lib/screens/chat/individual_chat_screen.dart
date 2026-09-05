@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 
@@ -97,6 +98,8 @@ class _IndividualChatScreenState
   TextEditingController();
 
   String? selectedMessageId;
+
+  Map<String, dynamic>? _pendingAttachment;
 
   bool _showSafetyCard = true;
 
@@ -317,31 +320,58 @@ class _IndividualChatScreenState
   }
 
   Future<void> _send() async {
-    final text =
-    textController.text.trim();
+    final text = textController.text.trim();
 
-    if (text.isEmpty) return;
+    if (text.isEmpty && _pendingAttachment == null) return;
 
     try {
-      await ChatService.sendMessage(
-        roomId: widget.roomId,
-        senderId:
-        widget.currentUserId,
-        message: text,
-      );
+      if (_pendingAttachment != null) {
+        final type = _pendingAttachment!['type'];
+        if (type == 'image') {
+          await ChatService.sendImageMessageWithUrl(
+            roomId: widget.roomId,
+            senderId: widget.currentUserId,
+            imageUrl: _pendingAttachment!['url'],
+          );
+        } else if (type == 'location') {
+          await ChatService.sendLocationMessage(
+            roomId: widget.roomId,
+            senderId: widget.currentUserId,
+            latitude: _pendingAttachment!['latitude'],
+            longitude: _pendingAttachment!['longitude'],
+            address: _pendingAttachment!['address'],
+          );
+        } else if (type == 'address') {
+          await ChatService.sendMessage(
+            roomId: widget.roomId,
+            senderId: widget.currentUserId,
+            message: _pendingAttachment!['address'],
+          );
+        }
+        setState(() {
+          _pendingAttachment = null;
+        });
+      }
 
-      textController.clear();
+      if (text.isNotEmpty) {
+        await ChatService.sendMessage(
+          roomId: widget.roomId,
+          senderId: widget.currentUserId,
+          message: text,
+        );
+
+        textController.clear();
+      }
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             e.toString().replaceFirst(
-              'Exception: ',
-              '',
-            ),
+                  'Exception: ',
+                  '',
+                ),
           ),
         ),
       );
@@ -349,17 +379,14 @@ class _IndividualChatScreenState
   }
 
   Future<void> _call() async {
-    final phone =
-    _otherUserPhone.trim();
+    final phone = _otherUserPhone.trim().replaceAll(RegExp(r'[^\d+]'), '');
 
     if (phone.isEmpty) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-          Text('Phone number unavailable'),
+          content: Text('Phone number unavailable'),
         ),
       );
 
@@ -373,12 +400,15 @@ class _IndividualChatScreenState
 
     try {
       if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open dialer')),
+        );
       }
     } catch (e) {
-      debugPrint(
-        '[CALL] ERROR: $e',
-      );
+      debugPrint('[CALL] ERROR: $e');
     }
   }
 
@@ -2097,156 +2127,203 @@ class _IndividualChatScreenState
 
   Widget _buildBottomArea() {
     return StreamBuilder<bool>(
-      stream:
-      ChatService.chatBlockedStream(
+      stream: ChatService.chatBlockedStream(
         roomId: widget.roomId,
       ),
-
       builder: (
-          context,
-          snapshot,
-          ) {
-        final isBlocked =
-            snapshot.data ?? false;
+        context,
+        snapshot,
+      ) {
+        final isBlocked = snapshot.data ?? false;
 
         if (isBlocked) {
           return SafeArea(
             top: false,
             child: Padding(
-              padding:
-              const EdgeInsets.all(
+              padding: const EdgeInsets.all(
                 16,
               ),
-              child:
-              _buildBlockedContainer(),
+              child: _buildBlockedContainer(),
             ),
           );
         }
 
         return SafeArea(
           top: false,
-
           child: Padding(
-            padding:
-            EdgeInsets.only(
-              bottom:
-              MediaQuery.of(context)
-                  .viewInsets
-                  .bottom,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
-
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                buildIconContainer(
-                  onTap: () {
-                    AppUiHelper
-                        .showBottomSheet(
-
-                      context: context,
-                      showHandle: false,
-                      showCloseIcon:
-                      false,
-                      color: AppColors
-                          .primaryColor,
-                      bgColor: Colors.transparent,
-                      iconColor:
-                      AppColors.white,
-
-                      child:
-                      ChatSharingFiles(
-                        roomId:
-                        widget.roomId,
-                        currentUserId:
-                        widget
-                            .currentUserId,
-                      ),
-                    );
-                  },
-
-                  height: 50,
-                  width: 50,
-                  context,
-
-                  icon:
-                  AssetImages.add,
-
-                  bgColor:
-                  AppColors.white,
-
-                  iconColor:
-                  AppColors.black,
-
-                  borderColor:
-                  AppColors.fieldGrey,
-                ),
-
-                const SizedBox(width: 8),
-
-                Expanded(
-                  child: Container(
-                    height: 50,
-
-                    decoration:
-                    BoxDecoration(
-                      color:
-                      AppColors.white,
-
-                      borderRadius:
-                      BorderRadius
-                          .circular(
-                        30,
-                      ),
-
-                      boxShadow:
-                      const [
-                        BoxShadow(
-                          color:
-                          Colors.black12,
-                          blurRadius: 8,
-                          offset:
-                          Offset(0, 2),
+                if (_pendingAttachment != null)
+                  _buildPendingAttachmentPreview(),
+                Row(
+                  children: [
+                    buildIconContainer(
+                      onTap: () {
+                        AppUiHelper.showBottomSheet(
+                          context: context,
+                          showHandle: false,
+                          showCloseIcon: false,
+                          color: AppColors.primaryColor,
+                          bgColor: Colors.transparent,
+                          iconColor: AppColors.white,
+                          child: ChatSharingFiles(
+                            roomId: widget.roomId,
+                            currentUserId: widget.currentUserId,
+                            onAttachmentSelected: (attachment) {
+                              setState(() {
+                                _pendingAttachment = attachment;
+                              });
+                            },
+                          ),
+                        );
+                      },
+                      height: 50,
+                      width: 50,
+                      context,
+                      icon: AssetImages.add,
+                      bgColor: AppColors.white,
+                      iconColor: AppColors.black,
+                      borderColor: AppColors.fieldGrey,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(
+                            30,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ],
+                        child: AppTextField(
+                          hintText: 'Write your message..',
+                          textController: textController,
+                          onChange: (v) {},
+                          onSubmit: (v) => _send(),
+                        ),
+                      ),
                     ),
-
-                    child: AppTextField(
-                      hintText:
-                      'Write your message..',
-
-                      textController:
-                      textController,
-
-                      onChange: (v) {},
-
-                      onSubmit: (v) =>
-                          _send(),
+                    const SizedBox(width: 8),
+                    buildIconContainer(
+                      height: 50,
+                      width: 50,
+                      context,
+                      icon: AssetImages.send,
+                      bgColor: AppColors.primaryColor,
+                      iconColor: AppColors.white,
+                      onTap: _send,
                     ),
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                buildIconContainer(
-                  height: 50,
-                  width: 50,
-                  context,
-
-                  icon:
-                  AssetImages.send,
-
-                  bgColor:
-                  AppColors.primaryColor,
-
-                  iconColor:
-                  AppColors.white,
-
-                  onTap: _send,
-                ),
+                  ],
+                ).pad(),
               ],
-            ).pad(),
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildPendingAttachmentPreview() {
+    if (_pendingAttachment == null) return const SizedBox.shrink();
+
+    final type = _pendingAttachment!['type'];
+
+    Widget content;
+    if (type == 'image') {
+      content = ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          _pendingAttachment!['url'],
+          width: 50,
+          height: 50,
+          fit: BoxFit.cover,
+        ),
+      );
+    } else if (type == 'location') {
+      content = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.fieldGrey.withAlpha(40),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.location_on,
+                color: AppColors.primaryColor, size: 18),
+            const SizedBox(width: 8),
+            Flexible(
+              child: AppText(
+                text: _pendingAttachment!['address'] ?? 'Location',
+                fontSize: 12,
+                maxLine: 1,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (type == 'address') {
+      content = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.fieldGrey.withAlpha(40),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.home, color: AppColors.primaryColor, size: 18),
+            const SizedBox(width: 8),
+            Flexible(
+              child: AppText(
+                text: _pendingAttachment!['address'] ?? 'Address',
+                fontSize: 12,
+                maxLine: 1,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(child: content),
+          IconButton(
+            icon: const Icon(Icons.close, size: 18),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () {
+              setState(() {
+                _pendingAttachment = null;
+              });
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -2399,6 +2476,31 @@ class _IndividualChatScreenState
           ),
         ),
 
+        StreamBuilder<Map<String, dynamic>>(
+          stream: ChatService.contactRequestStream(roomId: widget.roomId),
+          builder: (context, snapshot) {
+            final data = snapshot.data ?? <String, dynamic>{};
+            final status = data['status']?.toString() ?? 'none';
+            if (status != 'accepted' || _otherUserPhone.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: _call,
+                  child: AppIconWidget(
+                    assetPath: AssetImages.call,
+                    size: 20,
+                    color: AppColors.primaryColor,
+                  ),
+                ),
+                const SizedBox(width: 15),
+              ],
+            );
+          },
+        ),
+
         Container(
           height: 30,
           width: 30,
@@ -2498,21 +2600,21 @@ class _IndividualChatScreenState
             itemBuilder:
                 (context) => [
               const PopupMenuItem(
-                value: 'clear',
                 child:
                 Text('Clear Chat'),
+                value: 'clear',
               ),
 
               const PopupMenuItem(
-                value: 'block',
                 child:
                 Text('Block'),
+                value: 'block',
               ),
 
               const PopupMenuItem(
-                value: 'report',
                 child:
                 Text('Report'),
+                value: 'report',
               ),
             ],
           ),

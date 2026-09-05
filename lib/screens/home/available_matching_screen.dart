@@ -117,6 +117,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: CustomAppBar(
+        backgroundColor: AppColors.white,
         title: 'Available Matching item - ${isLoadingMatches ? (widget.foundCount ?? 0) : matchingCount} founded',
         leadingSvg: AssetImages.backArrow,
         titleColor: AppColors.primaryColor,
@@ -144,6 +145,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
             ).pad(),
 
             AppContainer(
+              bgColor: AppColors.white,
               widget: AppText(
                 text: 'Matching Items(${isLoadingMatches ? (widget.foundCount ?? 0) : matchingCount})',
                 fontSize: 14,
@@ -163,7 +165,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                 itemCount: matches.length,
                 itemBuilder: (context, index) {
                   final match = matches[index];
-                  
+
                   return ItemCard(
                     imageWidth: 170,
                     isFromEnquiry: true,
@@ -173,6 +175,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                     location: match.location,
                     date: _formatDate(match.postDate),
                     postId: match.postUid,
+                    bg: AppColors.white,
                     onTap: () => _onMatchTap(match),
                     percentageMatch: match.matchPercentage,
                     showPostId: false,
@@ -197,6 +200,9 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
             AppUiHelper.showBottomSheet(
               showHandle: false,
               showCloseIcon: true,
+              onClose: () {
+                AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+              },
               context: context,
               child: ReceivedDetails(
                 type: TransferType.receiveToOwner,

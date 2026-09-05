@@ -138,7 +138,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
     setState(() => isSubmitting = false);
 
     if (response.isSuccess) {
-      AppRoutes.pop();
+      Navigator.of(context).pop();
       AppDialogue.showPopup(
         context: context,
         content: TransferCompleted(

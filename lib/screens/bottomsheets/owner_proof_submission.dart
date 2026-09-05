@@ -151,7 +151,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
       if (handoverResponse.isSuccess) {
         // Backend marks the post as completed as part of createHandover —
         // no separate "complete post" call needed.
-        AppRoutes.pop();
+        Navigator.of(context).pop();
         AppDialogue.showPopup(
           context: context,
           content: TransferCompleted(

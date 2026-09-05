@@ -50,6 +50,12 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
         widget.type == TransferType.handOverToOwner;
   }
 
+  bool get isReceive {
+    return widget.type == TransferType.receiveToOthers ||
+        widget.type == TransferType.receiveToPolice ||
+        widget.type == TransferType.receiveToOwner;
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -61,9 +67,9 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
           // TITLE
           // ======================================================
 
-          const Center(
+          Center(
             child: AppText(
-              text: 'Handover Details',
+              text: isReceive ? 'Received Details' : 'Handover Details',
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -103,7 +109,7 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
           // PHONE
           // ======================================================
 
-          if (widget.data.phoneNumber.isNotEmpty)
+          if (widget.data.phoneNumber.isNotEmpty && isOthers)
             buildProofDocuments(
               title: '3. Phone Number',
               widget: AppText(

@@ -78,6 +78,7 @@ class EnquiryItem {
   final int matchPercentage;
   final DateTime? createdAt;
   final int status;
+  final String phoneno;
 
   EnquiryItem({
     required this.enquiryId,
@@ -91,6 +92,7 @@ class EnquiryItem {
     required this.matchPercentage,
     this.createdAt,
     this.status = 0,
+    this.phoneno = '',
   });
 
   factory EnquiryItem.fromJson(Map<String, dynamic> json) {
@@ -115,6 +117,7 @@ class EnquiryItem {
       status: json['enquiry_status'] as int? ??
           json['enquirystatus'] as int? ??
           json['status'] as int? ?? 0,
+      phoneno: json['phoneno']?.toString() ?? json['mobile']?.toString() ?? json['phone']?.toString() ?? '',
     );
   }
 }
