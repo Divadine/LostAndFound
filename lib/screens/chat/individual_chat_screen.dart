@@ -98,6 +98,8 @@ class _IndividualChatScreenState
 
   String? selectedMessageId;
 
+  bool _showSafetyCard = true;
+
   String _otherUserPhone = '';
   bool _phoneLoading = false;
 
@@ -1053,6 +1055,8 @@ class _IndividualChatScreenState
   // ============================================================
 
   Widget _buildSafetyCard() {
+    if (!_showSafetyCard) return const SizedBox.shrink();
+
     return AppContainer(
       bgColor:
       AppColors.idCardColor,
@@ -1081,7 +1085,9 @@ class _IndividualChatScreenState
 
           InkWell(
             onTap: () {
-              AppRoutes.pop();
+              setState(() {
+                _showSafetyCard = false;
+              });
             },
             child: AppIconWidget(
               assetPath:

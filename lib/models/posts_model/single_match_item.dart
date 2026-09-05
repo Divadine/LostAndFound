@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class SingleMatchModel {
   final int id;
   final String postUid;
@@ -50,33 +52,95 @@ class SingleMatchModel {
 
     void addCandidate(dynamic val) {
       if (val == null) return;
+
       if (val is List) {
         for (var item in val) {
           addCandidate(item);
         }
+      } else if (val is Map) {
+        // Look for common image/video keys in objects
+        addCandidate(val['img_path']);
+        addCandidate(val['image_path']);
+        addCandidate(val['imgPath']);
+        addCandidate(val['imagePath']);
+        addCandidate(val['path']);
+        addCandidate(val['url']);
+        addCandidate(val['imageUrl']);
+        addCandidate(val['imageURL']);
+        addCandidate(val['file_path']);
+        addCandidate(val['filePath']);
       } else if (val is String) {
         String s = val.trim();
-        if (s.isEmpty || s == '[]') return;
-        if (s.startsWith('[') && s.endsWith(']')) {
-          final inner = s.substring(1, s.length - 1);
-          if (inner.isNotEmpty) {
-            for (var p in inner.split(',')) {
-              addCandidate(p.trim().replaceAll('"', '').replaceAll("'", ""));
-            }
+        if (s.isEmpty || s == '[]' || s == 'null' || s == '""' || s == "''") return;
+
+        // Try to parse as JSON if it looks like an array or object
+        if ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('{') && s.endsWith('}'))) {
+          try {
+            final decoded = jsonDecode(s);
+            addCandidate(decoded);
+            return;
+          } catch (_) {
+            // Fall through to manual parsing
           }
-        } else {
-          candidates.add(s);
         }
+
+        // Handle comma-separated values (often used for multiple image paths/IDs)
+        if (s.contains(',')) {
+          for (var p in s.split(',')) {
+            addCandidate(p.trim().replaceAll('"', '').replaceAll("'", ""));
+          }
+          return;
+        }
+
+        // Remove wrapping quotes if any
+        s = s.replaceAll('"', '').replaceAll("'", "");
+        if (s.isEmpty) return;
+
+        candidates.add(s);
+      } else if (val is num) {
+        // If it's a number, it might be an image ID, which isn't a path, 
+        // but we'll add it just in case the backend uses IDs in paths
+        candidates.add(val.toString());
       }
     }
 
-    addCandidate(data['images']);
-    addCandidate(data['postimages']);
-    addCandidate(data['post_images']);
-    addCandidate(data['imageUrl']);
-    addCandidate(data['image_url']);
-    addCandidate(data['post_img']);
-    addCandidate(data['post_image']);
+    // Exhaustive check for common field names
+    final fieldsToCheck = [
+      'images', 'Images', 'postimages', 'postImages', 'PostImages', 'Postimages',
+      'post_images', 'Post_Images', 'imageUrl', 'image_url', 'imageURL',
+      'post_img', 'post_image', 'image', 'Image', 'postimg', 'Postimg',
+      'item_image', 'itemImage', 'file_path', 'filePath', 'path'
+    ];
+
+    for (var field in fieldsToCheck) {
+      addCandidate(json[field]);
+      addCandidate(data[field]);
+    }
+
+    // Also check if there's a nested post object
+    if (data['post'] is Map) {
+      for (var field in fieldsToCheck) {
+        addCandidate((data['post'] as Map)[field]);
+      }
+    }
+
+    // Also check values for image fields
+    final valuesData = data['values'] ?? data['post_values'] ?? data['postValues'] ?? data['dynamic_values'];
+    final valuesList = (valuesData is List) ? valuesData : [];
+    
+    for (var v in valuesList) {
+      if (v is Map) {
+        final fieldName = (v['field_name'] ?? v['fieldName'] ?? '').toString().toLowerCase();
+        if (fieldName.contains('image') || 
+            fieldName.contains('photo') || 
+            fieldName.contains('img') || 
+            fieldName.contains('proof') || 
+            fieldName.contains('file') || 
+            fieldName.contains('attachment')) {
+          addCandidate(v['field_value'] ?? v['fieldValue']);
+        }
+      }
+    }
 
     String? foundImage;
     String? foundVideo;
@@ -96,6 +160,13 @@ class SingleMatchModel {
         data['post_video']?.toString();
 
     // 5. Finalize the model with unwrapped data
+    if (foundImage == null || foundImage.isEmpty) {
+      print('DEBUG: SingleMatchModel - No image found in keys: ${data.keys.toList()}');
+      if (data['post'] is Map) {
+        print('DEBUG: SingleMatchModel - Keys in nested post: ${(data['post'] as Map).keys.toList()}');
+      }
+    }
+
     return SingleMatchModel(
       id: data['id'] as int? ?? 0,
       postUid: data['post_uid']?.toString() ?? '',
@@ -114,11 +185,12 @@ class SingleMatchModel {
       videoUrl: foundVideo,
       posterName: data['poster_name']?.toString() ?? data['user_name']?.toString() ?? '',
       posterAvatar: data['poster_avatar']?.toString() ?? data['user_avatar']?.toString() ?? '',
-      values: (data['values'] as List? ?? [])
+      values: valuesList
           .map((e) => SingleMatchValue.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
+
 
   static bool _isVideo(String path) {
     final lower = path.toLowerCase();

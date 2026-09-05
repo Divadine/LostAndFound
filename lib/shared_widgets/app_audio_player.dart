@@ -52,9 +52,11 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
       return cleanUrl;
     }
 
+    final path = cleanUrl.startsWith('/') ? cleanUrl.substring(1) : cleanUrl;
+
     // API returns:
     // uploads/audio/filename.m4a
-    return 'https://lost-and-found.skyraantech.com/backend/$cleanUrl';
+    return 'https://lost-and-found.skyraantech.com/backend/$path';
   }
 
   Future<void> _initializeAudio() async {

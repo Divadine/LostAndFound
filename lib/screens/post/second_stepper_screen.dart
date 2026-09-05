@@ -18,7 +18,7 @@ import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
-import 'package:lost_and_found/shared_widgets/app_recorder.dart';
+import 'reording_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_step_indicator.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
@@ -32,7 +32,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:video_player/video_player.dart';
 
-import 'reording_screen.dart';
+
 
 class SecondStepperScreen extends StatefulWidget {
   final int postType;

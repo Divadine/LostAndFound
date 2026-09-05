@@ -49,7 +49,8 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
       return cleanUrl;
     }
 
-    return 'https://lost-and-found.skyraantech.com/backend/$cleanUrl';
+    final path = cleanUrl.startsWith('/') ? cleanUrl.substring(1) : cleanUrl;
+    return 'https://lost-and-found.skyraantech.com/backend/$path';
   }
 
   Future<void> _initializeVideo() async {

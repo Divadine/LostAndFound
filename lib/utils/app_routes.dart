@@ -32,7 +32,7 @@ import 'package:lost_and_found/screens/report_justification.dart';
 import 'package:lost_and_found/screens/post/second_stepper_screen.dart';
 import 'package:lost_and_found/screens/profile/settings_screen.dart';
 import 'package:lost_and_found/screens/profile/webView.dart';
-import 'package:lost_and_found/shared_widgets/app_recorder.dart';
+
 import 'package:lost_and_found/screens/splash_screen.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 
@@ -263,7 +263,7 @@ class AppRoutes {
         name: previewScreen,
         builder: (context, state) {
           final data = state.extra as Map<String, dynamic>;
-          return PreviewScreen(
+          return PreviewPostScreen(
             postType: data['postType'] as int,
             categoryId: data['categoryId'] as int,
             subcategoryId: data['subcategoryId'] as int,
