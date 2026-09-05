@@ -496,8 +496,8 @@ class _HomeScreenState extends State<HomeScreen>
                 // ====================================================
 
                 Positioned(
-                  top: 30,
-                  right: 0,
+                  top: 10,
+                  right: -10,
                   child: AppIconWidget(
                     assetPath: AssetImages.homeBox,
                   ),
@@ -681,7 +681,7 @@ class _HomeScreenState extends State<HomeScreen>
 
 
             Positioned(
-              top: 40,
+              top: 25,
               left: 20,
               right: 20,
 
@@ -697,19 +697,54 @@ class _HomeScreenState extends State<HomeScreen>
                     MainAxisAlignment.spaceBetween,
 
                     children: [
-                      const AppText(
-                        text: 'Lost & Found',
-                        color: AppColors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-
-                      // AppContainer(widget:
-                      //     Row(children: [
-                      //       AppIconWidget(assetPath: AssetImages.trophy),
-                      //       AppText(text: 'Community Success',color: AppColors.white,fontSize: 12,fontWeight: FontWeight.w500,),
-                      //     ],)
+                      // const AppText(
+                      //   text: 'Lost & Found',
+                      //   color: AppColors.white,
+                      //   fontSize: 20,
+                      //   fontWeight: FontWeight.w600,
                       // ),
+
+                      Container(
+                        width: 160,
+                        height: 30,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          // gradient: LinearGradient(
+                          //   begin: Alignment.topLeft,
+                          //   end: Alignment.bottomRight,
+                          //   colors: [
+                          //     Colors.white.withOpacity(0.15),
+                          //     Colors.white.withOpacity(0.05),
+                          //   ],
+                          // ),
+                          //color: Colors.white.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: AppColors.white.withAlpha(50),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              child: AppIconWidget(
+                                assetPath: AssetImages.trophy,
+                                size: 15,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const AppText(
+                              text: 'Community Success',
+                              color: AppColors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ],
+                        ),
+                      ),
 
                       // ========================================
                       // NOTIFICATION
@@ -727,38 +762,58 @@ class _HomeScreenState extends State<HomeScreen>
                     ],
                   ),
 
-                  const AppText(
-                    text:
-                    'Helping you reunite with what\nmatters.',
-                    color: AppColors.white,
-                    fontSize: 14,
+                  // const AppText(
+                  //   text:
+                  //   'Helping you reunite with what\nmatters.',
+                  //   color: AppColors.white,
+                  //   fontSize: 14,
+                  // ),
+
+
+                  SizedBox(height: 10,),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    spacing: 3,
+                    children: List.generate(_controller.length, (index) {
+                      return Container(
+                        height: 48,
+                        width: 30,
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: TextField(
+                          readOnly: true,
+                          controller: _controller[index],
+                          showCursor: false,
+                          enableInteractiveSelection: false,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppColors.primaryColor,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            isCollapsed: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      );
+                    }),
                   ),
 
 
-                  // Row(
-                  //   crossAxisAlignment: CrossAxisAlignment.center,
-                  //   mainAxisAlignment: MainAxisAlignment.center,
-                  //   spacing: 10,
-                  //   children: List.generate(_controller.length,(index) {
-                  //     return Container(
-                  //       height: 50,
-                  //       width: 50,
-                  //       child: TextField(
-                  //         readOnly: true,
-                  //         controller: _controller[index],
-                  //
-                  //
-                  //
-                  //
-                  //
-                  //
-                  //       ),
-                  //     );
-                  //   }
-                  //   )),
-
-
-                  //AppText(text: "Users benefited",fontWeight: FontWeight.w400,fontSize: 12,color: AppColors.white,)
+                  AppText(text: "Users benefited",fontWeight: FontWeight.bold,fontSize: 12,color: AppColors.white,)
                 ],
               ),
             ),
