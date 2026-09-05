@@ -142,19 +142,22 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
       widget: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 26,
-            child: widget.data.avatarUrl.isNotEmpty
-                ? AppCachedNetworkImage(
-              imageUrl: widget.data.avatarUrl,
-              fit: BoxFit.cover,
-              borderRadius: BorderRadius.circular(30),
-            )
-                : Icon(
-              Icons.person,
-              color: AppColors.primaryColor,
-            ),
-          ),
+          widget.data.avatarUrl.isNotEmpty
+              ? AppCachedNetworkImage(
+                  imageUrl: widget.data.avatarUrl,
+                  fit: BoxFit.cover,
+                  width: 52,
+                  height: 52,
+                  borderRadius: BorderRadius.circular(26),
+                )
+              : CircleAvatar(
+                  radius: 26,
+                  backgroundColor: AppColors.fieldGrey,
+                  child: Icon(
+                    Icons.person,
+                    color: AppColors.primaryColor,
+                  ),
+                ),
 
           const SizedBox(width: 15),
 
@@ -218,18 +221,21 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
       widget: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 26,
-            child: widget.data.avatarUrl.isNotEmpty
-                ? AppCachedNetworkImage(
-              imageUrl: widget.data.avatarUrl,
-              fit: BoxFit.cover,
-              borderRadius: BorderRadius.circular(30),
-            )
-                : AppIconWidget(
-              assetPath: AssetImages.threeDotsHorizontal,
-            ),
-          ),
+          widget.data.avatarUrl.isNotEmpty
+              ? AppCachedNetworkImage(
+                  imageUrl: widget.data.avatarUrl,
+                  fit: BoxFit.cover,
+                  width: 52,
+                  height: 52,
+                  borderRadius: BorderRadius.circular(26),
+                )
+              : CircleAvatar(
+                  radius: 26,
+                  backgroundColor: AppColors.fieldGrey,
+                  child: AppIconWidget(
+                    assetPath: AssetImages.threeDotsHorizontal,
+                  ),
+                ),
 
           const SizedBox(width: 15),
 

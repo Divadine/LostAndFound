@@ -195,17 +195,20 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
             widget: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 26,
-                  child: (widget.selectedOwner.profileImageUrl != null &&
-                      widget.selectedOwner.profileImageUrl!.isNotEmpty)
-                      ? AppCachedNetworkImage(
-                    imageUrl: widget.selectedOwner.profileImageUrl!,
-                    fit: BoxFit.cover,
-                    borderRadius: BorderRadius.circular(30),
-                  )
-                      : Icon(Icons.person, color: AppColors.primaryColor),
-                ),
+                (widget.selectedOwner.profileImageUrl != null &&
+                        widget.selectedOwner.profileImageUrl!.isNotEmpty)
+                    ? AppCachedNetworkImage(
+                        imageUrl: widget.selectedOwner.profileImageUrl!,
+                        fit: BoxFit.cover,
+                        width: 52,
+                        height: 52,
+                        borderRadius: BorderRadius.circular(26),
+                      )
+                    : CircleAvatar(
+                        radius: 26,
+                        backgroundColor: AppColors.fieldGrey,
+                        child: Icon(Icons.person, color: AppColors.primaryColor),
+                      ),
                 const SizedBox(width: 15),
                 AppText(
                   text: widget.selectedOwner.name,

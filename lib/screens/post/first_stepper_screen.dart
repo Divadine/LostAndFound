@@ -10,7 +10,9 @@ import 'package:lost_and_found/models/categories_model/color_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_fields_model.dart';
 import 'package:lost_and_found/models/categories_model/dynamic_value_model.dart';
 import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
+import 'package:lost_and_found/models/posts_model/selected_location_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
+import 'package:lost_and_found/services/app_recorder_service.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_dropdown_field.dart';
@@ -75,6 +77,14 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   final ImagePicker _picker = ImagePicker();
   static const int maxImages = 4;
 
+  // Persistent data for Step 2
+  String? _step2TextLocation;
+  List<SelectedLocationModel>? _step2Locations;
+  DateTime? _step2Date;
+  String? _step2Description;
+  XFile? _step2Video;
+  bool _hasVisitedStep2 = false;
+
   // True for: (1) top-level category = "Others" (no subcategory step at all),
   // or (2) a real category was chosen but subcategory = "Not Sure"/"Others".
   bool get _isGenericMode {
@@ -95,6 +105,10 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     categoryController.text = widget.category.name ?? '';
     subCategoryController.text = widget.subCategory?.name ?? '';
     _fetchColors();
+    
+    // Ensure recorder is clean when starting a new post flow
+    AppRecorderService.instance.deleteRecording();
+
     if (_isGenericMode) {
       // No subcategory-driven fields to load in generic mode.
       setState(() => isLoading = false);
@@ -315,24 +329,44 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         ? itemNameController.text.trim()
         : (widget.subCategory?.name ?? widget.category.name ?? '');
 
-    AppRoutes.pushNamed(
+    final result = await AppRoutes.pushNamed(
       AppRoutes.secondStepperScreen,
       arguments: {
         'postType': widget.postType,
         'categoryId': widget.category.id,
         'subcategoryId': widget.subCategory?.id ?? 0,
-        'itemName': _isGenericMode
-            ? itemNameController.text.trim()
-            : (brandValue ?? itemTypeValue),
+        'itemName': _isGenericMode ? itemNameController.text.trim() : (brandValue ?? itemTypeValue),
         'selectedImages': selectedImages,
         'fieldValues': postValues,
-        'prefillDescription': _isGenericMode ? descriptionController.text.trim() : '',
+        'prefillDescription': _step2Description ?? (_isGenericMode ? descriptionController.text.trim() : ''),
         'itemTypeLabel': itemTypeLabel,
         'itemTypeValue': itemTypeValue,
         'color': selectedColor ?? '',
         'mainImage': selectedImages.isNotEmpty ? selectedImages.first : null,
+        'initialTextLocation': _step2TextLocation,
+        'initialLocations': _step2Locations,
+        'initialDate': _step2Date,
+        'initialVideo': _step2Video,
+        'isResuming': _hasVisitedStep2,
       },
     );
+
+    if (result != null && result is Map) {
+      setState(() {
+        _hasVisitedStep2 = true;
+        _step2TextLocation = result['textLocation'];
+        _step2Locations = result['locations'];
+        _step2Date = result['selectedDate'];
+        _step2Description = result['description'];
+        _step2Video = result['selectedVideo'];
+
+        // If we are in generic mode, we also update the Step 1 description field
+        // to match what was edited in Step 2.
+        if (_isGenericMode && _step2Description != null) {
+          descriptionController.text = _step2Description!;
+        }
+      });
+    }
   }
 
   @override

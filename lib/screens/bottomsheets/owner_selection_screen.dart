@@ -207,16 +207,19 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
               activeColor: AppColors.primaryColor,
               onChanged: (value) => setState(() => selectedIndex = value),
             ),
-            CircleAvatar(
-              radius: 26,
-              child: (image != null && image.isNotEmpty)
-                  ? AppCachedNetworkImage(
-                imageUrl: image,
-                fit: BoxFit.cover,
-                borderRadius: BorderRadius.circular(30),
-              )
-                  : Icon(Icons.person, color: AppColors.primaryColor),
-            ),
+            (image != null && image.isNotEmpty)
+                ? AppCachedNetworkImage(
+                    imageUrl: image,
+                    fit: BoxFit.cover,
+                    width: 52,
+                    height: 52,
+                    borderRadius: BorderRadius.circular(26),
+                  )
+                : CircleAvatar(
+                    radius: 26,
+                    backgroundColor: AppColors.fieldGrey,
+                    child: Icon(Icons.person, color: AppColors.primaryColor),
+                  ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(

@@ -51,6 +51,13 @@ class SecondStepperScreen extends StatefulWidget {
   final List<Map<String, String>> fieldValues;
   final File? mainImage;
 
+  // Persistence data
+  final String? initialTextLocation;
+  final List<SelectedLocationModel>? initialLocations;
+  final DateTime? initialDate;
+  final XFile? initialVideo;
+  final bool isResuming;
+
   const SecondStepperScreen({
     super.key,
     required this.postType,
@@ -64,6 +71,11 @@ class SecondStepperScreen extends StatefulWidget {
     this.color = '',
     this.fieldValues = const [],
     this.mainImage,
+    this.initialTextLocation,
+    this.initialLocations,
+    this.initialDate,
+    this.initialVideo,
+    this.isResuming = false,
   });
 
   @override
@@ -103,14 +115,18 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   @override
   void initState() {
     super.initState();
-    
-    // Use post frame callback to avoid notifyListeners() or stream events 
+
+    // Use post frame callback to avoid notifyListeners() or stream events
     // triggering rebuilds during the navigation transition/build phase.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       try {
         locationController.add(loc);
-        _recorderService.deleteRecording();
+
+        // Only delete recording if this is the very first time entering Step 2.
+        if (!widget.isResuming) {
+          _recorderService.deleteRecording();
+        }
       } catch (e) {
         debugPrint('Error in SecondStepperScreen post-frame: $e');
       }
@@ -118,6 +134,32 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
     if (widget.prefillDescription != null && widget.prefillDescription!.isNotEmpty) {
       descriptionController.text = widget.prefillDescription!;
+    }
+
+    // Prefill with existing data if returning to this screen
+    if (widget.initialTextLocation != null) {
+      textController.text = widget.initialTextLocation!;
+    }
+    if (widget.initialLocations != null) {
+      loc = List<SelectedLocationModel>.from(widget.initialLocations!);
+    }
+    if (widget.initialDate != null) {
+      selectedDate = widget.initialDate;
+      dateController.text = DateFormat('dd/MM/yyyy').format(selectedDate!);
+    }
+    if (widget.initialVideo != null) {
+      selectedVideo = widget.initialVideo;
+      _initInitialVideo(File(selectedVideo!.path));
+    }
+  }
+
+  Future<void> _initInitialVideo(File file) async {
+    _videoController?.dispose();
+    _videoController = VideoPlayerController.file(file);
+    await _videoController!.initialize();
+    videoDuration = _videoController!.value.duration;
+    if (mounted) {
+      videoStreamController.add(file);
     }
   }
 
@@ -318,233 +360,254 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: CustomAppBar(
-        title: widget.postType == 0 ? 'Post Lost Item' : 'Post Found Item',
-        leadingSvg: AssetImages.backArrow,
-        leadingIconColor: AppColors.primaryColor,
-        onLeadingTap: () {
-          AppRoutes.pop();
-        },
-      ),
-      //AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const AppStepIndicator(currentStep: 2, totalSteps: 2),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    buildTextFieldWithHeading(
-                      title: widget.postType == 0 ? 'Where did you lose it ?' : 'Where did you find it ?',
-                      fieldWidget: AppTextField(
-                        hintText: 'Chennai, Tamil Nadu, India',
-                        textController: textController,
-                        onChange: (v) {},
-                        onSubmit: (v) {},
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    StreamBuilder(
-                        stream: locationController.stream,
-                        initialData: loc,
-                        builder: (context, asyncSnapshot) {
-                          final locData = asyncSnapshot.data ?? [];
-                          return buildTextFieldWithHeading(
-                            title: 'Location',
-                            fieldWidget: loc.isEmpty
-                                ? AppTextField(
-                              readOnly: true,
-
-                              onTap: _openMapForLocations,
-                              hintText: 'Chennai, Tamil Nadu, India',
-                              textController: mapController,
-                              onChange: (v) {},
-                              onSubmit: (v) {},
-                              suffixIcon: AppIconWidget(
-                                assetPath: AssetImages.locationMarker,
-                              ).pad(),
-                            )
-                                : Column(
-                              children: [
-                                ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: locData.length,
-                                  itemBuilder: (context, index) {
-                                    final locate = locData[index];
-                                    return AppContainer(
-                                      widget: Row(
-                                        children: [
-                                          buildIconContainer(
-                                            context,
-                                            icon: AssetImages.mapIcon,
-                                            size: 15,
-                                            height: 30,
-                                            width: 30,
-                                          ),
-                                          const SizedBox(width: 7),
-                                          Flexible(
-                                            child: AppText(
-                                              text: locate.address,
-                                              maxLine: 2,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w400,
-                                              color: AppColors.black,
-                                            ),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () {
-                                              loc.remove(locate);
-                                              locationController.add(loc);
-                                              //setState(() {});
-                                            },
-                                            child: AppIconWidget(
-                                              assetPath: AssetImages.delete,
-
-                                              color: AppColors.black,
-                                            ).pad(),
-                                          ),
-                                        ],
-                                      ).pad(),
-                                    ).padBottom();
-                                  },
-                                ),
-
-                                if (loc.length < 3)
-                                  AppButton(
-                                    prefixIcon: AssetImages.add,
-                                    bgColor: Colors.transparent,
-                                    border: Border.all(color: AppColors.primaryColor),
-                                    title: 'Add Another Location (UP TO 3)',
-                                    textColor: AppColors.primaryColor,
-                                    radius: BorderRadius.circular(10),
-                                    fontSize: 12,
-                                    onTap: _openMapForLocations,
-                                  ),
-                              ],
-                            ),
-                          );
-                        }
-                    ),
-                    const SizedBox(height: 10),
-                    StreamBuilder(
-                        stream: dateStreamController.stream,
-                        builder: (context, asyncSnapshot) {
-                          //final dateData = asyncSnapshot.data;
-                          return GestureDetector(
-                            onTap: selectDate,
-                            child: buildTextFieldWithHeading(
-                              title: 'Date',
-                              fieldWidget: GestureDetector(
-                                onTap: selectDate,
-                                child: AppTextField(
-                                  //readOnly: true,
-                                  hintText: 'Select Date',
-                                  readOnly: true,
-                                  textController: dateController,
-                                  onChange: (v) {},
-                                  onSubmit: (v) {},
-                                  suffixIcon: GestureDetector(
-                                      onTap:selectDate,
-                                      child: AppIconWidget(assetPath: AssetImages.calender).pad()
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                    ),
-                    const SizedBox(height: 10),
-                    buildTextFieldWithHeading(
-                      title: 'Description',
-                      fieldWidget: AppTextField(
-                        hintText: 'write Description here',
-                        textController: descriptionController,
-                        onChange: (v) {},
-                        onSubmit: (v) {},
-                        maxLines: 5,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AppText(
-                          text: 'Voice Description',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        AppRoutes.pop({
+          'textLocation': textController.text.trim(),
+          'locations': List<SelectedLocationModel>.from(loc),
+          'selectedDate': selectedDate,
+          'description': descriptionController.text.trim(),
+          'selectedVideo': selectedVideo,
+        });
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        appBar: CustomAppBar(
+          title: widget.postType == 0 ? 'Post Lost Item' : 'Post Found Item',
+          leadingSvg: AssetImages.backArrow,
+          leadingIconColor: AppColors.primaryColor,
+          onLeadingTap: () {
+            AppRoutes.pop({
+              'textLocation': textController.text.trim(),
+              'locations': List<SelectedLocationModel>.from(loc),
+              'selectedDate': selectedDate,
+              'description': descriptionController.text.trim(),
+              'selectedVideo': selectedVideo,
+            });
+          },
+        ),
+        //AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
+        body: SafeArea(
+          child: Column(
+            children: [
+              const AppStepIndicator(currentStep: 2, totalSteps: 2),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      buildTextFieldWithHeading(
+                        title: widget.postType == 0 ? 'Where did you lose it ?' : 'Where did you find it ?',
+                        fieldWidget: AppTextField(
+                          hintText: 'Chennai, Tamil Nadu, India',
+                          textController: textController,
+                          onChange: (v) {},
+                          onSubmit: (v) {},
                         ),
-                        const SizedBox(height: 10),
-                        AppRecorder(service: _recorderService)
-
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    StreamBuilder(
-                        stream: videoStreamController.stream,
-                        builder: (context, asyncSnapshot) {
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              AppText(
-                                text: 'Add a short video of your item or place',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              const SizedBox(height: 10),
-                              AppContainer(
-                                widget: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    if (selectedVideo == null)
-                                      AppText(
-                                        text: 'Tap to choose a video',
-                                        fontWeight: FontWeight.w400,
-                                        fontSize: 12,
-                                        color: AppColors.grey,
-                                      ),
-                                    const SizedBox(height: 10),
-
-                                    if (_videoController != null &&
-                                        _videoController!.value.isInitialized)
-                                      buildVideoPreview()
-                                    else
-                                      GestureDetector(
-                                        onTap: pickVideo,
-                                        child: AppIconWidget(assetPath: AssetImages.video),
-                                      ),
-                                  ],
+                      ),
+                      const SizedBox(height: 10),
+                      StreamBuilder(
+                          stream: locationController.stream,
+                          initialData: loc,
+                          builder: (context, asyncSnapshot) {
+                            final locData = asyncSnapshot.data ?? [];
+                            return buildTextFieldWithHeading(
+                              title: 'Location',
+                              fieldWidget: loc.isEmpty
+                                  ? AppTextField(
+                                readOnly: true,
+  
+                                onTap: _openMapForLocations,
+                                hintText: 'Chennai, Tamil Nadu, India',
+                                textController: mapController,
+                                onChange: (v) {},
+                                onSubmit: (v) {},
+                                suffixIcon: AppIconWidget(
+                                  assetPath: AssetImages.locationMarker,
                                 ).pad(),
+                              )
+                                  : Column(
+                                children: [
+                                  ListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    itemCount: locData.length,
+                                    itemBuilder: (context, index) {
+                                      final locate = locData[index];
+                                      return AppContainer(
+                                        widget: Row(
+                                          children: [
+                                            buildIconContainer(
+                                              context,
+                                              icon: AssetImages.mapIcon,
+                                              size: 15,
+                                              height: 30,
+                                              width: 30,
+                                            ),
+                                            const SizedBox(width: 7),
+                                            Flexible(
+                                              child: AppText(
+                                                text: locate.address,
+                                                maxLine: 2,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w400,
+                                                color: AppColors.black,
+                                              ),
+                                            ),
+                                            GestureDetector(
+                                              onTap: () {
+                                                loc.remove(locate);
+                                                locationController.add(loc);
+                                                //setState(() {});
+                                              },
+                                              child: AppIconWidget(
+                                                assetPath: AssetImages.delete,
+  
+                                                color: AppColors.black,
+                                              ).pad(),
+                                            ),
+                                          ],
+                                        ).pad(),
+                                      ).padBottom();
+                                    },
+                                  ),
+  
+                                  if (loc.length < 3)
+                                    AppButton(
+                                      prefixIcon: AssetImages.add,
+                                      bgColor: Colors.transparent,
+                                      border: Border.all(color: AppColors.primaryColor),
+                                      title: 'Add Another Location (UP TO 3)',
+                                      textColor: AppColors.primaryColor,
+                                      radius: BorderRadius.circular(10),
+                                      fontSize: 12,
+                                      onTap: _openMapForLocations,
+                                    ),
+                                ],
                               ),
-                              const SizedBox(height: 10),
-                              AppText(
-                                text: 'Max 30 seconds & Max size 15 MB',
-                                fontWeight: FontWeight.w400,
-                                fontSize: 12,
-                                color: AppColors.grey,
+                            );
+                          }
+                      ),
+                      const SizedBox(height: 10),
+                      StreamBuilder(
+                          stream: dateStreamController.stream,
+                          initialData: selectedDate,
+                          builder: (context, asyncSnapshot) {
+                            //final dateData = asyncSnapshot.data;
+                            return GestureDetector(
+                              onTap: selectDate,
+                              child: buildTextFieldWithHeading(
+                                title: 'Date',
+                                fieldWidget: GestureDetector(
+                                  onTap: selectDate,
+                                  child: AppTextField(
+                                    //readOnly: true,
+                                    hintText: 'Select Date',
+                                    readOnly: true,
+                                    textController: dateController,
+                                    onChange: (v) {},
+                                    onSubmit: (v) {},
+                                    suffixIcon: GestureDetector(
+                                        onTap:selectDate,
+                                        child: AppIconWidget(assetPath: AssetImages.calender).pad()
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ],
-                          );
-                        }
-                    ),
-                    const SizedBox(height: 10),
-                    AppButton(
-                      title: 'Review & Submit',
-                      onTap: _goToPreview,
-                      radius: BorderRadius.circular(10),
-                      fontSize: 14,
-                    ),
-                  ],
-                ).pad(16),
+                            );
+                          }
+                      ),
+                      const SizedBox(height: 10),
+                      buildTextFieldWithHeading(
+                        title: 'Description',
+                        fieldWidget: AppTextField(
+                          hintText: 'write Description here',
+                          textController: descriptionController,
+                          onChange: (v) {},
+                          onSubmit: (v) {},
+                          maxLines: 5,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppText(
+                            text: 'Voice Description',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          const SizedBox(height: 10),
+                          AppRecorder(service: _recorderService)
+  
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      StreamBuilder(
+                          stream: videoStreamController.stream,
+                          initialData: selectedVideo != null ? File(selectedVideo!.path) : null,
+                          builder: (context, asyncSnapshot) {
+                            return Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                AppText(
+                                  text: 'Add a short video of your item or place',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                const SizedBox(height: 10),
+                                AppContainer(
+                                  widget: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      if (selectedVideo == null)
+                                        AppText(
+                                          text: 'Tap to choose a video',
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 12,
+                                          color: AppColors.grey,
+                                        ),
+                                      const SizedBox(height: 10),
+  
+                                      if (_videoController != null &&
+                                          _videoController!.value.isInitialized)
+                                        buildVideoPreview()
+                                      else
+                                        GestureDetector(
+                                          onTap: pickVideo,
+                                          child: AppIconWidget(assetPath: AssetImages.video),
+                                        ),
+                                    ],
+                                  ).pad(),
+                                ),
+                                const SizedBox(height: 10),
+                                AppText(
+                                  text: 'Max 30 seconds & Max size 15 MB',
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 12,
+                                  color: AppColors.grey,
+                                ),
+                              ],
+                            );
+                          }
+                      ),
+                      const SizedBox(height: 10),
+                      AppButton(
+                        title: 'Review & Submit',
+                        onTap: _goToPreview,
+                        radius: BorderRadius.circular(10),
+                        fontSize: 14,
+                      ),
+                    ],
+                  ).pad(16),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

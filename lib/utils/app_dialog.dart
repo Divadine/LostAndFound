@@ -738,19 +738,22 @@ class TransferCompleted extends StatelessWidget {
       widget: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 26,
-            child: data.avatarUrl.isNotEmpty
-                ? AppCachedNetworkImage(
-              imageUrl: data.avatarUrl,
-              fit: BoxFit.cover,
-              borderRadius: BorderRadius.circular(30),
-            )
-                : Icon(
-              Icons.person,
-              color: AppColors.primaryColor,
-            ),
-          ),
+          data.avatarUrl.isNotEmpty
+              ? AppCachedNetworkImage(
+                  imageUrl: data.avatarUrl,
+                  fit: BoxFit.cover,
+                  width: 52,
+                  height: 52,
+                  borderRadius: BorderRadius.circular(26),
+                )
+              : CircleAvatar(
+                  radius: 26,
+                  backgroundColor: AppColors.fieldGrey,
+                  child: Icon(
+                    Icons.person,
+                    color: AppColors.primaryColor,
+                  ),
+                ),
 
           const SizedBox(width: 15),
 
@@ -783,18 +786,21 @@ class TransferCompleted extends StatelessWidget {
       widget: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 26,
-            child: data.avatarUrl.isNotEmpty
-                ? AppCachedNetworkImage(
-              imageUrl: data.avatarUrl,
-              fit: BoxFit.cover,
-              borderRadius: BorderRadius.circular(30),
-            )
-                : AppIconWidget(
-              assetPath: AssetImages.threeDotsHorizontal,
-            ),
-          ),
+          data.avatarUrl.isNotEmpty
+              ? AppCachedNetworkImage(
+                  imageUrl: data.avatarUrl,
+                  fit: BoxFit.cover,
+                  width: 52,
+                  height: 52,
+                  borderRadius: BorderRadius.circular(26),
+                )
+              : CircleAvatar(
+                  radius: 26,
+                  backgroundColor: AppColors.fieldGrey,
+                  child: AppIconWidget(
+                    assetPath: AssetImages.threeDotsHorizontal,
+                  ),
+                ),
 
           const SizedBox(width: 15),
 

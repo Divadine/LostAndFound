@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/categories_model/category_model.dart';
@@ -255,6 +256,11 @@ class AppRoutes {
                 .map((e) => Map<String, String>.from(e as Map))
                 .toList(),
             mainImage: data['mainImage'] as File?,
+            initialTextLocation: data['initialTextLocation'] as String?,
+            initialLocations: data['initialLocations'] as List<SelectedLocationModel>?,
+            initialDate: data['initialDate'] as DateTime?,
+            initialVideo: data['initialVideo'] as XFile?,
+            isResuming: data['isResuming'] as bool? ?? false,
           );
         },
       ),
@@ -355,8 +361,8 @@ class AppRoutes {
     router.pop(result);
   }
 
-  static void pushNamed(String name, {dynamic arguments}) {
-    router.pushNamed(name, extra: arguments);
+  static Future<T?> pushNamed<T>(String name, {dynamic arguments}) {
+    return router.pushNamed<T>(name, extra: arguments);
   }
 
   static void replaceNamed(String name, {dynamic arguments}) {
