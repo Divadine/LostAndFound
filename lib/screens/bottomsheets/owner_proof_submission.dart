@@ -100,7 +100,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
     );
   }
 
-  // Called only after OTP verification succeeds.
+
   Future<void> _submitHandover() async {
     if (selectedImage == null) return;
 
@@ -128,7 +128,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
         return;
       }
 
-      // NOTE: `type` / `handoverType` values — confirm exact enum with backend.
+
       final handoverResponse = await authController.createHandover(
         type: widget.isReceiver ? 2 : 1,
         userId: currentUserId,
@@ -149,9 +149,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
       if (!mounted) return;
 
       if (handoverResponse.isSuccess) {
-        // Backend marks the post as completed as part of createHandover —
-        // no separate "complete post" call needed.
-        Navigator.of(context).pop();
+
         AppDialogue.showPopup(
           context: context,
           content: TransferCompleted(
@@ -196,19 +194,19 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 (widget.selectedOwner.profileImageUrl != null &&
-                        widget.selectedOwner.profileImageUrl!.isNotEmpty)
+                    widget.selectedOwner.profileImageUrl!.isNotEmpty)
                     ? AppCachedNetworkImage(
-                        imageUrl: widget.selectedOwner.profileImageUrl!,
-                        fit: BoxFit.cover,
-                        width: 52,
-                        height: 52,
-                        borderRadius: BorderRadius.circular(26),
-                      )
+                  imageUrl: widget.selectedOwner.profileImageUrl!,
+                  fit: BoxFit.cover,
+                  width: 52,
+                  height: 52,
+                  borderRadius: BorderRadius.circular(26),
+                )
                     : CircleAvatar(
-                        radius: 26,
-                        backgroundColor: AppColors.fieldGrey,
-                        child: Icon(Icons.person, color: AppColors.primaryColor),
-                      ),
+                  radius: 26,
+                  backgroundColor: AppColors.fieldGrey,
+                  child: Icon(Icons.person, color: AppColors.primaryColor),
+                ),
                 const SizedBox(width: 15),
                 AppText(
                   text: widget.selectedOwner.name,
@@ -299,8 +297,11 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
           AppButton(
             title: isSubmitting ? 'Sending...' : 'Send OTP',
             onTap: (isFormValid && !isSubmitting)
-                ? () {
-              AppDialogue.showPopup(
+                ? () async {
+
+              bool otpVerified = false;
+
+              await AppDialogue.showPopup(
                 context: context,
                 content: OtpSharedScreen(
                   isAlternateNumber: true,
@@ -311,7 +312,8 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                       otp: otp,
                     );
                     if (response.status == 1) {
-                      await _submitHandover();
+                      otpVerified = true;
+
                       return null;
                     }
                     return response.message;
@@ -328,6 +330,10 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                   },
                 ),
               );
+
+              if (otpVerified && mounted) {
+                await _submitHandover();
+              }
             }
                 : () {},
             fontSize: 14,

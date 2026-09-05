@@ -33,10 +33,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
   int? selectedIndex;
   List<HandoverOwnerModel> owners = [];
 
-  // matched_postid -> enquiry_id, built from viewEnquiry so we know which
-  // enquiry a given owner's match corresponds to. createHandover requires
-  // enquiry_id (the backend marks that enquiry resolved), but
-  // getHandoverOwnerList doesn't return it — so we cross-reference here.
+
   Map<int, int> enquiryIdByMatchedPostId = {};
 
   bool isLoading = true;
@@ -74,12 +71,11 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
       final map = <int, int>{};
       if (enquiryResponse.isSuccess && enquiryResponse.data != null) {
         for (final e in enquiryResponse.data!.enquiries) {
-          // If a matched post has multiple enquiries, keep the most recent
-          // one (list order from API is assumed chronological; adjust if not).
+
           map[e.matchedPostId] = e.enquiryId;
         }
       } else {
-        debugPrint('[Handover] viewEnquiry failed: ${enquiryResponse.message}');
+        print('[Handover] viewEnquiry failed: ${enquiryResponse.message}');
       }
 
       setState(() {

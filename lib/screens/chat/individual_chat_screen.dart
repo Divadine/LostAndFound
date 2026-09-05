@@ -2476,30 +2476,30 @@ class _IndividualChatScreenState
           ),
         ),
 
-        StreamBuilder<Map<String, dynamic>>(
-          stream: ChatService.contactRequestStream(roomId: widget.roomId),
-          builder: (context, snapshot) {
-            final data = snapshot.data ?? <String, dynamic>{};
-            final status = data['status']?.toString() ?? 'none';
-            if (status != 'accepted' || _otherUserPhone.isEmpty) {
-              return const SizedBox.shrink();
-            }
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: _call,
-                  child: AppIconWidget(
-                    assetPath: AssetImages.call,
-                    size: 20,
-                    color: AppColors.primaryColor,
-                  ),
-                ),
-                const SizedBox(width: 15),
-              ],
-            );
-          },
-        ),
+        // StreamBuilder<Map<String, dynamic>>(
+        //   stream: ChatService.contactRequestStream(roomId: widget.roomId),
+        //   builder: (context, snapshot) {
+        //     final data = snapshot.data ?? <String, dynamic>{};
+        //     final status = data['status']?.toString() ?? 'none';
+        //     if (status != 'accepted' || _otherUserPhone.isEmpty) {
+        //       return const SizedBox.shrink();
+        //     }
+        //     return Row(
+        //       mainAxisSize: MainAxisSize.min,
+        //       children: [
+        //         GestureDetector(
+        //           onTap: _call,
+        //           child: AppIconWidget(
+        //             assetPath: AssetImages.call,
+        //             size: 20,
+        //             color: AppColors.primaryColor,
+        //           ),
+        //         ),
+        //         const SizedBox(width: 15),
+        //       ],
+        //     );
+        //   },
+        // ),
 
         Container(
           height: 30,
