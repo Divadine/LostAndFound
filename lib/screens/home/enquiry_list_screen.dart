@@ -393,7 +393,8 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
 
                 return buildEnquiryCard(
                   context: context,
-                  bgColor: AppColors.white,
+                  bgColor: isWinner ? AppColors.closedColor : AppColors.white,
+                  borderColor: isWinner ? AppColors.green : null,
                   profileImage: e.enquirerProfileImg,
                   name: e.enquirerName,
                   userId: e.userUid,
@@ -443,9 +444,11 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     required void Function() messageOnTap,
     required void Function() detailOnTap,
     Color? bgColor,
+    Color? borderColor,
   }) {
     return AppContainer(
       bgColor: bgColor,
+      color: borderColor,
       widget: InkWell(
         onTap: detailOnTap,
         child: Column(

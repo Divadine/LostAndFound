@@ -306,7 +306,9 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                         isAlternateNumber: true,
                         mobileNumber: _phoneFormatter.maskedValue,
                         onVerifyOtp: (otp) async {
-                          // USE ORIGINAL PHONE NUMBER FROM MODEL FOR CONSISTENCY
+                          // Reset verification state at the start of each check
+                          otpVerified = false;
+
                           final response = await authController.verifyHandoverOtp(
                             phone: widget.selectedOwner.phoneno,
                             otp: otp,
@@ -324,7 +326,6 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                               : 'Invalid OTP or phone number';
                         },
                         onSendOtp: () async {
-                          // USE ORIGINAL PHONE NUMBER FROM MODEL FOR CONSISTENCY
                           final response = await authController.generateHandoverOtp(
                             phone: widget.selectedOwner.phoneno,
                           );
@@ -339,7 +340,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                       ),
                     );
 
-                    // ONLY proceed if OTP was actually verified successfully
+                    // ONLY proceed if OTP was verified successfully
                     if (otpVerified && mounted) {
                       await _submitHandover();
                     }

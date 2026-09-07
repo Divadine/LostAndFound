@@ -182,7 +182,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                     profileId: match.userUid,
                     profileUrl: match.posterAvatar.isNotEmpty ? match.posterAvatar : null,
                     profileName: match.posterName,
-                    status: match.status, // PASS STATUS
+                    status: match.status,
                   ).padBottom(10);
                 },
               ),
