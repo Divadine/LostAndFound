@@ -76,12 +76,15 @@ class ItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardBg = bg ?? AppColors.white;
+    final isClosed = status == 2;
+    final cardBg = isClosed ? AppColors.closedColor : (bg ?? AppColors.white);
+    final borderColor = isClosed ? AppColors.green : Colors.transparent;
 
     return GestureDetector(
       onTap: onTap,
       child: AppContainer(
         bgColor: cardBg,
+        color: borderColor,
         widget: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -415,8 +418,9 @@ class ItemCard extends StatelessWidget {
                 height: 35,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: AppColors.closedColor,
+                  color: AppColors.green.withAlpha(20),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.green.withAlpha(50)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

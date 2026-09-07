@@ -138,7 +138,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
         receiverPostId: widget.selectedOwner.postId,
         handoverImg: imageIds,
         description: textController.text.trim(),
-        phoneno: _phoneFormatter.actualValue,
+        phoneno: widget.selectedOwner.phoneno, // Use original phone number
         handoverType: 1,
       );
 
@@ -298,43 +298,52 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
             title: isSubmitting ? 'Sending...' : 'Send OTP',
             onTap: (isFormValid && !isSubmitting)
                 ? () async {
+                    bool otpVerified = false;
 
-              bool otpVerified = false;
+                    await AppDialogue.showPopup(
+                      context: context,
+                      content: OtpSharedScreen(
+                        isAlternateNumber: true,
+                        mobileNumber: _phoneFormatter.maskedValue,
+                        onVerifyOtp: (otp) async {
+                          // USE ORIGINAL PHONE NUMBER FROM MODEL FOR CONSISTENCY
+                          final response = await authController.verifyHandoverOtp(
+                            phone: widget.selectedOwner.phoneno,
+                            otp: otp,
+                          );
 
-              await AppDialogue.showPopup(
-                context: context,
-                content: OtpSharedScreen(
-                  isAlternateNumber: true,
-                  mobileNumber: _phoneFormatter.maskedValue,
-                  onVerifyOtp: (otp) async {
-                    final response = await authController.verifyHandoverOtp(
-                      phone: _phoneFormatter.actualValue,
-                      otp: otp,
+                          debugPrint('[OTP] verifyHandoverOtp -> status=${response.status}, message=${response.message}');
+
+                          if (response.status == 1) {
+                            otpVerified = true;
+                            return null; // Success
+                          }
+
+                          return response.message.isNotEmpty
+                              ? response.message
+                              : 'Invalid OTP or phone number';
+                        },
+                        onSendOtp: () async {
+                          // USE ORIGINAL PHONE NUMBER FROM MODEL FOR CONSISTENCY
+                          final response = await authController.generateHandoverOtp(
+                            phone: widget.selectedOwner.phoneno,
+                          );
+                          if (response.isSuccess) return null;
+                          if (response.currentState == CurrentState.noInternet) {
+                            return 'No internet connection. Please check your network.';
+                          }
+                          return response.message.isNotEmpty
+                              ? response.message
+                              : 'Failed to send OTP';
+                        },
+                      ),
                     );
-                    if (response.status == 1) {
-                      otpVerified = true;
 
-                      return null;
+                    // ONLY proceed if OTP was actually verified successfully
+                    if (otpVerified && mounted) {
+                      await _submitHandover();
                     }
-                    return response.message;
-                  },
-                  onSendOtp: () async {
-                    final response = await authController.generateHandoverOtp(
-                      phone: _phoneFormatter.actualValue,
-                    );
-                    if (response.isSuccess) return null;
-                    if (response.currentState == CurrentState.noInternet) {
-                      return 'No internet connection. Please check your network.';
-                    }
-                    return response.message.isNotEmpty ? response.message : 'Failed to send OTP';
-                  },
-                ),
-              );
-
-              if (otpVerified && mounted) {
-                await _submitHandover();
-              }
-            }
+                  }
                 : () {},
             fontSize: 14,
             bgColor: isFormValid ? AppColors.primaryColor : AppColors.idCardColor,

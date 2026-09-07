@@ -74,6 +74,7 @@ class MatchItemModel {
   final int matchPercentage;
   final int matchTier;
   final bool hasImageMatch;
+  final int status; // ADDED
 
   MatchItemModel({
     required this.postId,
@@ -90,6 +91,7 @@ class MatchItemModel {
     required this.matchPercentage,
     required this.matchTier,
     required this.hasImageMatch,
+    required this.status, // ADDED
   });
 
   factory MatchItemModel.fromJson(Map<String, dynamic> json) {
@@ -108,6 +110,7 @@ class MatchItemModel {
       matchPercentage: json['matchPercentage'] as int? ?? 0,
       matchTier: json['matchTier'] as int? ?? 0,
       hasImageMatch: json['hasImageMatch'] as bool? ?? false,
+      status: json['status'] as int? ?? 0, // ADDED
     );
   }
 

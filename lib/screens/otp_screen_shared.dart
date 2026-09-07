@@ -136,7 +136,9 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
     if (!mounted) return;
     setState(() => isVerifying = false);
 
-    if (error != null) {
+    if (error == null) {
+      Navigator.of(context).pop(true); // SUCCESS: Close dialog and return true
+    } else {
       setState(() {
         errorText = error;
         otpError = List.generate(4, (_) => true);
