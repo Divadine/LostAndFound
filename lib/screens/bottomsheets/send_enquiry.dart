@@ -248,10 +248,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
       final roomIdCheck = ChatService.generateRoomId(
         userId1: currentUserId,
         userId2: otherUserId,
-        postIds: [
-          widget.postId.toString(),
-          widget.matchedPostId.toString(),
-        ],
+        postId: widget.postId.toString(),
       );
 
       debugPrint('[SendEnquiry] Checking for existing room: $roomIdCheck');
@@ -405,57 +402,34 @@ class _SendEnquiryState extends State<SendEnquiry> {
       );
 
       final roomId =
-      await ChatService.createChatRoom(
+      await ChatService.getOrCreateChatRoom(
         currentUserId: currentUserId,
 
         otherUserId: otherUserId,
 
-        // Current/enquiry person's information.
-        currentUserName:
-        nameController.text.trim(),
+        postId: widget.postId.toString(),
 
-        currentUserAvatar: '',
+        matchedPostId: widget.matchedPostId.toString(),
 
-        // If you have current user's phone available,
-        // pass it here. Blank is safe.
-        currentUserPhone: '',
+        enquirySenderId: currentUserId,
 
-        // Found/other user's information.
-        otherUserName:
-        widget.otherUserName,
+        currentUserName: nameController.text.trim(),
 
-        otherUserAvatar:
-        widget.otherUserAvatar,
+        otherUserName: widget.otherUserName,
 
-        // IMPORTANT:
-        // Save found person's phone in Firestore.
-        otherUserPhone:
-        widget.otherUserPhone,
+        otherUserAvatar: widget.otherUserAvatar,
 
-        // Current user is the enquiry sender.
-        enquirySenderId:
-        currentUserId,
+        otherUserPhone: widget.otherUserPhone,
 
-        // Item information.
-        itemName:
-        widget.itemName,
+        itemName: widget.itemName,
 
-        itemImage:
-        widget.itemImage,
+        itemImage: widget.itemImage,
 
-        itemLocation:
-        widget.itemLocation,
+        itemLocation: widget.itemLocation,
 
-        itemPostDate:
-        widget.itemPostDate,
+        itemPostDate: widget.itemPostDate,
 
-        // IMPORTANT:
-        // This makes the room unique per post.
-        postId:
-        widget.postId.toString(),
-
-        matchedPostId:
-        widget.matchedPostId.toString(),
+        description: descriptionController.text.trim(),
       );
 
       debugPrint(

@@ -137,10 +137,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
     final roomId = ChatService.generateRoomId(
       userId1: currentUserId,
       userId2: otherUserId,
-      postIds: [
-        widget.postId.toString(),
-        widget.originalPostId.toString(),
-      ],
+      postId: widget.postId.toString(),
     );
 
     debugPrint('[EnquiryCheck] currentUserId=$currentUserId otherUserId=$otherUserId');

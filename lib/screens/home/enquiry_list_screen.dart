@@ -74,26 +74,23 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
       debugPrint('[Chat] Other user: $otherUserId');
       debugPrint('[Chat] Enquiry sender: $otherUserId');
 
-      final roomId = await ChatService.createChatRoom(
+      final roomId = await ChatService.getOrCreateChatRoom(
         currentUserId: currentUserId.toString(),
         otherUserId: otherUserId.toString(),
-
+        postId: widget.postId.toString(),
+        matchedPostId: enquiry.matchedPostId.toString(),
+        enquiryId: enquiry.enquiryId.toString(),
+        enquirySenderId: otherUserId.toString(),
         currentUserName: AppPreferences.getUserName() ?? '',
         otherUserName: enquiry.enquirerName ?? '',
-
-        /// Pass item details to ensure consistency
+        otherUserAvatar: enquiry.enquirerProfileImg ?? '',
         itemName: post?.name ?? '',
         itemImage: post != null && post.images.isNotEmpty ? post.images.first : '',
         itemLocation: post?.location ?? '',
         itemPostDate: post?.postDate != null
             ? DateFormat('d MMM yyyy').format(post!.postDate!)
             : '',
-        postId: enquiry.postId.toString(),
-        matchedPostId: enquiry.matchedPostId.toString(),
-
-        /// The enquirer is the person who
-        /// sent the enquiry.
-        enquirySenderId: otherUserId.toString(),
+        description: enquiry.description ?? '',
       );
 
       if (!mounted) return;
@@ -113,7 +110,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
           'itemPostDate': post?.postDate != null
               ? DateFormat('d MMM yyyy').format(post!.postDate!)
               : '',
-          'itemPostId': enquiry.postId.toString(),
+          'itemPostId': widget.postId.toString(),
           'matchedPostId': enquiry.matchedPostId.toString(),
           'enquirySenderId': otherUserId.toString(),
         },

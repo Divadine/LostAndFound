@@ -254,61 +254,59 @@ class _IndividualChatScreenState
 
   Future<void> _initializeChat() async {
     try {
-      final navHasAnyItemData =
-          widget.itemName.trim().isNotEmpty ||
-              widget.itemImage.trim().isNotEmpty ||
-              widget.itemLocation.trim().isNotEmpty ||
-              widget.itemPostDate.trim().isNotEmpty;
+      String roomId = widget.roomId.trim();
 
-      if (navHasAnyItemData) {
-        await ChatService.createChatRoom(
-          currentUserId:
-          widget.currentUserId,
-          otherUserId:
-          widget.otherUserId,
-          currentUserPhone: '',
-          otherUserPhone:
-          _otherUserPhone,
-          otherUserName:
-          widget.otherUserName,
-          otherUserAvatar:
-          widget.otherUserAvatar,
-          enquirySenderId:
-          widget.enquirySenderId.isNotEmpty
+      if (roomId.isEmpty) {
+        // If roomId is missing, we must generate it and ensure it exists
+        roomId = await ChatService.getOrCreateChatRoom(
+          currentUserId: widget.currentUserId,
+          otherUserId: widget.otherUserId,
+          postId: widget.itemPostId.isNotEmpty
+              ? widget.itemPostId
+              : _extractPostId(),
+          matchedPostId: widget.matchedPostId,
+          enquirySenderId: widget.enquirySenderId.isNotEmpty
               ? widget.enquirySenderId
               : widget.currentUserId,
-          itemName:
-          widget.itemName,
-          itemImage:
-          widget.itemImage,
-          itemLocation:
-          widget.itemLocation,
-          itemPostDate:
-          widget.itemPostDate,
-          postId:
-          widget.itemPostId.isNotEmpty ? widget.itemPostId : _extractPostId(),
-          matchedPostId:
-          widget.matchedPostId,
+          itemName: widget.itemName,
+          itemImage: widget.itemImage,
+          itemLocation: widget.itemLocation,
+          itemPostDate: widget.itemPostDate,
+          otherUserName: widget.otherUserName,
+          otherUserAvatar: widget.otherUserAvatar,
+          otherUserPhone: _otherUserPhone,
         );
-
-        if (_otherUserPhone.isNotEmpty) {
-          await _savePhoneToRoom(
-            _otherUserPhone,
-          );
-        }
-
-        return;
+      } else {
+        // Room ID provided, just ensure metadata is merged/updated if necessary
+        // without recreating the whole room structure.
+        await ChatService.getOrCreateChatRoom(
+          currentUserId: widget.currentUserId,
+          otherUserId: widget.otherUserId,
+          postId: widget.itemPostId.isNotEmpty
+              ? widget.itemPostId
+              : _extractPostId(),
+          matchedPostId: widget.matchedPostId,
+          enquirySenderId: widget.enquirySenderId,
+          itemName: widget.itemName,
+          itemImage: widget.itemImage,
+          itemLocation: widget.itemLocation,
+          itemPostDate: widget.itemPostDate,
+          otherUserName: widget.otherUserName,
+          otherUserAvatar: widget.otherUserAvatar,
+          otherUserPhone: _otherUserPhone,
+        );
       }
 
       await ChatService.ensureItemCardFromRoom(
-        roomId: widget.roomId,
-        currentUserId:
-        widget.currentUserId,
+        roomId: roomId,
+        currentUserId: widget.currentUserId,
       );
+
+      if (_otherUserPhone.isNotEmpty) {
+        await _savePhoneToRoom(_otherUserPhone);
+      }
     } catch (e) {
-      debugPrint(
-        '[CHAT] INITIALIZE ERROR: $e',
-      );
+      debugPrint('[CHAT] INITIALIZE ERROR: $e');
     }
   }
 
