@@ -25,6 +25,7 @@ import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class EnquiryListScreen extends StatefulWidget {
   final int postId;
@@ -214,14 +215,14 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: isClosed ? AppColors.closedColor : AppColors.white,
       appBar: CustomAppBar(
         title: "Enquires",
         centerTitle: true,
         titleColor: AppColors.primaryColor,
         leadingIconColor: AppColors.primaryColor,
         leadingSvg: AssetImages.backArrow,
-        backgroundColor: AppColors.white,
+        backgroundColor: isClosed ? AppColors.closedColor : AppColors.white,
       ),
       body: SafeArea(
         child: _buildBody(),

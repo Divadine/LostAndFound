@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -31,6 +32,7 @@ import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -445,6 +447,16 @@ class _HomeScreenState extends State<HomeScreen>
 
     _fetchLostPosts();
     _fetchFoundPosts();
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+
+    if (!offline) {
+      _fetchLostPosts();
+      _fetchFoundPosts();
+    }
   }
 
   // ============================================================
@@ -980,6 +992,8 @@ class _HomeScreenState extends State<HomeScreen>
                   title: post.name,
                   location: post.location,
                   date: _formatDate(post.postDate),
+                  time: AppUtils.formatTimeAgo(post.postDate),
+                  isFromHomePage: true,
                   postId: post.postUid,
                   foundCount: matchingCounts[post.id],
                   postIntId: post.id,
@@ -1160,6 +1174,8 @@ class _HomeScreenState extends State<HomeScreen>
                   title: post.name,
                   location: post.location,
                   date: _formatDate(post.postDate),
+                  time: AppUtils.formatTimeAgo(post.postDate),
+                  isFromHomePage: true,
                   isFound: true,
                   postId: post.postUid,
                   postIntId: post.id,

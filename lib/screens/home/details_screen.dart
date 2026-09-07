@@ -654,6 +654,9 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                   context: context,
                   showHandle: false,
                   showCloseIcon: true,
+                  onClose: () {
+                    AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+                  },
                   child: ReceivedDetails(
                     type: post.postType == 0
                         ? TransferType.receiveToOwner

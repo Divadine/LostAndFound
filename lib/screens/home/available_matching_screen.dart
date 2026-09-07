@@ -16,6 +16,7 @@ import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/enums/handover_type.dart';
 import 'package:lost_and_found/models/handover/handover_type.dart';
@@ -114,10 +115,11 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isClosed = widget.status == 2;
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: isClosed ? AppColors.closedColor : AppColors.white,
       appBar: CustomAppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: isClosed ? AppColors.closedColor : AppColors.white,
         title: 'Available Matching item - ${isLoadingMatches ? (widget.foundCount ?? 0) : matchingCount} founded',
         leadingSvg: AssetImages.backArrow,
         titleColor: AppColors.primaryColor,
@@ -145,7 +147,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
             ).pad(),
 
             AppContainer(
-              bgColor: AppColors.white,
+              bgColor: isClosed ? AppColors.closedColor : AppColors.white,
               widget: AppText(
                 text: 'Matching Items(${isLoadingMatches ? (widget.foundCount ?? 0) : matchingCount})',
                 fontSize: 14,
@@ -191,58 +193,87 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
         ).pad(),
       ),
       bottomNavigationBar: widget.status == 2
-          ? null
-          : widget.isReceived
           ? SafeArea(
-        child: SucessCard(
-          name: widget.title,
-          location: widget.date,
-          onTap: () {
-            AppUiHelper.showBottomSheet(
-              showHandle: false,
-              showCloseIcon: true,
-              onClose: () {
-                AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
-              },
-              context: context,
-              child: ReceivedDetails(
-                type: TransferType.receiveToOwner,
-                data: TransferData(
-                  name: widget.title,
-                  phoneNumber: widget.postUid,
-                  description: "Successfully processed",
-                ),
-              ),
-            );
-          },
-          isReceiver: true,
-        ).pad(),
-      )
-          : (matches.isEmpty)
-          ? null
-          : SafeArea(
-        child: AppContainer(
-          widget: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppButton(
-                title: widget.isFound ? 'Hand Over' : 'Receive',
+              child: SucessCard(
+                name: widget.title,
+                location: widget.date,
+                isReceiver: !widget.isFound,
                 onTap: () {
                   AppUiHelper.showBottomSheet(
+                    showHandle: false,
+                    showCloseIcon: true,
+                    onClose: () {
+                      AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+                    },
                     context: context,
-                    child: ReceiveHandoverSheet(
-                      title: widget.title,
-                      isReceiver: !widget.isFound,
-                      postId: widget.postId,
+                    child: ReceivedDetails(
+                      type: widget.isFound
+                          ? TransferType.handOverToOwner
+                          : TransferType.receiveToOwner,
+                      data: TransferData(
+                        name: widget.title,
+                        avatarUrl: widget.imgUrl,
+                        userId: widget.postUid,
+                        phoneNumber: '',
+                        description: "Item successfully closed",
+                        proofPhotos: [widget.imgUrl],
+                      ),
                     ),
                   );
                 },
-                radius: BorderRadius.circular(14),
-              ),
-            ],
-          ),
-        ).pad(),
-      ),
+              ).padHorizontal(16).padBottom(16),
+            )
+          : widget.isReceived
+              ? SafeArea(
+                  child: SucessCard(
+                    name: widget.title,
+                    location: widget.date,
+                    onTap: () {
+                      AppUiHelper.showBottomSheet(
+                        showHandle: false,
+                        showCloseIcon: true,
+                        onClose: () {
+                          AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+                        },
+                        context: context,
+                        child: ReceivedDetails(
+                          type: TransferType.receiveToOwner,
+                          data: TransferData(
+                            name: widget.title,
+                            phoneNumber: widget.postUid,
+                            description: "Successfully processed",
+                          ),
+                        ),
+                      );
+                    },
+                    isReceiver: true,
+                  ).pad(),
+                )
+              : (matches.isEmpty)
+                  ? null
+                  : SafeArea(
+                      child: AppContainer(
+                        widget: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AppButton(
+                              title: widget.isFound ? 'Hand Over' : 'Receive',
+                              onTap: () {
+                                AppUiHelper.showBottomSheet(
+                                  context: context,
+                                  child: ReceiveHandoverSheet(
+                                    title: widget.title,
+                                    isReceiver: !widget.isFound,
+                                    postId: widget.postId,
+                                  ),
+                                );
+                              },
+                              radius: BorderRadius.circular(14),
+                            ),
+                          ],
+                        ),
+                      ).pad(),
+                    ),
     );
   }
 }

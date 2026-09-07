@@ -121,7 +121,8 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
         setState(() => _audioPosition = Duration(milliseconds: positionMs));
       });
 
-      _waveController.onCompletion.listen((_) {
+      _waveController.onCompletion.listen((_) async {
+        await _waveController.seekTo(0);
         if (!mounted) return;
         setState(() {
           _isAudioPlaying = false;

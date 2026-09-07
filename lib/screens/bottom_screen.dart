@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/screens/home/home_screen.dart';
 import 'package:lost_and_found/screens/authentication/login_screen.dart';
@@ -24,6 +27,9 @@ class BottomScreen extends StatefulWidget {
 
 class _BottomScreenState extends State<BottomScreen> {
   int selectedIndex = 0;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   final pages = [
     HomeScreen(),
     PoliceStationMapScreen(),
@@ -39,6 +45,37 @@ class _BottomScreenState extends State<BottomScreen> {
     AssetImages.profile,
   ];
   List<String> labels = ["Home", "Nearby", "Post", "Enquiry", "Profile"];
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivityListener();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    // Check initial state
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+
+    // Listen for changes
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      _updateOfflineStatus(results);
+    });
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
 
   void _showPostBottomSheet() {
     AppUiHelper.showCustomBottomDialog(
@@ -115,9 +152,20 @@ class _BottomScreenState extends State<BottomScreen> {
         appBar: AppBar(toolbarHeight: 0,backgroundColor: AppColors.primaryColor,),
         backgroundColor: Colors.transparent,
         body: SafeArea(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: pages[selectedIndex],
+          child: Stack(
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: pages[selectedIndex],
+              ),
+              if (_isOffline)
+                Container(
+                  color: Colors.white,
+                  child: const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+            ],
           ),
         ),
         bottomNavigationBar: SafeArea(

@@ -1,11 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/models/handover/location_suggestion.dart';
 import 'package:lost_and_found/models/handover/police_station.dart';
-import 'package:lost_and_found/models/posts_model/selected_location_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
@@ -16,12 +17,9 @@ import 'package:lost_and_found/shared_widgets/map_pin_loader.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_permission.dart';
-import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_urls.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import 'location_selection_screen.dart';
 
 class PoliceStationMapScreen extends StatefulWidget {
   const PoliceStationMapScreen({super.key});
@@ -52,6 +50,7 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
   TextEditingController();
 
   BitmapDescriptor? _pinIcon;
+  BitmapDescriptor? _searchPinIcon;
 
   Position? _currentPosition;
 
@@ -64,6 +63,14 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
   bool _loading = true;
 
   String? _errorMessage;
+
+  Timer? _debounce;
+
+  bool _isLocationConfirmed = true;
+  String? _selectedAddress;
+  bool _searchFocused = false;
+  final StreamController<List<LocationSuggestionModel>> _suggestionsController =
+      StreamController<List<LocationSuggestionModel>>.broadcast();
 
   @override
   void initState() {
@@ -82,6 +89,8 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _suggestionsController.close();
+    _debounce?.cancel();
     _mapController?.dispose();
     super.dispose();
   }
@@ -97,10 +106,16 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
         size: 70,
       );
 
+      final searchIcon = await MapPinIconLoader.load(
+        AssetImages.map_pin,
+        size: 110,
+      );
+
       if (!mounted) return;
 
       setState(() {
         _pinIcon = icon;
+        _searchPinIcon = searchIcon;
       });
     } catch (e) {
       debugPrint(
@@ -118,6 +133,7 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
       setState(() {
         _loading = true;
         _errorMessage = null;
+        _isLocationConfirmed = true;
       });
     }
 
@@ -474,75 +490,55 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
   // SEARCH LOCATION
   // ============================================================
 
-  Future<void> _searchLocation() async {
-    final result = await context.pushNamed(
-      AppRoutes.mapScreen,
-      extra: MapScreenModel(
-        needSingleLocation: true,
-      ),
-    );
+  Future<void> _onSearchChanged(String value) async {
+    _debounce?.cancel();
 
-    if (!mounted) return;
-
-    SelectedLocationModel? selected;
-
-    if (result is SelectedLocationModel) {
-      selected = result;
-    } else if (result
-    is List<SelectedLocationModel>) {
-      if (result.isNotEmpty) {
-        selected = result.first;
+    if (value.trim().isEmpty) {
+      if (!_suggestionsController.isClosed) {
+        _suggestionsController.add([]);
       }
-    }
-
-    if (selected == null) {
       return;
     }
 
-    debugPrint(
-      '[PoliceStation] Selected search location:',
-    );
+    _debounce = Timer(const Duration(milliseconds: 400), () async {
+      try {
+        final response = await _authController.searchLocation(
+          query: value.trim(),
+          limit: 5,
+        );
 
-    debugPrint(
-      '[PoliceStation] address=${selected.address}',
-    );
+        if (!mounted || _suggestionsController.isClosed) return;
 
-    debugPrint(
-      '[PoliceStation] lat=${selected.latitude}',
-    );
+        if (response.isSuccess && response.data != null) {
+          _suggestionsController.add(response.data!);
+        } else {
+          _suggestionsController.add([]);
+        }
+      } catch (e) {
+        debugPrint("[PoliceStation] Search error: $e");
+        if (!_suggestionsController.isClosed) {
+          _suggestionsController.add([]);
+        }
+      }
+    });
+  }
 
-    debugPrint(
-      '[PoliceStation] lng=${selected.longitude}',
-    );
+  Future<void> _onSuggestionTap(LocationSuggestionModel suggestion) async {
+    _searchController.text = suggestion.description;
+    if (!_suggestionsController.isClosed) {
+      _suggestionsController.add([]);
+    }
+    FocusScope.of(context).unfocus();
 
-    // Update search field.
     setState(() {
-      _searchController.text =
-          selected!.address;
+      _searchFocused = false;
+      _referencePosition = LatLng(suggestion.latitude, suggestion.longitude);
+      _selectedAddress = suggestion.description;
+      _isLocationConfirmed = false;
+      _stations = [];
     });
 
-    // ==========================================================
-    // THIS IS THE IMPORTANT PART
-    //
-    // The searched location is passed to the SAME API.
-    //
-    // Example:
-    //
-    // Search Mumbai
-    //      ↓
-    // Mumbai latitude/longitude
-    //      ↓
-    // nearbyPoliceStations
-    //      ↓
-    // Mumbai police stations
-    //      ↓
-    // markers + card
-    // ==========================================================
-
-    await getPoliceStations(
-      selected.latitude,
-      selected.longitude,
-    );
+    _moveCameraToReference();
   }
 
   // ============================================================
@@ -586,6 +582,12 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
 
               compassEnabled: false,
 
+              onTap: (_) {
+                setState(() {
+                  _searchFocused = false;
+                });
+              },
+
               markers: _buildMarkers(),
             ),
           ),
@@ -607,6 +609,25 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
 
             child: _buildSearchBar(),
           ),
+
+          // ======================================================
+          // SEARCH SUGGESTIONS
+          // ======================================================
+
+          if (_searchFocused)
+            Positioned(
+              top:
+              MediaQuery.of(context)
+                  .padding
+                  .top +
+                  68,
+
+              left: 16,
+
+              right: 16,
+
+              child: _buildSuggestionsDropdown(),
+            ),
 
           // ======================================================
           // LOADING
@@ -654,15 +675,21 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
       textController:
       _searchController,
 
-      readOnly: true,
+      readOnly: false,
 
-      onChange: (_) {},
+      onChange: _onSearchChanged,
 
-      onTap: _searchLocation,
+      onTap: () {
+        setState(() {
+          _searchFocused = true;
+        });
+      },
 
       hintText: 'Search location',
 
-      onSubmit: (_) {},
+      onSubmit: (value) {
+        _onSearchChanged(value);
+      },
 
       borderColor:
       Colors.transparent,
@@ -682,6 +709,9 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
           setState(() {
             _searchController
                 .clear();
+            if (!_suggestionsController.isClosed) {
+              _suggestionsController.add([]);
+            }
           });
 
           // Go back to current location.
@@ -699,61 +729,116 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
     );
   }
 
+  Widget _buildSuggestionsDropdown() {
+    return StreamBuilder<List<LocationSuggestionModel>>(
+      stream: _suggestionsController.stream,
+      builder: (context, snapshot) {
+        final suggestions = snapshot.data ?? [];
+        if (suggestions.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          constraints: const BoxConstraints(maxHeight: 280),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            itemCount: suggestions.length + 1,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Material(
+                  color: AppColors.white,
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.search, color: AppColors.primaryColor),
+                    title: AppText(
+                      text: _searchController.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    onTap: () async {
+                      final query = _searchController.text;
+                      if (query.isEmpty) return;
+                      try {
+                        final locations = await _authController.searchLocation(query: query, limit: 1);
+                        if (locations.isSuccess && locations.data != null && locations.data!.isNotEmpty) {
+                          _onSuggestionTap(locations.data!.first);
+                        }
+                      } catch (e) {
+                        debugPrint("Error searching query: $e");
+                      }
+                    },
+                  ),
+                );
+              }
+              final suggestion = suggestions[index - 1];
+              return Material(
+                color: AppColors.white,
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.location_on_outlined, color: AppColors.primaryColor),
+                  title: AppText(
+                    text: suggestion.description,
+                    fontSize: 14,
+                  ),
+                  onTap: () => _onSuggestionTap(suggestion),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   // ============================================================
   // MARKERS
   // ============================================================
 
   Set<Marker> _buildMarkers() {
-    final icon =
-        _pinIcon ??
-            BitmapDescriptor
-                .defaultMarker;
+    final Set<Marker> markers = {};
 
-    return _stations.map(
-          (station) {
-        final isSelected =
-            _selectedStation?.id ==
-                station.id;
-
+    if (_isLocationConfirmed) {
+      final icon = _pinIcon ?? BitmapDescriptor.defaultMarker;
+      markers.addAll(_stations.map((station) {
+        final isSelected = _selectedStation?.id == station.id;
         return Marker(
-          markerId: MarkerId(
-            'police_${station.id}',
-          ),
-
-          position: LatLng(
-            station.latitude,
-            station.longitude,
-          ),
-
+          markerId: MarkerId('police_${station.id}'),
+          position: LatLng(station.latitude, station.longitude),
           icon: icon,
-
-          anchor:
-          const Offset(
-            0.5,
-            1.0,
+          anchor: const Offset(0.5, 1.0),
+          alpha: isSelected ? 1.0 : 0.85,
+          infoWindow: InfoWindow(
+            title: station.name,
+            snippet: station.address,
           ),
-
-          alpha:
-          isSelected
-              ? 1.0
-              : 0.85,
-
-          infoWindow:
-          InfoWindow(
-            title:
-            station.name,
-            snippet:
-            station.address,
-          ),
-
-          onTap: () {
-            _selectStation(
-              station,
-            );
-          },
+          onTap: () => _selectStation(station),
         );
-      },
-    ).toSet();
+      }));
+    }
+
+    if (_referencePosition != null && !_isLocationConfirmed) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('search_pinpoint'),
+          position: _referencePosition!,
+          icon: _searchPinIcon ?? BitmapDescriptor.defaultMarker,
+          anchor: const Offset(0.5, 1.0),
+        ),
+      );
+    }
+
+    return markers;
   }
 
   // ============================================================
@@ -761,6 +846,10 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
   // ============================================================
 
   Widget _buildBottomSheet() {
+    if (!_isLocationConfirmed && _referencePosition != null) {
+      return _buildConfirmLocationCard();
+    }
+
     final height =
         MediaQuery.of(context)
             .size
@@ -819,6 +908,81 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
     );
   }
 
+  Widget _buildConfirmLocationCard() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 12,
+              offset: Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppText(
+              text: 'Selected location',
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              color: Colors.black,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  height: 45,
+                  width: 45,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF22326A),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.location_on_outlined,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: AppText(
+                    text: _selectedAddress ?? 'Unknown location',
+                    fontSize: 14,
+                    color: Colors.black87,
+                    maxLine: 2,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            AppButton(
+              title: 'Confirm location',
+              height: 50,
+              radius: BorderRadius.circular(10),
+              bgColor: AppColors.primaryColor,
+              onTap: () {
+                if (_referencePosition != null) {
+                  setState(() {
+                    _isLocationConfirmed = true;
+                  });
+                  getPoliceStations(_referencePosition!.latitude, _referencePosition!.longitude);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ============================================================
   // BOTTOM CONTENT
   // ============================================================
@@ -871,17 +1035,11 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
             _stations.first;
 
     // IMPORTANT:
-    // Flexible prevents the Column from overflowing.
-    return Flexible(
-      child:
-      SingleChildScrollView(
-        physics:
-        const ClampingScrollPhysics(),
-
-        child:
-        _buildStationCard(
-          station,
-        ),
+    // SingleChildScrollView handles the content height within the parent's constraints.
+    return SingleChildScrollView(
+      physics: const ClampingScrollPhysics(),
+      child: _buildStationCard(
+        station,
       ),
     );
   }

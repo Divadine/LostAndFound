@@ -1,11 +1,12 @@
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:intl/intl.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 
 class AppUtils {
   static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-static bool isTab=false;
+  static bool isTab = false;
 
   static Future<bool> checkConnectivity() async {
     final value = await Connectivity().checkConnectivity();
@@ -13,6 +14,28 @@ static bool isTab=false;
       return false;
     }
     return true;
+  }
+
+  static String formatTimeAgo(DateTime? date) {
+    if (date == null) return '';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final postDate = DateTime(date.year, date.month, date.day);
+    final diffDays = today.difference(postDate).inDays;
+
+    if (diffDays == 0) {
+      final diffSeconds = now.difference(date).inSeconds;
+      if (diffSeconds < 60) return 'just now';
+      final diffMinutes = now.difference(date).inMinutes;
+      if (diffMinutes < 60) return '$diffMinutes mins ago';
+      final diffHours = now.difference(date).inHours;
+      if (diffHours < 24 && date.day == now.day) return 'Today';
+      return 'Today';
+    } else if (diffDays == 1) {
+      return 'Yesterday';
+    } else {
+      return DateFormat('d MMM yyyy').format(date);
+    }
   }
 
   static String? validateMobileNumber(String? value) {

@@ -48,6 +48,10 @@ class AppDropdownField<T> extends StatefulWidget {
 
   final double? menuHeight;
 
+  final Widget? suffixIcon;
+
+  final Widget? selectedSuffixIcon;
+
   const AppDropdownField({
     super.key,
     required this.value,
@@ -60,6 +64,8 @@ class AppDropdownField<T> extends StatefulWidget {
     this.selectedItemColor,
     this.selectedItemTextColor,
     this.menuHeight,
+    this.suffixIcon,
+    this.selectedSuffixIcon,
   });
 
   @override
@@ -141,8 +147,8 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
             ],
 
             initialSelection: widget.value,
-            trailingIcon: AppIconWidget(assetPath: AssetImages.dropDown),
-            selectedTrailingIcon: AppIconWidget(assetPath: AssetImages.dropUp),
+            trailingIcon: widget.suffixIcon ?? AppIconWidget(assetPath: AssetImages.dropDown),
+            selectedTrailingIcon: widget.selectedSuffixIcon ?? widget.suffixIcon ?? AppIconWidget(assetPath: AssetImages.dropUp),
             hintText: widget.hintText,
             textStyle: appTextStyle(color: AppColors.black),
             inputDecorationTheme: InputDecorationTheme(

@@ -296,6 +296,9 @@ class AppRoutes {
         name: mapScreen,
         builder: (context, state) {
           final mapScreenModel = state.extra as MapScreenModel;
+          if (mapScreenModel.needSingleLocation && !mapScreenModel.showPoliceStations) {
+            return MapScreen(model: mapScreenModel);
+          }
           return LocationSelectionScreen(mapScreenModel: mapScreenModel);
         },
       ),

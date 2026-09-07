@@ -18,7 +18,7 @@ Widget SucessCard({
       height: 100,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.lightGreen,
+        color: AppColors.closedColor,
         border: Border.all(
           color: AppColors.green,
         ),

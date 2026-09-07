@@ -112,8 +112,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     spacing: 10,
                                     children: [
                                       //+91
-                                      Expanded(
-                                        flex: 2,
+                                      SizedBox(
+                                        width: 70,
                                         child: AppTextField(
                                           readOnly: true,
                                           hintText: '+91',
@@ -200,8 +200,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   AuthChangeText(
                     text1: "Don't have an account?",
                     tappableText: 'Register',
-                    onTap: () {
-                      AppRoutes.pushNamed(AppRoutes.registerScreen);
+                    onTap: () async {
+                      await AppRoutes.pushNamed(AppRoutes.registerScreen);
+
+                      if (!mounted) return;
+
+                      setState(() {
+                        phoneController.clear();
+                        errorText = null;
+                      });
+
+                      numberStream.add(null);
                     },
                   ),
                 ],

@@ -70,6 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   StreamController<String?> pinStream = StreamController.broadcast();
   StreamController<File?> imageStream = StreamController.broadcast();
 
+  bool _isCityFetched = false;
   bool _isAltVerified = false;
   bool _isImageDeleted = false;
   String? latitude;
@@ -142,6 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         widget.profileModel.city!.isNotEmpty) {
       selectedCityName = widget.profileModel.city;
       cityOptions = [AreaModel(id: 0, name: widget.profileModel.city!)];
+      _isCityFetched = true;
     }
     _checkFormValidity();
   }
@@ -166,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _checkFormValidity() {
     final isNameValid = nameController.text.trim().isNotEmpty;
     final isMobileValid = mobileController.text.trim().isNotEmpty;
-    final isPinValid = AppUtils.validatePincode(pinController.text) == null;
+    final isPinValid = pinController.text.length == 6 &&AppUtils.validatePincode(pinController.text) == null;
     final isLandmarkValid = landmarkController.text.trim().isNotEmpty;
     final isAddressValid = addressController.text.trim().isNotEmpty;
     final isCityValid = cityController.text.isNotEmpty;
@@ -194,10 +196,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String? _validatePinCode(String value) {
     final errorPinCode = AppUtils.validatePincode(value);
-    isPinCodeValid = errorPinCode == null;
+
+    isPinCodeValid =
+        value.length == 6 && errorPinCode == null;
+
     return errorPinCode;
   }
-
   Future<void> photoFromGallery() async {
     final XFile? pic = await picker.pickImage(source: ImageSource.gallery);
 
@@ -506,6 +510,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Expanded(
                                 flex: 2,
                                 child: AppTextField(
+                                  textColor: AppColors.fieldGrey,
                                   readOnly: true,
                                   hintText: '+91',
                                   textController: countryCodeController2,
@@ -579,12 +584,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                     .profileModel.userId!,
                                               );
                                               if (response.status == 1) {
+                                                if (!mounted) return null;
+
                                                 setState(() {
                                                   _isAltVerified = true;
+                                                  isAlternativeNumberValid = true;
                                                 });
-                                                verifyMobileStream
-                                                    .add(true);
-                                                AppRoutes.pop();
+
+                                                verifyMobileStream.add(true);
+
                                                 return null;
                                               }
                                               return response.message;
@@ -686,8 +694,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             return AppUtils.validatePincode(e);
                           },
                           onChange: (v) {
-                            if (v.length < 6) {
-                              setState(() {
+                            final error = AppUtils.validatePincode(v);
+
+                            setState(() {
+                              isPinCodeValid = error == null && v.length == 6;
+
+                              if (v.length < 6) {
                                 countryController.clear();
                                 stateController.clear();
                                 cityController.clear();
@@ -695,38 +707,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 selectedCityName = null;
                                 latitude = null;
                                 longitude = null;
-                              });
-                            }
-                            pinStream.add(_validatePinCode(v));
+                              }
+                            });
+
+                            pinStream.add(error);
                             _checkFormValidity();
                           },
 
                           onSubmit: (v) {},
                           suffixIcon: GestureDetector(
-                            onTap: isPinCodeValid
+                            onTap: isPinCodeValid && pinController.text.length == 6
                                 ? () async {
                               final result = await addressControllers
                                   .getAddressByPincode(pinController.text);
+
+                              if (!mounted) return;
+
                               if (result != null) {
                                 setState(() {
                                   countryController.text = result.country;
                                   stateController.text = result.state;
+
                                   cityOptions = result.areas;
+
                                   selectedCityName = cityOptions.isNotEmpty
                                       ? cityOptions.first.name
                                       : null;
-                                  cityController.text =
-                                      selectedCityName ?? '';
+
+                                  cityController.text = selectedCityName ?? '';
+
                                   latitude = result.latitude;
                                   longitude = result.longitude;
+
+                                  _isCityFetched = cityOptions.isNotEmpty;
                                 });
+
                                 _checkFormValidity();
                               } else {
                                 AppDialogue.showPopup(
                                   context: context,
+
                                   content: AppText(
-                                    text:
-                                    'Could not fetch location details',
+                                    text: 'Could not fetch location details',
                                   ),
                                 );
                               }
@@ -799,22 +821,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       //city
                       buildTextFieldWithHeading(
                         title: 'City',
-                        fieldWidget: AppDropdownField<String>(
+                        fieldWidget:
+                        AppDropdownField<String>(
                           value: selectedCityName,
                           menuHeight: 250,
                           borderColor: AppColors.fieldGrey.withAlpha(20),
-                          hintText: cityOptions.isEmpty ? 'Fetch pincode first' : 'Select city',
+
+                          hintText: !_isCityFetched
+                              ? 'Fetch pincode first'
+                              : 'Select city',
+
                           items: cityOptions.map((a) => a.name).toList(),
+
                           itemLabel: (value) => value,
+
                           selectedItemColor: AppColors.primaryColor.withAlpha(30),
                           selectedItemTextColor: AppColors.primaryColor,
-                          onChanged: cityOptions.isEmpty
+
+                          suffixIcon: _isCityFetched
+                              ? const Icon(Icons.keyboard_arrow_down)
+                              : const SizedBox.shrink(),
+
+                          onChanged: !_isCityFetched
                               ? null
                               : (v) {
                             setState(() {
                               selectedCityName = v;
                               cityController.text = v ?? '';
                             });
+
                             _checkFormValidity();
                           },
                         ),

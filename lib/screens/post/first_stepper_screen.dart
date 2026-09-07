@@ -338,7 +338,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         'itemName': _isGenericMode ? itemNameController.text.trim() : (brandValue ?? itemTypeValue),
         'selectedImages': selectedImages,
         'fieldValues': postValues,
-        'prefillDescription': _step2Description ?? (_isGenericMode ? descriptionController.text.trim() : ''),
+        'prefillDescription': _step2Description,
         'itemTypeLabel': itemTypeLabel,
         'itemTypeValue': itemTypeValue,
         'color': selectedColor ?? '',

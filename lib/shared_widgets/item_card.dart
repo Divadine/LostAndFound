@@ -77,8 +77,8 @@ class ItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isClosed = status == 2;
-    final cardBg = isClosed ? AppColors.closedColor : (bg ?? AppColors.white);
-    final borderColor = isClosed ? AppColors.green : Colors.transparent;
+    final cardBg = bg ?? AppColors.white;
+    final borderColor = Colors.transparent;
 
     return GestureDetector(
       onTap: onTap,
@@ -278,7 +278,6 @@ class ItemCard extends StatelessWidget {
                     child: IgnorePointer(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.white.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
@@ -299,7 +298,7 @@ class ItemCard extends StatelessWidget {
                   ),
               ],
             ),
-            if (time != null)
+            if (time != null && time!.isNotEmpty && (isFromHomePage ?? false))
               Row(
                 children: [
                   Spacer(),
@@ -415,12 +414,12 @@ class ItemCard extends StatelessWidget {
               ).pad(),
             if (status == 2)
               Container(
-                height: 35,
+                height: 38,
                 width: double.infinity,
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.green.withAlpha(20),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.green.withAlpha(50)),
+                  color: AppColors.closedColor,
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -432,7 +431,7 @@ class ItemCard extends StatelessWidget {
                       color: AppColors.green,
                     ),
                     Row(
-                      spacing: 5,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         AppText(
                           text: 'View Details',
@@ -440,16 +439,17 @@ class ItemCard extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                           color: AppColors.green,
                         ),
+                        const SizedBox(width: 4),
                         AppIconWidget(
                           assetPath: AssetImages.iosForward,
                           color: AppColors.green,
-                          size: 14,
+                          size: 12,
                         ),
                       ],
                     ),
                   ],
-                ).padHorizontal(),
-              ).pad(),
+                ).padHorizontal(12),
+              ),
           ],
         ),
       ),

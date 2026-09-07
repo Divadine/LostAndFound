@@ -22,6 +22,7 @@ import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_permission.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class LocationSelectionScreen extends StatefulWidget {
   final MapScreenModel mapScreenModel;
@@ -109,6 +110,12 @@ class _LocationSelectionScreenState
   bool _resolvingPin = false;
 
   bool _addingNewLocation = false;
+
+  bool _isLoadingInitialLocation = false;
+
+  bool _isMapReady = false;
+
+  bool _isInitializing = false;
 
   // ===========================================================================
   // LOCATION
@@ -207,27 +214,29 @@ class _LocationSelectionScreenState
         _showNoInternetToast();
       }
 
+      final bool recovering = _isOffline && !offline;
+
       setState(() {
         _isOffline = offline;
       });
+
+      // Recovery trigger: Immediately attempt to fetch location and map data
+      if (recovering) {
+        _initLocation(isRecovery: true);
+      }
     });
   }
 
   Future<bool> _hasInternetConnection() async {
-    final result =
-    await Connectivity().checkConnectivity();
-
-    final offline = result.contains(
-      ConnectivityResult.none,
-    );
-
-    if (mounted) {
-      setState(() {
-        _isOffline = offline;
-      });
+    // Fast check if possible, otherwise check actual connectivity
+    if (_isOffline) return false;
+    
+    try {
+      final result = await Connectivity().checkConnectivity();
+      return !result.contains(ConnectivityResult.none);
+    } catch (_) {
+      return false;
     }
-
-    return !offline;
   }
 
   void _showNoInternetToast() {
@@ -276,80 +285,102 @@ class _LocationSelectionScreenState
   // INITIAL LOCATION
   // ===========================================================================
 
-  Future<void> _initLocation() async {
-    if (!await _hasInternetConnection()) {
-      _showNoInternetToast();
-      return;
+  Future<void> _initLocation({bool isRecovery = false}) async {
+    if (_isInitializing) return;
+
+    _isInitializing = true;
+
+    // Show loader: Full-screen if map not ready, otherwise overlay spinner
+    if (mounted) {
+      setState(() {
+        _isLoadingInitialLocation = true;
+      });
     }
 
-    final granted =
-    await _appPermissions.requestLocationPermission(
-      context,
-    );
-
-    if (!granted) return;
-
-    final serviceOn =
-    await _appPermissions.isLocationServiceEnabled();
-
-    if (!serviceOn) return;
-
     try {
-      // =======================================================================
-      // VERY IMPORTANT
-      //
-      // If we already have a selected location, NEVER replace it with GPS.
-      // =======================================================================
-
-      if (_selectedLocations.isNotEmpty) {
-        final selected =
-            _selectedLocations.first;
-
-        final selectedLatLng = LatLng(
-          selected.latitude,
-          selected.longitude,
-        );
-
-        // Map might not have been created yet.
-        if (_mapController != null) {
-          await _mapController!.animateCamera(
-            CameraUpdate.newLatLngZoom(
-              selectedLatLng,
-              15,
-            ),
-          );
+      // Permission check - fast check first
+      final status = await Permission.location.status;
+      if (!status.isGranted) {
+        if (!isRecovery) {
+          final granted = await _appPermissions.requestLocationPermission(context);
+          if (!granted) {
+            _isInitializing = false;
+            if (mounted) setState(() => _isLoadingInitialLocation = false);
+            return;
+          }
+        } else {
+          _isInitializing = false;
+          if (mounted) setState(() => _isLoadingInitialLocation = false);
+          return;
         }
+      }
 
-        // Make sure marker remains visible.
-        if (mounted) {
-          setState(() {});
-        }
-
+      final serviceOn = await _appPermissions.isLocationServiceEnabled();
+      if (!serviceOn) {
+        _isInitializing = false;
+        if (mounted) setState(() => _isLoadingInitialLocation = false);
         return;
       }
 
-      // =======================================================================
-      // NO PREVIOUS LOCATION
-      //
-      // Use current GPS location.
-      // =======================================================================
+      if (_selectedLocations.isNotEmpty) {
+        if (_mapController != null) {
+          final selected = _selectedLocations.first;
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              LatLng(selected.latitude, selected.longitude),
+              15,
+            ),
+          ).catchError((_) => null);
+        }
+        _isInitializing = false;
+        if (mounted) setState(() => _isLoadingInitialLocation = false);
+        return;
+      }
 
-      final position =
-      await Geolocator.getCurrentPosition();
+      // Quick load using last known position - Non-blocking
+      Geolocator.getLastKnownPosition().then((lastPosition) {
+        if (lastPosition != null && mounted && _selectedLocations.isEmpty && _pendingLocation == null) {
+          _setPinFromLatLng(
+            LatLng(lastPosition.latitude, lastPosition.longitude),
+            moveCamera: true,
+          );
+          if (mounted) setState(() => _isLoadingInitialLocation = false);
+        }
+      });
 
-      if (!mounted) return;
+      if (_isOffline) {
+        _isInitializing = false;
+        if (mounted) setState(() => _isLoadingInitialLocation = false);
+        return;
+      }
 
-      await _setPinFromLatLng(
-        LatLng(
-          position.latitude,
-          position.longitude,
-        ),
-        moveCamera: true,
-      );
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+      ).timeout(const Duration(seconds: 4), onTimeout: () {
+        throw TimeoutException('Location timeout');
+      });
+
+      if (position != null && mounted) {
+        await _setPinFromLatLng(
+          LatLng(position.latitude, position.longitude),
+          moveCamera: true,
+        );
+      }
     } catch (e) {
-      debugPrint(
-        '[Location] Initial location error: $e',
-      );
+      debugPrint('[LocationSelection] Init/Recovery error: $e');
+      if (isRecovery && mounted && !_isOffline) {
+        // Retry recovery after a short delay
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) _initLocation(isRecovery: true);
+        });
+      }
+    } finally {
+      _isInitializing = false;
+      if (mounted) {
+        setState(() {
+          _isLoadingInitialLocation = false;
+        });
+      }
     }
   }
 
@@ -753,11 +784,7 @@ class _LocationSelectionScreenState
     // are offline; we just can't resolve the address or nearby stations.
     // =========================================================================
 
-    final online = await _hasInternetConnection();
-
-    if (!online) {
-      _showNoInternetToast();
-
+    if (_isOffline) {
       if (!mounted || requestId != _locationRequestId) {
         return;
       }
@@ -1026,24 +1053,22 @@ class _LocationSelectionScreenState
           // ===================================================================
 
           GoogleMap(
-            initialCameraPosition:
-            _fallbackCamera,
-
-            onMapCreated:
-                (controller) async {
-              _mapController =
-                  controller;
+            initialCameraPosition: _fallbackCamera,
+            onMapCreated: (controller) async {
+              _mapController = controller;
+              if (mounted) {
+                setState(() {
+                  _isMapReady = true;
+                });
+              }
 
               // ===============================================================
               // Restore camera to existing selected location.
               // ===============================================================
 
               if (_selectedLocations.isNotEmpty) {
-                final location =
-                    _selectedLocations.first;
-
-                final target =
-                LatLng(
+                final location = _selectedLocations.first;
+                final target = LatLng(
                   location.latitude,
                   location.longitude,
                 );
@@ -1062,26 +1087,29 @@ class _LocationSelectionScreenState
                 }
               }
             },
-
             onTap: _onMapTap,
-
-            myLocationButtonEnabled:
-            false,
-
-            zoomControlsEnabled:
-            false,
-
-            // =================================================================
-            // IMPORTANT:
-            //
-            // Every rebuild gets markers from _selectedLocations.
-            //
-            // So changing address/loading state does NOT remove the marker.
-            // =================================================================
-
-            markers:
-            _buildMarkers(),
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            markers: _buildMarkers(),
           ),
+
+          // ===================================================================
+          // INITIAL / OFFLINE LOADER
+          // ===================================================================
+
+          if (!_isMapReady || _isOffline)
+            Container(
+              color: AppColors.white,
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_isLoadingInitialLocation)
+            const Center(
+              child: IgnorePointer(
+                child: CircularProgressIndicator(),
+              ),
+            ),
 
           // ===================================================================
           // OFFLINE BANNER

@@ -30,6 +30,7 @@ class AppDialogue {
   static Future<bool> showPopup({
     required BuildContext context,
     required Widget content,
+    bool showCloseIcon = false,
     EdgeInsetsGeometry contentPadding = const EdgeInsets.all(15),
     EdgeInsets? insetPadding,
     Color backgroundColor = AppColors.white,
@@ -37,16 +38,38 @@ class AppDialogue {
     BorderSide borderSides = BorderSide.none,
   }) async {
     final result = await showDialog(
+
       context: context,
+      barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          contentPadding: contentPadding,
+          contentPadding: EdgeInsets.zero,
           insetPadding: insetPadding,
-          content: content,
           backgroundColor: backgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radius),
             side: borderSides,
+          ),
+          content: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Padding(
+                padding: contentPadding,
+                child: content,
+              ),
+              if (showCloseIcon)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: AppIconWidget(
+                      assetPath: AssetImages.crossIcon,
+                      size: 20,
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },

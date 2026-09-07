@@ -124,7 +124,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             name: textController.text,
           );
           if (response.status == 1) {
-            AppRoutes.pop();
             AppRoutes.pushAndRemoveUntil(
               AppRoutes.profileScreen,
               arguments: ProfileScreenModel(
@@ -220,8 +219,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               Row(
                                 spacing: 10,
                                 children: [
-                                  Expanded(
-                                    flex: 2,
+                                  SizedBox(
+                                    width:70,
                                     child: AppTextField(
                                       readOnly: true,
                                       hintText: '+91',

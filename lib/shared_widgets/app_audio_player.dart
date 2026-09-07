@@ -138,11 +138,6 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
     super.dispose();
   }
 
-  String _formatDuration(Duration d) {
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${two(d.inMinutes)}:${two(d.inSeconds % 60)}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return _buildPlayer();
@@ -190,9 +185,10 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
       stream: _audioPlayer.playerStateStream,
       builder: (context, snapshot) {
         final playerState = snapshot.data;
-        final isPlaying = playerState?.playing ?? false;
         final processingState =
             playerState?.processingState ?? ProcessingState.idle;
+        final isPlaying = (playerState?.playing ?? false) &&
+            processingState != ProcessingState.completed;
 
         return StreamBuilder<Duration>(
           stream: _audioPlayer.positionStream,
@@ -248,11 +244,6 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
                           );
                         },
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    AppText(
-                      text: _formatDuration(duration),
-                      fontSize: 12,
                     ),
                   ],
                 );
