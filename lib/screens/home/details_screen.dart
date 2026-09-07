@@ -134,12 +134,17 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
     final currentUserId = userId.toString().trim();
     final otherUserId = widget.userId.toString().trim();
 
-    final users = [
-      currentUserId,
-      otherUserId,
-    ]..sort();
+    final roomId = ChatService.generateRoomId(
+      userId1: currentUserId,
+      userId2: otherUserId,
+      postIds: [
+        widget.postId.toString(),
+        widget.originalPostId.toString(),
+      ],
+    );
 
-    final roomId = '${users[0]}_${users[1]}_${postDetails!.id}';
+    debugPrint('[EnquiryCheck] currentUserId=$currentUserId otherUserId=$otherUserId');
+    debugPrint('[EnquiryCheck] roomId=$roomId');
 
     final room = await ChatService.getRoom(roomId);
 
@@ -716,6 +721,8 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                     _formatDate(postDetails?.postDate),
                     'itemPostId':
                     postDetails?.id.toString(),
+                    'matchedPostId':
+                    widget.originalPostId.toString(),
                     'enquirySenderId':
                     userId.toString(),
                   },
@@ -839,8 +846,8 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                   name:
                   AppPreferences.getUserName() ?? '',
                   description: post.description,
-                  postId: post.id,
-                  matchedPostId: widget.originalPostId,
+                  postId: post.id,        // The matched/other user's post (Target)
+                  matchedPostId: widget.originalPostId, // Current user's own post (Source)
                   otherUserId: widget.userId,
                   otherUserName: _posterName,
                   otherUserAvatar: _posterAvatarUrl,

@@ -24,6 +24,7 @@ class ItemCard extends StatelessWidget {
   final String date;
   final List<String>? enquiredProfile;
   final String? newMessageCount;
+  final int? enquiriesCount; // NEW
   final bool isFromEnquiry;
   final bool isFound;
   final String? description;
@@ -52,6 +53,7 @@ class ItemCard extends StatelessWidget {
     this.profileName,
     this.enquiredProfile,
     this.newMessageCount,
+    this.enquiriesCount, // NEW
     this.isFromEnquiry = false,
     this.isFound = false,
     this.description,
@@ -349,18 +351,19 @@ class ItemCard extends StatelessWidget {
                   ),
                 ).pad(),
               ),
-            if (newMessageCount != null && status != 2)
+            if (((newMessageCount != null && newMessageCount != '0') ||
+                (enquiriesCount != null && enquiriesCount! > 0) ||
+                (enquiredProfile != null && enquiredProfile!.isNotEmpty)) &&
+                status != 2)
               Container(
                 height: 35,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  //border: Border.all(color: AppColors.primaryColor),
                   color: AppColors.lightBlue,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  // spacing: 20,
                   children: [
                     AppText(
                       text: 'Enquires ',
@@ -376,29 +379,30 @@ class ItemCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.end,
                         spacing: 10,
                         children: [
-                          AppText(
-                            text: 'New Messages',
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.grey,
-                          ),
-                          Container(
-                            //height: 15,width: 15,
-                            padding: EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              // borderRadius: BorderRadius.circular(30),
-                              color: AppColors.primaryColor,
+                          if (newMessageCount != null &&
+                              newMessageCount != '0') ...[
+                            AppText(
+                              text: 'New Messages',
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.grey,
                             ),
-                            child: Center(
-                              child: AppText(
-                                text: newMessageCount!,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.white,
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.primaryColor,
+                              ),
+                              child: Center(
+                                child: AppText(
+                                  text: newMessageCount!,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.white,
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                           AppIconWidget(assetPath: AssetImages.iosForward),
                         ],
                       ),

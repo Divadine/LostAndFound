@@ -107,7 +107,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
         'posterName': match.posterName,
         'posterAvatar': match.posterAvatar,
         'originalPostId': widget.postId,
-        'isLostPost': !widget.isFound, // If the main post is Lost (widget.isFound=false), then the matching item is Found (!isFound=true? No wait).
+        'isLostPost': widget.isFound, // If the main post is Found (true), the match is Lost (true). If main is Lost (false), match is Found (false).
       },
     );
   }

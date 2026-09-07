@@ -88,7 +88,8 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
         itemPostDate: post?.postDate != null
             ? DateFormat('d MMM yyyy').format(post!.postDate!)
             : '',
-        postId: widget.postId.toString(),
+        postId: enquiry.postId.toString(),
+        matchedPostId: enquiry.matchedPostId.toString(),
 
         /// The enquirer is the person who
         /// sent the enquiry.
@@ -112,7 +113,8 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
           'itemPostDate': post?.postDate != null
               ? DateFormat('d MMM yyyy').format(post!.postDate!)
               : '',
-          'itemPostId': widget.postId.toString(),
+          'itemPostId': enquiry.postId.toString(),
+          'matchedPostId': enquiry.matchedPostId.toString(),
           'enquirySenderId': otherUserId.toString(),
         },
       );

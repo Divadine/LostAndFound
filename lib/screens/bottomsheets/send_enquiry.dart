@@ -245,8 +245,14 @@ class _SendEnquiryState extends State<SendEnquiry> {
       // CHECK FOR DUPLICATE ENQUIRY
       // ==========================================================
 
-      final users = [currentUserId, otherUserId]..sort();
-      final roomIdCheck = '${users[0]}_${users[1]}_${widget.postId}';
+      final roomIdCheck = ChatService.generateRoomId(
+        userId1: currentUserId,
+        userId2: otherUserId,
+        postIds: [
+          widget.postId.toString(),
+          widget.matchedPostId.toString(),
+        ],
+      );
 
       debugPrint('[SendEnquiry] Checking for existing room: $roomIdCheck');
       final existingRoom = await ChatService.getRoom(roomIdCheck);
@@ -276,6 +282,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
             'itemLocation': widget.itemLocation,
             'itemPostDate': widget.itemPostDate,
             'itemPostId': widget.postId.toString(),
+            'matchedPostId': widget.matchedPostId.toString(),
             'enquirySenderId': currentUserId,
           },
         );
@@ -446,6 +453,9 @@ class _SendEnquiryState extends State<SendEnquiry> {
         // This makes the room unique per post.
         postId:
         widget.postId.toString(),
+
+        matchedPostId:
+        widget.matchedPostId.toString(),
       );
 
       debugPrint(
@@ -553,6 +563,9 @@ class _SendEnquiryState extends State<SendEnquiry> {
 
           'itemPostId':
           widget.postId.toString(),
+
+          'matchedPostId':
+          widget.matchedPostId.toString(),
 
           'enquirySenderId':
           currentUserId,

@@ -1,6 +1,7 @@
 
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -470,10 +471,12 @@ class _HomeScreenState extends State<HomeScreen>
       ) {
     final currentUserId = AppPreferences.getUserId()?.toString() ?? '';
 
-    return StreamBuilder<Map<String, int>>(
-      stream: ChatService.seenEnquiryCountsStream(currentUserId),
-      builder: (context, seenSnapshot) {
-        final seenCounts = seenSnapshot.data ?? {};
+    return StreamBuilder<Map<String, Map<String, int>>>(
+      stream: ChatService.enquiryCountsStream(currentUserId),
+      builder: (context, snapshot) {
+        final enquiryCounts = snapshot.data ?? {'seen': {}, 'total': {}};
+        final seenCounts = enquiryCounts['seen'] ?? {};
+        final totalCounts = enquiryCounts['total'] ?? {};
 
         return Scaffold(
           appBar: AppBar(
@@ -667,8 +670,8 @@ class _HomeScreenState extends State<HomeScreen>
                           child: TabBarView(
                             controller: _tabController,
                             children: [
-                              _buildLostTab(seenCounts),
-                              _buildFoundTab(seenCounts),
+                              _buildLostTab(seenCounts, totalCounts),
+                              _buildFoundTab(seenCounts, totalCounts),
                             ],
                           ),
                         ),
@@ -839,7 +842,7 @@ class _HomeScreenState extends State<HomeScreen>
 // LOST TAB
 // ============================================================
 
-  Widget _buildLostTab(Map<String, int> seenCounts) {
+  Widget _buildLostTab(Map<String, int> seenCounts, Map<String, int> totalCounts) {
     if (isLoadingLost) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -965,8 +968,12 @@ class _HomeScreenState extends State<HomeScreen>
                 }
                 final post = lostPosts[index];
                 final seenCount = seenCounts[post.id.toString()] ?? 0;
-                final effectiveEnquiries =
-                (post.enquiriesCount - seenCount).clamp(0, 999);
+                final totalCount = totalCounts[post.id.toString()] ?? 0;
+
+                // Total enquiries is either from API or Firestore, whichever is greater
+                final finalTotalCount = max(post.enquiriesCount, totalCount);
+
+                final effectiveEnquiries = (finalTotalCount - seenCount).clamp(0, 999);
 
                 return ItemCard(
                   imgUrl: post.images.isNotEmpty ? post.images.first : '',
@@ -981,24 +988,6 @@ class _HomeScreenState extends State<HomeScreen>
                       lostPosts.removeWhere((p) => p.id == id);
                     });
                     _fetchLostPosts();
-                  },
-                  newMessageCount: effectiveEnquiries > 0
-                      ? effectiveEnquiries.toString()
-                      : null,
-                  enquiredProfile: post.enquirerAvatars.isNotEmpty
-                      ? post.enquirerAvatars
-                      .map((e) => e.imageUrl)
-                      .where((url) => url.isNotEmpty)
-                      .toList()
-                      : null,
-                  onEnquiryTap: () {
-                    AppRoutes.pushNamed(
-                      AppRoutes.enquiryListScreen,
-                      arguments: {
-                        'postId': post.id,
-                        'isFound': false,
-                      },
-                    );
                   },
                   onViewAll: () => _openAvailableMatching(post),
                   status: post.status,
@@ -1033,7 +1022,7 @@ class _HomeScreenState extends State<HomeScreen>
   // FOUND TAB
   // ============================================================
 
-  Widget _buildFoundTab(Map<String, int> seenCounts) {
+  Widget _buildFoundTab(Map<String, int> seenCounts, Map<String, int> totalCounts) {
     if (isLoadingFound) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -1159,8 +1148,12 @@ class _HomeScreenState extends State<HomeScreen>
                 }
                 final post = foundPosts[index];
                 final seenCount = seenCounts[post.id.toString()] ?? 0;
-                final effectiveEnquiries =
-                (post.enquiriesCount - seenCount).clamp(0, 999);
+                final totalCount = totalCounts[post.id.toString()] ?? 0;
+
+                // Total enquiries is either from API or Firestore, whichever is greater
+                final finalTotalCount = max(post.enquiriesCount, totalCount);
+
+                final effectiveEnquiries = (finalTotalCount - seenCount).clamp(0, 999);
 
                 return ItemCard(
                   imgUrl: post.images.isNotEmpty ? post.images.first : '',
@@ -1180,6 +1173,7 @@ class _HomeScreenState extends State<HomeScreen>
                   newMessageCount: effectiveEnquiries > 0
                       ? effectiveEnquiries.toString()
                       : null,
+                  enquiriesCount: finalTotalCount,
                   enquiredProfile: post.enquirerAvatars.isNotEmpty
                       ? post.enquirerAvatars
                       .map((e) => e.imageUrl)

@@ -41,6 +41,8 @@ class IndividualChatScreen extends StatefulWidget {
   final String itemImage;
   final String itemLocation;
   final String itemPostDate;
+  final String itemPostId;
+  final String matchedPostId;
   final String enquirySenderId;
 
   const IndividualChatScreen({
@@ -55,6 +57,8 @@ class IndividualChatScreen extends StatefulWidget {
     this.itemImage = '',
     this.itemLocation = '',
     this.itemPostDate = '',
+    this.itemPostId = '',
+    this.matchedPostId = '',
     this.enquirySenderId = '',
   });
 
@@ -82,6 +86,10 @@ class IndividualChatScreen extends StatefulWidget {
       args['itemLocation']?.toString() ?? '',
       itemPostDate:
       args['itemPostDate']?.toString() ?? '',
+      itemPostId:
+      args['itemPostId']?.toString() ?? '',
+      matchedPostId:
+      args['matchedPostId']?.toString() ?? '',
       enquirySenderId:
       args['enquirySenderId']?.toString() ?? '',
     );
@@ -278,7 +286,9 @@ class _IndividualChatScreenState
           itemPostDate:
           widget.itemPostDate,
           postId:
-          _extractPostId(),
+          widget.itemPostId.isNotEmpty ? widget.itemPostId : _extractPostId(),
+          matchedPostId:
+          widget.matchedPostId,
         );
 
         if (_otherUserPhone.isNotEmpty) {

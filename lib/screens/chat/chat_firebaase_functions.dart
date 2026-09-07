@@ -15,6 +15,37 @@ class ChatService {
       _firestore.collection('chatRooms');
 
   // ============================================================
+  // GENERATE ROOM ID
+  // ============================================================
+
+  static String generateRoomId({
+    required String userId1,
+    required String userId2,
+    List<String> postIds = const [],
+  }) {
+    final cleanUser1 = userId1.trim();
+    final cleanUser2 = userId2.trim();
+
+    final users = [cleanUser1, cleanUser2]..sort();
+
+    // Use numeric sort for post IDs to ensure consistency (e.g., "127" vs "46")
+    // Also filter out '0' which represents "no post"
+    final sortedPosts = postIds
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty && s != '0')
+        .map((s) => int.tryParse(s) ?? 0)
+        .where((id) => id != 0)
+        .toList()
+      ..sort();
+
+    if (sortedPosts.isEmpty) {
+      return '${users[0]}_${users[1]}';
+    }
+
+    return '${users[0]}_${users[1]}_${sortedPosts.join('_')}';
+  }
+
+  // ============================================================
   // CREATE / GET CHAT ROOM
   // ============================================================
 
@@ -38,6 +69,7 @@ class ChatService {
     String itemPostDate = '',
 
     String postId = '',
+    String matchedPostId = '',
   }) async {
     final cleanCurrentUserId = currentUserId.trim();
     final cleanOtherUserId = otherUserId.trim();
@@ -47,16 +79,18 @@ class ChatService {
       throw Exception('User IDs cannot be empty');
     }
 
-    final users = [
-      cleanCurrentUserId,
-      cleanOtherUserId,
-    ]..sort();
+    final users = [cleanCurrentUserId, cleanOtherUserId]..sort();
 
-    final trimmedPostId = postId.trim();
+    final roomId = generateRoomId(
+      userId1: cleanCurrentUserId,
+      userId2: cleanOtherUserId,
+      postIds: [postId, matchedPostId],
+    );
 
-    final roomId = trimmedPostId.isNotEmpty
-        ? '${users[0]}_${users[1]}_$trimmedPostId'
-        : '${users[0]}_${users[1]}';
+    // Filter post IDs for storage consistency
+    final filteredPostIds = [postId.trim(), matchedPostId.trim()]
+        .where((s) => s.isNotEmpty && s != '0')
+        .toList();
 
     final roomRef = _rooms.doc(roomId);
 
@@ -139,7 +173,9 @@ class ChatService {
 
         'itemPostDate': itemPostDate.trim(),
 
-        'postId': trimmedPostId,
+        'postId': filteredPostIds.isNotEmpty ? filteredPostIds.first : '',
+
+        'matchedPostId': filteredPostIds.length > 1 ? filteredPostIds[1] : '',
       });
 
       print(
@@ -262,9 +298,11 @@ class ChatService {
             itemPostDate.trim();
       }
 
-      if (trimmedPostId.isNotEmpty) {
-        updateData['postId'] =
-            trimmedPostId;
+      if (filteredPostIds.isNotEmpty) {
+        updateData['postId'] = filteredPostIds.first;
+      }
+      if (filteredPostIds.length > 1) {
+        updateData['matchedPostId'] = filteredPostIds[1];
       }
 
       await roomRef.set(
@@ -1545,27 +1583,34 @@ class ChatService {
   // SEEN ENQUIRIES
   // ============================================================
 
-  static Stream<Map<String, int>> seenEnquiryCountsStream(String userId) {
+  static Stream<Map<String, Map<String, int>>> enquiryCountsStream(String userId) {
     return _rooms
         .where('users', arrayContains: userId)
         .snapshots()
         .map((snapshot) {
-      final Map<String, int> counts = {};
+      final Map<String, int> seen = {};
+      final Map<String, int> total = {};
+
       for (final doc in snapshot.docs) {
         final data = doc.data();
         final seenBy = List<String>.from(data['seenBy'] ?? []);
         final postId = data['postId']?.toString() ?? '';
-        final enquirySenderId = data['enquirySenderId']?.toString() ?? '';
+        final matchedPostId = data['matchedPostId']?.toString() ?? '';
 
-        // If I am NOT the enquirer (i.e., I am the owner)
-        // and I have seen this room.
-        if (postId.isNotEmpty &&
-            seenBy.contains(userId) &&
-            enquirySenderId != userId) {
-          counts[postId] = (counts[postId] ?? 0) + 1;
+        if (postId.isNotEmpty) {
+          total[postId] = (total[postId] ?? 0) + 1;
+          if (seenBy.contains(userId)) {
+            seen[postId] = (seen[postId] ?? 0) + 1;
+          }
+        }
+        if (matchedPostId.isNotEmpty && matchedPostId != postId) {
+          total[matchedPostId] = (total[matchedPostId] ?? 0) + 1;
+          if (seenBy.contains(userId)) {
+            seen[matchedPostId] = (seen[matchedPostId] ?? 0) + 1;
+          }
         }
       }
-      return counts;
+      return {'seen': seen, 'total': total};
     });
   }
 

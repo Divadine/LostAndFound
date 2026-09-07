@@ -725,6 +725,12 @@ class _ChatScreenState
         'itemPostDate':
         chat.itemPostDate,
 
+        'itemPostId':
+        chat.itemPostId,
+
+        'matchedPostId':
+        chat.matchedPostId,
+
         'enquirySenderId':
         chat.enquirySenderId ?? '',
       },
@@ -764,6 +770,8 @@ class ChatRoomData {
   final String itemImage;
   final String itemLocation;
   final String itemPostDate;
+  final String itemPostId;
+  final String matchedPostId;
 
   final List<String> users;
 
@@ -786,6 +794,8 @@ class ChatRoomData {
     required this.itemImage,
     required this.itemLocation,
     required this.itemPostDate,
+    required this.itemPostId,
+    required this.matchedPostId,
     required this.users,
   });
 
@@ -958,6 +968,16 @@ class ChatRoomData {
             ?.toString() ??
             '';
 
+    final itemPostId =
+        data['postId']
+            ?.toString() ??
+            '';
+
+    final matchedPostId =
+        data['matchedPostId']
+            ?.toString() ??
+            '';
+
     // ============================================================
     // DEBUG
     // ============================================================
@@ -1032,6 +1052,12 @@ class ChatRoomData {
 
       itemPostDate:
       itemPostDate,
+
+      itemPostId:
+      itemPostId,
+
+      matchedPostId:
+      matchedPostId,
 
       users:
       users,
