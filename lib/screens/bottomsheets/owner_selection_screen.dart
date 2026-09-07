@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
@@ -10,6 +9,7 @@ import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
@@ -35,6 +35,8 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
 
 
   Map<int, int> enquiryIdByMatchedPostId = {};
+  Map<int, int> enquiryIdByUserId = {};
+  Map<String, int> enquiryIdByUserUid = {};
 
   bool isLoading = true;
   String? errorMessage;
@@ -52,6 +54,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
     });
 
     try {
+      final currentUserId = AppPreferences.getUserId();
       final ownersFuture = authController.getHandoverOwnerLists(postId: widget.postId);
       final enquiryFuture = authController.viewEnquiry(postId: widget.postId);
 
@@ -68,21 +71,45 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
         return;
       }
 
-      final map = <int, int>{};
-      if (enquiryResponse.isSuccess && enquiryResponse.data != null) {
-        for (final e in enquiryResponse.data!.enquiries) {
+      final Map<int, int> postMap = {};
+      final Map<int, int> userMap = {};
+      final Map<String, int> uidMap = {};
 
-          map[e.matchedPostId] = e.enquiryId;
+      if (enquiryResponse.isSuccess && enquiryResponse.data != null) {
+        final currentUserPhone = AppPreferences.getPhone();
+        for (final e in enquiryResponse.data!.enquiries) {
+          // 1. Map by Post ID (Direction-agnostic)
+          int otherPostId = 0;
+          if (e.postId != widget.postId && e.postId != 0) {
+            otherPostId = e.postId;
+          } else if (e.matchedPostId != widget.postId && e.matchedPostId != 0) {
+            otherPostId = e.matchedPostId;
+          }
+
+          if (otherPostId != 0) {
+            postMap[otherPostId] = e.enquiryId;
+          }
+
+          // 2. Map by User ID
+          if (e.enquirerUserId != 0 && e.enquirerUserId != currentUserId) {
+            userMap[e.enquirerUserId] = e.enquiryId;
+          }
+
+          // 3. Map by User UID
+          if (e.userUid.isNotEmpty && e.userUid != currentUserPhone) {
+            uidMap[e.userUid] = e.enquiryId;
+          }
         }
-      } else {
-        print('[Handover] viewEnquiry failed: ${enquiryResponse.message}');
       }
 
       setState(() {
         owners = (ownersResponse.data as List<HandoverOwnerModel>);
-        enquiryIdByMatchedPostId = map;
+        enquiryIdByMatchedPostId = postMap;
+        enquiryIdByUserId = userMap;
+        enquiryIdByUserUid = uidMap;
         isLoading = false;
       });
+      debugPrint('========================================================');
     } catch (e, st) {
       debugPrint('Error fetching owners/enquiries: $e\n$st');
       if (!mounted) return;
@@ -93,11 +120,73 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
     }
   }
 
-  void _onNext() {
+  void _onNext() async {
     if (selectedIndex == null) return;
     final selectedOwner = owners[selectedIndex!];
+    final currentUserId = AppPreferences.getUserId();
 
-    final enquiryId = enquiryIdByMatchedPostId[selectedOwner.postId];
+    debugPrint('================ HANDOVER/RECEIVE LOOKUP DEBUG ================');
+    debugPrint('Current User ID: $currentUserId');
+    debugPrint('isReceiver: ${widget.isReceiver}');
+    debugPrint('Viewer Post ID (widget.postId): ${widget.postId}');
+    debugPrint('Selected Owner Post ID: ${selectedOwner.postId}');
+
+    // 1. Try lookup by Post ID from pre-fetched map
+    int? enquiryId = enquiryIdByMatchedPostId[selectedOwner.postId];
+
+    // 2. Try lookup by User ID / UID from pre-fetched map
+    enquiryId ??= enquiryIdByUserId[selectedOwner.userId];
+    enquiryId ??= enquiryIdByUserUid[selectedOwner.userUid];
+
+    // 3. Robust Fallback: Check BOTH posts for enquiries if not found in initial map
+    if (enquiryId == null) {
+      debugPrint('  Enquiry not found in local maps. Trying deep lookup...');
+
+      setState(() => isLoading = true);
+
+      final postIdsToQuery = [widget.postId, selectedOwner.postId].where((id) => id != 0).toList();
+
+      try {
+        for (final pid in postIdsToQuery) {
+          if (enquiryId != null) break;
+
+          debugPrint('  Querying viewEnquiry for Post ID: $pid');
+          final response = await authController.viewEnquiry(postId: pid);
+          if (response.isSuccess && response.data != null) {
+            for (final e in response.data!.enquiries) {
+              // A. Strongest Match: Both Post IDs match
+              bool matchesPosts = (e.postId == widget.postId && e.matchedPostId == selectedOwner.postId) ||
+                  (e.postId == selectedOwner.postId && e.matchedPostId == widget.postId);
+
+              // B. Medium Match: One side enquired about the other's post
+              // If we are querying the founder's post, check if we are the enquirer
+              bool isMeEnquiringFounder = (pid == selectedOwner.postId &&
+                  (e.enquirerUserId == currentUserId || (e.userUid.isNotEmpty && e.userUid == AppPreferences.getPhone())));
+
+              // If we are querying our own post, check if founder is the enquirer
+              bool isFounderEnquiringMe = (pid == widget.postId &&
+                  (e.enquirerUserId == selectedOwner.userId || (e.userUid.isNotEmpty && e.userUid == selectedOwner.userUid)));
+
+              if (matchesPosts || isMeEnquiringFounder || isFounderEnquiringMe) {
+                enquiryId = e.enquiryId;
+                debugPrint('  MATCH FOUND! Enquiry ID: $enquiryId (via ${matchesPosts ? 'Posts' : isMeEnquiringFounder ? 'Me->Founder' : 'Founder->Me'})');
+                break;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('  Deep lookup error: $e');
+      }
+
+      setState(() => isLoading = false);
+    }
+
+    debugPrint('Final Match Result: ${enquiryId != null}');
+    debugPrint('========================================================');
+
+    if (!mounted) return;
+
     if (enquiryId == null) {
       AppDialogue.showPopup(
         context: context,

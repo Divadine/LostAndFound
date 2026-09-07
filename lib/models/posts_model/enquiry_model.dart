@@ -25,8 +25,8 @@ class EnquiryPostModel {
 
   factory EnquiryPostModel.fromJson(Map<String, dynamic> json) {
     return EnquiryPostModel(
-      id: json['id'] as int? ?? 0,
-      userId: json['user_id'] as int? ??
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      userId: int.tryParse(json['user_id']?.toString() ?? '') ??
           int.tryParse(json['user_uid']?.toString().replaceAll(RegExp(r'[^0-9]'), '') ?? '') ?? 0,
       userUid: json['user_uid']?.toString() ?? '',
       postUid: json['post_uid']?.toString() ?? '',
@@ -36,8 +36,9 @@ class EnquiryPostModel {
       postDate: json['post_date'] != null
           ? DateTime.tryParse(json['post_date'].toString())
           : null,
-      status: json['post_status'] as int? ?? json['status'] as int? ?? 0,
-      postType: json['post_type'] as int? ?? 0,
+      status: int.tryParse(json['post_status']?.toString() ?? '') ??
+          int.tryParse(json['status']?.toString() ?? '') ?? 0,
+      postType: int.tryParse(json['post_type']?.toString() ?? '') ?? 0,
     );
   }
 }
@@ -69,6 +70,7 @@ class PostEnquiriesModel {
 class EnquiryItem {
   final int enquiryId;
   final int matchedPostId;
+  final int postId;
   final int enquirerUserId;
   final String userUid;
   final String postUid;
@@ -83,6 +85,7 @@ class EnquiryItem {
   EnquiryItem({
     required this.enquiryId,
     required this.matchedPostId,
+    required this.postId,
     required this.enquirerUserId,
     required this.userUid,
     required this.postUid,
@@ -97,20 +100,25 @@ class EnquiryItem {
 
   factory EnquiryItem.fromJson(Map<String, dynamic> json) {
     return EnquiryItem(
-      enquiryId: json['enquiry_id'] as int? ?? 0,
-      matchedPostId: json['matched_postid'] as int? ??
-          json['matched_id'] as int? ??
-          json['post_id'] as int? ?? 0,
-      enquirerUserId: json['user_id'] as int? ??
+      enquiryId: int.tryParse(json['enquiry_id']?.toString() ?? '') ??
+          int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      matchedPostId: int.tryParse(json['matched_postid']?.toString() ?? '') ??
+          int.tryParse(json['matched_id']?.toString() ?? '') ??
+          int.tryParse(json['matchedPostId']?.toString() ?? '') ?? 0,
+      postId: int.tryParse(json['post_id']?.toString() ?? '') ??
+          int.tryParse(json['postId']?.toString() ?? '') ?? 0,
+      enquirerUserId: int.tryParse(json['user_id']?.toString() ?? '') ??
+          int.tryParse(json['enquirySenderId']?.toString() ?? '') ??
           int.tryParse(json['user_uid']?.toString().replaceAll(RegExp(r'[^0-9]'), '') ?? '') ?? 0,
-      userUid: json['user_uid']?.toString() ?? '',
-      postUid: json['post_uid']?.toString() ?? '',
-      enquirerName: json['enquirer_name']?.toString() ?? '',
+      userUid: json['user_uid']?.toString() ?? json['userUid']?.toString() ?? '',
+      postUid: json['post_uid']?.toString() ?? json['postUid']?.toString() ?? '',
+      enquirerName: json['enquirer_name']?.toString() ?? json['name']?.toString() ?? '',
       enquirerProfileImg: json['enquirer_profile_img']?.toString() ??
           json['profile_img']?.toString() ??
+          json['avatar']?.toString() ??
           '',
       description: json['description']?.toString() ?? '',
-      matchPercentage: json['matchPercentage'] as int? ?? 0,
+      matchPercentage: int.tryParse(json['matchPercentage']?.toString() ?? '') ?? 0,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : null,

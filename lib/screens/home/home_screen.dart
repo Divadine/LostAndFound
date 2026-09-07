@@ -1,3 +1,5 @@
+
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -232,30 +234,30 @@ class _HomeScreenState extends State<HomeScreen>
 
       final response = filterState.filterApplied
           ? await authController.filterPosts(
-              userId: userId ?? 0,
-              postType: 0,
-              dateFilter: filterState.effectiveRange != null
-                  ? 'custom'
-                  : filterState.dateFilter,
-              startDate: filterState.effectiveRange != null
-                  ? DateFormat('yyyy-MM-dd').format(
-                      filterState.effectiveRange!.start,
-                    )
-                  : null,
-              endDate: filterState.effectiveRange != null
-                  ? DateFormat('yyyy-MM-dd').format(
-                      filterState.effectiveRange!.end,
-                    )
-                  : null,
-              page: currentPageLost,
-              limit: limitLost,
-            )
+        userId: userId ?? 0,
+        postType: 0,
+        dateFilter: filterState.effectiveRange != null
+            ? 'custom'
+            : filterState.dateFilter,
+        startDate: filterState.effectiveRange != null
+            ? DateFormat('yyyy-MM-dd').format(
+          filterState.effectiveRange!.start,
+        )
+            : null,
+        endDate: filterState.effectiveRange != null
+            ? DateFormat('yyyy-MM-dd').format(
+          filterState.effectiveRange!.end,
+        )
+            : null,
+        page: currentPageLost,
+        limit: limitLost,
+      )
           : await authController.getPost(
-              userId: userId ?? 0,
-              postType: 0,
-              page: currentPageLost,
-              limit: limitLost,
-            );
+        userId: userId ?? 0,
+        postType: 0,
+        page: currentPageLost,
+        limit: limitLost,
+      );
 
       if (!mounted) {
         return;
@@ -315,30 +317,30 @@ class _HomeScreenState extends State<HomeScreen>
 
       final response = filterState.filterApplied
           ? await authController.filterPosts(
-              userId: userId ?? 0,
-              postType: 1,
-              dateFilter: filterState.effectiveRange != null
-                  ? 'custom'
-                  : filterState.dateFilter,
-              startDate: filterState.effectiveRange != null
-                  ? DateFormat('yyyy-MM-dd').format(
-                      filterState.effectiveRange!.start,
-                    )
-                  : null,
-              endDate: filterState.effectiveRange != null
-                  ? DateFormat('yyyy-MM-dd').format(
-                      filterState.effectiveRange!.end,
-                    )
-                  : null,
-              page: currentPageFound,
-              limit: limitFound,
-            )
+        userId: userId ?? 0,
+        postType: 1,
+        dateFilter: filterState.effectiveRange != null
+            ? 'custom'
+            : filterState.dateFilter,
+        startDate: filterState.effectiveRange != null
+            ? DateFormat('yyyy-MM-dd').format(
+          filterState.effectiveRange!.start,
+        )
+            : null,
+        endDate: filterState.effectiveRange != null
+            ? DateFormat('yyyy-MM-dd').format(
+          filterState.effectiveRange!.end,
+        )
+            : null,
+        page: currentPageFound,
+        limit: limitFound,
+      )
           : await authController.getPost(
-              userId: userId ?? 0,
-              postType: 1,
-              page: currentPageFound,
-              limit: limitFound,
-            );
+        userId: userId ?? 0,
+        postType: 1,
+        page: currentPageFound,
+        limit: limitFound,
+      );
 
       if (!mounted) {
         return;
@@ -464,8 +466,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(
-    BuildContext context,
-  ) {
+      BuildContext context,
+      ) {
     final currentUserId = AppPreferences.getUserId()?.toString() ?? '';
 
     return StreamBuilder<Map<String, int>>(
@@ -680,158 +682,164 @@ class _HomeScreenState extends State<HomeScreen>
                 // ====================================================
 
 
-            Positioned(
-              top: 25,
-              left: 20,
-              right: 20,
+                Positioned(
+                  top: 25,
+                  left: 20,
+                  right: 20,
 
-              child: Column(
-                spacing: 10,
+                  child: Column(
+                    spacing: 10,
 
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
-
-                children: [
-                  Row(
-                    mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment:
+                    CrossAxisAlignment.start,
 
                     children: [
-                      // const AppText(
-                      //   text: 'Lost & Found',
-                      //   color: AppColors.white,
-                      //   fontSize: 20,
-                      //   fontWeight: FontWeight.w600,
-                      // ),
+                      Row(
+                        mainAxisAlignment:
+                        MainAxisAlignment.spaceBetween,
 
-                      Container(
-                        width: 160,
-                        height: 30,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.white.withOpacity(0.15),
-                              Colors.white.withOpacity(0.05),
-                            ],
-                          ),
-                          //color: Colors.white.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            color: AppColors.white.withAlpha(50),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 20,
-                              child: AppIconWidget(
-                                assetPath: AssetImages.trophy,
-                                size: 15,
+                        children: [
+                          // const AppText(
+                          //   text: 'Lost & Found',
+                          //   color: AppColors.white,
+                          //   fontSize: 20,
+                          //   fontWeight: FontWeight.w600,
+                          // ),
+
+                          CustomPaint(
+                            painter: GlassBorderPainter(),
+                            child: Container(
+                              height: 25,
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.white.withOpacity(0.15),
+                                    Colors.white.withOpacity(0.05),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 15,
+                                    child: AppIconWidget(
+                                      assetPath: AssetImages.trophy,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const AppText(
+                                    text: 'Community Success',
+                                    color: AppColors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    textOverflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            const AppText(
-                              text: 'Community Success',
-                              color: AppColors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
+                          ),
+
+
+
+                          // ========================================
+                          // NOTIFICATION
+                          // ========================================
+
+                          GestureDetector(
+                            onTap:
+                            _showContactRequestDialog,
+
+                            child: AppIconWidget(
+                              assetPath:
+                              AssetImages.notification,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
+
+                      // const AppText(
+                      //   text:
+                      //   'Helping you reunite with what\nmatters.',
+                      //   color: AppColors.white,
+                      //   fontSize: 14,
+                      // ),
+
+
+                      SizedBox(height: 10,),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        spacing: 5,
+                        children: List.generate(_controller.length, (index) {
+                          final isLast = index == _controller.length - 1;
+                          return Container(
+                            height: 45,
+                            width: 30,
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF6397FF).withOpacity(0.4),
+                                  blurRadius: 15,
+                                  spreadRadius: 0,
+                                ),
+                              ],
+                            ),
+                            alignment: Alignment.center,
+                            child: isLast
+                                ? const AppText(
+                              text: "+",
+                              color: AppColors.primaryColor,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w500,
+                            )
+                                : TextField(
+                              readOnly: true,
+                              controller: _controller[index],
+                              showCursor: false,
+                              enableInteractiveSelection: false,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AppColors.primaryColor,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                isCollapsed: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          );
+                        }),
                       ),
 
 
-
-                      // ========================================
-                      // NOTIFICATION
-                      // ========================================
-
-                      GestureDetector(
-                        onTap:
-                        _showContactRequestDialog,
-
-                        child: AppIconWidget(
-                          assetPath:
-                          AssetImages.notification,
-                        ),
-                      ),
+                      AppText(text: "Users benefited",fontWeight: FontWeight.bold,fontSize: 12,color: AppColors.white,)
                     ],
                   ),
-
-                  // const AppText(
-                  //   text:
-                  //   'Helping you reunite with what\nmatters.',
-                  //   color: AppColors.white,
-                  //   fontSize: 14,
-                  // ),
-
-
-                  SizedBox(height: 10,),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    spacing: 3,
-                    children: List.generate(_controller.length, (index) {
-                      return Container(
-                        height: 48,
-                        width: 30,
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          readOnly: true,
-                          controller: _controller[index],
-                          showCursor: false,
-                          enableInteractiveSelection: false,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppColors.primaryColor,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            isCollapsed: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-
-
-                  AppText(text: "Users benefited",fontWeight: FontWeight.bold,fontSize: 12,color: AppColors.white,)
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
-  },
-);
-}
+  }
 
 // ============================================================
 // LOST TAB
 // ============================================================
 
-Widget _buildLostTab(Map<String, int> seenCounts) {
+  Widget _buildLostTab(Map<String, int> seenCounts) {
     if (isLoadingLost) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -939,82 +947,82 @@ Widget _buildLostTab(Map<String, int> seenCounts) {
           Expanded(
             child: lostPosts.isEmpty
                 ? const Center(
-                    child: AppText(
-                      text: 'No lost items posted yet',
-                    ),
-                  )
+              child: AppText(
+                text: 'No lost items posted yet',
+              ),
+            )
                 : ListView.builder(
-                    controller: _lostScrollController,
-                    itemCount: lostPosts.length + (isMoreLoadingLost ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == lostPosts.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-                      final post = lostPosts[index];
-                      final seenCount = seenCounts[post.id.toString()] ?? 0;
-                      final effectiveEnquiries =
-                          (post.enquiriesCount - seenCount).clamp(0, 999);
+              controller: _lostScrollController,
+              itemCount: lostPosts.length + (isMoreLoadingLost ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == lostPosts.length) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                final post = lostPosts[index];
+                final seenCount = seenCounts[post.id.toString()] ?? 0;
+                final effectiveEnquiries =
+                (post.enquiriesCount - seenCount).clamp(0, 999);
 
-                      return ItemCard(
-                        imgUrl: post.images.isNotEmpty ? post.images.first : '',
-                        title: post.name,
-                        location: post.location,
-                        date: _formatDate(post.postDate),
-                        postId: post.postUid,
-                        foundCount: matchingCounts[post.id],
-                        postIntId: post.id,
-                        onDeleted: (id) {
-                          setState(() {
-                            lostPosts.removeWhere((p) => p.id == id);
-                          });
-                          _fetchLostPosts();
-                        },
-                        newMessageCount: effectiveEnquiries > 0
-                            ? effectiveEnquiries.toString()
-                            : null,
-                        enquiredProfile: post.enquirerAvatars.isNotEmpty
-                            ? post.enquirerAvatars
-                                .map((e) => e.imageUrl)
-                                .where((url) => url.isNotEmpty)
-                                .toList()
-                            : null,
-                        onEnquiryTap: () {
-                          AppRoutes.pushNamed(
-                            AppRoutes.enquiryListScreen,
-                            arguments: {
-                              'postId': post.id,
-                              'isFound': false,
-                            },
-                          );
-                        },
-                        onViewAll: () => _openAvailableMatching(post),
-                        status: post.status,
-                        onTap: () {
-                          AppRoutes.pushNamed(
-                            AppRoutes.availableMatchingScreen,
-                            arguments: {
-                              'postId': post.id,
-                              'imgUrl': post.images.isNotEmpty ? post.images.first : '',
-                              'title': post.name,
-                              'location': post.location,
-                              'date': _formatDate(post.postDate),
-                              'postUid': post.postUid,
-                              'foundCount': matchingCounts[post.id] ?? post.enquiriesCount,
-                              'isReceived': false,
-                              'status': post.status,
-                              'isFound': false,
-                            },
-                          );
-                        },
-                        showPostId: true,
-                      ).pad();
-                    },
-                  ),
+                return ItemCard(
+                  imgUrl: post.images.isNotEmpty ? post.images.first : '',
+                  title: post.name,
+                  location: post.location,
+                  date: _formatDate(post.postDate),
+                  postId: post.postUid,
+                  foundCount: matchingCounts[post.id],
+                  postIntId: post.id,
+                  onDeleted: (id) {
+                    setState(() {
+                      lostPosts.removeWhere((p) => p.id == id);
+                    });
+                    _fetchLostPosts();
+                  },
+                  newMessageCount: effectiveEnquiries > 0
+                      ? effectiveEnquiries.toString()
+                      : null,
+                  enquiredProfile: post.enquirerAvatars.isNotEmpty
+                      ? post.enquirerAvatars
+                      .map((e) => e.imageUrl)
+                      .where((url) => url.isNotEmpty)
+                      .toList()
+                      : null,
+                  onEnquiryTap: () {
+                    AppRoutes.pushNamed(
+                      AppRoutes.enquiryListScreen,
+                      arguments: {
+                        'postId': post.id,
+                        'isFound': false,
+                      },
+                    );
+                  },
+                  onViewAll: () => _openAvailableMatching(post),
+                  status: post.status,
+                  onTap: () {
+                    AppRoutes.pushNamed(
+                      AppRoutes.availableMatchingScreen,
+                      arguments: {
+                        'postId': post.id,
+                        'imgUrl': post.images.isNotEmpty ? post.images.first : '',
+                        'title': post.name,
+                        'location': post.location,
+                        'date': _formatDate(post.postDate),
+                        'postUid': post.postUid,
+                        'foundCount': matchingCounts[post.id] ?? post.enquiriesCount,
+                        'isReceived': false,
+                        'status': post.status,
+                        'isFound': false,
+                      },
+                    );
+                  },
+                  showPostId: true,
+                ).pad();
+              },
+            ),
           ),
         ],
       ),
@@ -1133,75 +1141,75 @@ Widget _buildLostTab(Map<String, int> seenCounts) {
           Expanded(
             child: foundPosts.isEmpty
                 ? const Center(
-                    child: AppText(
-                      text: 'No found items posted yet',
-                    ),
-                  )
+              child: AppText(
+                text: 'No found items posted yet',
+              ),
+            )
                 : ListView.builder(
-                    controller: _foundScrollController,
-                    itemCount: foundPosts.length + (isMoreLoadingFound ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == foundPosts.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-                      final post = foundPosts[index];
-                      final seenCount = seenCounts[post.id.toString()] ?? 0;
-                      final effectiveEnquiries =
-                          (post.enquiriesCount - seenCount).clamp(0, 999);
+              controller: _foundScrollController,
+              itemCount: foundPosts.length + (isMoreLoadingFound ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == foundPosts.length) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                final post = foundPosts[index];
+                final seenCount = seenCounts[post.id.toString()] ?? 0;
+                final effectiveEnquiries =
+                (post.enquiriesCount - seenCount).clamp(0, 999);
 
-                      return ItemCard(
-                        imgUrl: post.images.isNotEmpty ? post.images.first : '',
-                        title: post.name,
-                        location: post.location,
-                        date: _formatDate(post.postDate),
-                        isFound: true,
-                        postId: post.postUid,
-                        postIntId: post.id,
-                        foundCount: matchingCounts[post.id],
-                        onDeleted: (id) {
-                          setState(() {
-                            foundPosts.removeWhere((p) => p.id == id);
-                          });
-                          _fetchFoundPosts();
-                        },
-                        newMessageCount: effectiveEnquiries > 0
-                            ? effectiveEnquiries.toString()
-                            : null,
-                        enquiredProfile: post.enquirerAvatars.isNotEmpty
-                            ? post.enquirerAvatars
-                                .map((e) => e.imageUrl)
-                                .where((url) => url.isNotEmpty)
-                                .toList()
-                            : null,
-                        onEnquiryTap: () {
-                          AppRoutes.pushNamed(
-                            AppRoutes.enquiryListScreen,
-                            arguments: {
-                              'postId': post.id,
-                              'isFound': true,
-                            },
-                          );
-                        },
-                        onViewAll: () => _openAvailableMatching(post),
-                        status: post.status,
-                        onTap: () {
-                          AppRoutes.pushNamed(
-                            AppRoutes.enquiryListScreen,
-                            arguments: {
-                              'postId': post.id,
-                              'isFound': true,
-                            },
-                          );
-                        },
-                        showPostId: true,
-                      ).pad();
-                    },
-                  ),
+                return ItemCard(
+                  imgUrl: post.images.isNotEmpty ? post.images.first : '',
+                  title: post.name,
+                  location: post.location,
+                  date: _formatDate(post.postDate),
+                  isFound: true,
+                  postId: post.postUid,
+                  postIntId: post.id,
+                  foundCount: matchingCounts[post.id],
+                  onDeleted: (id) {
+                    setState(() {
+                      foundPosts.removeWhere((p) => p.id == id);
+                    });
+                    _fetchFoundPosts();
+                  },
+                  newMessageCount: effectiveEnquiries > 0
+                      ? effectiveEnquiries.toString()
+                      : null,
+                  enquiredProfile: post.enquirerAvatars.isNotEmpty
+                      ? post.enquirerAvatars
+                      .map((e) => e.imageUrl)
+                      .where((url) => url.isNotEmpty)
+                      .toList()
+                      : null,
+                  onEnquiryTap: () {
+                    AppRoutes.pushNamed(
+                      AppRoutes.enquiryListScreen,
+                      arguments: {
+                        'postId': post.id,
+                        'isFound': true,
+                      },
+                    );
+                  },
+                  onViewAll: () => _openAvailableMatching(post),
+                  status: post.status,
+                  onTap: () {
+                    AppRoutes.pushNamed(
+                      AppRoutes.enquiryListScreen,
+                      arguments: {
+                        'postId': post.id,
+                        'isFound': true,
+                      },
+                    );
+                  },
+                  showPostId: true,
+                ).pad();
+              },
+            ),
           ),
         ],
       ),
@@ -1242,6 +1250,38 @@ Widget _buildLostTab(Map<String, int> seenCounts) {
       ],
     );
   }
+}
+
+// ================================================================
+// PAINTERS
+// ================================================================
+
+class GlassBorderPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(30));
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    paint.shader = const LinearGradient(
+      begin: Alignment.topRight,
+      end: Alignment.bottomLeft,
+      colors: [
+        Colors.white10, // Top-right disappears
+        Colors.white,   // Sharp top-left and bottom-right
+        Colors.white10, // Bottom-left disappears
+      ],
+      stops: [0.0, 0.5, 1.0],
+    ).createShader(rect);
+
+    canvas.drawRRect(rrect, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 // ================================================================
@@ -1530,3 +1570,5 @@ class ChatSendRequest extends StatelessWidget {
     );
   }
 }
+
+

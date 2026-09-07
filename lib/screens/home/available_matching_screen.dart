@@ -225,13 +225,13 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               AppButton(
-                title: widget.foundCount != null ? 'Receive' : 'Hand Over',
+                title: widget.isFound ? 'Hand Over' : 'Receive',
                 onTap: () {
                   AppUiHelper.showBottomSheet(
                     context: context,
                     child: ReceiveHandoverSheet(
                       title: widget.title,
-                      isReceiver: widget.foundCount != null,
+                      isReceiver: !widget.isFound,
                       postId: widget.postId,
                     ),
                   );

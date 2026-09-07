@@ -152,6 +152,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
 
     for (final e in response.data?.enquiries ?? []) {
       print('Enquiry ID: ${e.enquiryId}');
+      print('Post ID: ${e.postId}');
       print('Matched Post ID: ${e.matchedPostId}');
       print('Enquirer: ${e.enquirerName}');
       print('Description: ${e.description}');
@@ -404,10 +405,15 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                     await _openChat(e, post);
                   },
                   detailOnTap: () {
+                    // Fix: Use the correct matched post ID by identifying the "other" post in the enquiry
+                    final otherPostId = (e.matchedPostId != widget.postId && e.matchedPostId != 0)
+                        ? e.matchedPostId
+                        : e.postId;
+
                     AppRoutes.pushNamed(
                       AppRoutes.lostItemsDetailsScreen,
                       arguments: {
-                        'postId': e.matchedPostId,
+                        'postId': otherPostId,
                         'userId': e.enquirerUserId,
                         'percentageMatch': e.matchPercentage,
                         'posterName': e.enquirerName,

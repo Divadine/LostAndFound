@@ -33,13 +33,15 @@ class HandoverOwnerModel {
 
   factory HandoverOwnerModel.fromJson(Map<String, dynamic> json) {
     return HandoverOwnerModel(
-      postId: json['post_id'] ?? 0,
-      userId: json['user_id'] ?? 0,
-      userUid: json['userUid'] ?? '',
-      name: json['name'] ?? '',
-      phoneno: json['phoneno'] ?? '',
-      profileImageUrl: json['profileImageUrl'],
-      matchPercentage: json['matchPercentage'] ?? 0,
+      postId: int.tryParse(json['post_id']?.toString() ?? '') ??
+          int.tryParse(json['postId']?.toString() ?? '') ?? 0,
+      userId: int.tryParse(json['user_id']?.toString() ?? '') ??
+          int.tryParse(json['userId']?.toString() ?? '') ?? 0,
+      userUid: json['userUid']?.toString() ?? json['user_uid']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      phoneno: json['phoneno']?.toString() ?? json['phone']?.toString() ?? '',
+      profileImageUrl: json['profileImageUrl']?.toString() ?? json['profile_img']?.toString(),
+      matchPercentage: int.tryParse(json['matchPercentage']?.toString() ?? '') ?? 0,
     );
   }
 }
