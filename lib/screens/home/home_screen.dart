@@ -923,61 +923,47 @@ class _HomeScreenState extends State<HomeScreen>
               }
 
               return Container(
-                height: 35,
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 width: double.infinity,
-
                 decoration: BoxDecoration(
                   color: AppColors.lightBlue,
-
-                  borderRadius:
-                  BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-
                 child: Row(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.center,
-
-                  mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
-
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    const SizedBox(width: 8),
                     AppIconWidget(
-                      assetPath:
-                      AssetImages.filterTick,
+                      assetPath: AssetImages.filterTick,
+                      size: 16,
                     ),
-
-                    const SizedBox(
-                      width: 15,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: AppText(
+                        text: 'Showing results: ${filterData.displayText}',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        maxLine: 1,
+                        textOverflow: TextOverflow.ellipsis,
+                      ),
                     ),
-
-                    AppText(
-                      text:
-                      'Showing results: ${filterData.displayText}',
-
-                      fontSize: 12,
-
-                      fontWeight:
-                      FontWeight.w500,
-                    ),
-
-                    const Spacer(),
-
                     GestureDetector(
                       onTap: () {
                         _clearFilter();
                         _fetchLostPosts();
                         _fetchFoundPosts();
                       },
-
-                      child: AppIconWidget(
-                        assetPath:
-                        AssetImages.crossIcon,
-
-                        color: AppColors.black,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: AppIconWidget(
+                          assetPath: AssetImages.crossIcon,
+                          color: AppColors.black,
+                          size: 16,
+                        ),
                       ),
                     ),
                   ],
-                ).padHorizontal(16),
+                ),
               ).padHorizontal().padBottom(10);
             },
           ),
@@ -1109,61 +1095,47 @@ class _HomeScreenState extends State<HomeScreen>
               }
 
               return Container(
-                height: 35,
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 width: double.infinity,
-
                 decoration: BoxDecoration(
                   color: AppColors.lightBlue,
-
-                  borderRadius:
-                  BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-
                 child: Row(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.center,
-
-                  mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
-
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    const SizedBox(width: 8),
                     AppIconWidget(
-                      assetPath:
-                      AssetImages.filterTick,
+                      assetPath: AssetImages.filterTick,
+                      size: 16,
                     ),
-
-                    const SizedBox(
-                      width: 15,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: AppText(
+                        text: 'Showing results: ${filterData.displayText}',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        maxLine: 1,
+                        textOverflow: TextOverflow.ellipsis,
+                      ),
                     ),
-
-                    AppText(
-                      text:
-                      'Showing results: ${filterData.displayText}',
-
-                      fontSize: 12,
-
-                      fontWeight:
-                      FontWeight.w500,
-                    ),
-
-                    const Spacer(),
-
                     GestureDetector(
                       onTap: () {
                         _clearFilter();
                         _fetchLostPosts();
                         _fetchFoundPosts();
                       },
-
-                      child: AppIconWidget(
-                        assetPath:
-                        AssetImages.crossIcon,
-
-                        color: AppColors.black,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: AppIconWidget(
+                          assetPath: AssetImages.crossIcon,
+                          color: AppColors.black,
+                          size: 16,
+                        ),
                       ),
                     ),
                   ],
-                ).padHorizontal(16),
+                ),
               ).padHorizontal().padBottom(10);
             },
           ),
@@ -1386,11 +1358,15 @@ class HomeFilterState {
   }
 
   String get displayText {
+    if (selectedRange != null && selectedRange != 'Custom Range') {
+      return selectedRange!;
+    }
+
     final range = effectiveRange;
     if (range != null) {
       final start = DateFormat('MMMM d').format(range.start);
       final end = DateFormat('MMMM d').format(range.end);
-      if (start == end) return start;
+      if (start == end) return DateFormat('MMMM d, yyyy').format(range.start);
       return '$start - $end';
     }
     return selectedRange ?? '';

@@ -122,6 +122,17 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
   }
 
   Widget _buildMonthNav() {
+    final firstDate = widget.firstDate;
+    final lastDate = widget.lastDate;
+
+    final canGoPrev = firstDate == null ||
+        _visibleMonth.year > firstDate.year ||
+        (_visibleMonth.year == firstDate.year && _visibleMonth.month > firstDate.month);
+
+    final canGoNext = lastDate == null ||
+        _visibleMonth.year < lastDate.year ||
+        (_visibleMonth.year == lastDate.year && _visibleMonth.month < lastDate.month);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 8, 16, 4),
       child: Row(
@@ -135,11 +146,11 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
-                onPressed: () => _changeMonth(-1),
+                onPressed: canGoPrev ? () => _changeMonth(-1) : null,
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
-                onPressed: () => _changeMonth(1),
+                onPressed: canGoNext ? () => _changeMonth(1) : null,
               ),
             ],
           ),

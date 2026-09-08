@@ -139,7 +139,7 @@ class _FilterScreenState extends State<FilterScreen> {
       content: CustomDateRangePicker(
         initialRange: _filterState.customRange,
         firstDate: DateTime(2020),
-        lastDate: DateTime(2030),
+        lastDate: DateTime.now(),
       ),
     );
 
@@ -197,7 +197,7 @@ class _FilterScreenState extends State<FilterScreen> {
       child: Container(
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(
-          horizontal: 8,
+          horizontal: 4,
           vertical: 10,
         ),
         decoration: BoxDecoration(
@@ -214,10 +214,11 @@ class _FilterScreenState extends State<FilterScreen> {
         ),
         child: AppText(
           text: label,
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w400,
           color: AppColors.black,
           textAlign: TextAlign.center,
+          maxLine: 2,
         ),
       ),
     );
@@ -428,7 +429,7 @@ class _FilterScreenState extends State<FilterScreen> {
                     const NeverScrollableScrollPhysics(),
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
-                    childAspectRatio: 2.6,
+                    childAspectRatio: 2.0,
                     children: _ranges
                         .map(
                           (String label) =>
