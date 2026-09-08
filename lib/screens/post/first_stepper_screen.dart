@@ -355,6 +355,13 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
           }
         }
       }
+    } else {
+      // Generic mode: add Item Description to postValues so it's preserved
+      // and sent as a field, while allowing the main Description in Step 2 to be separate.
+      final desc = descriptionController.text.trim();
+      if (desc.isNotEmpty) {
+        postValues.add({'field': 'Item Description', 'value': desc});
+      }
     }
 
     // Label + value for the "Item Type" row shown later on the Preview
@@ -395,12 +402,6 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         _step2Date = result['selectedDate'];
         _step2Description = result['description'];
         _step2Video = result['selectedVideo'];
-
-        // If we are in generic mode, we also update the Step 1 description field
-        // to match what was edited in Step 2.
-        if (_isGenericMode && _step2Description != null) {
-          descriptionController.text = _step2Description!;
-        }
       });
     }
   }

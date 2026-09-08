@@ -33,6 +33,8 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:video_player/video_player.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 
 
 
@@ -266,18 +268,40 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   }
 
   void deleteVideo() {
-
     _videoController?.dispose();
     _videoController = null;
     selectedVideo = null;
     isVideoPlaying = false;
 
     videoStreamController.add(null);
-    // setState(() {
-    //   selectedVideo = null;
-    //   //_videoController = null;
-    //   isVideoPlaying = false;
-    // });
+  }
+
+  Future<void> _handleMicPermission() async {
+    final status = await Permission.microphone.status;
+
+    if (status.isGranted) {
+      await _recorderService.startRecording();
+      return;
+    }
+
+    final hasAskedBefore = AppPreferences.getAskedMicPermission();
+
+    if (!hasAskedBefore) {
+      // First record tap
+      final result = await Permission.microphone.request();
+      await AppPreferences.setAskedMicPermission(true);
+      if (result.isGranted) {
+        await _recorderService.startRecording();
+      }
+    } else {
+      // Second record tap after denial
+      if (mounted) {
+        await AppDialogue.showPopup(
+          context: context,
+          content: const AppMicAccess(),
+        );
+      }
+    }
   }
 
   Future<void> _selectDate() async {
@@ -560,7 +584,10 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                             fontWeight: FontWeight.w500,
                           ),
                           const SizedBox(height: 10),
-                          AppRecorder(service: _recorderService)
+                          AppRecorder(
+                            service: _recorderService,
+                            onRecordTap: _handleMicPermission,
+                          )
   
                         ],
                       ),

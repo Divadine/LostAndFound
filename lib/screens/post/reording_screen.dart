@@ -11,8 +11,9 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 class AppRecorder extends StatefulWidget {
   final AppRecorderService service;
+  final VoidCallback? onRecordTap;
 
-  const AppRecorder({super.key, required this.service});
+  const AppRecorder({super.key, required this.service, this.onRecordTap});
 
   @override
   State<AppRecorder> createState() => _AppRecorderState();
@@ -65,7 +66,7 @@ class _AppRecorderState extends State<AppRecorder> {
           ),
           const SizedBox(height: 10),
           GestureDetector(
-            onTap: _service.startRecording,
+            onTap: widget.onRecordTap ?? _service.startRecording,
             child: AppIconWidget(assetPath: AssetImages.mic),
           ),
         ],

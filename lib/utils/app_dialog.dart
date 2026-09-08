@@ -3031,20 +3031,36 @@ class AppMicAccess extends StatefulWidget {
   State<AppMicAccess> createState() => _AppMicAccessState();
 }
 
-class _AppMicAccessState extends State<AppMicAccess> {
+class _AppMicAccessState extends State<AppMicAccess> with WidgetsBindingObserver {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initConnectivityListener();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivitySub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermission();
+    }
+  }
+
+  Future<void> _checkPermission() async {
+    final status = await Permission.microphone.status;
+    if (status.isGranted && mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   void _initConnectivityListener() async {
@@ -3081,7 +3097,7 @@ class _AppMicAccessState extends State<AppMicAccess> {
           'Microphone access is required to record and send voice messages in chat.',
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          textAlign: .center,
+          textAlign: TextAlign.center,
           color: AppColors.fieldGrey,
         ).padHorizontal(10),
         SizedBox(height: 15),
@@ -3108,7 +3124,6 @@ class _AppMicAccessState extends State<AppMicAccess> {
                   final status = await Permission.microphone.status;
                   if (status.isPermanentlyDenied) {
                     await openAppSettings();
-                    if (context.mounted) Navigator.pop(context, false);
                   } else {
                     final newStatus = await Permission.microphone.request();
                     if (context.mounted) Navigator.pop(context, newStatus.isGranted);
