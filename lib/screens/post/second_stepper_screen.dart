@@ -280,10 +280,10 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     // });
   }
 
-  Future<void> selectDate() async {
+  Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: selectedDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
       builder: (context, child) {
@@ -306,13 +306,11 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     );
 
     if (picked != null) {
-      selectedDate = DateTime(picked.year, picked.month, picked.day);
       selectedDate = picked;
       dateController.text = DateFormat('dd/MM/yyyy').format(picked);
       dateStreamController.add(picked);
-      //setState(() {});
     }
-    print('picked date is ^^^^^^^^^^^^^^^^^^^^^^^^^   $picked');
+    debugPrint('picked date is: $picked');
   }
 
 
@@ -522,25 +520,18 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                           stream: dateStreamController.stream,
                           initialData: selectedDate,
                           builder: (context, asyncSnapshot) {
-                            //final dateData = asyncSnapshot.data;
-                            return GestureDetector(
-                              onTap: selectDate,
-                              child: buildTextFieldWithHeading(
-                                title: 'Date',
-                                fieldWidget: GestureDetector(
-                                  onTap: selectDate,
-                                  child: AppTextField(
-                                    //readOnly: true,
-                                    hintText: 'Select Date',
-                                    readOnly: true,
-                                    textController: dateController,
-                                    onChange: (v) {},
-                                    onSubmit: (v) {},
-                                    suffixIcon: GestureDetector(
-                                        onTap:selectDate,
-                                        child: AppIconWidget(assetPath: AssetImages.calender).pad()
-                                    ),
-                                  ),
+                            return buildTextFieldWithHeading(
+                              title: 'Date',
+                              fieldWidget: AppTextField(
+                                hintText: 'Select Date',
+                                readOnly: true,
+                                textController: dateController,
+                                onTap: _selectDate,
+                                onChange: (v) {},
+                                onSubmit: (v) {},
+                                suffixIcon: GestureDetector(
+                                    onTap: _selectDate,
+                                    child: AppIconWidget(assetPath: AssetImages.calender).pad()
                                 ),
                               ),
                             );

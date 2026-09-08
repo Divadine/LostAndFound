@@ -813,7 +813,14 @@ class _LocationSelectionScreenState
 
           _pendingLocation = null;
         } else {
-          _pendingLocation = offlineLocation;
+          final exists = _selectedLocations.any(
+            (location) => _isSameLocation(location, offlineLocation),
+          );
+          if (!exists && _selectedLocations.length < kMaxLocations) {
+            _selectedLocations.add(offlineLocation);
+          }
+          _pendingLocation = null;
+          _addingNewLocation = false;
         }
       });
 
@@ -907,9 +914,15 @@ class _LocationSelectionScreenState
         // Keep this null in normal mode.
         _pendingLocation = null;
       } else {
-        // Add Another mode.
-        _pendingLocation =
-            resolvedLocation;
+        // Add Another mode: Add to the list immediately but stay on screen.
+        final exists = _selectedLocations.any(
+          (location) => _isSameLocation(location, resolvedLocation),
+        );
+        if (!exists && _selectedLocations.length < kMaxLocations) {
+          _selectedLocations.add(resolvedLocation);
+        }
+        _pendingLocation = null;
+        _addingNewLocation = false;
       }
     });
 
@@ -1405,9 +1418,10 @@ class _LocationSelectionScreenState
             ),
 
             infoWindow:
-            const InfoWindow(
+            InfoWindow(
               title:
               'Selected location',
+              snippet: pending.address,
             ),
 
             consumeTapEvents:
@@ -2074,47 +2088,7 @@ class _LocationSelectionScreenState
       );
     }
 
-    final enabled =
-        !_resolvingPin &&
-            _pendingLocation !=
-                null;
-
-    return AppButton(
-      title:
-      'Confirm Added Location',
-
-      onTap: () {
-        if (enabled) {
-          _addPendingLocation();
-        }
-      },
-
-      bgColor:
-      AppColors.white,
-
-      textColor:
-      AppColors.primaryColor,
-
-      fontSize: 14,
-
-      prefixIcon:
-      AssetImages.tickmark,
-
-      size: 20,
-
-      border:
-      Border.all(
-        color:
-        AppColors.primaryColor,
-      ),
-
-      radius:
-      const BorderRadius.all(
-        Radius.circular(10),
-      ),
-
-      height: 40,
-    );
+    return const SizedBox.shrink();
   }
 
   // ===========================================================================

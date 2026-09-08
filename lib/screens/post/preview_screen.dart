@@ -329,6 +329,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
               centerTitle: true,
               leadingSvg: AssetImages.backArrow,
               leadingIconColor: AppColors.primaryColor,
+              titleColor: AppColors.primaryColor,
               onLeadingTap: () => AppRoutes.pop(),
             ),
             Expanded(
