@@ -8,6 +8,9 @@ class AppUtils {
   static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   static bool isTab = false;
 
+  static int? lastSubmittedPostType;
+  static final ValueNotifier<int> postRefreshNotifier = ValueNotifier<int>(0);
+
   static Future<bool> checkConnectivity() async {
     final value = await Connectivity().checkConnectivity();
     if (value.contains(ConnectivityResult.none)) {

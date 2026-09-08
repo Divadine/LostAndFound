@@ -20,7 +20,8 @@ import 'authentication/role_chosen_screen.dart';
 import 'maps/police_station_mapscreen.dart';
 
 class BottomScreen extends StatefulWidget {
-  const BottomScreen({super.key});
+  final int? initialTabIndex;
+  const BottomScreen({super.key, this.initialTabIndex});
 
   @override
   State<BottomScreen> createState() => _BottomScreenState();
@@ -31,13 +32,8 @@ class _BottomScreenState extends State<BottomScreen> {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
 
-  final pages = [
-    HomeScreen(),
-    PoliceStationMapScreen(),
-    SizedBox(),
-    ChatScreen(),
-    SettingsScreen(),
-  ];
+  late List<Widget> pages;
+
   List<String> image = [
     AssetImages.home,
     AssetImages.location,
@@ -50,6 +46,13 @@ class _BottomScreenState extends State<BottomScreen> {
   @override
   void initState() {
     super.initState();
+    pages = [
+      HomeScreen(initialTabIndex: widget.initialTabIndex),
+      PoliceStationMapScreen(),
+      SizedBox(),
+      ChatScreen(),
+      SettingsScreen(),
+    ];
     _initConnectivityListener();
   }
 

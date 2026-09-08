@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:video_player/video_player.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 
@@ -292,7 +293,9 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
     setState(() => isSubmitting = false);
 
     if (completeResponse.isSuccess) {
-      AppDialogue.showPopup(context: context, content: PostLive());
+      AppUtils.lastSubmittedPostType = widget.postType;
+      AppUtils.postRefreshNotifier.value++;
+      AppDialogue.showPopup(context: context, content: PostLive(postType: widget.postType));
     } else {
       final msg = completeResponse.currentState == CurrentState.noInternet
           ? 'No internet connection. Please check your network.'

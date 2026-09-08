@@ -124,7 +124,10 @@ class AppRoutes {
       GoRoute(
         path: '/bottomScreen',
         name: bottomScreen,
-        builder: (context, state) => const BottomScreen(),
+        builder: (context, state) {
+          final initialTabIndex = state.extra is int ? state.extra as int : 0;
+          return BottomScreen(initialTabIndex: initialTabIndex);
+        },
       ),
 
       GoRoute(

@@ -36,7 +36,8 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final int? initialTabIndex;
+  const HomeScreen({super.key, this.initialTabIndex});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -421,7 +422,9 @@ class _HomeScreenState extends State<HomeScreen>
     _tabController = TabController(
       length: 2,
       vsync: this,
+      initialIndex: widget.initialTabIndex ?? 0,
     );
+    _selectedIndex = widget.initialTabIndex ?? 0;
 
     _tabController.addListener(() {
       if (_tabController.indexIsChanging || _tabController.index != _selectedIndex) {
@@ -451,8 +454,22 @@ class _HomeScreenState extends State<HomeScreen>
 
     _initConnectivityListener();
 
+    AppUtils.postRefreshNotifier.addListener(_refreshPosts);
+
     _fetchLostPosts();
     _fetchFoundPosts();
+  }
+
+  void _refreshPosts() {
+    if (mounted) {
+      final type = AppUtils.lastSubmittedPostType;
+      if (type == 0 || type == null) {
+        _fetchLostPosts();
+      }
+      if (type == 1 || type == null) {
+        _fetchFoundPosts();
+      }
+    }
   }
 
   void _initConnectivityListener() async {
@@ -485,6 +502,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    AppUtils.postRefreshNotifier.removeListener(_refreshPosts);
     _connectivitySub?.cancel();
     _tabController.dispose();
     filterStateStream.close();

@@ -1594,7 +1594,8 @@ class TransferCompleted extends StatelessWidget {
 // }
 
 class PostLive extends StatelessWidget {
-  const PostLive({super.key});
+  final int postType;
+  const PostLive({super.key, this.postType = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -1635,7 +1636,7 @@ class PostLive extends StatelessWidget {
                 await AppPreferences.setIsItemPosted(true);
                 if (!context.mounted) return;
                 Navigator.of(context).pop();
-                AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+                AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen, arguments: postType);
               },
               bgColor: AppColors.primaryColor,
 
