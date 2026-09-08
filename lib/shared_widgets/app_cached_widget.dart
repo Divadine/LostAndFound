@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 
 class AppCachedNetworkImage extends StatefulWidget {
@@ -66,10 +67,7 @@ class _AppCachedNetworkImageState extends State<AppCachedNetworkImage> {
             ),
           ),
         ),
-        errorWidget: (context, url, error) => Container(
-          color: Colors.grey,
-          child: const Icon(Icons.broken_image, size: 40),
-        ),
+        errorWidget: (context, url, error) => const NoInternetWidget(size: 40),
       ),
     );
   }

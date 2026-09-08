@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -6,6 +9,7 @@ import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
@@ -29,6 +33,8 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState
     extends State<ChatScreen> {
   String? currentUserId;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
 
   @override
   void initState() {
@@ -43,6 +49,8 @@ class _ChatScreenState
       '[ChatScreen] Current user ID: $currentUserId',
     );
 
+    _initConnectivityListener();
+
     if (currentUserId == null || currentUserId!.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         AppSnackBar.show(
@@ -51,6 +59,31 @@ class _ChatScreenState
         );
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    // Check initial state
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+
+    // Listen for changes
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      _updateOfflineStatus(results);
+    });
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
   }
 
   @override
@@ -69,182 +102,191 @@ class _ChatScreenState
         ),
 
         body: SafeArea(
-          child: Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
-
+          child: Stack(
             children: [
-              const SizedBox(height: 15),
+              Column(
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
 
-              AppText(
-                text:
-                'Enquires & Messages',
+                children: [
+                  const SizedBox(height: 15),
 
-                fontWeight:
-                FontWeight.w500,
+                  AppText(
+                    text:
+                    'Enquires & Messages',
 
-                fontSize: 18,
-              ).pad(),
+                    fontWeight:
+                    FontWeight.w500,
 
-              const SizedBox(height: 15),
+                    fontSize: 18,
+                  ).pad(),
 
-              _buildTabBar(),
+                  const SizedBox(height: 15),
 
-              const SizedBox(height: 10),
+                  _buildTabBar(),
 
-              Expanded(
-                child: (currentUserId == null || currentUserId!.isEmpty)
-                    ? Center(
-                        child: AppText(
-                          text: 'Please login to see chats',
-                          color: AppColors.grey,
-                          fontSize: 14,
-                        ),
-                      )
-                    : StreamBuilder<
-                        QuerySnapshot<
-                            Map<String, dynamic>>>(
-                  stream:
-                  ChatService.chatRoomsStream(
-                    currentUserId!,
+                  const SizedBox(height: 10),
+
+                  Expanded(
+                    child: (currentUserId == null || currentUserId!.isEmpty)
+                        ? Center(
+                            child: AppText(
+                              text: 'Please login to see chats',
+                              color: AppColors.grey,
+                              fontSize: 14,
+                            ),
+                          )
+                        : StreamBuilder<
+                            QuerySnapshot<
+                                Map<String, dynamic>>>(
+                      stream:
+                      ChatService.chatRoomsStream(
+                        currentUserId!,
+                      ),
+
+                      builder:
+                          (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return _isOffline
+                              ? const NoInternetWidget()
+                              : const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                        }
+
+                        if (snapshot.hasError) {
+                          debugPrint(
+                            '[ChatScreen] Firestore ERROR:',
+                          );
+
+                          debugPrint(
+                            snapshot.error.toString(),
+                          );
+
+                          return Center(
+                            child: Padding(
+                              padding:
+                              const EdgeInsets.all(
+                                20,
+                              ),
+
+                              child: Column(
+                                mainAxisSize:
+                                MainAxisSize.min,
+
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 40,
+                                    color:
+                                    AppColors.grey,
+                                  ),
+
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+
+                                  const AppText(
+                                    text:
+                                    'Unable to load chats',
+                                    fontSize: 14,
+                                  ),
+
+                                  const SizedBox(
+                                    height: 6,
+                                  ),
+
+                                  AppText(
+                                    text:
+                                    snapshot.error
+                                        .toString(),
+
+                                    fontSize: 11,
+
+                                    color:
+                                    AppColors.grey,
+
+                                    maxLine: 5,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
+                        final documents =
+                            snapshot.data?.docs ??
+                                [];
+
+                        final receivedLeads =
+                        <ChatRoomData>[];
+
+                        final sentEnquiries =
+                        <ChatRoomData>[];
+
+                        for (final doc
+                        in documents) {
+                          try {
+                            final room =
+                            ChatRoomData
+                                .fromFirestore(
+                              doc,
+                              currentUserId!,
+                            );
+
+                            if (room
+                                .isReceivedEnquiry) {
+                              receivedLeads
+                                  .add(room);
+                            }
+
+                            if (room
+                                .isSentEnquiry) {
+                              sentEnquiries
+                                  .add(room);
+                            }
+                          } catch (e) {
+                            debugPrint(
+                              '[ChatScreen] Error parsing room '
+                                  '${doc.id}: $e',
+                            );
+                          }
+                        }
+
+                        receivedLeads.sort(
+                          _sortByLatest,
+                        );
+
+                        sentEnquiries.sort(
+                          _sortByLatest,
+                        );
+
+                        return TabBarView(
+                          children: [
+                            _buildChatList(
+                              receivedLeads,
+                              emptyMessage:
+                              'No leads yet',
+                            ),
+
+                            _buildChatList(
+                              sentEnquiries,
+                              emptyMessage:
+                              'No enquiries sent',
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
-
-                  builder:
-                      (context, snapshot) {
-                    if (snapshot
-                        .connectionState ==
-                        ConnectionState.waiting) {
-                      return const Center(
-                        child:
-                        CircularProgressIndicator(),
-                      );
-                    }
-
-                    if (snapshot.hasError) {
-                      debugPrint(
-                        '[ChatScreen] Firestore ERROR:',
-                      );
-
-                      debugPrint(
-                        snapshot.error.toString(),
-                      );
-
-                      return Center(
-                        child: Padding(
-                          padding:
-                          const EdgeInsets.all(
-                            20,
-                          ),
-
-                          child: Column(
-                            mainAxisSize:
-                            MainAxisSize.min,
-
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                size: 40,
-                                color:
-                                AppColors.grey,
-                              ),
-
-                              const SizedBox(
-                                height: 10,
-                              ),
-
-                              const AppText(
-                                text:
-                                'Unable to load chats',
-                                fontSize: 14,
-                              ),
-
-                              const SizedBox(
-                                height: 6,
-                              ),
-
-                              AppText(
-                                text:
-                                snapshot.error
-                                    .toString(),
-
-                                fontSize: 11,
-
-                                color:
-                                AppColors.grey,
-
-                                maxLine: 5,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    final documents =
-                        snapshot.data?.docs ??
-                            [];
-
-                    final receivedLeads =
-                    <ChatRoomData>[];
-
-                    final sentEnquiries =
-                    <ChatRoomData>[];
-
-                    for (final doc
-                    in documents) {
-                      try {
-                        final room =
-                        ChatRoomData
-                            .fromFirestore(
-                          doc,
-                          currentUserId!,
-                        );
-
-                        if (room
-                            .isReceivedEnquiry) {
-                          receivedLeads
-                              .add(room);
-                        }
-
-                        if (room
-                            .isSentEnquiry) {
-                          sentEnquiries
-                              .add(room);
-                        }
-                      } catch (e) {
-                        debugPrint(
-                          '[ChatScreen] Error parsing room '
-                              '${doc.id}: $e',
-                        );
-                      }
-                    }
-
-                    receivedLeads.sort(
-                      _sortByLatest,
-                    );
-
-                    sentEnquiries.sort(
-                      _sortByLatest,
-                    );
-
-                    return TabBarView(
-                      children: [
-                        _buildChatList(
-                          receivedLeads,
-                          emptyMessage:
-                          'No leads yet',
-                        ),
-
-                        _buildChatList(
-                          sentEnquiries,
-                          emptyMessage:
-                          'No enquiries sent',
-                        ),
-                      ],
-                    );
-                  },
-                ),
+                ],
               ),
+              if (_isOffline)
+                Container(
+                  color: Colors.white,
+                  child: const NoInternetWidget(),
+                ),
             ],
           ),
         ),

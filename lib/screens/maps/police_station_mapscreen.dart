@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -14,6 +15,7 @@ import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/shared_widgets/map_pin_loader.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_permission.dart';
@@ -66,6 +68,9 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
 
   Timer? _debounce;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   bool _isLocationConfirmed = true;
   String? _selectedAddress;
   bool _searchFocused = false;
@@ -83,16 +88,41 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
     );
 
     _loadPinIcon();
+    _initConnectivityListener();
     _init();
   }
 
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     _searchController.dispose();
     _suggestionsController.close();
     _debounce?.cancel();
     _mapController?.dispose();
     super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    // Check initial state
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+
+    // Listen for changes
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      _updateOfflineStatus(results);
+    });
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+
+    if (!offline && _stations.isEmpty && !_loading) {
+      _init();
+    }
   }
 
   // ============================================================
@@ -633,17 +663,16 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
           // LOADING
           // ======================================================
 
-          if (_loading)
-            const Positioned.fill(
+          if (_loading || _isOffline)
+            Positioned.fill(
               child: ColoredBox(
-                color: Colors.black12,
+                color: _isOffline ? Colors.white : Colors.black12,
                 child: Center(
-                  child:
-                  CircularProgressIndicator(
-                    color:
-                    AppColors
-                        .primaryColor,
-                  ),
+                  child: _isOffline
+                      ? const NoInternetWidget()
+                      : const CircularProgressIndicator(
+                          color: AppColors.primaryColor,
+                        ),
                 ),
               ),
             ),
@@ -671,61 +700,107 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
   // ============================================================
 
   Widget _buildSearchBar() {
-    return AppTextField(
-      textController:
-      _searchController,
+    return Row(
+      children: [
+        _buildTopIconButton(
+          icon: AssetImages.iosBackArrow,
+          onTap: () => Navigator.maybePop(context),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Container(
+            height: 45,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: AppTextField(
+              textController: _searchController,
+              readOnly: false,
+              onChange: _onSearchChanged,
+              onTap: () {
+                setState(() {
+                  _searchFocused = true;
+                });
+              },
+              hintText: 'Search location',
+              onSubmit: (value) {
+                _onSearchChanged(value);
+              },
+              borderColor: Colors.transparent,
+              prefixIcon: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: AppIconWidget(
+                  assetPath: AssetImages.search,
+                  color: Colors.grey,
+                  size: 18,
+                ),
+              ),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _searchController.clear();
+                          if (!_suggestionsController.isClosed) {
+                            _suggestionsController.add([]);
+                          }
+                        });
+                        _init();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: AppIconWidget(
+                          assetPath: AssetImages.close,
+                          color: Colors.grey,
+                          size: 18,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        _buildTopIconButton(
+          icon: AssetImages.currentLocation,
+          onTap: _init,
+        ),
+      ],
+    );
+  }
 
-      readOnly: false,
-
-      onChange: _onSearchChanged,
-
-      onTap: () {
-        setState(() {
-          _searchFocused = true;
-        });
-      },
-
-      hintText: 'Search location',
-
-      onSubmit: (value) {
-        _onSearchChanged(value);
-      },
-
-      borderColor:
-      Colors.transparent,
-
-      prefixIcon:
-      AppIconWidget(
-        assetPath:
-        AssetImages.search,
-      ).pad(12),
-
-      suffixIcon:
-      _searchController
-          .text
-          .isNotEmpty
-          ? GestureDetector(
-        onTap: () {
-          setState(() {
-            _searchController
-                .clear();
-            if (!_suggestionsController.isClosed) {
-              _suggestionsController.add([]);
-            }
-          });
-
-          // Go back to current location.
-          _init();
-        },
-
-        child:
-        AppIconWidget(
-          assetPath:
-          AssetImages
-              .close,
-        ).pad(3),
-      )
-          : null,
+  Widget _buildTopIconButton({required String icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 45,
+        width: 45,
+        decoration: BoxDecoration(
+          color: AppColors.primaryColor,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: AppIconWidget(
+            assetPath: icon,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+      ),
     );
   }
 
@@ -963,19 +1038,22 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            AppButton(
-              title: 'Confirm location',
-              height: 50,
-              radius: BorderRadius.circular(10),
-              bgColor: AppColors.primaryColor,
-              onTap: () {
-                if (_referencePosition != null) {
-                  setState(() {
-                    _isLocationConfirmed = true;
-                  });
-                  getPoliceStations(_referencePosition!.latitude, _referencePosition!.longitude);
-                }
-              },
+            Center(
+              child: AppButton(
+                width: 200,
+                title: 'Confirm location',
+                height: 50,
+                radius: BorderRadius.circular(10),
+                bgColor: AppColors.primaryColor,
+                onTap: () {
+                  if (_referencePosition != null) {
+                    setState(() {
+                      _isLocationConfirmed = true;
+                    });
+                    getPoliceStations(_referencePosition!.latitude, _referencePosition!.longitude);
+                  }
+                },
+              ),
             ),
           ],
         ),

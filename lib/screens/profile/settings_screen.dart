@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +16,7 @@ import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
@@ -41,6 +45,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool isEnable = false;
 
   bool _isLoadingProfile = false;
+
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
 
   ProfileScreenModel? profile;
   Future<void> _loadProfile() async {
@@ -73,8 +80,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState()  {
     super.initState();
+    _initConnectivityListener();
     _loadProfile();
+  }
 
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    // Check initial state
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+
+    // Listen for changes
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      _updateOfflineStatus(results);
+    });
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+
+    if (!offline && profile == null) {
+      _loadProfile();
+    }
   }
 
 
@@ -125,377 +161,385 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: AppColors.white,
       appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Builder(
-                builder: (context) {
-                  final String? profileImageUrl =
-                  profile?.profileImageUrl?.trim();
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Builder(
+                    builder: (context) {
+                      final String? profileImageUrl =
+                      profile?.profileImageUrl?.trim();
 
-                  final bool hasProfileImage =
-                      profileImageUrl != null &&
-                          profileImageUrl.isNotEmpty &&
-                          profileImageUrl.toLowerCase() != 'null' &&
-                          profileImageUrl.toLowerCase() != 'undefined';
+                      final bool hasProfileImage =
+                          profileImageUrl != null &&
+                              profileImageUrl.isNotEmpty &&
+                              profileImageUrl.toLowerCase() != 'null' &&
+                              profileImageUrl.toLowerCase() != 'undefined';
 
-                  return CircleAvatar(
-                    radius: 40,
-                    backgroundColor:
-                    AppColors.fieldGrey.withAlpha(40),
-                    child: hasProfileImage
-                        ? ClipOval(
-                      child: CachedNetworkImage(
-                        imageUrl: profileImageUrl,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) {
-                          return const SizedBox(
+                      return CircleAvatar(
+                        radius: 40,
+                        backgroundColor:
+                        AppColors.fieldGrey.withAlpha(40),
+                        child: hasProfileImage
+                            ? ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: profileImageUrl,
                             width: 80,
                             height: 80,
-                            child: Center(
-                              child:
-                              CircularProgressIndicator(),
-                            ),
-                          );
-                        },
-                        errorWidget:
-                            (context, url, error) {
-                          return const Icon(
-                            Icons.person,
-                            size: 40,
-                          );
-                        },
-                      ),
-                    )
-                        : const Icon(
-                      Icons.person,
-                      size: 40,
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.idCardColor,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: AppText(
-                  text: 'ID : ${profile?.userUid ?? ''}',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 10,
-                  color: AppColors.primaryColor,
-                ),
-              ),
-              const SizedBox(height: 10),
-              AppButton(
-                title: "Edit Profile",
-                onTap: _isLoadingProfile ? null : () async {
-                  final userId = AppPreferences.getUserId();
-                  if (userId == null) return;
-
-                  setState(() => _isLoadingProfile = true);
-                  final result = await authController.getProfile(userId: userId);
-
-                  if (!mounted) {
-                    _isLoadingProfile = false;
-                    return;
-                  }
-
-                  if (result.status == 1 && result.data != null) {
-                    await context.pushNamed(
-                      AppRoutes.profileScreen,
-                      extra: result.data!.copyWith(isFromEdit: true),
-                    );
-                    if (!mounted) return;
-                    setState(() => _isLoadingProfile = false);
-                    await _loadProfile();
-                  } else {
-                    setState(() => _isLoadingProfile = false);
-                    AppDialogue.showPopup(
-                      context: context,
-                      content: AppText(text: result.message),
-                    );
-                  }
-                },
-                height: 35,
-                fontSize: 12,
-                prefixIcon: AssetImages.pen,
-              ).padHorizontal(105),
-
-              SizedBox(height: 10),
-
-              AppContainer(
-                widget: Column(
-                  children: [
-                    buildSettingTile(
-                      image: AssetImages.bell,
-                      title: 'notifications',
-                      trailingIcon: Transform.scale(
-                        scale: 0.8,
-                        child: Switch(
-                          materialTapTargetSize:
-                          MaterialTapTargetSize.shrinkWrap,
-                          padding: EdgeInsets.zero,
-                          activeColor: AppColors.white,
-                          activeTrackColor: AppColors.primaryColor,
-                          inactiveThumbColor: AppColors.grey,
-                          // inactiveTrackColor: Colors.grey.shade300,
-                          value: isEnable,
-                          // onChanged: (e) {
-                          //   isEnable = !isEnable;
-                          //   setState(() {});
-                          // },
-
-                          onChanged: _onNotificationToggle,
-                        ),
-                      ),
-                      onTap: () {},
-                    ),
-
-                    Divider(),
-                    buildSettingTile(
-                      image: AssetImages.termsConditions,
-                      title: 'Terms & Conditions',
-                      trailingIcon: AppIconWidget(
-                        assetPath: AssetImages.iosForward,
-                      ),
-                      onTap: () {
-                        AppRoutes.pushNamed(
-                          AppRoutes.webViewScreen,
-                          arguments: WebViewModel(
-                            appbar: CustomAppBar(
-                              title: "Terms and Condition",
-                              leadingSvg: AssetImages.backArrow,
-                            ),
-                            link: AppUrls.termsAndConditions,
-                            isGenerateUrl: true,
-                          ),
-                        );
-                      },
-                    ),
-
-                    Divider(),
-                    buildSettingTile(
-                      image: AssetImages.feedBack,
-                      title: 'Feedback',
-                      trailingIcon: AppIconWidget(
-                        assetPath: AssetImages.iosForward,
-                      ),
-                      onTap: () {
-                        AppRoutes.pushNamed(
-                          AppRoutes.webViewScreen,
-                          arguments: WebViewModel(
-                            appbar: CustomAppBar(
-                              title: "Feedback",
-                              leadingSvg: AssetImages.backArrow,
-                            ),
-                            link: AppUrls.feedBackURL,
-                            isGenerateUrl: true,
-                          ),
-                        );
-                      },
-                    ),
-                    Divider(),
-                    buildSettingTile(
-                      image: AssetImages.aboutUs,
-                      title: 'About us',
-                      trailingIcon: AppIconWidget(
-                        assetPath: AssetImages.iosForward,
-                      ),
-                      onTap: () {
-                        AppRoutes.pushNamed(
-                          AppRoutes.webViewScreen,
-                          arguments: WebViewModel(
-                            appbar: CustomAppBar(
-                              title: "About Us",
-                              leadingSvg: AssetImages.backArrow,
-                            ),
-                            link: AppUrls.aboutUsURL,
-                            isGenerateUrl: true,
-                          ),
-                        );
-                      },
-                    ),
-
-                    Divider(),
-
-                    buildSettingTile(
-                      image: AssetImages.privacyPolicy,
-                      title: 'Privacy & Policy',
-                      trailingIcon: AppIconWidget(
-                        assetPath: AssetImages.iosForward,
-                      ),
-                      onTap: () {
-                        AppRoutes.pushNamed(
-                          AppRoutes.webViewScreen,
-                          arguments: WebViewModel(
-                            appbar: CustomAppBar(
-                              title: "Privacy & Policy",
-                              leadingSvg: AssetImages.backArrow,
-                            ),
-                            link: AppUrls.privacyPolicyLink,
-                            isGenerateUrl: true,
-                          ),
-                        );
-                      },
-                    ),
-                    Divider(),
-                    buildSettingTile(
-                      image: AssetImages.privacyPolicy,
-                      title: 'Disclaimer',
-                      trailingIcon: AppIconWidget(
-                        assetPath: AssetImages.iosForward,
-                      ),
-                      onTap: () {
-                        AppDialogue.showPopup(
-                          context: context,
-                          content: DisclaimerPopUP(isFromOnBoard: false),
-                        );
-                        // AppRoutes.pop();
-                      },
-                    ),
-                    Divider(),
-                    buildSettingTile(
-                      image: AssetImages.star,
-                      title: 'Rate Us',
-                      trailingIcon: AppIconWidget(
-                        assetPath: AssetImages.iosForward,
-                      ),
-                      onTap: () {
-                        int rating = 5;
-                        AppDialogue.showPopup(
-                          context: context,
-                          content: StatefulBuilder(
-                            builder: (context, setDialogState) {
-                              return Column(
-                                mainAxisSize: MainAxisSize.min,
-                                spacing: 15,
-                                children: [
-                                  AppText(
-                                    text: 'How are you feeling ? ',
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-
-                                  CircleAvatar(
-                                    radius: 25,
-                                    child: AppIconWidget(
-                                      assetPath:
-                                      getEmoji(rating) ??
-                                          AssetImages.one_star,
-                                    ),
-                                  ),
-                                  Flexible(
-                                    child: Row(
-                                      mainAxisAlignment:
-                                      MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                      children: List.generate(
-                                        5,
-                                            (stars) => GestureDetector(
-                                          onTap: () {
-                                            if (rating < 2) return;
-                                            setDialogState(() {
-                                              int selectedStar = stars + 1;
-                                              if (rating == selectedStar) {
-                                                rating = rating - 1;
-                                              } else {
-                                                rating = selectedStar;
-                                              }
-                                            });
-                                          },
-                                          child: AppIconWidget(
-                                            assetPath: stars < rating
-                                                ? AssetImages.filled_star
-                                                : AssetImages.empty_star,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-
-                                  AppButton(
-                                    title: rating > 3 ? 'Submit' : 'Feedback',
-                                    onTap: () async {
-                                      Uri url = Uri.parse(AppUrls.rateUs);
-                                      bool hasNet =
-                                      await AppUtils.checkConnectivity();
-                                      if (rating > 3) {
-                                        if (hasNet) {
-                                          if (!context.mounted) return;
-                                          context.pop();
-                                          await launchUrl(url);
-                                        } else {
-                                          if (!context.mounted) return;
-                                          AppSnackBar.show(
-                                            context: context,
-                                            message:
-                                            'PleaseCheck your Internet',
-                                          );
-                                        }
-                                      } else {
-                                        if (!context.mounted) return;
-                                        context.pop();
-                                        if (!context.mounted) return;
-                                        AppRoutes.pushNamed(
-                                          AppRoutes.webViewScreen,
-                                          arguments: WebViewModel(
-                                            link: AppUrls.feedBackURL,
-                                            isGenerateUrl: true,
-                                            webViewType: WebViewType.feedback,
-                                            appbar: CustomAppBar(
-                                              title: 'Feedback',
-                                              leadingSvg: AssetImages.backArrow,
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                  ).padHorizontal(50),
-                                ],
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) {
+                              return const SizedBox(
+                                width: 80,
+                                height: 80,
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            },
+                            errorWidget:
+                                (context, url, error) {
+                              return const Icon(
+                                Icons.person,
+                                size: 40,
                               );
                             },
                           ),
+                        )
+                            : const Icon(
+                          Icons.person,
+                          size: 40,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.idCardColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: AppText(
+                      text: 'ID : ${profile?.userUid ?? ''}',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 10,
+                      color: AppColors.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  AppButton(
+                    title: "Edit Profile",
+                    onTap: _isLoadingProfile ? null : () async {
+                      final userId = AppPreferences.getUserId();
+                      if (userId == null) return;
+
+                      setState(() => _isLoadingProfile = true);
+                      final result = await authController.getProfile(userId: userId);
+
+                      if (!mounted) {
+                        _isLoadingProfile = false;
+                        return;
+                      }
+
+                      if (result.status == 1 && result.data != null) {
+                        await context.pushNamed(
+                          AppRoutes.profileScreen,
+                          extra: result.data!.copyWith(isFromEdit: true),
                         );
-                      },
-                    ),
-                    Divider(),
-                    buildSettingTile(
-                      image: AssetImages.deleteAccount,
-                      title: 'Delete Account',
-                      trailingIcon: AppIconWidget(
-                        assetPath: AssetImages.iosForward,
-                      ),
-                      onTap: () {
-                        AppRoutes.pushNamed(AppRoutes.deleteAccountScreen);
-                      },
-                    ),
-                    Divider(),
-                    buildSettingTile(
-                      image: AssetImages.logOut,
-                      title: 'Logout',
-                      trailingIcon: AppIconWidget(
-                        assetPath: AssetImages.iosForward,
-                      ),
-                      onTap: () {
+                        if (!mounted) return;
+                        setState(() => _isLoadingProfile = false);
+                        await _loadProfile();
+                      } else {
+                        setState(() => _isLoadingProfile = false);
                         AppDialogue.showPopup(
                           context: context,
-                          content: LogoutPopUp(),
+                          content: AppText(text: result.message),
                         );
-                      },
+                      }
+                    },
+                    height: 35,
+                    fontSize: 12,
+                    prefixIcon: AssetImages.pen,
+                  ).padHorizontal(105),
+
+                  SizedBox(height: 10),
+
+                  AppContainer(
+                    widget: Column(
+                      children: [
+                        buildSettingTile(
+                          image: AssetImages.bell,
+                          title: 'notifications',
+                          trailingIcon: Transform.scale(
+                            scale: 0.8,
+                            child: Switch(
+                              materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                              padding: EdgeInsets.zero,
+                              activeColor: AppColors.white,
+                              activeTrackColor: AppColors.primaryColor,
+                              inactiveThumbColor: AppColors.grey,
+                              // inactiveTrackColor: Colors.grey.shade300,
+                              value: isEnable,
+                              // onChanged: (e) {
+                              //   isEnable = !isEnable;
+                              //   setState(() {});
+                              // },
+
+                              onChanged: _onNotificationToggle,
+                            ),
+                          ),
+                          onTap: () {},
+                        ),
+
+                        Divider(),
+                        buildSettingTile(
+                          image: AssetImages.termsConditions,
+                          title: 'Terms & Conditions',
+                          trailingIcon: AppIconWidget(
+                            assetPath: AssetImages.iosForward,
+                          ),
+                          onTap: () {
+                            AppRoutes.pushNamed(
+                              AppRoutes.webViewScreen,
+                              arguments: WebViewModel(
+                                appbar: CustomAppBar(
+                                  title: "Terms and Condition",
+                                  leadingSvg: AssetImages.backArrow,
+                                ),
+                                link: AppUrls.termsAndConditions,
+                                isGenerateUrl: true,
+                              ),
+                            );
+                          },
+                        ),
+
+                        Divider(),
+                        buildSettingTile(
+                          image: AssetImages.feedBack,
+                          title: 'Feedback',
+                          trailingIcon: AppIconWidget(
+                            assetPath: AssetImages.iosForward,
+                          ),
+                          onTap: () {
+                            AppRoutes.pushNamed(
+                              AppRoutes.webViewScreen,
+                              arguments: WebViewModel(
+                                appbar: CustomAppBar(
+                                  title: "Feedback",
+                                  leadingSvg: AssetImages.backArrow,
+                                ),
+                                link: AppUrls.feedBackURL,
+                                isGenerateUrl: true,
+                              ),
+                            );
+                          },
+                        ),
+                        Divider(),
+                        buildSettingTile(
+                          image: AssetImages.aboutUs,
+                          title: 'About us',
+                          trailingIcon: AppIconWidget(
+                            assetPath: AssetImages.iosForward,
+                          ),
+                          onTap: () {
+                            AppRoutes.pushNamed(
+                              AppRoutes.webViewScreen,
+                              arguments: WebViewModel(
+                                appbar: CustomAppBar(
+                                  title: "About Us",
+                                  leadingSvg: AssetImages.backArrow,
+                                ),
+                                link: AppUrls.aboutUsURL,
+                                isGenerateUrl: true,
+                              ),
+                            );
+                          },
+                        ),
+
+                        Divider(),
+
+                        buildSettingTile(
+                          image: AssetImages.privacyPolicy,
+                          title: 'Privacy & Policy',
+                          trailingIcon: AppIconWidget(
+                            assetPath: AssetImages.iosForward,
+                          ),
+                          onTap: () {
+                            AppRoutes.pushNamed(
+                              AppRoutes.webViewScreen,
+                              arguments: WebViewModel(
+                                appbar: CustomAppBar(
+                                  title: "Privacy & Policy",
+                                  leadingSvg: AssetImages.backArrow,
+                                ),
+                                link: AppUrls.privacyPolicyLink,
+                                isGenerateUrl: true,
+                              ),
+                            );
+                          },
+                        ),
+                        Divider(),
+                        buildSettingTile(
+                          image: AssetImages.privacyPolicy,
+                          title: 'Disclaimer',
+                          trailingIcon: AppIconWidget(
+                            assetPath: AssetImages.iosForward,
+                          ),
+                          onTap: () {
+                            AppDialogue.showPopup(
+                              context: context,
+                              content: DisclaimerPopUP(isFromOnBoard: false),
+                            );
+                            // AppRoutes.pop();
+                          },
+                        ),
+                        Divider(),
+                        buildSettingTile(
+                          image: AssetImages.star,
+                          title: 'Rate Us',
+                          trailingIcon: AppIconWidget(
+                            assetPath: AssetImages.iosForward,
+                          ),
+                          onTap: () {
+                            int rating = 5;
+                            AppDialogue.showPopup(
+                              context: context,
+                              content: StatefulBuilder(
+                                builder: (context, setDialogState) {
+                                  return Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    spacing: 15,
+                                    children: [
+                                      AppText(
+                                        text: 'How are you feeling ? ',
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+
+                                      CircleAvatar(
+                                        radius: 25,
+                                        child: AppIconWidget(
+                                          assetPath:
+                                          getEmoji(rating) ??
+                                              AssetImages.one_star,
+                                        ),
+                                      ),
+                                      Flexible(
+                                        child: Row(
+                                          mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                          children: List.generate(
+                                            5,
+                                                (stars) => GestureDetector(
+                                              onTap: () {
+                                                if (rating < 2) return;
+                                                setDialogState(() {
+                                                  int selectedStar = stars + 1;
+                                                  if (rating == selectedStar) {
+                                                    rating = rating - 1;
+                                                  } else {
+                                                    rating = selectedStar;
+                                                  }
+                                                });
+                                              },
+                                              child: AppIconWidget(
+                                                assetPath: stars < rating
+                                                    ? AssetImages.filled_star
+                                                    : AssetImages.empty_star,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+
+                                      AppButton(
+                                        title: rating > 3 ? 'Submit' : 'Feedback',
+                                        onTap: () async {
+                                          Uri url = Uri.parse(AppUrls.rateUs);
+                                          bool hasNet =
+                                          await AppUtils.checkConnectivity();
+                                          if (rating > 3) {
+                                            if (hasNet) {
+                                              if (!context.mounted) return;
+                                              context.pop();
+                                              await launchUrl(url);
+                                            } else {
+                                              if (!context.mounted) return;
+                                              AppSnackBar.show(
+                                                context: context,
+                                                message:
+                                                'PleaseCheck your Internet',
+                                              );
+                                            }
+                                          } else {
+                                            if (!context.mounted) return;
+                                            context.pop();
+                                            if (!context.mounted) return;
+                                            AppRoutes.pushNamed(
+                                              AppRoutes.webViewScreen,
+                                              arguments: WebViewModel(
+                                                link: AppUrls.feedBackURL,
+                                                isGenerateUrl: true,
+                                                webViewType: WebViewType.feedback,
+                                                appbar: CustomAppBar(
+                                                  title: 'Feedback',
+                                                  leadingSvg: AssetImages.backArrow,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ).padHorizontal(50),
+                                    ],
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                        Divider(),
+                        buildSettingTile(
+                          image: AssetImages.deleteAccount,
+                          title: 'Delete Account',
+                          trailingIcon: AppIconWidget(
+                            assetPath: AssetImages.iosForward,
+                          ),
+                          onTap: () {
+                            AppRoutes.pushNamed(AppRoutes.deleteAccountScreen);
+                          },
+                        ),
+                        Divider(),
+                        buildSettingTile(
+                          image: AssetImages.logOut,
+                          title: 'Logout',
+                          trailingIcon: AppIconWidget(
+                            assetPath: AssetImages.iosForward,
+                          ),
+                          onTap: () {
+                            AppDialogue.showPopup(
+                              context: context,
+                              content: LogoutPopUp(),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ).pad(20),
+            ),
+            if (_isOffline)
+              Container(
+                color: Colors.white,
+                child: const NoInternetWidget(),
               ),
-            ],
-          ).pad(20),
+          ],
         ),
       ),
     );

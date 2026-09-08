@@ -42,6 +42,7 @@ class AssetImages {
 
 
 
+
   //svg
   static const String message_icon = "assets/images/message_icon.svg";
   static const String arrow_forward = "assets/images/arrow_forward.svg";
@@ -142,6 +143,9 @@ class AssetImages {
   static const String requestSent = "assets/images/requestSent.svg";
   static const String call = "assets/images/call.svg";
   static const String copy = "assets/images/copy.svg";
+  static const String micNoInternet = "assets/images/micNotification.svg";
+  static const String noInternet = "assets/images/noInternet.svg";
+
 
 
 

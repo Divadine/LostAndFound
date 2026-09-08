@@ -157,7 +157,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 12,
-                vertical: 0,
+                vertical: 10,
               ),
               hintStyle: appTextStyle(
                 color: Colors.grey,

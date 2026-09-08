@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lost_and_found/models/posts_model/selected_location_model.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
+import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/shared_widgets/map_pin_loader.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
@@ -28,6 +31,7 @@ class MapScreenState extends State<MapScreen> {
   String? selectedAddress;
   GoogleMapController? mapController;
   BitmapDescriptor? _pinIcon;
+  LatLng? _tempCameraPosition;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
@@ -35,7 +39,8 @@ class MapScreenState extends State<MapScreen> {
   bool _isFetchingAddress = false;
   Timer? _debounce;
 
-  CameraPosition initialPosition = CameraPosition(target: LatLng(11.040366232580462, 76.99749305902779),zoom: 12);
+  CameraPosition initialPosition = const CameraPosition(
+      target: LatLng(11.040366232580462, 76.99749305902779), zoom: 12);
 
   @override
   void initState() {
@@ -46,9 +51,47 @@ class MapScreenState extends State<MapScreen> {
       selectedAddress = loc.address;
       initialPosition = CameraPosition(target: selectedLocation!, zoom: 15);
       searchController.text = loc.address;
+    } else {
+      _determinePosition();
     }
     _loadPinIcon();
     _initConnectivityListener();
+  }
+
+  Future<void> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return;
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) return;
+    }
+
+    if (permission == LocationPermission.deniedForever) return;
+
+    try {
+      Position position = await Geolocator.getCurrentPosition();
+      LatLng currentLatLng = LatLng(position.latitude, position.longitude);
+
+      if (mounted) {
+        setState(() {
+          selectedLocation = currentLatLng;
+          initialPosition = CameraPosition(target: currentLatLng, zoom: 15);
+        });
+
+        if (mapController != null) {
+          mapController!
+              .animateCamera(CameraUpdate.newLatLngZoom(currentLatLng, 15));
+        }
+        _getAddressFromLatLng(currentLatLng);
+      }
+    } catch (e) {
+      debugPrint("Error getting current location: $e");
+    }
   }
 
   Future<void> _loadPinIcon() async {
@@ -148,50 +191,113 @@ class MapScreenState extends State<MapScreen> {
       }
     });
   }
+
+  Widget _buildTopIconButton(
+      {required String icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 45,
+        width: 45,
+        decoration: BoxDecoration(
+          color: AppColors.primaryColor,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: AppIconWidget(
+            assetPath: icon,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
+    bool isNearbyMode = widget.model?.isNearby ?? false;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        toolbarHeight: 0,backgroundColor: AppColors.primaryColor,
+        toolbarHeight: 0,
+        backgroundColor: AppColors.primaryColor,
       ),
-
       body: Stack(
         children: [
           GoogleMap(
-              initialCameraPosition: initialPosition,
-
-              onMapCreated: (controller) {
-                mapController = controller;
-                setState(() {
-                  _isMapReady = true;
-                });
-              },
-
-              onTap: (LatLng location){
-                setState(() {
-                  selectedLocation = location;
-                });
-                _getAddressFromLatLng(location);
-              },
-              markers:selectedLocation == null ? {} : {
-                Marker(
-                  markerId: const MarkerId('location'),
-                  position: selectedLocation!,
-                  icon: _pinIcon ?? BitmapDescriptor.defaultMarker,
-                  anchor: const Offset(0.5, 1.0),
-                ),
+            initialCameraPosition: initialPosition,
+            onMapCreated: (controller) {
+              mapController = controller;
+              setState(() {
+                _isMapReady = true;
+              });
+              if (selectedLocation != null) {
+                controller.animateCamera(
+                    CameraUpdate.newLatLngZoom(selectedLocation!, 15));
               }
-
-
+            },
+            onTap: isNearbyMode
+                ? (LatLng location) {
+                    setState(() {
+                      selectedLocation = location;
+                    });
+                    _getAddressFromLatLng(location);
+                  }
+                : null,
+            onCameraMove: !isNearbyMode
+                ? (CameraPosition position) {
+                    _tempCameraPosition = position.target;
+                  }
+                : null,
+            onCameraIdle: !isNearbyMode
+                ? () {
+                    if (_tempCameraPosition != null) {
+                      setState(() {
+                        selectedLocation = _tempCameraPosition;
+                      });
+                      _getAddressFromLatLng(selectedLocation!);
+                    }
+                  }
+                : null,
+            markers: !isNearbyMode || selectedLocation == null
+                ? {}
+                : {
+                    Marker(
+                      markerId: const MarkerId('location'),
+                      position: selectedLocation!,
+                      icon: _pinIcon ?? BitmapDescriptor.defaultMarker,
+                      anchor: const Offset(0.5, 1.0),
+                    ),
+                  },
           ),
+          if (!isNearbyMode)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 35),
+                child: AppIconWidget(
+                  assetPath: AssetImages.map_pin,
+                  size: 50,
+                ),
+              ),
+            ),
 
           if (!_isMapReady || _isOffline)
             Container(
               color: Colors.white,
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: _isOffline
+                  ? const NoInternetWidget()
+                  : const Center(
+                      child: CircularProgressIndicator(),
+                    ),
             ),
 
           if (selectedLocation != null)
@@ -265,7 +371,7 @@ class MapScreenState extends State<MapScreen> {
                   ),
                   const SizedBox(height: 15),
                   AppButton(
-                    width: 120,
+                    width: 200,
                     title: 'Confirm location',
                     height: 50,
                     radius: BorderRadius.circular(10),
@@ -289,43 +395,28 @@ class MapScreenState extends State<MapScreen> {
 
 
 
-          //search box
+          //top bar
           Positioned(
-            top: MediaQuery.of(context).padding.top + 20,
-            left: 20,
-            right: 20,
+            top: MediaQuery.of(context).padding.top + 12,
+            left: 16,
+            right: 16,
             child: Row(
               children: [
-                GestureDetector(
+                _buildTopIconButton(
+                  icon: AssetImages.iosBackArrow,
                   onTap: () => Navigator.pop(context),
-                  child: Container(
-                    height: 50,
-                    width: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(Icons.arrow_back_ios_new, color: AppColors.primaryColor, size: 20),
-                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Container(
-                    height: 50,
+                    height: 45,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
                       ],
@@ -337,14 +428,21 @@ class MapScreenState extends State<MapScreen> {
                       },
                       controller: searchController,
                       decoration: InputDecoration(
-                        prefixIcon: Icon(Icons.search, size: 24, color: AppColors.primaryColor),
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: AppIconWidget(
+                            assetPath: AssetImages.search,
+                            color: Colors.grey,
+                            size: 18,
+                          ),
+                        ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 13),
-                        hintText: 'Search here...',
-                        hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        hintText: 'Search location',
+                        hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                         suffixIcon: searchController.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                                icon: const Icon(Icons.close, color: Colors.grey, size: 18),
                                 onPressed: () {
                                   searchController.clear();
                                   setState(() {});
@@ -354,6 +452,11 @@ class MapScreenState extends State<MapScreen> {
                       ),
                     ),
                   ),
+                ),
+                const SizedBox(width: 10),
+                _buildTopIconButton(
+                  icon: AssetImages.currentLocation,
+                  onTap: _determinePosition,
                 ),
               ],
             ),

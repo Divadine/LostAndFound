@@ -18,6 +18,7 @@ import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/shared_widgets/map_pin_loader.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_permission.dart';
@@ -1045,7 +1046,10 @@ class _LocationSelectionScreenState
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-
+      appBar: AppBar(
+        toolbarHeight: 0,
+        backgroundColor: AppColors.primaryColor,
+      ),
       body: Stack(
         children: [
           // ===================================================================
@@ -1100,14 +1104,18 @@ class _LocationSelectionScreenState
           if (!_isMapReady || _isOffline)
             Container(
               color: AppColors.white,
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: _isOffline
+                  ? const NoInternetWidget()
+                  : const Center(
+                      child: CircularProgressIndicator(),
+                    ),
             )
           else if (_isLoadingInitialLocation)
-            const Center(
+            Center(
               child: IgnorePointer(
-                child: CircularProgressIndicator(),
+                child: _isOffline
+                    ? const NoInternetWidget(size: 50)
+                    : const CircularProgressIndicator(),
               ),
             ),
 
@@ -1433,91 +1441,76 @@ class _LocationSelectionScreenState
       children: [
         buildIconContainer(
           context,
-
-          icon:
-          AssetImages
-              .iosBackArrow,
-
+          height: 45,
+          width: 45,
+          icon: AssetImages.iosBackArrow,
           onTap: () {
             context.pop();
           },
         ),
-
-        const SizedBox(
-          width: 10,
-        ),
-
+        const SizedBox(width: 10),
         Expanded(
-          child: AppTextField(
-            textController:
-            _searchController,
-
-            onChange:
-            _onSearchChanged,
-
-            onTap: () {
-              setState(() {
-                _searchFocused =
-                true;
-              });
-            },
-
-            hintText:
-            'Search location',
-
-            onSubmit: (v) {},
-
-            borderColor:
-            Colors.transparent,
-
-            prefixIcon:
-            AppIconWidget(
-              assetPath:
-              AssetImages.search,
-            ).pad(12),
-
-            suffixIcon:
-            _searchController
-                .text
-                .isNotEmpty
-                ? GestureDetector(
+          child: Container(
+            height: 45,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: AppTextField(
+              textController: _searchController,
+              onChange: _onSearchChanged,
               onTap: () {
-                _searchController
-                    .clear();
-
-                if (!_suggestionsController
-                    .isClosed) {
-                  _suggestionsController
-                      .add([]);
-                }
-
-                setState(() {});
+                setState(() {
+                  _searchFocused = true;
+                });
               },
-
-              child:
-              AppIconWidget(
-                assetPath:
-                AssetImages
-                    .close,
-              ).pad(3),
-            )
-                : null,
+              hintText: 'Search location',
+              onSubmit: (v) {},
+              borderColor: Colors.transparent,
+              prefixIcon: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: AppIconWidget(
+                  assetPath: AssetImages.search,
+                  color: Colors.grey,
+                  size: 18,
+                ),
+              ),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? GestureDetector(
+                      onTap: () {
+                        _searchController.clear();
+                        if (!_suggestionsController.isClosed) {
+                          _suggestionsController.add([]);
+                        }
+                        setState(() {});
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: AppIconWidget(
+                          assetPath: AssetImages.close,
+                          color: Colors.grey,
+                          size: 18,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
           ),
         ),
-
-        const SizedBox(
-          width: 10,
-        ),
-
+        const SizedBox(width: 10),
         buildIconContainer(
           context,
-
-          icon:
-          AssetImages
-              .currentLocation,
-
-          onTap:
-          _useCurrentLocation,
+          height: 45,
+          width: 45,
+          icon: AssetImages.currentLocation,
+          onTap: _useCurrentLocation,
         ),
       ],
     );
@@ -1660,7 +1653,7 @@ class _LocationSelectionScreenState
         ],
       ),
 
-      child: const Row(
+      child: Row(
         mainAxisSize:
         MainAxisSize.min,
 
@@ -1670,10 +1663,11 @@ class _LocationSelectionScreenState
 
             width: 16,
 
-            child:
-            CircularProgressIndicator(
-              strokeWidth: 2,
-            ),
+            child: _isOffline
+                ? const NoInternetWidget(size: 16)
+                : const CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
           ),
 
           SizedBox(
@@ -1870,12 +1864,15 @@ class _LocationSelectionScreenState
                     .isEmpty,
 
                 child:
-                AppButton(
-                  onTap:
-                  _confirm,
-
-                  title:
-                  'Confirm location',
+                Center(
+                  child: AppButton(
+                    width: 200,
+                    onTap:
+                    _confirm,
+  
+                    title:
+                    'Confirm location',
+                  ),
                 ),
               ),
             ),
@@ -1930,9 +1927,9 @@ class _LocationSelectionScreenState
           // ===================================================================
 
           if (isLoading)
-            const Padding(
+            Padding(
               padding:
-              EdgeInsets.only(
+              const EdgeInsets.only(
                 top: 2,
               ),
 
@@ -1941,10 +1938,11 @@ class _LocationSelectionScreenState
 
                 width: 16,
 
-                child:
-                CircularProgressIndicator(
-                  strokeWidth: 2,
-                ),
+                child: _isOffline
+                    ? const NoInternetWidget(size: 16)
+                    : const CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
               ),
             )
           else
@@ -2189,11 +2187,13 @@ class MapScreenModel {
   selectedLocation;
 
   final bool showPoliceStations;
+  final bool isNearby;
 
   MapScreenModel({
     required this.needSingleLocation,
     this.selectedLocation,
     this.showPoliceStations = false,
+    this.isNearby = false,
   });
 }
 

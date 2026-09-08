@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -18,6 +20,7 @@ import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/item_card.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/shared_widgets/sucess_card.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
@@ -46,10 +49,38 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
   String? errorMessage;
   PostEnquiriesModel? enquiryData;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   @override
   void initState() {
     super.initState();
+    _initConnectivityListener();
     _fetchEnquiries();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+
+    if (!offline && enquiryData == null && !isLoading) {
+      _fetchEnquiries();
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
   }
 
   Future<void> _openChat(
@@ -302,7 +333,11 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
 
   Widget _buildBody() {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return _isOffline
+          ? const NoInternetWidget()
+          : const Center(
+              child: CircularProgressIndicator(),
+            );
     }
 
     final post = enquiryData?.post;

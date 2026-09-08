@@ -36,6 +36,7 @@ class AppButton extends StatelessWidget {
       child: Container(
         height: height ?? 40,
         width: width ?? double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: bgColor ?? AppColors.primaryColor,
           border: border,
@@ -44,15 +45,20 @@ class AppButton extends StatelessWidget {
         child: Center(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             spacing: 10,
             children: [
               if (prefixIcon != null) AppIconWidget(assetPath: prefixIcon!),
 
-              AppText(
-                text: title,
-                fontSize:fontSize ??  18,
-                color: textColor ?? AppColors.white,
-                textAlign: TextAlign.center,
+              Flexible(
+                child: AppText(
+                  text: title,
+                  fontSize:fontSize ??  18,
+                  color: textColor ?? AppColors.white,
+                  textAlign: TextAlign.center,
+                  maxLine: 1,
+                  textOverflow: TextOverflow.ellipsis,
+                ),
               ),
 
               if (icon != null) AppIconWidget(assetPath: icon!,size: size,),

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,6 +16,7 @@ import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
@@ -70,6 +72,9 @@ class _SubCategoryScreenState
 
   bool isLoading = false;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   // ===========================================================================
   // STREAM
   // ===========================================================================
@@ -107,7 +112,22 @@ class _SubCategoryScreenState
       'Selected Category ID: ${widget.category.id}',
     );
 
+    _initConnectivityListener();
     _fetchSubCategories();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
   }
 
   // ===========================================================================
@@ -116,6 +136,7 @@ class _SubCategoryScreenState
 
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     _debounce?.cancel();
     searchController.dispose();
 
@@ -376,10 +397,11 @@ class _SubCategoryScreenState
                             [];
 
                     if (isLoading) {
-                      return const Center(
-                        child:
-                        CircularProgressIndicator(),
-                      );
+                      return _isOffline
+                          ? const NoInternetWidget()
+                          : const Center(
+                              child: CircularProgressIndicator(),
+                            );
                     }
 
                     if (subCat.isEmpty) {

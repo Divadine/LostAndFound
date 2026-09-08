@@ -1908,7 +1908,7 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
             ),
             Expanded(
               child: AppButton(
-                title: 'Enable location',
+                title: 'Enable',
                 onTap: () async {
                   Navigator.pop(context);
 
@@ -2609,3 +2609,69 @@ class ChatSendRequest extends StatelessWidget {
 //   }
 // }
 
+class AppMicAccess extends StatefulWidget {
+  const AppMicAccess({super.key});
+
+  @override
+  State<AppMicAccess> createState() => _AppMicAccessState();
+}
+
+class _AppMicAccessState extends State<AppMicAccess> {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      spacing: 5,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AppIconWidget(assetPath: AssetImages.micNoInternet),
+
+        SizedBox(height: 7),
+        AppText(
+          text: 'Turn your mic on ',
+          fontWeight: FontWeight.w500,
+          fontSize: 20,
+        ),
+        SizedBox(height: 7),
+        AppText(
+          text:
+          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          textAlign: .center,
+          color: AppColors.fieldGrey,
+        ).padHorizontal(10),
+        SizedBox(height: 15),
+        Row(
+          spacing: 10,
+          children: [
+            Expanded(
+              child: AppButton(
+                title: 'Cancel',
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                fontSize: 14,
+                bgColor: Colors.transparent,
+                border: Border.all(color: AppColors.black),
+                textColor: AppColors.black,
+                radius: BorderRadius.circular(7),
+              ),
+            ),
+            Expanded(
+              child: AppButton(
+                title: 'Enable',
+                onTap: () async {
+                  Navigator.pop(context);
+                  await Geolocator.openAppSettings();
+                },
+                fontSize: 16,
+
+                radius: BorderRadius.circular(7),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}

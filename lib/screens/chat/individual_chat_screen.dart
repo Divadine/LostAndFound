@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -18,6 +21,7 @@ import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/shared_widgets/item_card.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
@@ -115,6 +119,9 @@ class _IndividualChatScreenState
 
   bool _contactDialogShowing = false;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   final AuthControllers _authController =
   AuthControllers(
     authRepository: AuthRepository(
@@ -129,12 +136,27 @@ class _IndividualChatScreenState
     _otherUserPhone =
         widget.otherUserPhone.trim();
 
+    _initConnectivityListener();
     _loadPhoneAndInitialize();
 
     ChatService.markRoomAsRead(
       roomId: widget.roomId,
       userId: widget.currentUserId,
     );
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
   }
 
   Future<void> _loadPhoneAndInitialize() async {
@@ -322,6 +344,7 @@ class _IndividualChatScreenState
 
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     textController.dispose();
     super.dispose();
   }
@@ -756,13 +779,14 @@ class _IndividualChatScreenState
                 fontSize: 12,
               ),
             ),
-            const SizedBox(
+            SizedBox(
               width: 16,
               height: 16,
-              child:
-              CircularProgressIndicator(
-                strokeWidth: 2,
-              ),
+              child: _isOffline
+                  ? const NoInternetWidget(size: 16)
+                  : const CircularProgressIndicator(
+                      strokeWidth: 2,
+                    ),
             ),
           ],
         ).pad(8),
@@ -1156,10 +1180,11 @@ class _IndividualChatScreenState
           ) {
         if (snapshot.connectionState ==
             ConnectionState.waiting) {
-          return const Center(
-            child:
-            CircularProgressIndicator(),
-          );
+          return _isOffline
+              ? const NoInternetWidget()
+              : const Center(
+                  child: CircularProgressIndicator(),
+                );
         }
 
         if (snapshot.hasError) {

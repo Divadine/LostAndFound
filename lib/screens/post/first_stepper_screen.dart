@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
@@ -20,6 +22,7 @@ import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_step_indicator.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
@@ -54,6 +57,9 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   bool isSubmitting = false;
   String? errorMessage;
   bool _isPickingImage = false;
+
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
 
   final TextEditingController itemNameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController(); // generic mode only
@@ -104,6 +110,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     super.initState();
     categoryController.text = widget.category.name ?? '';
     subCategoryController.text = widget.subCategory?.name ?? '';
+    _initConnectivityListener();
     _fetchColors();
     
     // Ensure recorder is clean when starting a new post flow
@@ -117,8 +124,27 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     }
   }
 
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+
+    if (!offline && (dynamicFields.isEmpty && !_isGenericMode)) {
+      _fetchDynamicFields();
+    }
+  }
+
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     itemNameController.dispose();
     descriptionController.dispose();
     categoryController.dispose();
@@ -164,9 +190,6 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       return;
     }
 
-    // Color is always handled by the dedicated getColors dropdown —
-    // strip any "Color"/"Colour" field the subcategory's dynamic fields
-    // API returns, so it's never shown twice.
     final fields = response.data!.where((f) => !_isColorField(f)).toList();
 
     for (final field in fields) {
@@ -387,7 +410,11 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
           const AppStepIndicator(currentStep: 1, totalSteps: 2),
           Expanded(
             child: isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _isOffline
+                    ? const NoInternetWidget()
+                    : const Center(
+                        child: CircularProgressIndicator(),
+                      )
                 : errorMessage != null
                 ? Center(
               child: Padding(
@@ -463,6 +490,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                   buildTextFieldWithHeading(
                     title: 'Item Description',
                     fieldWidget: AppTextField(
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16,vertical: 12) ,
                       maxLines: 4,
                       borderColor: AppColors.fieldGrey,
                       borderRadius: BorderRadius.circular(5),

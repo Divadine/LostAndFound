@@ -522,6 +522,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                       buildTextFieldWithHeading(
                         title: 'Description',
                         fieldWidget: AppTextField(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12,vertical: 10) ,
                           hintText: 'write Description here',
                           textController: descriptionController,
                           onChange: (v) {},

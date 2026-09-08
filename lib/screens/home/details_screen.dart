@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -16,6 +19,7 @@ import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_audio_player.dart';
 import 'package:lost_and_found/shared_widgets/app_video_player.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/screens/bottomsheets/send_enquiry.dart';
 import 'package:lost_and_found/shared_widgets/sucess_card.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
@@ -67,9 +71,13 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
   bool hasEnquired = false;
   String? existingRoomId;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   @override
   void initState() {
     super.initState();
+    _initConnectivityListener();
 
     if (widget.postId != 0 && widget.userId != 0) {
       _fetchPostDetails();
@@ -77,6 +85,30 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
       isLoading = false;
       errorMessage = 'Invalid post details';
     }
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+
+    if (!offline && postDetails == null && !isLoading) {
+      _fetchPostDetails();
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
   }
 
   // ============================================================
@@ -275,9 +307,11 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
         elevation: 0,
       ),
       body: isLoading
-          ? const Center(
-        child: CircularProgressIndicator(),
-      )
+          ? _isOffline
+              ? const NoInternetWidget()
+              : const Center(
+                  child: CircularProgressIndicator(),
+                )
           : errorMessage != null
           ? _buildError()
           : postDetails == null

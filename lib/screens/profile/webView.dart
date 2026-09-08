@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_urls.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
@@ -374,23 +375,18 @@ class _WebViewScreenState extends State<WebViewScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (!isConnected)
-                  Expanded(
-                    child: AppText(text: "No Internet"),
-                    // NoInternet(
-                    //   tryAgain: () {
-                    //     _init();
-                    //   },
-                    // ),
+                  const Expanded(
+                    child: NoInternetWidget(),
                   )
                 else
                   Expanded(
                     child: _progress < 100
                         ? Center(
                             child: Platform.isIOS
-                                ? CupertinoActivityIndicator(
+                                ? const CupertinoActivityIndicator(
                                     color: AppColors.primaryColor,
                                   )
-                                : CircularProgressIndicator(
+                                : const CircularProgressIndicator(
                                     color: AppColors.primaryColor,
                                   ),
                           )

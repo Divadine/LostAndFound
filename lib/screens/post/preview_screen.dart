@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
@@ -13,6 +15,7 @@ import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
@@ -87,11 +90,29 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
   VideoPlayerController? _videoController;
   bool _isVideoPlaying = false;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   @override
   void initState() {
     super.initState();
+    _initConnectivityListener();
     _setupAudio();
     _setupVideo();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
   }
 
   Future<void> _setupAudio() async {
@@ -142,6 +163,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
 
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     _waveController.dispose();
     _videoController?.dispose();
     super.dispose();
@@ -606,7 +628,14 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
     if (_videoController == null || !_videoController!.value.isInitialized) {
       return AspectRatio(
         aspectRatio: 16 / 9,
-        child: Container(color: AppColors.fieldGrey, child: const Center(child: CircularProgressIndicator())),
+        child: Container(
+          color: AppColors.fieldGrey,
+          child: _isOffline
+              ? const NoInternetWidget(size: 50)
+              : const Center(
+                  child: CircularProgressIndicator(),
+                ),
+        ),
       );
     }
     return ClipRRect(

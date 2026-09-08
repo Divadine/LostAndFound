@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
@@ -8,6 +11,7 @@ import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/screens/bottomsheets/handover_selection.dart';
 import 'package:lost_and_found/shared_widgets/item_card.dart';
 import 'package:lost_and_found/shared_widgets/sucess_card.dart';
@@ -61,10 +65,38 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
   bool isLoadingMatches = true;
   String? matchesErrorMessage;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   @override
   void initState() {
     super.initState();
+    _initConnectivityListener();
     _fetchMatches();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+
+    if (!offline && matches.isEmpty && !isLoadingMatches) {
+      _fetchMatches();
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchMatches() async {
@@ -160,7 +192,11 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
 
             Expanded(
               child: isLoadingMatches
-                  ? const Center(child: CircularProgressIndicator())
+                  ? _isOffline
+                      ? const NoInternetWidget()
+                      : const Center(
+                          child: CircularProgressIndicator(),
+                        )
                   : matches.isEmpty
                   ? const Center(child: AppText(text: 'No matches found yet'))
                   : ListView.builder(

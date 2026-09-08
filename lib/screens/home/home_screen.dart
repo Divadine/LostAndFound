@@ -24,6 +24,7 @@ import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/item_card.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/shared_widgets/sucess_card.dart';
 
 import 'package:lost_and_found/utils/app_colors.dart';
@@ -66,6 +67,9 @@ class _HomeScreenState extends State<HomeScreen>
   late TabController _tabController;
 
   int _selectedIndex = 0;
+
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
 
   // ============================================================
   // LOST POSTS
@@ -233,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     try {
-      final userId = await AppPreferences.getUserId();
+      final userId = AppPreferences.getUserId();
 
       final response = filterState.filterApplied
           ? await authController.filterPosts(
@@ -316,7 +320,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     try {
-      final userId = await AppPreferences.getUserId();
+      final userId = AppPreferences.getUserId();
 
       final response = filterState.filterApplied
           ? await authController.filterPosts(
@@ -445,13 +449,29 @@ class _HomeScreenState extends State<HomeScreen>
       }
     });
 
+    _initConnectivityListener();
+
     _fetchLostPosts();
     _fetchFoundPosts();
+  }
+
+  void _initConnectivityListener() async {
+    // Check initial state
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+
+    // Listen for changes
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      _updateOfflineStatus(results);
+    });
   }
 
   void _updateOfflineStatus(List<ConnectivityResult> results) {
     final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
     if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
 
     if (!offline) {
       _fetchLostPosts();
@@ -465,6 +485,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     _tabController.dispose();
     filterStateStream.close();
     _lostScrollController.dispose();
@@ -507,6 +528,7 @@ class _HomeScreenState extends State<HomeScreen>
                   width: double.infinity,
                   color: AppColors.primaryColor,
                 ),
+
 
                 // ====================================================
                 // HOME BOX IMAGE
@@ -768,9 +790,7 @@ class _HomeScreenState extends State<HomeScreen>
                           // ========================================
 
                           GestureDetector(
-                            onTap:
-                            _showContactRequestDialog,
-
+                            onTap: (){},
                             child: AppIconWidget(
                               assetPath:
                               AssetImages.notification,
@@ -842,6 +862,11 @@ class _HomeScreenState extends State<HomeScreen>
                     ],
                   ),
                 ),
+                if (_isOffline)
+                  Container(
+                    color: Colors.white,
+                    child: const NoInternetWidget(),
+                  ),
               ],
             ),
           ),
@@ -856,9 +881,11 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildLostTab(Map<String, int> seenCounts, Map<String, int> totalCounts) {
     if (isLoadingLost) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return _isOffline
+          ? const NoInternetWidget()
+          : const Center(
+              child: CircularProgressIndicator(),
+            );
     }
 
     if (lostPosts.isEmpty) {
@@ -971,11 +998,13 @@ class _HomeScreenState extends State<HomeScreen>
               itemCount: lostPosts.length + (isMoreLoadingLost ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == lostPosts.length) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
-                    ),
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: _isOffline
+                        ? const NoInternetWidget(size: 50)
+                        : const Center(
+                            child: CircularProgressIndicator(),
+                          ),
                   );
                 }
                 final post = lostPosts[index];
@@ -1038,9 +1067,11 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildFoundTab(Map<String, int> seenCounts, Map<String, int> totalCounts) {
     if (isLoadingFound) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return _isOffline
+          ? const NoInternetWidget()
+          : const Center(
+              child: CircularProgressIndicator(),
+            );
     }
 
     if (foundPosts.isEmpty) {
@@ -1153,11 +1184,13 @@ class _HomeScreenState extends State<HomeScreen>
               itemCount: foundPosts.length + (isMoreLoadingFound ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == foundPosts.length) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
-                    ),
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: _isOffline
+                        ? const NoInternetWidget(size: 50)
+                        : const Center(
+                            child: CircularProgressIndicator(),
+                          ),
                   );
                 }
                 final post = foundPosts[index];

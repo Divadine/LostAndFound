@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -14,6 +15,7 @@ import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
@@ -68,6 +70,9 @@ class _CategoryRadiosListsScreenState
   int totalCategories = 0;
   final int limit = 10;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   final ScrollController _scrollController = ScrollController();
 
   // ===========================================================================
@@ -105,7 +110,22 @@ class _CategoryRadiosListsScreenState
       }
     });
 
+    _initConnectivityListener();
     _fetchCategories();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
   }
 
   // ===========================================================================
@@ -114,6 +134,7 @@ class _CategoryRadiosListsScreenState
 
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     _debounce?.cancel();
     searchController.dispose();
     _scrollController.dispose();
@@ -304,9 +325,11 @@ class _CategoryRadiosListsScreenState
                   final catData = snapshot.data ?? [];
 
                   if (isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
+                    return _isOffline
+                        ? const NoInternetWidget()
+                        : const Center(
+                            child: CircularProgressIndicator(),
+                          );
                   }
 
                   if (catData.isEmpty) {
@@ -323,11 +346,13 @@ class _CategoryRadiosListsScreenState
                     itemCount: catData.length + (isMoreLoading ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == catData.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(),
-                          ),
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: _isOffline
+                              ? const NoInternetWidget(size: 50)
+                              : const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
                         );
                       }
                       final category = catData[index];
