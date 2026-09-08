@@ -18,6 +18,7 @@ import 'package:lost_and_found/models/categories_model/sub_category_model.dart';
 import 'package:lost_and_found/models/posts_model/create_post1_response_model.dart';
 import 'package:lost_and_found/models/posts_model/enquiry_model.dart';
 import 'package:lost_and_found/models/posts_model/post_list_model.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/models/posts_model/post_match_item.dart';
 import 'package:lost_and_found/models/posts_model/single_match_item.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
@@ -297,12 +298,14 @@ class AuthControllers {
     required String name,
     required String description,
   }) async {
+    final profileImg = AppPreferences.getUserAvatar();
     return await authRepository.createEnquiry(
       userId: userId,
       postId: postId,
       matchedPostId: matchedPostId,
       name: name,
       description: description,
+      enquirerProfileImg: profileImg,
     );
   }
 

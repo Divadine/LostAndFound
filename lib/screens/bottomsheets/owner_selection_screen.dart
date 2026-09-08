@@ -98,19 +98,25 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
         }
       }
 
-      // SUPPLEMENT: Also check chat rooms for enquiries where the current post was the matched post.
-      // This happens when the current user is the one who sent the enquiry.
+      // SUPPLEMENT: Also check chat rooms for enquiries where the current user is a participant.
       final currentUserId = AppPreferences.getUserId()?.toString();
       if (currentUserId != null) {
         try {
           final chatSnap = await FirebaseFirestore.instance
               .collection('chatRooms')
               .where('users', arrayContains: currentUserId)
-              .where('matchedPostId', isEqualTo: widget.postId.toString())
               .get();
 
           for (final doc in chatSnap.docs) {
             final data = doc.data();
+            final roomPostId = data['postId']?.toString() ?? '';
+            final roomMatchedPostId = data['matchedPostId']?.toString() ?? '';
+
+            // Filter rooms related to the current post (either as primary post or matched post)
+            if (roomPostId != widget.postId.toString() && roomMatchedPostId != widget.postId.toString()) {
+              continue;
+            }
+
             final users = List<String>.from(data['users'] ?? []);
             final otherUserIdStr = users.firstWhere((id) => id != currentUserId, orElse: () => '');
             if (otherUserIdStr.isEmpty) continue;
@@ -128,7 +134,9 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
             final participants = data['participants'] as Map<String, dynamic>? ?? {};
             final otherPart = participants[otherUserIdStr] as Map<String, dynamic>? ?? {};
 
-            final otherPostId = int.tryParse(data['postId']?.toString() ?? '0') ?? 0;
+            // The "other" post ID is the one that isn't the current widget.postId
+            final otherPostIdStr = (roomPostId == widget.postId.toString()) ? roomMatchedPostId : roomPostId;
+            final otherPostId = int.tryParse(otherPostIdStr) ?? 0;
 
             newOwners.add(HandoverOwnerModel(
               postId: otherPostId,

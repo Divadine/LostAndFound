@@ -57,7 +57,8 @@ class EnquirerAvatarModel {
       name: json['name']?.toString() ?? json['enquirer_name']?.toString() ?? '',
       imageUrl: json['image_url']?.toString() ??
           json['enquirer_profile_img']?.toString() ??
-          json['profile_img']?.toString() ?? '',
+          json['profile_img']?.toString() ??
+          json['avatar']?.toString() ?? '',
     );
   }
 }

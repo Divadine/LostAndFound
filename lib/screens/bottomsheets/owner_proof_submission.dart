@@ -66,6 +66,21 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
     _phoneFormatter.setInitialValue(widget.selectedOwner.phoneno);
     phoneController.text = _phoneFormatter.maskedValue;
     checkFormValidation();
+
+    if (widget.selectedOwner.phoneno.isEmpty) {
+      authController.getProfile(userId: widget.selectedOwner.userId).then((response) {
+        if (response.isSuccess && response.data != null) {
+          final phone = response.data!.mobile ?? '';
+          if (phone.isNotEmpty && mounted) {
+            setState(() {
+              _phoneFormatter.setInitialValue(phone);
+              phoneController.text = _phoneFormatter.maskedValue;
+              checkFormValidation();
+            });
+          }
+        }
+      });
+    }
   }
 
   @override
@@ -89,7 +104,9 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
 
   void checkFormValidation() {
     setState(() {
-      isFormValid = selectedImage != null && textController.text.trim().isNotEmpty;
+      isFormValid = selectedImage != null &&
+          textController.text.trim().isNotEmpty &&
+          _phoneFormatter.actualValue.length == 10;
     });
   }
 
@@ -102,16 +119,22 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
 
   // Called only after OTP verification succeeds.
   Future<void> _submitHandover() async {
-    if (selectedImage == null) return;
+    print('[Handover] _submitHandover started');
+    if (selectedImage == null) {
+      print('[Handover] No image selected');
+      return;
+    }
 
     setState(() => isSubmitting = true);
 
     try {
+      print('[Handover] Uploading proof photo...');
       final imageResponse = await authController.createImage(images: [selectedImage!]);
-      debugPrint('[Handover] createImage -> status=${imageResponse.status}, '
+      print('[Handover] createImage -> status=${imageResponse.status}, '
           'message=${imageResponse.message}, data=${imageResponse.data}');
 
       if (!imageResponse.isSuccess || imageResponse.data == null || imageResponse.data!.isEmpty) {
+        print('[Handover] Image upload failed');
         _showError(imageResponse.message.isNotEmpty ? imageResponse.message : 'Failed to upload photo');
         return;
       }
@@ -119,16 +142,18 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
 
       final currentUserId = await AppPreferences.getUserId();
       if (currentUserId == null) {
+        print('[Handover] User ID missing');
         _showError('User ID not found. Please login again.');
         return;
       }
 
       if (widget.enquiryId == 0) {
+        print('[Handover] Enquiry ID is 0');
         _showError('Missing enquiry reference. Please try again.');
         return;
       }
 
-      // NOTE: `type` / `handoverType` values — confirm exact enum with backend.
+      print('[Handover] Creating handover via API...');
       final handoverResponse = await authController.createHandover(
         type: widget.isReceiver ? 2 : 1,
         userId: currentUserId,
@@ -142,16 +167,20 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
         handoverType: 1,
       );
 
-      debugPrint('[Handover] createHandover -> status=${handoverResponse.status}, '
+      print('[Handover] createHandover -> status=${handoverResponse.status}, '
           'message=${handoverResponse.message}, '
-          'currentState=${handoverResponse.currentState}');
+          'isSuccess=${handoverResponse.isSuccess}');
 
-      if (!mounted) return;
+      if (!mounted) {
+        print('[Handover] Not mounted, skipping navigation');
+        return;
+      }
 
       if (handoverResponse.isSuccess) {
-        // Backend marks the post as completed as part of createHandover —
-        // no separate "complete post" call needed.
-        AppRoutes.pop();
+        print('[Handover] Handover successful! Showing TransferCompleted dialog');
+        // Backend marks the post as completed as part of createHandover.
+        // We do not pop the screen here because TransferCompleted's "Done" 
+        // button handles the double pop to close both the dialog and this form.
         AppDialogue.showPopup(
           context: context,
           content: TransferCompleted(
@@ -167,13 +196,14 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
           ),
         );
       } else {
+        print('[Handover] createHandover failed: ${handoverResponse.message}');
         _showError(handoverResponse.message.isNotEmpty
             ? handoverResponse.message
             : 'Failed to create handover');
       }
     } catch (e, st) {
-      debugPrint('[Handover] Exception: $e');
-      debugPrint('[Handover] StackTrace: $st');
+      print('[Handover] Exception during handover: $e');
+      print('[Handover] StackTrace: $st');
       if (mounted) {
         _showError('Something went wrong while creating the handover.\n$e');
       }
@@ -197,21 +227,37 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
               children: [
                 CircleAvatar(
                   radius: 26,
+                  backgroundColor: Colors.transparent, // Fix: remove unwanted background
                   child: (widget.selectedOwner.profileImageUrl != null &&
                       widget.selectedOwner.profileImageUrl!.isNotEmpty)
                       ? AppCachedNetworkImage(
                     imageUrl: widget.selectedOwner.profileImageUrl!,
                     fit: BoxFit.cover,
+                    width: 52, // Fix: set width to fill CircleAvatar
+                    height: 52, // Fix: set height to fill CircleAvatar
                     borderRadius: BorderRadius.circular(30),
                   )
                       : Icon(Icons.person, color: AppColors.primaryColor),
                 ),
                 const SizedBox(width: 15),
-                AppText(
-                  text: widget.selectedOwner.name,
-                  fontSize: 13,
-                  color: AppColors.primaryColor,
-                  fontWeight: FontWeight.w600,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppText(
+                      text: widget.selectedOwner.name,
+                      fontSize: 13,
+                      color: AppColors.primaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    const SizedBox(height: 2),
+                    AppText(
+                      text: 'LF${widget.selectedOwner.userId.toString().padLeft(4, '0')}', // Fix: format Owner ID
+                      fontSize: 11,
+                      color: AppColors.black.withAlpha(150),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ],
                 ),
                 Spacer(),
                 Container(
@@ -259,13 +305,14 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
           buildProofDocuments(
             title: '3. Phone Number',
             subTitle: 'OTP will be sent to this number for confirmation.',
-            widget: buildTextFieldWithHeading(
-              title: '',
-              fieldWidget: AppTextField(
-                prefixIcon: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            widget: Row( // Fix: Separate containers for country code and number
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    border: Border(right: BorderSide(color: AppColors.fieldGrey)),
+                    border: Border.all(color: AppColors.fieldGrey.withAlpha(20)),
+                    borderRadius: BorderRadius.circular(6),
+                    color: Colors.white,
                   ),
                   child: AppText(
                     text: '+91',
@@ -274,20 +321,25 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                     color: AppColors.numberGrey,
                   ),
                 ),
-                suffixIcon: AppIconWidget(assetPath: AssetImages.phoneVerified).padHorizontal(),
-                hintText: 'Enter a mobile number',
-                textController: phoneController,
-                readOnly: true,
-                textInputType: TextInputType.phone,
-                maxLength: 10,
-                inputFormatters: [_phoneFormatter],
-                validator: (e) {
-                  if (e == null) return null;
-                  return AppUtils.validateMobileNumber(_phoneFormatter.actualValue);
-                },
-                onChange: (value) => checkFormValidation(),
-                onSubmit: (v) {},
-              ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: AppTextField(
+                    suffixIcon: AppIconWidget(assetPath: AssetImages.phoneVerified).padHorizontal(),
+                    hintText: 'Enter a mobile number',
+                    textController: phoneController,
+                    readOnly: true,
+                    textInputType: TextInputType.phone,
+                    maxLength: 10,
+                    inputFormatters: [_phoneFormatter],
+                    validator: (e) {
+                      if (e == null) return null;
+                      return AppUtils.validateMobileNumber(_phoneFormatter.actualValue);
+                    },
+                    onChange: (value) => checkFormValidation(),
+                    onSubmit: (v) {},
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -296,27 +348,28 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
           AppButton(
             title: isSubmitting ? 'Sending...' : 'Send OTP',
             onTap: (isFormValid && !isSubmitting)
-                ? () {
-              AppDialogue.showPopup(
+                ? () async {
+              print('[Handover] Send OTP tapped. Phone: ${_phoneFormatter.actualValue}');
+              final result = await AppDialogue.showPopup(
                 context: context,
                 content: OtpSharedScreen(
                   isAlternateNumber: true,
                   mobileNumber: _phoneFormatter.maskedValue,
                   onVerifyOtp: (otp) async {
+                    print('[Handover] Verifying OTP: $otp');
                     final response = await authController.verifyHandoverOtp(
                       phone: _phoneFormatter.actualValue,
                       otp: otp,
                     );
-                    if (response.status == 1) {
-                      await _submitHandover();
-                      return null;
-                    }
-                    return response.message;
+                    print('[Handover] verifyHandoverOtp -> status=${response.status}, message=${response.message}');
+                    return response.status == 1 ? null : response.message;
                   },
                   onSendOtp: () async {
+                    print('[Handover] Requesting Handover OTP for ${_phoneFormatter.actualValue}');
                     final response = await authController.generateHandoverOtp(
                       phone: _phoneFormatter.actualValue,
                     );
+                    print('[Handover] generateHandoverOtp -> isSuccess=${response.isSuccess}, message=${response.message}');
                     if (response.isSuccess) return null;
                     if (response.currentState == CurrentState.noInternet) {
                       return 'No internet connection. Please check your network.';
@@ -325,6 +378,12 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                   },
                 ),
               );
+
+              print('[Handover] OTP Dialog result: $result');
+              if (result == true) {
+                print('[Handover] OTP verified successfully, calling _submitHandover');
+                await _submitHandover();
+              }
             }
                 : () {},
             fontSize: 14,

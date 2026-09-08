@@ -778,6 +778,7 @@ class AuthRepository {
     required int matchedPostId,
     required String name,
     required String description,
+    String? enquirerProfileImg,
   }) async {
     final response = await apiClient.post(
       ApiEndPoints.createEnquiry,
@@ -787,6 +788,7 @@ class AuthRepository {
         'matched_postid': matchedPostId,
         'name': name,
         'description': description,
+        if (enquirerProfileImg != null) 'enquirer_profile_img': enquirerProfileImg,
       },
       addToken: false,
     );

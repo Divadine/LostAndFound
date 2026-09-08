@@ -114,6 +114,7 @@ class EnquiryItem {
       postUid: json['post_uid']?.toString() ?? json['postUid']?.toString() ?? '',
       enquirerName: json['enquirer_name']?.toString() ?? json['name']?.toString() ?? '',
       enquirerProfileImg: json['enquirer_profile_img']?.toString() ??
+          json['image_url']?.toString() ??
           json['profile_img']?.toString() ??
           json['avatar']?.toString() ??
           '',

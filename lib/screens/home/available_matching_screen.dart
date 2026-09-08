@@ -148,6 +148,20 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
   @override
   Widget build(BuildContext context) {
     final isClosed = widget.status == 2;
+
+    // Find the winning match if the post is closed
+    MatchItemModel? winnerMatch;
+    if (isClosed || widget.isReceived) {
+      for (final m in matches) {
+        if (m.status == 2) {
+          winnerMatch = m;
+          break;
+        }
+      }
+    }
+
+    final winnerName = winnerMatch?.posterName ?? (widget.isFound ? 'Owner' : 'Finder');
+
     return Scaffold(
       backgroundColor: isClosed ? AppColors.closedColor : AppColors.white,
       appBar: CustomAppBar(
@@ -240,7 +254,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
       bottomNavigationBar: widget.status == 2
           ? SafeArea(
               child: SucessCard(
-                name: widget.title,
+                name: winnerName,
                 location: widget.date,
                 isReceiver: !widget.isFound,
                 onTap: () {
@@ -256,12 +270,15 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                           ? TransferType.handOverToOwner
                           : TransferType.receiveToOwner,
                       data: TransferData(
-                        name: widget.title,
-                        avatarUrl: widget.imgUrl,
-                        userId: widget.postUid,
+                        name: winnerName,
+                        avatarUrl: winnerMatch?.posterAvatar ?? widget.imgUrl,
+                        userId: winnerMatch?.userUid ?? widget.postUid,
                         phoneNumber: '',
-                        description: "Item successfully closed",
-                        proofPhotos: [widget.imgUrl],
+                        description: winnerMatch?.description ?? "Item successfully closed",
+                        proofPhotos: winnerMatch != null && winnerMatch.postImages.isNotEmpty
+                            ? [winnerMatch.postImages]
+                            : [widget.imgUrl],
+                        matchPercentage: winnerMatch?.matchPercentage,
                       ),
                     ),
                   );
@@ -271,7 +288,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
           : widget.isReceived
               ? SafeArea(
                   child: SucessCard(
-                    name: widget.title,
+                    name: winnerName,
                     location: widget.date,
                     onTap: () {
                       AppUiHelper.showBottomSheet(
@@ -284,9 +301,10 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                         child: ReceivedDetails(
                           type: TransferType.receiveToOwner,
                           data: TransferData(
-                            name: widget.title,
-                            phoneNumber: widget.postUid,
-                            description: "Successfully processed",
+                            name: winnerName,
+                            phoneNumber: winnerMatch?.userUid ?? widget.postUid,
+                            description: winnerMatch?.description ?? "Successfully processed",
+                            avatarUrl: winnerMatch?.posterAvatar ?? '',
                           ),
                         ),
                       );
