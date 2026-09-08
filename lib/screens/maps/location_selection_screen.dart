@@ -403,8 +403,10 @@ class _LocationSelectionScreenState
     if (!granted) return;
 
     try {
-      final position =
-      await Geolocator.getCurrentPosition();
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 5),
+      );
 
       await _setPinFromLatLng(
         LatLng(
@@ -1451,7 +1453,7 @@ class _LocationSelectionScreenState
         const SizedBox(width: 10),
         Expanded(
           child: Container(
-            height: 45,
+            constraints: const BoxConstraints(minHeight: 45),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),

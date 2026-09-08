@@ -159,74 +159,83 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
         onLeadingTap: () => AppRoutes.pop(),
       ),
       body: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          spacing: 10,
+        child: Stack(
           children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              spacing: 10,
+              children: [
 
-            ItemCard(
-              isFromEnquiry: true,
-              isFound: widget.isFound,
-              imgUrl: widget.imgUrl,
-              title: widget.title,
-              location: widget.location,
-              date: widget.date,
-              postId: widget.postUid,
-              bg: AppColors.lightBlue_2,
-              onTap: () {},
-              showPostId: true,
-              status: widget.status,
+                ItemCard(
+                  isFromEnquiry: true,
+                  isFound: widget.isFound,
+                  imgUrl: widget.imgUrl,
+                  title: widget.title,
+                  location: widget.location,
+                  date: widget.date,
+                  postId: widget.postUid,
+                  bg: AppColors.lightBlue_2,
+                  onTap: () {},
+                  showPostId: true,
+                  status: widget.status,
+                ).pad(),
+
+                AppContainer(
+                  bgColor: isClosed ? AppColors.closedColor : AppColors.white,
+                  widget: AppText(
+                    text: 'Matching Items(${isLoadingMatches ? (widget.foundCount ?? 0) : matchingCount})',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.primaryColor,
+                    textAlign: TextAlign.center,
+                  ).pad(12),
+                ),
+
+
+                Expanded(
+                  child: isLoadingMatches
+                      ? _isOffline
+                          ? const NoInternetWidget()
+                          : const Center(
+                              child: CircularProgressIndicator(),
+                            )
+                      : matches.isEmpty
+                      ? const Center(child: AppText(text: 'No matches found yet'))
+                      : ListView.builder(
+                    itemCount: matches.length,
+                    itemBuilder: (context, index) {
+                      final match = matches[index];
+
+                      return ItemCard(
+                        imageWidth: 170,
+                        isFromEnquiry: true,
+                        isFound: !widget.isFound, // Matches for Lost item are Found, matches for Found item are Lost.
+                        imgUrl: match.postImages,
+                        title: match.name,
+                        location: match.location,
+                        date: _formatDate(match.postDate),
+                        postId: match.postUid,
+                        bg: AppColors.white,
+                        onTap: () => _onMatchTap(match),
+                        percentageMatch: match.matchPercentage,
+                        showPostId: false,
+                        profileId: match.userUid,
+                        profileUrl: match.posterAvatar.isNotEmpty ? match.posterAvatar : null,
+                        profileName: match.posterName,
+                        status: match.status,
+                      ).padBottom(10);
+                    },
+                  ),
+                ),
+              ],
             ).pad(),
-
-            AppContainer(
-              bgColor: isClosed ? AppColors.closedColor : AppColors.white,
-              widget: AppText(
-                text: 'Matching Items(${isLoadingMatches ? (widget.foundCount ?? 0) : matchingCount})',
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primaryColor,
-                textAlign: TextAlign.center,
-              ).pad(12),
-            ),
-
-
-            Expanded(
-              child: isLoadingMatches
-                  ? _isOffline
-                      ? const NoInternetWidget()
-                      : const Center(
-                          child: CircularProgressIndicator(),
-                        )
-                  : matches.isEmpty
-                  ? const Center(child: AppText(text: 'No matches found yet'))
-                  : ListView.builder(
-                itemCount: matches.length,
-                itemBuilder: (context, index) {
-                  final match = matches[index];
-
-                  return ItemCard(
-                    imageWidth: 170,
-                    isFromEnquiry: true,
-                    isFound: !widget.isFound, // Matches for Lost item are Found, matches for Found item are Lost.
-                    imgUrl: match.postImages,
-                    title: match.name,
-                    location: match.location,
-                    date: _formatDate(match.postDate),
-                    postId: match.postUid,
-                    bg: AppColors.white,
-                    onTap: () => _onMatchTap(match),
-                    percentageMatch: match.matchPercentage,
-                    showPostId: false,
-                    profileId: match.userUid,
-                    profileUrl: match.posterAvatar.isNotEmpty ? match.posterAvatar : null,
-                    profileName: match.posterName,
-                    status: match.status,
-                  ).padBottom(10);
-                },
+            if (_isOffline)
+              Container(
+                color: Colors.white,
+                child: const NoInternetWidget(),
               ),
-            ),
           ],
-        ).pad(),
+        ),
       ),
       bottomNavigationBar: widget.status == 2
           ? SafeArea(

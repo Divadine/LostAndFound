@@ -98,11 +98,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (!sendOtpResponse.isSuccess) {
       // e.g. this number is already registered, no internet, server error, etc.
-      final message = sendOtpResponse.currentState == CurrentState.noInternet
-          ? 'No internet connection. Please check your network.'
-          : (sendOtpResponse.message.isNotEmpty
+      if (sendOtpResponse.currentState == CurrentState.noInternet) {
+        AppSnackBar.show(
+          context: context,
+          message: 'No internet connection. Please check your network.',
+        );
+        return;
+      }
+
+      final message = sendOtpResponse.message.isNotEmpty
           ? sendOtpResponse.message
-          : 'This number is already registered.');
+          : 'This number is already registered.';
       numberStream.add(message);
       setState(() {
         errorText = message;

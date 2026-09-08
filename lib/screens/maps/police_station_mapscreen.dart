@@ -200,8 +200,25 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
     }
 
     try {
-      final position =
-      await Geolocator.getCurrentPosition();
+      // Try to get last known position first for faster response
+      Position? position = await Geolocator.getLastKnownPosition();
+      
+      if (position != null) {
+        _currentPosition = position;
+        _referencePosition = LatLng(position.latitude, position.longitude);
+        // If we have a last known position, we can already move the camera if map is ready
+        _moveCameraToReference();
+      }
+
+      // Get current position with lower accuracy for speed
+      // If getLastKnownPosition was successful, this will just refresh it
+      position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 5),
+      ).timeout(const Duration(seconds: 5), onTimeout: () {
+        if (position != null) return position!;
+        throw TimeoutException("Failed to get location");
+      });
 
       _currentPosition = position;
 
@@ -709,7 +726,7 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
         const SizedBox(width: 10),
         Expanded(
           child: Container(
-            height: 45,
+            constraints: const BoxConstraints(minHeight: 45),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),

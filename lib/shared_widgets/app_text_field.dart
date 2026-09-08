@@ -107,12 +107,13 @@ class AppTextField extends StatelessWidget {
                   onChange(value);
                 },
                 decoration: InputDecoration(
+                  isDense: true,
                   counterText: '',
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding: contentPadding ?? const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 0,
+                    vertical: 10,
                   ),
                   hintText: hintText,
                   hintStyle: hintStyle ?? appTextStyle(color: Colors.grey),

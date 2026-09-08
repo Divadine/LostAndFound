@@ -74,7 +74,32 @@ class MapScreenState extends State<MapScreen> {
     if (permission == LocationPermission.deniedForever) return;
 
     try {
-      Position position = await Geolocator.getCurrentPosition();
+      // Try to get last known position first for faster response
+      Position? position = await Geolocator.getLastKnownPosition();
+      
+      if (position != null) {
+        LatLng lastLatLng = LatLng(position.latitude, position.longitude);
+        if (mounted) {
+          setState(() {
+            selectedLocation = lastLatLng;
+            initialPosition = CameraPosition(target: lastLatLng, zoom: 15);
+          });
+          if (mapController != null) {
+            mapController!.animateCamera(CameraUpdate.newLatLngZoom(lastLatLng, 15));
+          }
+          _getAddressFromLatLng(lastLatLng);
+        }
+      }
+
+      // Get current position with lower accuracy for speed
+      position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 5),
+      ).timeout(const Duration(seconds: 5), onTimeout: () {
+        if (position != null) return position!;
+        throw TimeoutException("Failed to get location");
+      });
+
       LatLng currentLatLng = LatLng(position.latitude, position.longitude);
 
       if (mounted) {

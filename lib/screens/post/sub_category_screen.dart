@@ -214,6 +214,13 @@ class _SubCategoryScreenState
   }) async {
     if (!mounted) return;
 
+    if (_isOffline) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
     setState(() {
       isLoading = true;
       selectedIndex = null;
@@ -381,28 +388,22 @@ class _SubCategoryScreenState
 
               const SizedBox(height: 15),
 
-              // IMPORTANT:
-              // Expanded directly inside Column.
-              Expanded(
-                child: StreamBuilder<
-                    List<SubCategoryModel>>(
-                  stream:
-                  subCategoryStream.stream,
-                  initialData:
-                  subCategories,
-                  builder:
-                      (context, snapshot) {
-                    final subCat =
-                        snapshot.data ??
-                            [];
+            // IMPORTANT:
+            // Expanded directly inside Column.
+            Expanded(
+              child: _isOffline
+                  ? const NoInternetWidget()
+                  : StreamBuilder<List<SubCategoryModel>>(
+                stream: subCategoryStream.stream,
+                initialData: subCategories,
+                builder: (context, snapshot) {
+                  final subCat = snapshot.data ?? [];
 
-                    if (isLoading) {
-                      return _isOffline
-                          ? const NoInternetWidget()
-                          : const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                    }
+                  if (isLoading) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
 
                     if (subCat.isEmpty) {
                       return CategoryNotFound(
@@ -467,11 +468,10 @@ class _SubCategoryScreenState
 
         bottomNavigationBar:
         SafeArea(
-          child: selectedIndex != null
+          child: (selectedIndex != null && !_isOffline)
               ? AppButton(
             title: 'Next',
-            icon: AssetImages
-                .arrow_forward,
+            icon: AssetImages.arrow_forward,
             onTap: _onNext,
           ).pad(16)
               : const SizedBox.shrink(),

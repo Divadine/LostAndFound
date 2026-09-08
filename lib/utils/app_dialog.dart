@@ -1,8 +1,12 @@
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
+import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/enums/handover_type.dart';
 import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
 import 'package:lost_and_found/models/handover/handover_type.dart';
@@ -17,6 +21,7 @@ import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
@@ -155,7 +160,40 @@ class _DeletePopUpState extends State<DeletePopUp> {
 
   bool isDeleting = false;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivityListener();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
+
   Future<void> _onConfirmDelete() async {
+    if (_isOffline) {
+      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      return;
+    }
     final userId = AppPreferences.getUserId();
     if (userId == null) {
       AppRoutes.pop();
@@ -190,6 +228,9 @@ class _DeletePopUpState extends State<DeletePopUp> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isOffline) {
+      return const NoInternetWidget();
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -245,54 +286,65 @@ class ProfileReportPopUp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AppIconWidget(assetPath: AssetImages.hazards),
-        SizedBox(height: 7),
-        AppText(
-          text: 'Profile Report Limit Reached',
-          fontWeight: FontWeight.w500,
-          fontSize: 18,
-        ),
-        SizedBox(height: 7),
-        AppText(
-          text:
-              'You’ve reached the maximum number of reports allowed for row. As a precaution has been temporally restricted. If you believe is a mistake. Please submit a request for review.',
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-          textAlign: .center,
-        ).padHorizontal(20),
-        SizedBox(height: 15),
-        Row(
-          spacing: 10,
+    return StreamBuilder<List<ConnectivityResult>>(
+      stream: Connectivity().onConnectivityChanged,
+      builder: (context, snapshot) {
+        final results = snapshot.data ?? [];
+        final isOffline = results.contains(ConnectivityResult.none) || (snapshot.hasData && results.isEmpty);
+
+        if (isOffline) {
+          return const NoInternetWidget();
+        }
+        return Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: AppButton(
-                title: ' Cancel',
-                onTap: () {
-                  Navigator.pop(context);
-                },
-                fontSize: 14,
-                bgColor: Colors.transparent,
-                border: Border.all(color: AppColors.grey),
-                textColor: AppColors.grey,
-                radius: BorderRadius.circular(20),
-              ),
+            AppIconWidget(assetPath: AssetImages.hazards),
+            SizedBox(height: 7),
+            AppText(
+              text: 'Profile Report Limit Reached',
+              fontWeight: FontWeight.w500,
+              fontSize: 18,
             ),
-            Expanded(
-              child: AppButton(
-                title: 'Justify',
-                onTap: () {},
-                fontSize: 14,
-                bgColor: AppColors.primaryColor,
-                textColor: AppColors.white,
-                radius: BorderRadius.circular(20),
-              ),
+            SizedBox(height: 7),
+            AppText(
+              text:
+                  'You’ve reached the maximum number of reports allowed for row. As a precaution has been temporally restricted. If you believe is a mistake. Please submit a request for review.',
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              textAlign: .center,
+            ).padHorizontal(20),
+            SizedBox(height: 15),
+            Row(
+              spacing: 10,
+              children: [
+                Expanded(
+                  child: AppButton(
+                    title: ' Cancel',
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    fontSize: 14,
+                    bgColor: Colors.transparent,
+                    border: Border.all(color: AppColors.grey),
+                    textColor: AppColors.grey,
+                    radius: BorderRadius.circular(20),
+                  ),
+                ),
+                Expanded(
+                  child: AppButton(
+                    title: 'Justify',
+                    onTap: () {},
+                    fontSize: 14,
+                    bgColor: AppColors.primaryColor,
+                    textColor: AppColors.white,
+                    radius: BorderRadius.circular(20),
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      }
     );
   }
 }
@@ -302,35 +354,46 @@ class SubmissionReceivedPopUp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AppIconWidget(assetPath: AssetImages.submit),
-        SizedBox(height: 7),
-        AppText(
-          text: 'Submission Received',
-          fontWeight: FontWeight.w500,
-          fontSize: 18,
-        ),
-        SizedBox(height: 7),
-        AppText(
-          text:
-              'We’ve received your request and it is under review by our team.  \n We’ll Contact you via email/phone once a verification process is completed.',
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-          textAlign: .center,
-          color: AppColors.grey,
-        ).padHorizontal(20),
-        SizedBox(height: 15),
-        AppButton(
-          title: 'Done',
-          onTap: () {},
-          fontSize: 14,
-          bgColor: AppColors.primaryColor,
-          textColor: AppColors.white,
-          radius: BorderRadius.circular(20),
-        ).padHorizontal(25),
-      ],
+    return StreamBuilder<List<ConnectivityResult>>(
+      stream: Connectivity().onConnectivityChanged,
+      builder: (context, snapshot) {
+        final results = snapshot.data ?? [];
+        final isOffline = results.contains(ConnectivityResult.none) || (snapshot.hasData && results.isEmpty);
+
+        if (isOffline) {
+          return const NoInternetWidget();
+        }
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppIconWidget(assetPath: AssetImages.submit),
+            SizedBox(height: 7),
+            AppText(
+              text: 'Submission Received',
+              fontWeight: FontWeight.w500,
+              fontSize: 18,
+            ),
+            SizedBox(height: 7),
+            AppText(
+              text:
+                  'We’ve received your request and it is under review by our team.  \n We’ll Contact you via email/phone once a verification process is completed.',
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              textAlign: .center,
+              color: AppColors.grey,
+            ).padHorizontal(20),
+            SizedBox(height: 15),
+            AppButton(
+              title: 'Done',
+              onTap: () {},
+              fontSize: 14,
+              bgColor: AppColors.primaryColor,
+              textColor: AppColors.white,
+              radius: BorderRadius.circular(20),
+            ).padHorizontal(25),
+          ],
+        );
+      }
     );
   }
 }
@@ -340,26 +403,37 @@ class AlreadySubmittedPopUP extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AppIconWidget(assetPath: AssetImages.tickmark),
-        SizedBox(height: 7),
-        AppText(
-          text: 'Already Submitted',
-          fontWeight: FontWeight.w500,
-          fontSize: 18,
-        ),
-        SizedBox(height: 7),
-        AppText(
-          text:
-              'You have already submitted a request. Our teams is currently reviewing it. Thanks for you patience.',
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-          textAlign: .center,
-          color: AppColors.grey,
-        ).padHorizontal(20),
-      ],
+    return StreamBuilder<List<ConnectivityResult>>(
+      stream: Connectivity().onConnectivityChanged,
+      builder: (context, snapshot) {
+        final results = snapshot.data ?? [];
+        final isOffline = results.contains(ConnectivityResult.none) || (snapshot.hasData && results.isEmpty);
+
+        if (isOffline) {
+          return const NoInternetWidget();
+        }
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppIconWidget(assetPath: AssetImages.tickmark),
+            SizedBox(height: 7),
+            AppText(
+              text: 'Already Submitted',
+              fontWeight: FontWeight.w500,
+              fontSize: 18,
+            ),
+            SizedBox(height: 7),
+            AppText(
+              text:
+                  'You have already submitted a request. Our teams is currently reviewing it. Thanks for you patience.',
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              textAlign: .center,
+              color: AppColors.grey,
+            ).padHorizontal(20),
+          ],
+        );
+      }
     );
   }
 }
@@ -376,8 +450,40 @@ class DisclaimerPopUP extends StatefulWidget {
 class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
   bool isChecked = false;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivityListener();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isOffline) {
+      return const NoInternetWidget();
+    }
     return Column(
       spacing: 15,
       mainAxisSize: MainAxisSize.min,
@@ -517,7 +623,40 @@ class _LogoutPopUpState extends State<LogoutPopUp> {
 
   bool isLoggingOut = false;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivityListener();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
+
   Future<void> _onConfirmLogout() async {
+    if (_isOffline) {
+      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      return;
+    }
     final userId = AppPreferences.getUserId();
     if (userId == null) {
       AppRoutes.pop();
@@ -549,6 +688,9 @@ class _LogoutPopUpState extends State<LogoutPopUp> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isOffline) {
+      return const NoInternetWidget();
+    }
     return Column(
       spacing: 5,
       mainAxisSize: MainAxisSize.min,
@@ -661,81 +803,93 @@ class TransferCompleted extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        spacing: 7,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ======================================================
-          // SUCCESS ICON
-          // ======================================================
+    return StreamBuilder<List<ConnectivityResult>>(
+      stream: Connectivity().onConnectivityChanged,
+      builder: (context, snapshot) {
+        final results = snapshot.data ?? [];
+        final isOffline = results.contains(ConnectivityResult.none) || (snapshot.hasData && results.isEmpty);
 
-          AppIconWidget(
-            assetPath: AssetImages.handoverToOwner,
-          ),
+        if (isOffline) {
+          return const NoInternetWidget();
+        }
+        return SingleChildScrollView(
+          child: Column(
+            spacing: 7,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ======================================================
+              // SUCCESS ICON
+              // ======================================================
 
-          const SizedBox(height: 7),
+              AppIconWidget(
+                assetPath: AssetImages.handoverToOwner,
+              ),
 
-          // ======================================================
-          // TITLE
-          // ======================================================
+              const SizedBox(height: 7),
 
-          AppText(
-            text: completedTitle,
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
+              // ======================================================
+              // TITLE
+              // ======================================================
 
-          const SizedBox(height: 7),
+              AppText(
+                text: completedTitle,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
 
-          // ======================================================
-          // DESCRIPTION
-          // ======================================================
+              const SizedBox(height: 7),
 
-          AppText(
-            text: completedDescription,
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            textAlign: TextAlign.center,
-            color: AppColors.grey,
-          ).padHorizontal(20),
+              // ======================================================
+              // DESCRIPTION
+              // ======================================================
 
-          // ======================================================
-          // USER / POLICE / OTHERS CARD
-          // ======================================================
+              AppText(
+                text: completedDescription,
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                textAlign: TextAlign.center,
+                color: AppColors.grey,
+              ).padHorizontal(20),
 
-          _buildPersonCard(),
+              // ======================================================
+              // USER / POLICE / OTHERS CARD
+              // ======================================================
 
-          const SizedBox(height: 10),
+              _buildPersonCard(),
 
-          // ======================================================
-          // DONE
-          // ======================================================
+              const SizedBox(height: 10),
 
-          AppButton(
-            title: 'Done',
-            fontSize: 14,
-            onTap: () {
-              AppRoutes.pop();
+              // ======================================================
+              // DONE
+              // ======================================================
 
-              AppUiHelper.showBottomSheet(
-                showHandle: false,
-                showCloseIcon: true,
-                onClose: () {
-                  AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+              AppButton(
+                title: 'Done',
+                fontSize: 14,
+                onTap: () {
+                  AppRoutes.pop();
+                  AppRoutes.pop();
+
+                  AppUiHelper.showBottomSheet(
+                    showHandle: false,
+                    showCloseIcon: true,
+                    onClose: () {
+                      AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+                    },
+                    context: context,
+                    child: ReceivedDetails(
+                      type: type,
+                      data: data,
+                    ),
+                  );
                 },
-                context: context,
-                child: ReceivedDetails(
-                  type: type,
-                  data: data,
-                ),
-              );
-            },
-            bgColor: AppColors.primaryColor,
-            radius: BorderRadius.circular(7),
+                bgColor: AppColors.primaryColor,
+                radius: BorderRadius.circular(7),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      }
     );
   }
 
@@ -1444,41 +1598,52 @@ class PostLive extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      spacing: 5,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AppIconWidget(assetPath: AssetImages.livePost),
-        SizedBox(height: 7),
-        AppText(
-          text: 'Your Post is live!',
-          fontWeight: FontWeight.w600,
-          fontSize: 20,
-        ),
-        SizedBox(height: 7),
-        AppText(
-          text: 'We will notify you when we find a matching item.',
-          fontSize: 16,
-          fontWeight: FontWeight.w400,
-          textAlign: .center,
-          color: AppColors.grey,
-        ).padHorizontal(20),
+    return StreamBuilder<List<ConnectivityResult>>(
+      stream: Connectivity().onConnectivityChanged,
+      builder: (context, snapshot) {
+        final results = snapshot.data ?? [];
+        final isOffline = results.contains(ConnectivityResult.none) || (snapshot.hasData && results.isEmpty);
 
-        SizedBox(height: 10),
-        AppButton(
-          title: 'Go to Home',
-          fontSize: 14,
-          onTap: () async {
-            await AppPreferences.setIsItemPosted(true);
-            if (!context.mounted) return;
-            Navigator.of(context).pop();
-            AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
-          },
-          bgColor: AppColors.primaryColor,
+        if (isOffline) {
+          return const NoInternetWidget();
+        }
+        return Column(
+          spacing: 5,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppIconWidget(assetPath: AssetImages.livePost),
+            SizedBox(height: 7),
+            AppText(
+              text: 'Your Post is live!',
+              fontWeight: FontWeight.w600,
+              fontSize: 20,
+            ),
+            SizedBox(height: 7),
+            AppText(
+              text: 'We will notify you when we find a matching item.',
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              textAlign: .center,
+              color: AppColors.grey,
+            ).padHorizontal(20),
 
-          radius: BorderRadius.circular(7),
-        ),
-      ],
+            SizedBox(height: 10),
+            AppButton(
+              title: 'Go to Home',
+              fontSize: 14,
+              onTap: () async {
+                await AppPreferences.setIsItemPosted(true);
+                if (!context.mounted) return;
+                Navigator.of(context).pop();
+                AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+              },
+              bgColor: AppColors.primaryColor,
+
+              radius: BorderRadius.circular(7),
+            ),
+          ],
+        );
+      }
     );
   }
 }
@@ -1508,23 +1673,51 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
   bool isLoading = true;
   String? errorMessage;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   static const _othersId = -1;
   static final DeletePostReasons _othersOption = DeletePostReasons(id: _othersId, text: 'Others');
 
   @override
   void initState() {
     super.initState();
+    _initConnectivityListener();
     fetchReasons();
   }
 
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     reasonController.dispose();
     super.dispose();
   }
 
-  Future<void> fetchReasons() async {
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
 
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+
+    if (!offline && reasons.isEmpty && !isLoading) {
+      fetchReasons();
+    }
+  }
+
+  Future<void> fetchReasons() async {
+    if (_isOffline) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
     setState(() {
       isLoading = true;
       errorMessage = null;
@@ -1552,6 +1745,9 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
   bool get _isOthersSelected => selectedReason?.id == _othersId || selectedReason?.text.toLowerCase() == 'others';
   @override
   Widget build(BuildContext context) {
+    if (_isOffline) {
+      return const NoInternetWidget();
+    }
     return SingleChildScrollView(
       child: Column(
         spacing: 5,
@@ -1716,7 +1912,40 @@ class _DeletePostDialogState extends State<DeletePostDialog> {
 
   bool isDeleting = false;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivityListener();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
+
   Future<void> confirmDelete() async {
+    if (_isOffline) {
+      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      return;
+    }
     print('CONFIRM DELETE CALLED — postId: ${widget.postId}, reason: ${widget.reason}');
     setState(() => isDeleting = true);
     final response = await authController.deletePost(postId: widget.postId, reason: widget.reason);
@@ -1734,7 +1963,10 @@ class _DeletePostDialogState extends State<DeletePostDialog> {
       AppRoutes.pop();
       widget.onDeleted?.call(widget.postId);
     }else {
-      AppDialogue.showPopup(context: context, content: AppText(text: response.message.isNotEmpty ? response.message : 'Failed to delete post',),);
+      final msg = response.currentState == CurrentState.noInternet
+          ? 'No internet connection. Please check your network.'
+          : (response.message.isNotEmpty ? response.message : 'Failed to delete post');
+      AppSnackBar.show(context: context, message: msg);
     }
 
   }
@@ -1742,6 +1974,9 @@ class _DeletePostDialogState extends State<DeletePostDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isOffline) {
+      return const NoInternetWidget();
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1799,8 +2034,40 @@ class AppLocationAccess extends StatefulWidget {
 }
 
 class _AppLocationAccessState extends State<AppLocationAccess> {
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivityListener();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isOffline) {
+      return const NoInternetWidget();
+    }
     return Column(
       spacing: 5,
       mainAxisSize: MainAxisSize.min,
@@ -1841,7 +2108,7 @@ class _AppLocationAccessState extends State<AppLocationAccess> {
             ),
             Expanded(
               child: AppButton(
-                title: 'Allow location',
+                title: 'Allow',
                 onTap: () async {
                   Navigator.pop(context);
                   await Geolocator.openAppSettings();
@@ -1866,8 +2133,40 @@ class DeviceLocationAccess extends StatefulWidget {
 }
 
 class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivityListener();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isOffline) {
+      return const NoInternetWidget();
+    }
     return Column(
       spacing: 5,
       mainAxisSize: MainAxisSize.min,
@@ -1944,11 +2243,44 @@ class _BlockChatState extends State<BlockChat> {
   bool _isUnblocking = false;
   bool _isDeleting = false;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivityListener();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
+
   // ============================================================
   // UNBLOCK
   // ============================================================
 
   Future<void> _handleUnblock() async {
+    if (_isOffline) {
+      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      return;
+    }
     if (_isUnblocking || _isDeleting) return;
 
     setState(() {
@@ -1988,6 +2320,10 @@ class _BlockChatState extends State<BlockChat> {
   // ============================================================
 
   Future<void> _handleDeleteChat() async {
+    if (_isOffline) {
+      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      return;
+    }
     if (_isUnblocking || _isDeleting) return;
 
     setState(() {
@@ -2024,6 +2360,9 @@ class _BlockChatState extends State<BlockChat> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isOffline) {
+      return const NoInternetWidget();
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2158,13 +2497,43 @@ class _ReportChatReasonSheetState extends State<ReportChatReasonSheet> {
     return true;
   }
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivityListener();
+  }
+
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     othersController.dispose();
     super.dispose();
   }
 
-  void _onSubmit() {
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
+
+  void _onSubmit() async {
+    bool hasNet = await AppUtils.checkConnectivity();
+    if (!hasNet) {
+      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      return;
+    }
+
     final reason = isOthers ? othersController.text.trim() : selectedReason!;
 
     AppRoutes.pop(); // close this sheet
@@ -2186,6 +2555,9 @@ class _ReportChatReasonSheetState extends State<ReportChatReasonSheet> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isOffline) {
+      return const NoInternetWidget();
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2282,7 +2654,47 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
   bool isChecked = false;
   bool isSubmitting = false;
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivityListener();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
+
   Future<void> _submitReport() async {
+    if (_isOffline) {
+      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      return;
+    }
+    bool hasNet = await AppUtils.checkConnectivity();
+    if (!hasNet) {
+      if (!mounted) return;
+      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      return;
+    }
+
     setState(() => isSubmitting = true);
 
     final response = await widget.authControllers.createReport(
@@ -2313,6 +2725,9 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isOffline) {
+      return const NoInternetWidget();
+    }
     return Column(
       spacing: 5,
       mainAxisSize: MainAxisSize.min,
@@ -2617,13 +3032,42 @@ class AppMicAccess extends StatefulWidget {
 }
 
 class _AppMicAccessState extends State<AppMicAccess> {
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initConnectivityListener();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
+  }
+
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       spacing: 5,
       mainAxisSize: MainAxisSize.min,
       children: [
-        AppIconWidget(assetPath: AssetImages.micNoInternet),
+        AppIconWidget(assetPath: AssetImages.mic),
 
         SizedBox(height: 7),
         AppText(
@@ -2634,7 +3078,7 @@ class _AppMicAccessState extends State<AppMicAccess> {
         SizedBox(height: 7),
         AppText(
           text:
-          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+          'Microphone access is required to record and send voice messages in chat.',
           fontSize: 14,
           fontWeight: FontWeight.w400,
           textAlign: .center,
@@ -2648,7 +3092,7 @@ class _AppMicAccessState extends State<AppMicAccess> {
               child: AppButton(
                 title: 'Cancel',
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(context, false);
                 },
                 fontSize: 14,
                 bgColor: Colors.transparent,
@@ -2661,11 +3105,16 @@ class _AppMicAccessState extends State<AppMicAccess> {
               child: AppButton(
                 title: 'Enable',
                 onTap: () async {
-                  Navigator.pop(context);
-                  await Geolocator.openAppSettings();
+                  final status = await Permission.microphone.status;
+                  if (status.isPermanentlyDenied) {
+                    await openAppSettings();
+                    if (context.mounted) Navigator.pop(context, false);
+                  } else {
+                    final newStatus = await Permission.microphone.request();
+                    if (context.mounted) Navigator.pop(context, newStatus.isGranted);
+                  }
                 },
                 fontSize: 16,
-
                 radius: BorderRadius.circular(7),
               ),
             ),

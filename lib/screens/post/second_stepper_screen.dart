@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:audio_waveforms/audio_waveforms.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,6 +19,7 @@ import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'reording_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_step_indicator.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
@@ -112,9 +114,14 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
   final AppLocationPermission _appPermissions = AppLocationPermission();
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   @override
   void initState() {
     super.initState();
+
+    _initConnectivityListener();
 
     // Use post frame callback to avoid notifyListeners() or stream events
     // triggering rebuilds during the navigation transition/build phase.
@@ -153,6 +160,20 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     }
   }
 
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  }
+
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
+  }
+
   Future<void> _initInitialVideo(File file) async {
     _videoController?.dispose();
     _videoController = VideoPlayerController.file(file);
@@ -165,6 +186,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     _videoController?.dispose();
     locationController.close();
     dateStreamController.close();
@@ -320,6 +342,10 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
 
   Future<void> _goToPreview() async {
+    if (_isOffline) {
+      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      return;
+    }
     if (loc.isEmpty) {
       AppSnackBar.show(context: context, message: 'Please add a location');
       return;
@@ -394,7 +420,9 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
             children: [
               const AppStepIndicator(currentStep: 2, totalSteps: 2),
               Expanded(
-                child: SingleChildScrollView(
+                child: _isOffline
+                    ? const NoInternetWidget()
+                    : SingleChildScrollView(
                   child: Column(
                     children: [
                       buildTextFieldWithHeading(
@@ -597,6 +625,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                           }
                       ),
                       const SizedBox(height: 10),
+                      if (!_isOffline)
                       AppButton(
                         title: 'Review & Submit',
                         onTap: _goToPreview,

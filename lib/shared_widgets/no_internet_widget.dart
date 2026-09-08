@@ -12,6 +12,7 @@ class NoInternetWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           AppIconWidget(
             assetPath: AssetImages.noInternet,

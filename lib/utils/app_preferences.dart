@@ -69,6 +69,15 @@ class AppPreferences {
     return _prefs.getBool(_askedAppLocationPermission) ?? false ;
   }
 
+  static const String _askedMicPermission = 'asked_mic_permission_before';
+
+  static Future<bool> setAskedMicPermission(bool asked) async {
+    return _prefs.setBool(_askedMicPermission, asked);
+  }
+
+  static bool getAskedMicPermission() {
+    return _prefs.getBool(_askedMicPermission) ?? false;
+  }
 
   static Future<void> logout() async {
     await _prefs.remove(_tokenKey);

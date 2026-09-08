@@ -156,6 +156,9 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   }
 
   Future<void> _fetchColors() async {
+    if (_isOffline) {
+      return;
+    }
     setState(() => isLoadingColors = true);
 
     final response = await authController.getColors();
@@ -171,6 +174,12 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   }
 
   Future<void> _fetchDynamicFields() async {
+    if (_isOffline) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
     setState(() {
       isLoading = true;
       errorMessage = null;
@@ -312,6 +321,10 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   }
 
   Future<void> _onSubmit() async {
+    if (_isOffline) {
+      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      return;
+    }
     if (selectedImages.isEmpty) {
       AppSnackBar.show(context: context, message: 'Please upload at least one image');
       return;
@@ -409,12 +422,12 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         children: [
           const AppStepIndicator(currentStep: 1, totalSteps: 2),
           Expanded(
-            child: isLoading
-                ? _isOffline
-                    ? const NoInternetWidget()
-                    : const Center(
-                        child: CircularProgressIndicator(),
-                      )
+            child: _isOffline
+                ? const NoInternetWidget()
+                : isLoading
+                ? const Center(
+              child: CircularProgressIndicator(),
+            )
                 : errorMessage != null
                 ? Center(
               child: Padding(
@@ -510,7 +523,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: isLoading || errorMessage != null
+      bottomNavigationBar: (isLoading || errorMessage != null || _isOffline)
           ? null
           : AppButton(
         radius: BorderRadius.circular(5),

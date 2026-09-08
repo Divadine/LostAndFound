@@ -156,6 +156,13 @@ class _CategoryRadiosListsScreenState
   }) async {
     if (!mounted) return;
 
+    if (_isOffline && !isLoadMore) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
     setState(() {
       if (isLoadMore) {
         isMoreLoading = true;
@@ -318,18 +325,18 @@ class _CategoryRadiosListsScreenState
             // IMPORTANT:
             // Expanded is directly inside Column.
             Expanded(
-              child: StreamBuilder<List<CategoryModel>>(
+              child: _isOffline
+                  ? const NoInternetWidget()
+                  : StreamBuilder<List<CategoryModel>>(
                 stream: mainApiCategoryStream.stream,
                 initialData: categories,
                 builder: (context, snapshot) {
                   final catData = snapshot.data ?? [];
 
                   if (isLoading) {
-                    return _isOffline
-                        ? const NoInternetWidget()
-                        : const Center(
-                            child: CircularProgressIndicator(),
-                          );
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
                   }
 
                   if (catData.isEmpty) {
@@ -373,7 +380,7 @@ class _CategoryRadiosListsScreenState
       ),
 
       bottomNavigationBar: SafeArea(
-        child: selectedIndex != null
+        child: (selectedIndex != null && !_isOffline)
             ? AppButton(
           title: 'Next',
           icon: AssetImages.arrow_forward,

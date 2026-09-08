@@ -5,6 +5,7 @@ import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
+import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
@@ -83,7 +84,11 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
     if (error == null) {
       _startTimer();
     } else {
-      setState(() => errorText = error);
+      if (error == 'No internet connection. Please check your network.') {
+        AppSnackBar.show(context: context, message: error);
+      } else {
+        setState(() => errorText = error);
+      }
     }
   }
 

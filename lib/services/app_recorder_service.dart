@@ -73,8 +73,13 @@ class AppRecorderService extends ChangeNotifier {
   }
 
   Future<bool> _ensureMicPermission() async {
-    final status = await Permission.microphone.request();
-    return status.isGranted;
+    try {
+      final hasPermission = await _recorder.hasPermission();
+      return hasPermission;
+    } catch (e) {
+      debugPrint("Error checking mic permission: $e");
+      return false;
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -82,28 +87,38 @@ class AppRecorderService extends ChangeNotifier {
   // ---------------------------------------------------------------------
 
   Future<String?> startRecording() async {
-    if (!await _ensureMicPermission()) return null;
+    try {
+      if (!await _ensureMicPermission()) return null;
 
-    final dir = await getTemporaryDirectory();
-    audioPath = "${dir.path}/${DateTime.now().millisecondsSinceEpoch}.m4a";
+      if (await _recorder.isRecording()) {
+        await _recorder.stop();
+      }
 
-    await _recorder.start(
-      const RecordConfig(
-        encoder: AudioEncoder.aacLc,
-        bitRate: 128000,
-        sampleRate: 44100,
-      ),
-      path: audioPath!,
-    );
+      final dir = await getTemporaryDirectory();
+      audioPath = "${dir.path}/${DateTime.now().millisecondsSinceEpoch}.m4a";
 
-    elapsed = Duration.zero;
-    state = RecorderState.recording;
+      elapsed = Duration.zero;
+      
+      await _recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          bitRate: 128000,
+          sampleRate: 44100,
+        ),
+        path: audioPath!,
+      );
 
-    _startTimer();
-    notifyListeners();
+      state = RecorderState.recording;
+      _startTimer();
+      notifyListeners();
 
-    return audioPath;
-
+      return audioPath;
+    } catch (e) {
+      debugPrint("Error starting recording: $e");
+      state = RecorderState.idle;
+      notifyListeners();
+      return null;
+    }
   }
 
   Future<void> pauseRecording() async {
@@ -117,6 +132,7 @@ class AppRecorderService extends ChangeNotifier {
     if (state != RecorderState.paused) return;
     await _recorder.resume();
     state = RecorderState.recording;
+    _startTime = DateTime.now().subtract(elapsed);
     notifyListeners();
   }
 
@@ -202,11 +218,14 @@ class AppRecorderService extends ChangeNotifier {
   }
 
 
+  DateTime? _startTime;
+
   void _startTimer() {
+    _startTime = DateTime.now().subtract(elapsed);
     _recordTimer?.cancel();
-    _recordTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _recordTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (state == RecorderState.recording) {
-        elapsed += const Duration(seconds: 1);
+        elapsed = DateTime.now().difference(_startTime!);
         notifyListeners();
       }
     });

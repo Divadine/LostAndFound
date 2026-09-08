@@ -14,6 +14,7 @@ import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
+import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'chat/chat_screen.dart';
 import 'authentication/role_chosen_screen.dart';
 import 'maps/police_station_mapscreen.dart';
@@ -161,9 +162,7 @@ class _BottomScreenState extends State<BottomScreen> {
               if (_isOffline)
                 Container(
                   color: Colors.white,
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  child: const NoInternetWidget(),
                 ),
             ],
           ),

@@ -361,11 +361,9 @@ class _SendEnquiryState extends State<SendEnquiry> {
             ? response.message
             : 'Failed to send enquiry';
 
-        AppDialogue.showPopup(
+        AppSnackBar.show(
           context: context,
-          content: AppText(
-            text: msg,
-          ),
+          message: msg,
         );
 
         return;

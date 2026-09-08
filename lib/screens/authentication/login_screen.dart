@@ -182,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         }else if (response.currentState == CurrentState.noInternet) {
                           AppSnackBar.show(
                             context: context,
-                            message: 'No internet connection. Please check your network and try again.',
+                            message: 'No internet connection. Please check your network.',
                           );
                         }
 

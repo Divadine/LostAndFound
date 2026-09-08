@@ -607,6 +607,53 @@ class ChatService {
     }, SetOptions(merge: true));
   }
 
+  static Future<void> sendVoiceMessage({
+    required String roomId,
+    required String senderId,
+    required String audioUrl,
+    required String duration,
+  }) async {
+    final roomRef = _rooms.doc(roomId);
+    final roomSnapshot = await roomRef.get();
+    if (!roomSnapshot.exists) throw Exception('Chat room does not exist');
+
+    final roomData = roomSnapshot.data()!;
+    final blockedBy = List<String>.from(roomData['blockedBy'] ?? []);
+    if (blockedBy.isNotEmpty) throw Exception('This chat is blocked.');
+
+    final users = List<String>.from(roomData['users'] ?? []);
+    final receiverId = users.firstWhere((id) => id != senderId, orElse: () => '');
+
+    final messageRef = roomRef.collection('messages').doc();
+    await messageRef.set({
+      'messageType': 'audio',
+      'senderId': senderId,
+      'message': '',
+      'audioUrl': audioUrl,
+      'duration': duration,
+      'createdAt': FieldValue.serverTimestamp(),
+      'isDeleted': false,
+      'deletedFor': <String>[],
+      'delivered': true,
+      'read': false,
+      'readBy': <String>[],
+    });
+
+    final unreadCounts = Map<String, dynamic>.from(roomData['unreadCounts'] ?? {});
+    unreadCounts[receiverId] = (unreadCounts[receiverId] ?? 0) + 1;
+
+    await roomRef.set({
+      'lastMessage': '🎤 Voice message',
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'lastMessageSenderId': senderId,
+      'lastMessageRead': false,
+      'lastMessageDelivered': true,
+      'lastMessageDeleted': false,
+      'lastMessageId': messageRef.id,
+      'unreadCounts': unreadCounts,
+    }, SetOptions(merge: true));
+  }
+
   // ============================================================
   // STREAMS & UTILS
   // ============================================================

@@ -131,7 +131,7 @@ class AppPermissions {
   Future<bool> requestLocationPermission(BuildContext context) async {
     if (await Permission.location.isGranted){
       return true;
-    };
+    }
 
     if (getLocationPref() == null) {
       final status = await Permission.location.request();
@@ -139,56 +139,18 @@ class AppPermissions {
         await setLocationPref(true);
       } else {
         await setLocationPref(false);
-
-
       }
     } else {
       await locationPermission(context);
-      // await goToDeviceSettings(context, locationPermissionContent);
     }
     return await Permission.location.isGranted;
   }
 
 
   locationPermission(BuildContext context) async {
-    await AppDialogue.showPopup(content: Column(
-      mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(AssetImages.location,height: 100,width: 100,),
-          SizedBox(
-            width: MediaQuery.of(context).size.width * 0.8,
-            child: Column(
-              spacing: 10,
-              children: [
-                AppText(text:
-                "Enable your Location",
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                  textAlign: TextAlign.center,
-                ),
-
-                AppText(text:
-                  "Location access is required to show nearby Police Stations. Please enable it in your device settings.",
-                  fontWeight: FontWeight.w400,
-                  fontSize: 16,
-                  color: AppColors.grey,
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(),
-                AppButton(onTap: ()async{
-                  if (await Permission.location.isGranted){
-                    Navigator.pop(context);
-                    return;
-                  };
-                  await openAppSettings();
-                }, title: 'Enable location', ),
-                SizedBox(),
-              ],
-            ),
-          ),
-
-        ],
-      ), context: context,
+    await AppDialogue.showPopup(
+      content: const LocationPermissionPopup(),
+      context: context,
     );
   }
 
@@ -197,7 +159,7 @@ class AppPermissions {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       return serviceEnabled;
     } catch (e) {
-      print("⚠️ Error checking location service: $e");
+     // print(\"⚠️ Error checking location service: $e\");
       return false;
     }
   }
@@ -227,21 +189,91 @@ class AppPermissions {
         content: ListView(
           shrinkWrap: true,
           children: [
-            AppText(text: 'Permission Required', fontWeight: FontWeight.bold, fontSize:18, textAlign: TextAlign.center,),
-            SizedBox(height: 20,),
+            const AppText(text: 'Permission Required', fontWeight: FontWeight.bold, fontSize:18, textAlign: TextAlign.center,),
+            const SizedBox(height: 20,),
             AppText(text: message, fontSize:16, textAlign: TextAlign.center,),
           ],
         ),
-        // noText: 'Close',
-        // yesText: 'Open settings',
-        // onConfirm: ()async{
-        //   Navigator.pop(context);
-        //   await Future.delayed(Duration(milliseconds: 300));
-        //   await openAppSettings();
-        // }
         );
 
   }
 }
 
+class LocationPermissionPopup extends StatefulWidget {
+  const LocationPermissionPopup({super.key});
 
+  @override
+  State<LocationPermissionPopup> createState() => _LocationPermissionPopupState();
+}
+
+class _LocationPermissionPopupState extends State<LocationPermissionPopup> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermission();
+    }
+  }
+
+  Future<void> _checkPermission() async {
+    if (await Permission.location.isGranted) {
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset(AssetImages.mapAccess),
+        SizedBox(
+          width: MediaQuery.of(context).size.width * 0.8,
+          child: Column(
+            spacing: 10,
+            children: [
+              const AppText(
+                text: "Enable your Location",
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                textAlign: TextAlign.center,
+              ),
+              const AppText(
+                text: "Location access is required to show nearby Police Stations. Please enable it in your device settings.",
+                fontWeight: FontWeight.w400,
+                fontSize: 16,
+                color: AppColors.grey,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(),
+              AppButton(
+                onTap: () async {
+                  if (await Permission.location.isGranted) {
+                    if (mounted) Navigator.pop(context);
+                    return;
+                  }
+                  await openAppSettings();
+                },
+                title: 'Enable location',
+              ),
+              const SizedBox(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}

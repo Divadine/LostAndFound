@@ -186,6 +186,10 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
   }
 
   Future<void> _onSubmit() async {
+    if (_isOffline) {
+      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      return;
+    }
     if (widget.locations.isEmpty) {
       AppSnackBar.show(context: context, message: 'Please add a location');
       return;
@@ -201,7 +205,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
       final msg = imageResponse.currentState == CurrentState.noInternet
           ? 'No internet connection. Please check your network.'
           : (imageResponse.message.isNotEmpty ? imageResponse.message : 'Failed to upload images');
-      AppDialogue.showPopup(context: context, content: AppText(text: msg));
+      AppSnackBar.show(context: context, message: msg);
       return;
     }
     final imageIds = imageResponse.data!.map((e) => e.id).join(',');
@@ -243,7 +247,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
         final msg = audioResponse.currentState == CurrentState.noInternet
             ? 'No internet connection. Please check your network.'
             : (audioResponse.message.isNotEmpty ? audioResponse.message : 'Failed to upload audio');
-        AppDialogue.showPopup(context: context, content: AppText(text: msg));
+        AppSnackBar.show(context: context, message: msg);
         return;
       }
       audioId = audioResponse.data!.id;
@@ -258,7 +262,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
         final msg = videoResponse.currentState == CurrentState.noInternet
             ? 'No internet connection. Please check your network.'
             : (videoResponse.message.isNotEmpty ? videoResponse.message : 'Failed to upload video');
-        AppDialogue.showPopup(context: context, content: AppText(text: msg));
+        AppSnackBar.show(context: context, message: msg);
         return;
       }
       videoId = videoResponse.data!.id;
@@ -305,7 +309,20 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
-        child: Column(
+        child: _isOffline
+            ? Column(
+          children: [
+            CustomAppBar(
+              title: widget.postType == 0 ? 'Lost Item Preview' : 'Found Item Preview',
+              centerTitle: true,
+              leadingSvg: AssetImages.backArrow,
+              leadingIconColor: AppColors.primaryColor,
+              onLeadingTap: () => AppRoutes.pop(),
+            ),
+            const Expanded(child: NoInternetWidget()),
+          ],
+        )
+            : Column(
           children: [
             CustomAppBar(
               title: widget.postType == 0 ? 'Lost Item Preview' : 'Found Item Preview',
