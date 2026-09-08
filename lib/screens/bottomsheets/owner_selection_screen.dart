@@ -14,6 +14,8 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lost_and_found/enums/current_state.dart';
+import 'package:lost_and_found/screens/otp_screen_shared.dart';
 
 import 'owner_proof_submission.dart';
 
@@ -206,8 +208,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
       return;
     }
 
-    AppRoutes.pop();
-    AppUiHelper.showBottomSheet(
+    final result = await AppUiHelper.showBottomSheet(
       maxHeightFactor: 0.7,
       context: context,
       child: HandoverProofDocuments(
@@ -217,6 +218,61 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
         isReceiver: widget.isReceiver,
       ),
     );
+
+    if (result != null && result is HandoverSubmissionData) {
+      if (!mounted) return;
+
+      // Close the current selection sheet (HandoverMatchedPersons)
+      AppRoutes.pop();
+
+      // Get the stable context from the navigator key for subsequent dialogs
+      final activeContext = AppUtils.navigatorKey.currentContext;
+      if (activeContext == null) return;
+
+      // Show OTP screen on top of the parent screen
+      final otpResult = await AppDialogue.showPopup(
+        context: activeContext,
+        content: OtpSharedScreen(
+          isAlternateNumber: true,
+          mobileNumber: result.maskedPhone,
+          onVerifyOtp: (otp) async {
+            final response = await authController.verifyHandoverOtp(
+              phone: result.phoneno,
+              otp: otp,
+            );
+            return response.status == 1 ? null : response.message;
+          },
+          onSendOtp: () async {
+            final response = await authController.generateHandoverOtp(
+              phone: result.phoneno,
+            );
+            if (response.isSuccess) return null;
+            if (response.currentState == CurrentState.noInternet) {
+              return 'No internet connection. Please check your network.';
+            }
+            return response.message.isNotEmpty ? response.message : 'Failed to send OTP';
+          },
+        ),
+      );
+
+      if (otpResult == true) {
+        // Final submission
+        await HandoverProofDocuments.submitHandover(
+          context: activeContext,
+          authController: authController,
+          selectedImage: result.selectedImage,
+          description: result.description,
+          phoneno: result.phoneno,
+          postId: widget.postId,
+          enquiryId: enquiryId,
+          isReceiver: widget.isReceiver,
+          selectedOwner: selectedOwner,
+          onLoading: (loading) {
+            // Option to show a loading overlay if needed
+          },
+        );
+      }
+    }
   }
 
   @override

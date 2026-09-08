@@ -11,7 +11,6 @@ import 'package:lost_and_found/models/handover/handover_owner.dart';
 import 'package:lost_and_found/enums/handover_type.dart';
 import 'package:lost_and_found/models/handover/handover_type.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
-import 'package:lost_and_found/screens/otp_screen_shared.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
@@ -22,11 +21,8 @@ import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
-import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
-
-import '../post/first_stepper_screen.dart';
 
 class HandoverProofDocuments extends StatefulWidget {
   final HandoverOwnerModel selectedOwner;
@@ -44,6 +40,92 @@ class HandoverProofDocuments extends StatefulWidget {
 
   @override
   State<HandoverProofDocuments> createState() => _HandoverProofDocumentsState();
+
+  static void _staticShowError(BuildContext context, String message) {
+    AppDialogue.showPopup(
+      context: context,
+      content: AppText(text: message, textAlign: TextAlign.center),
+    );
+  }
+
+  // Called only after OTP verification succeeds.
+  static Future<void> submitHandover({
+    required BuildContext context,
+    required AuthControllers authController,
+    required File? selectedImage,
+    required String description,
+    required String phoneno,
+    required int postId,
+    required int enquiryId,
+    required bool isReceiver,
+    required HandoverOwnerModel selectedOwner,
+    required Function(bool) onLoading,
+  }) async {
+    if (selectedImage == null) {
+      return;
+    }
+
+    onLoading(true);
+
+    try {
+      final imageResponse = await authController.createImage(images: [selectedImage]);
+
+      if (!imageResponse.isSuccess || imageResponse.data == null || imageResponse.data!.isEmpty) {
+        _staticShowError(context, imageResponse.message.isNotEmpty ? imageResponse.message : 'Failed to upload photo');
+        return;
+      }
+      final imageIds = imageResponse.data!.map((img) => img.id.toString()).join(',');
+
+      final currentUserId = AppPreferences.getUserId();
+      if (currentUserId == null) {
+        _staticShowError(context, 'User ID not found. Please login again.');
+        return;
+      }
+
+      if (enquiryId == 0) {
+        _staticShowError(context, 'Missing enquiry reference. Please try again.');
+        return;
+      }
+
+      final handoverResponse = await authController.createHandover(
+        type: isReceiver ? 2 : 1,
+        userId: currentUserId,
+        postId: postId,
+        enquiryId: enquiryId,
+        receiverId: selectedOwner.userId,
+        receiverPostId: selectedOwner.postId,
+        handoverImg: imageIds,
+        description: description,
+        phoneno: phoneno,
+        handoverType: 1,
+      );
+
+      if (handoverResponse.isSuccess) {
+        AppDialogue.showPopup(
+          context: context,
+          content: TransferCompleted(
+            type: isReceiver ? TransferType.receiveToOwner : TransferType.handOverToOwner,
+            data: TransferData(
+              name: selectedOwner.name,
+              avatarUrl: selectedOwner.profileImageUrl ?? '',
+              matchPercentage: selectedOwner.matchPercentage,
+              phoneNumber: phoneno,
+              description: description,
+              proofPhotos: imageResponse.data!.map((img) => img.imgPath).toList(),
+            ),
+          ),
+        );
+      } else {
+        _staticShowError(context, handoverResponse.message.isNotEmpty
+            ? handoverResponse.message
+            : 'Failed to create handover');
+      }
+    } catch (e) {
+      _staticShowError(context, 'Something went wrong while creating the handover.\n$e');
+    } finally {
+      onLoading(false);
+    }
+  }
 }
 
 class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
@@ -108,109 +190,6 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
           textController.text.trim().isNotEmpty &&
           _phoneFormatter.actualValue.length == 10;
     });
-  }
-
-  void _showError(String message) {
-    AppDialogue.showPopup(
-      context: context,
-      content: AppText(text: message, textAlign: TextAlign.center),
-    );
-  }
-
-  // Called only after OTP verification succeeds.
-  Future<void> _submitHandover() async {
-    print('[Handover] _submitHandover started');
-    if (selectedImage == null) {
-      print('[Handover] No image selected');
-      return;
-    }
-
-    setState(() => isSubmitting = true);
-
-    try {
-      print('[Handover] Uploading proof photo...');
-      final imageResponse = await authController.createImage(images: [selectedImage!]);
-      print('[Handover] createImage -> status=${imageResponse.status}, '
-          'message=${imageResponse.message}, data=${imageResponse.data}');
-
-      if (!imageResponse.isSuccess || imageResponse.data == null || imageResponse.data!.isEmpty) {
-        print('[Handover] Image upload failed');
-        _showError(imageResponse.message.isNotEmpty ? imageResponse.message : 'Failed to upload photo');
-        return;
-      }
-      final imageIds = imageResponse.data!.map((img) => img.id.toString()).join(',');
-
-      final currentUserId = await AppPreferences.getUserId();
-      if (currentUserId == null) {
-        print('[Handover] User ID missing');
-        _showError('User ID not found. Please login again.');
-        return;
-      }
-
-      if (widget.enquiryId == 0) {
-        print('[Handover] Enquiry ID is 0');
-        _showError('Missing enquiry reference. Please try again.');
-        return;
-      }
-
-      print('[Handover] Creating handover via API...');
-      final handoverResponse = await authController.createHandover(
-        type: widget.isReceiver ? 2 : 1,
-        userId: currentUserId,
-        postId: widget.postId,
-        enquiryId: widget.enquiryId,
-        receiverId: widget.selectedOwner.userId,
-        receiverPostId: widget.selectedOwner.postId,
-        handoverImg: imageIds,
-        description: textController.text.trim(),
-        phoneno: _phoneFormatter.actualValue,
-        handoverType: 1,
-      );
-
-      print('[Handover] createHandover -> status=${handoverResponse.status}, '
-          'message=${handoverResponse.message}, '
-          'isSuccess=${handoverResponse.isSuccess}');
-
-      if (!mounted) {
-        print('[Handover] Not mounted, skipping navigation');
-        return;
-      }
-
-      if (handoverResponse.isSuccess) {
-        print('[Handover] Handover successful! Showing TransferCompleted dialog');
-        // Backend marks the post as completed as part of createHandover.
-        // We do not pop the screen here because TransferCompleted's "Done" 
-        // button handles the double pop to close both the dialog and this form.
-        AppRoutes.pop();
-        AppDialogue.showPopup(
-          context: context,
-          content: TransferCompleted(
-            type: widget.isReceiver ? TransferType.receiveToOwner : TransferType.handOverToOwner,
-            data: TransferData(
-              name: widget.selectedOwner.name,
-              avatarUrl: widget.selectedOwner.profileImageUrl ?? '',
-              matchPercentage: widget.selectedOwner.matchPercentage,
-              phoneNumber: _phoneFormatter.actualValue,
-              description: textController.text.trim(),
-              proofPhotos: imageResponse.data!.map((img) => img.imgPath).toList(),
-            ),
-          ),
-        );
-      } else {
-        print('[Handover] createHandover failed: ${handoverResponse.message}');
-        _showError(handoverResponse.message.isNotEmpty
-            ? handoverResponse.message
-            : 'Failed to create handover');
-      }
-    } catch (e, st) {
-      print('[Handover] Exception during handover: $e');
-      print('[Handover] StackTrace: $st');
-      if (mounted) {
-        _showError('Something went wrong while creating the handover.\n$e');
-      }
-    } finally {
-      if (mounted) setState(() => isSubmitting = false);
-    }
   }
 
   @override
@@ -349,42 +328,14 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
           AppButton(
             title: isSubmitting ? 'Sending...' : 'Send OTP',
             onTap: (isFormValid && !isSubmitting)
-                ? () async {
+                ? () {
               print('[Handover] Send OTP tapped. Phone: ${_phoneFormatter.actualValue}');
-              final result = await AppDialogue.showPopup(
-                context: context,
-                content: OtpSharedScreen(
-                  isAlternateNumber: true,
-                  mobileNumber: _phoneFormatter.maskedValue,
-                  onVerifyOtp: (otp) async {
-                    print('[Handover] Verifying OTP: $otp');
-                    final response = await authController.verifyHandoverOtp(
-                      phone: _phoneFormatter.actualValue,
-                      otp: otp,
-                    );
-                    print('[Handover] verifyHandoverOtp -> status=${response.status}, message=${response.message}');
-                    return response.status == 1 ? null : response.message;
-                  },
-                  onSendOtp: () async {
-                    print('[Handover] Requesting Handover OTP for ${_phoneFormatter.actualValue}');
-                    final response = await authController.generateHandoverOtp(
-                      phone: _phoneFormatter.actualValue,
-                    );
-                    print('[Handover] generateHandoverOtp -> isSuccess=${response.isSuccess}, message=${response.message}');
-                    if (response.isSuccess) return null;
-                    if (response.currentState == CurrentState.noInternet) {
-                      return 'No internet connection. Please check your network.';
-                    }
-                    return response.message.isNotEmpty ? response.message : 'Failed to send OTP';
-                  },
-                ),
-              );
-
-              print('[Handover] OTP Dialog result: $result');
-              if (result == true) {
-                print('[Handover] OTP verified successfully, calling _submitHandover');
-                await _submitHandover();
-              }
+              Navigator.pop(context, HandoverSubmissionData(
+                selectedImage: selectedImage!,
+                description: textController.text.trim(),
+                phoneno: _phoneFormatter.actualValue,
+                maskedPhone: _phoneFormatter.maskedValue,
+              ));
             }
                 : () {},
             fontSize: 14,
@@ -396,6 +347,20 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
       ).pad(2),
     );
   }
+}
+
+class HandoverSubmissionData {
+  final File selectedImage;
+  final String description;
+  final String phoneno;
+  final String maskedPhone;
+
+  HandoverSubmissionData({
+    required this.selectedImage,
+    required this.description,
+    required this.phoneno,
+    required this.maskedPhone,
+  });
 }
 
 Widget buildDottedBorder({

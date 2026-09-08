@@ -867,21 +867,7 @@ class TransferCompleted extends StatelessWidget {
                 title: 'Done',
                 fontSize: 14,
                 onTap: () {
-                  AppRoutes.pop();
-                  AppRoutes.pop();
-
-                  AppUiHelper.showBottomSheet(
-                    showHandle: false,
-                    showCloseIcon: true,
-                    onClose: () {
-                      AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
-                    },
-                    context: context,
-                    child: ReceivedDetails(
-                      type: type,
-                      data: data,
-                    ),
-                  );
+                  AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
                 },
                 bgColor: AppColors.primaryColor,
                 radius: BorderRadius.circular(7),
