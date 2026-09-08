@@ -114,6 +114,8 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
         enquiryId: enquiry.enquiryId.toString(),
         enquirySenderId: otherUserId.toString(),
         currentUserName: AppPreferences.getUserName() ?? '',
+        currentUserAvatar: AppPreferences.getUserAvatar() ?? '',
+        currentUserPhone: AppPreferences.getPhone() ?? '',
         otherUserName: enquiry.enquirerName ?? '',
         otherUserAvatar: enquiry.enquirerProfileImg ?? '',
         itemName: post?.name ?? '',
@@ -440,13 +442,13 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                   messageOnTap: () async {
                     await _openChat(e, post);
                   },
-                  detailOnTap: () {
+                  detailOnTap: () async {
                     // Fix: Use the correct matched post ID by identifying the "other" post in the enquiry
                     final otherPostId = (e.matchedPostId != widget.postId && e.matchedPostId != 0)
                         ? e.matchedPostId
                         : e.postId;
 
-                    AppRoutes.pushNamed(
+                    await AppRoutes.pushNamed(
                       AppRoutes.lostItemsDetailsScreen,
                       arguments: {
                         'postId': otherPostId,
@@ -459,6 +461,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                         'isLostPost': widget.isFound,
                       },
                     );
+                    _fetchEnquiries();
                   },
                 );
               },

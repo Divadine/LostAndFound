@@ -76,6 +76,9 @@ class _BottomScreenState extends State<BottomScreen> {
   void _updateOfflineStatus(List<ConnectivityResult> results) {
     final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
     if (!mounted) return;
+
+    if (_isOffline == offline) return;
+
     setState(() {
       _isOffline = offline;
     });

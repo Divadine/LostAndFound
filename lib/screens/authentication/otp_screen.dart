@@ -53,6 +53,7 @@ class _OtpScreenState extends State<OtpScreen> {
             autoSend: widget.autoSend,
             isAlternateNumber: false,
             mobileNumber: widget.mobileNo,
+            shouldPop: false,
             onVerifyOtp: (otp) async {
               final response = await authController.verifyOtp(
                   phone: widget.mobileNo,

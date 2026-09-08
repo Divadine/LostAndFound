@@ -120,6 +120,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     _isAltVerified = widget.profileModel.altMobileVerified;
 
+    // Save profile data to preferences
+    AppPreferences.saveUserName(widget.profileModel.name ?? '');
+    AppPreferences.saveUserAvatar(widget.profileModel.profileImageUrl ?? '');
+    AppPreferences.savePhone(widget.profileModel.mobile ?? '');
+
     if (alternativeController.text.isNotEmpty) {
       isAlternativeNumberValid =
           AppUtils.validateMobileNumber(alternativeController.text) == null &&
@@ -1025,7 +1030,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (widget.profileModel.isFromEdit) {
                   context.pop();
                 } else {
-                  AppRoutes.pushAndRemoveUntil(AppRoutes.firstHomeScreen);
+                  AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
                 }
               } else {
                 AppDialogue.showPopup(

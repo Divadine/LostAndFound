@@ -413,6 +413,10 @@ class _SendEnquiryState extends State<SendEnquiry> {
 
         currentUserName: nameController.text.trim(),
 
+        currentUserAvatar: AppPreferences.getUserAvatar() ?? '',
+
+        currentUserPhone: AppPreferences.getPhone() ?? '',
+
         otherUserName: widget.otherUserName,
 
         otherUserAvatar: widget.otherUserAvatar,

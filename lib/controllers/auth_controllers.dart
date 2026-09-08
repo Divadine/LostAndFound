@@ -89,6 +89,8 @@ class AuthControllers {
     final response = await authRepository.getProfile(userId: userId);
     if (response.isSuccess && response.data != null) {
       await AppPreferences.saveUserName(response.data!.name ?? '');
+      await AppPreferences.saveUserAvatar(response.data!.profileImageUrl ?? '');
+      await AppPreferences.savePhone(response.data!.mobile ?? '');
     }
     return response;
   }

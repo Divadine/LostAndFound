@@ -42,29 +42,22 @@ class AppPermissions {
   // -------- Camera --------
   static bool? getCameraPref() => _prefs.getBool(_cameraKey);
   static Future<void> setCameraPref(bool val) => _prefs.setBool(_cameraKey, val);
+
   Future<bool> requestCameraPermission(BuildContext context) async {
-    if (await Permission.camera.isGranted) return true;
-
-    if (getCameraPref() == null) {
-      await Permission.camera.request();
-      await setCameraPref(true);
-    } else {
-      await goToDeviceSettings(context, cameraPermissionContent);
-    }
-
-    return await Permission.camera.isGranted;
+    return _handlePermission(
+      context: context,
+      permission: Permission.camera,
+      prefKey: _cameraKey,
+      content: cameraPermissionContent,
+    );
   }
-
-
-
 
   // -------- Storage / Photos --------
   static bool? getStoragePref() => _prefs.getBool(_storageKey);
   static Future<void> setStoragePref(bool val) => _prefs.setBool(_storageKey, val);
 
-  Future<void> requestStoragePermission(BuildContext context) async {
+  Future<bool> requestStoragePermission(BuildContext context) async {
     final version = await getVersion();
-    final storagePref = getStoragePref();
     late Permission permission;
 
     if (Platform.isAndroid) {
@@ -72,40 +65,28 @@ class AppPermissions {
     } else if (Platform.isIOS) {
       permission = Permission.photos;
     } else {
-      return;
+      return false;
     }
 
-    final status = await permission.status;
-
-    if (status.isGranted) {
-      await setStoragePref(true);
-      return;
-    }
-
-    if (storagePref == null) {
-      await permission.request();
-      await setStoragePref(true);
-    } else {
-      await goToDeviceSettings(
-        context,
-        storagePermissionContent,
-      );
-    }
+    return _handlePermission(
+      context: context,
+      permission: permission,
+      prefKey: _storageKey,
+      content: storagePermissionContent,
+    );
   }
 
   // -------- Microphone --------
   static bool? getMicPref() => _prefs.getBool(_microphoneKey);
   static Future<void> setMicPref(bool val) => _prefs.setBool(_microphoneKey, val);
-  Future<bool> requestMicrophonePermission(BuildContext context) async {
-    if (await Permission.microphone.isGranted) return true;
 
-    if (getMicPref() == null) {
-      await Permission.microphone.request();
-      await setMicPref(true);
-    } else {
-      await goToDeviceSettings(context, micPermissionContent);
-    }
-    return await Permission.microphone.isGranted;
+  Future<bool> requestMicrophonePermission(BuildContext context) async {
+    return _handlePermission(
+      context: context,
+      permission: Permission.microphone,
+      prefKey: _microphoneKey,
+      content: micPermissionContent,
+    );
   }
 
   // -------- Notifications --------
@@ -113,15 +94,12 @@ class AppPermissions {
   static Future<void> setNotificationPref(bool val) => _prefs.setBool(_notificationKey, val);
 
   Future<bool> requestNotificationPermission(BuildContext context) async {
-    if (await Permission.notification.isGranted) return true;
-
-    if (getNotificationPref() == null) {
-      await Permission.notification.request();
-      await setNotificationPref(true);
-    } else {
-      await goToDeviceSettings(context, notificationPermissionContent);
-    }
-    return await Permission.notification.isGranted;
+    return _handlePermission(
+      context: context,
+      permission: Permission.notification,
+      prefKey: _notificationKey,
+      content: notificationPermissionContent,
+    );
   }
 
   // -------- Location --------
@@ -129,23 +107,55 @@ class AppPermissions {
   static Future<void> setLocationPref(bool val) => _prefs.setBool(_locationKey, val);
 
   Future<bool> requestLocationPermission(BuildContext context) async {
-    if (await Permission.location.isGranted){
-      return true;
-    }
-
-    if (getLocationPref() == null) {
-      final status = await Permission.location.request();
-      if (status.isGranted) {
-        await setLocationPref(true);
-      } else {
-        await setLocationPref(false);
-      }
-    } else {
-      await locationPermission(context);
-    }
-    return await Permission.location.isGranted;
+    return _handlePermission(
+      context: context,
+      permission: Permission.location,
+      prefKey: _locationKey,
+      content: locationPermissionContent,
+      customPopup: const LocationPermissionPopup(),
+    );
   }
 
+  Future<bool> _handlePermission({
+    required BuildContext context,
+    required Permission permission,
+    required String prefKey,
+    required String content,
+    Widget? customPopup,
+  }) async {
+    final status = await permission.status;
+    if (status.isGranted) return true;
+
+    final askedBefore = _prefs.getBool(prefKey) ?? false;
+
+    if (!askedBefore) {
+      // First time — show native dialog
+      final newStatus = await permission.request();
+      await _prefs.setBool(prefKey, true);
+
+      if (newStatus.isGranted) return true;
+
+      // If user denied the native dialog, show custom popup
+      if (newStatus.isDenied || newStatus.isPermanentlyDenied) {
+        if (!context.mounted) return false;
+        if (customPopup != null) {
+          await AppDialogue.showPopup(context: context, content: customPopup);
+        } else {
+          await goToDeviceSettings(context, content, permission);
+        }
+      }
+    } else {
+      // Already asked once — show custom popup directly
+      if (!context.mounted) return false;
+      if (customPopup != null) {
+        await AppDialogue.showPopup(context: context, content: customPopup);
+      } else {
+        await goToDeviceSettings(context, content, permission);
+      }
+    }
+
+    return await permission.isGranted;
+  }
 
   locationPermission(BuildContext context) async {
     await AppDialogue.showPopup(
@@ -159,11 +169,10 @@ class AppPermissions {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       return serviceEnabled;
     } catch (e) {
-     // print(\"⚠️ Error checking location service: $e\");
+      // print("⚠️ Error checking location service: $e");
       return false;
     }
   }
-
 
   // -------- Device Info --------
   Future<int> getVersion() async {
@@ -183,21 +192,89 @@ class AppPermissions {
   }
 
   // -------- Open App Settings Dialog --------
-  Future<void> goToDeviceSettings(BuildContext context, String message) async {
+  Future<void> goToDeviceSettings(BuildContext context, String message, Permission permission) async {
     await AppDialogue.showPopup(
-       context: context,
-        content: ListView(
-          shrinkWrap: true,
-          children: [
-            const AppText(text: 'Permission Required', fontWeight: FontWeight.bold, fontSize:18, textAlign: TextAlign.center,),
-            const SizedBox(height: 20,),
-            AppText(text: message, fontSize:16, textAlign: TextAlign.center,),
-          ],
-        ),
-        );
-
+      context: context,
+      content: CommonPermissionPopup(
+        message: message,
+        permission: permission,
+      ),
+    );
   }
 }
+
+class CommonPermissionPopup extends StatefulWidget {
+  final String message;
+  final Permission permission;
+
+  const CommonPermissionPopup({
+    super.key,
+    required this.message,
+    required this.permission,
+  });
+
+  @override
+  State<CommonPermissionPopup> createState() => _CommonPermissionPopupState();
+}
+
+class _CommonPermissionPopupState extends State<CommonPermissionPopup> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermission();
+    }
+  }
+
+  Future<void> _checkPermission() async {
+    if (await widget.permission.isGranted) {
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const AppText(
+          text: 'Permission Required',
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 20),
+        AppText(
+          text: widget.message,
+          fontSize: 16,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 25),
+        AppButton(
+          title: 'Enable',
+          onTap: () async {
+            await openAppSettings();
+          },
+        ),
+      ],
+    );
+  }
+}
+
+
 
 class LocationPermissionPopup extends StatefulWidget {
   const LocationPermissionPopup({super.key});

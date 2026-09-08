@@ -229,9 +229,8 @@ class _HomeScreenState extends State<HomeScreen>
         if (isLoadMore) {
           isMoreLoadingLost = true;
         } else {
-          isLoadingLost = true;
+          isLoadingLost = lostPosts.isEmpty;
           currentPageLost = 1;
-          lostPosts.clear();
         }
         lostErrorMessage = null;
       });
@@ -312,9 +311,8 @@ class _HomeScreenState extends State<HomeScreen>
         if (isLoadMore) {
           isMoreLoadingFound = true;
         } else {
-          isLoadingFound = true;
+          isLoadingFound = foundPosts.isEmpty;
           currentPageFound = 1;
-          foundPosts.clear();
         }
         foundErrorMessage = null;
       });
@@ -486,6 +484,9 @@ class _HomeScreenState extends State<HomeScreen>
   void _updateOfflineStatus(List<ConnectivityResult> results) {
     final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
     if (!mounted) return;
+
+    if (_isOffline == offline) return;
+
     setState(() {
       _isOffline = offline;
     });

@@ -31,11 +31,6 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (!AppPreferences.getIsLoggedIn()) {
-      if (!AppPreferences.getIsOnboarded()) {
-        AppRoutes.pushAndRemoveUntil(AppRoutes.onBoardingScreen);
-        return;
-      }
-
       AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
       return;
     }
@@ -52,11 +47,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final isProfileComplete = AppPreferences.getProfileStatus() == 1;
 
     if (isProfileComplete) {
-      if (AppPreferences.getIsItemPosted()) {
-        AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
-      } else {
-        AppRoutes.pushAndRemoveUntil(AppRoutes.firstHomeScreen);
-      }
+      AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
       return;
     }
 

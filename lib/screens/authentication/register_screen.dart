@@ -122,6 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         autoSend: false,
         isAlternateNumber: false,
         mobileNumber: phoneController.text,
+        shouldPop: false,
         onVerifyOtp: (otp) async {
           final response = await authController.verifyOtp(
             phone: phoneController.text,

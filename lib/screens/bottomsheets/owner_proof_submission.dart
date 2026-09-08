@@ -100,7 +100,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
     );
   }
 
-
+  // Called only after OTP verification succeeds.
   Future<void> _submitHandover() async {
     if (selectedImage == null) return;
 
@@ -128,7 +128,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
         return;
       }
 
-
+      // NOTE: `type` / `handoverType` values — confirm exact enum with backend.
       final handoverResponse = await authController.createHandover(
         type: widget.isReceiver ? 2 : 1,
         userId: currentUserId,
@@ -138,7 +138,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
         receiverPostId: widget.selectedOwner.postId,
         handoverImg: imageIds,
         description: textController.text.trim(),
-        phoneno: widget.selectedOwner.phoneno, // Use original phone number
+        phoneno: _phoneFormatter.actualValue,
         handoverType: 1,
       );
 
@@ -149,7 +149,9 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
       if (!mounted) return;
 
       if (handoverResponse.isSuccess) {
-
+        // Backend marks the post as completed as part of createHandover —
+        // no separate "complete post" call needed.
+        AppRoutes.pop();
         AppDialogue.showPopup(
           context: context,
           content: TransferCompleted(
@@ -193,19 +195,16 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
             widget: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                (widget.selectedOwner.profileImageUrl != null &&
-                    widget.selectedOwner.profileImageUrl!.isNotEmpty)
-                    ? AppCachedNetworkImage(
-                  imageUrl: widget.selectedOwner.profileImageUrl!,
-                  fit: BoxFit.cover,
-                  width: 52,
-                  height: 52,
-                  borderRadius: BorderRadius.circular(26),
-                )
-                    : CircleAvatar(
+                CircleAvatar(
                   radius: 26,
-                  backgroundColor: AppColors.fieldGrey,
-                  child: Icon(Icons.person, color: AppColors.primaryColor),
+                  child: (widget.selectedOwner.profileImageUrl != null &&
+                      widget.selectedOwner.profileImageUrl!.isNotEmpty)
+                      ? AppCachedNetworkImage(
+                    imageUrl: widget.selectedOwner.profileImageUrl!,
+                    fit: BoxFit.cover,
+                    borderRadius: BorderRadius.circular(30),
+                  )
+                      : Icon(Icons.person, color: AppColors.primaryColor),
                 ),
                 const SizedBox(width: 15),
                 AppText(
@@ -297,54 +296,36 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
           AppButton(
             title: isSubmitting ? 'Sending...' : 'Send OTP',
             onTap: (isFormValid && !isSubmitting)
-                ? () async {
-                    bool otpVerified = false;
-
-                    await AppDialogue.showPopup(
-                      context: context,
-                      content: OtpSharedScreen(
-                        isAlternateNumber: true,
-                        mobileNumber: _phoneFormatter.maskedValue,
-                        onVerifyOtp: (otp) async {
-                          // Reset verification state at the start of each check
-                          otpVerified = false;
-
-                          final response = await authController.verifyHandoverOtp(
-                            phone: widget.selectedOwner.phoneno,
-                            otp: otp,
-                          );
-
-                          debugPrint('[OTP] verifyHandoverOtp -> status=${response.status}, message=${response.message}');
-
-                          if (response.status == 1) {
-                            otpVerified = true;
-                            return null; // Success
-                          }
-
-                          return response.message.isNotEmpty
-                              ? response.message
-                              : 'Invalid OTP or phone number';
-                        },
-                        onSendOtp: () async {
-                          final response = await authController.generateHandoverOtp(
-                            phone: widget.selectedOwner.phoneno,
-                          );
-                          if (response.isSuccess) return null;
-                          if (response.currentState == CurrentState.noInternet) {
-                            return 'No internet connection. Please check your network.';
-                          }
-                          return response.message.isNotEmpty
-                              ? response.message
-                              : 'Failed to send OTP';
-                        },
-                      ),
+                ? () {
+              AppDialogue.showPopup(
+                context: context,
+                content: OtpSharedScreen(
+                  isAlternateNumber: true,
+                  mobileNumber: _phoneFormatter.maskedValue,
+                  onVerifyOtp: (otp) async {
+                    final response = await authController.verifyHandoverOtp(
+                      phone: _phoneFormatter.actualValue,
+                      otp: otp,
                     );
-
-                    // ONLY proceed if OTP was verified successfully
-                    if (otpVerified && mounted) {
+                    if (response.status == 1) {
                       await _submitHandover();
+                      return null;
                     }
-                  }
+                    return response.message;
+                  },
+                  onSendOtp: () async {
+                    final response = await authController.generateHandoverOtp(
+                      phone: _phoneFormatter.actualValue,
+                    );
+                    if (response.isSuccess) return null;
+                    if (response.currentState == CurrentState.noInternet) {
+                      return 'No internet connection. Please check your network.';
+                    }
+                    return response.message.isNotEmpty ? response.message : 'Failed to send OTP';
+                  },
+                ),
+              );
+            }
                 : () {},
             fontSize: 14,
             bgColor: isFormValid ? AppColors.primaryColor : AppColors.idCardColor,

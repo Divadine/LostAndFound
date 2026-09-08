@@ -2034,20 +2034,36 @@ class AppLocationAccess extends StatefulWidget {
   State<AppLocationAccess> createState() => _AppLocationAccessState();
 }
 
-class _AppLocationAccessState extends State<AppLocationAccess> {
+class _AppLocationAccessState extends State<AppLocationAccess> with WidgetsBindingObserver {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initConnectivityListener();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivitySub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermission();
+    }
+  }
+
+  Future<void> _checkPermission() async {
+    final status = await Permission.location.status;
+    if (status.isGranted && mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   void _initConnectivityListener() async {
@@ -2111,8 +2127,7 @@ class _AppLocationAccessState extends State<AppLocationAccess> {
               child: AppButton(
                 title: 'Allow',
                 onTap: () async {
-                  Navigator.pop(context);
-                  await Geolocator.openAppSettings();
+                  await openAppSettings();
                 },
                 fontSize: 16,
 
@@ -2133,20 +2148,37 @@ class DeviceLocationAccess extends StatefulWidget {
   State<DeviceLocationAccess> createState() => _DeviceLocationAccessState();
 }
 
-class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
+class _DeviceLocationAccessState extends State<DeviceLocationAccess> with WidgetsBindingObserver {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initConnectivityListener();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivitySub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermission();
+    }
+  }
+
+  Future<void> _checkPermission() async {
+    final status = await Permission.location.status;
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (status.isGranted && serviceEnabled && mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   void _initConnectivityListener() async {
@@ -2210,8 +2242,6 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> {
               child: AppButton(
                 title: 'Enable',
                 onTap: () async {
-                  Navigator.pop(context);
-
                   await Geolocator.openLocationSettings();
                 },
                 fontSize: 16,
@@ -3122,13 +3152,7 @@ class _AppMicAccessState extends State<AppMicAccess> with WidgetsBindingObserver
               child: AppButton(
                 title: 'Enable',
                 onTap: () async {
-                  final status = await Permission.microphone.status;
-                  if (status.isPermanentlyDenied) {
-                    await openAppSettings();
-                  } else {
-                    final newStatus = await Permission.microphone.request();
-                    if (context.mounted) Navigator.pop(context, newStatus.isGranted);
-                  }
+                  await openAppSettings();
                 },
                 fontSize: 16,
                 radius: BorderRadius.circular(7),

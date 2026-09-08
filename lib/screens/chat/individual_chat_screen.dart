@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
+import 'package:lost_and_found/utils/app_permission.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
@@ -437,34 +438,9 @@ class _IndividualChatScreenState
   }
 
   Future<void> _handleMicPress() async {
-    final path = await AppRecorderService.instance.startRecording();
-    if (path != null) return;
-
-    final status = await Permission.microphone.status;
-    final hasAsked = AppPreferences.getAskedMicPermission();
-
-    if (status.isPermanentlyDenied || hasAsked) {
-      if (!mounted) return;
-      final granted = await AppDialogue.showPopup(
-        context: context,
-        content: const AppMicAccess(),
-      );
-      if (granted) {
-        await AppRecorderService.instance.startRecording();
-      }
-      return;
-    }
-
-    if (status.isDenied) {
-      await AppPreferences.setAskedMicPermission(true);
-      if (!mounted) return;
-      final granted = await AppDialogue.showPopup(
-        context: context,
-        content: const AppMicAccess(),
-      );
-      if (granted) {
-        await AppRecorderService.instance.startRecording();
-      }
+    final granted = await AppPermissions().requestMicrophonePermission(context);
+    if (granted) {
+      await AppRecorderService.instance.startRecording();
     }
   }
 
@@ -2479,20 +2455,21 @@ class _IndividualChatScreenState
                   const SizedBox(width: 8),
                   Expanded(
                     child: Container(
+
                       constraints: const BoxConstraints(minHeight: 50),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(
-                          30,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
+                      // decoration: BoxDecoration(
+                      //   color: AppColors.white,
+                      //   borderRadius: BorderRadius.circular(
+                      //     30,
+                      //   ),
+                      //   boxShadow: const [
+                      //     BoxShadow(
+                      //       color: Colors.black12,
+                      //       blurRadius: 8,
+                      //       offset: Offset(0, 2),
+                      //     ),
+                      //   ],
+                      // ),
                       child: AppTextField(
                         hintText: 'Write your message..',
                         textController: textController,
@@ -2505,15 +2482,15 @@ class _IndividualChatScreenState
                   ValueListenableBuilder<TextEditingValue>(
                     valueListenable: textController,
                     builder: (context, value, child) {
-                      final hasText = value.text.trim().isNotEmpty;
+                     // final hasText = value.text.trim().isNotEmpty;
                       return buildIconContainer(
                         height: 50,
                         width: 50,
                         context,
-                        icon: hasText ? AssetImages.send : AssetImages.mic,
+                        icon:  AssetImages.send,
                         bgColor: AppColors.primaryColor,
                         iconColor: AppColors.white,
-                        onTap: hasText ? _send : _handleMicPress,
+                        onTap: _send
                       );
                     },
                   ),

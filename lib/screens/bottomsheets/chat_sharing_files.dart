@@ -16,6 +16,7 @@ import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/screens/permissions/location_permission.dart';
 
 class ChatSharingFiles extends StatefulWidget {
   final String roomId;
@@ -221,39 +222,10 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
     try {
       setState(() => _loading = true);
 
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final granted = await AppLocationPermission().requestLocationPermission(context);
 
-      if (!serviceEnabled) {
+      if (!granted) {
         _stopLoading();
-
-        if (!mounted) return;
-
-        await DeviceLocationAccess();
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.denied) {
-        _stopLoading();
-
-        if (!mounted) return;
-
-        _showError('Location permission was denied.');
-
-        return;
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        _stopLoading();
-
-        if (!mounted) return;
-
-        await AppLocationAccess();
         return;
       }
 
@@ -301,39 +273,10 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
     try {
       setState(() => _loading = true);
 
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final granted = await AppLocationPermission().requestLocationPermission(context);
 
-      if (!serviceEnabled) {
+      if (!granted) {
         _stopLoading();
-
-        if (!mounted) return;
-
-        await DeviceLocationAccess();
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.denied) {
-        _stopLoading();
-
-        if (!mounted) return;
-
-        _showError('Location permission was denied.');
-
-        return;
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        _stopLoading();
-
-        if (!mounted) return;
-
-        await AppLocationAccess();
         return;
       }
 

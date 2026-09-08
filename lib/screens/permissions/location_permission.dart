@@ -44,37 +44,33 @@ class AppLocationPermission {
 
     if (!context.mounted) return false;
 
-    if (permission == geo.LocationPermission.deniedForever) {
-      await AppDialogue.showPopup(
-        context: context,
-        content: AppLocationAccess(),
-      );
-      await Future.delayed(const Duration(milliseconds: 300));
-      permission = await geo.Geolocator.checkPermission();
-      return permission == geo.LocationPermission.whileInUse ||
-          permission == geo.LocationPermission.always;
-    }
-
-    // permission == denied (never asked, or asked-and-declined-but-askable)
     final askedBefore = AppPreferences.getAskedAppLocationPermission();
 
     if (!askedBefore) {
       // First time ever — let the OS show its native default popup.
       await AppPreferences.setAskedAppLocationPermission(true);
       permission = await geo.Geolocator.requestPermission();
-    } else {
-      // Second+ time — show our own popup first, before touching the OS
-      // prompt again.
+
+      if (permission == geo.LocationPermission.whileInUse ||
+          permission == geo.LocationPermission.always) {
+        return true;
+      }
+
+      // If denied (either once or forever), show our custom popup
+      if (!context.mounted) return false;
       await AppDialogue.showPopup(
         context: context,
-        content: AppLocationAccess(),
+        content: const AppLocationAccess(),
       );
-      permission = await geo.Geolocator.checkPermission();
-      if (permission == geo.LocationPermission.denied) {
-        permission = await geo.Geolocator.requestPermission();
-      }
+    } else {
+      // Second+ time — show our own popup directly
+      await AppDialogue.showPopup(
+        context: context,
+        content: const AppLocationAccess(),
+      );
     }
 
+    permission = await geo.Geolocator.checkPermission();
     return permission == geo.LocationPermission.whileInUse ||
         permission == geo.LocationPermission.always;
   }

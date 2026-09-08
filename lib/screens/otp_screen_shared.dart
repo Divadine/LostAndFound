@@ -15,6 +15,7 @@ class OtpSharedScreen extends StatefulWidget {
   final Future<String?> Function(String otp) onVerifyOtp;
   final Future<String?> Function() onSendOtp; // null = success, non-null = error message
   final bool autoSend;
+  final bool shouldPop;
 
   const OtpSharedScreen({
     super.key,
@@ -23,6 +24,7 @@ class OtpSharedScreen extends StatefulWidget {
     required this.onVerifyOtp,
     required this.onSendOtp,
     this.autoSend = true,
+    this.shouldPop = true,
   });
 
   @override
@@ -142,7 +144,9 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
     setState(() => isVerifying = false);
 
     if (error == null) {
-      Navigator.of(context).pop(true);
+      if (widget.shouldPop) {
+        Navigator.of(context).pop(true);
+      }
     } else {
       setState(() {
         errorText = error;

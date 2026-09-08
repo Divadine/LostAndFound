@@ -13,6 +13,7 @@ import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'owner_proof_submission.dart';
 
@@ -61,22 +62,23 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
     try {
       final enquiryResponse = await authController.viewEnquiry(postId: widget.postId);
 
-      if (!mounted) return;
-
-      if (!enquiryResponse.isSuccess) {
-        setState(() {
-          errorMessage = enquiryResponse.message.isNotEmpty ? enquiryResponse.message : 'Failed to fetch enquiries';
-          isLoading = false;
-        });
-        return;
+      // Fetch matches to get match percentages for those who might not be in the enquiry list
+      final matchesResponse = await authController.getPostMatches(postId: widget.postId);
+      final Map<int, int> matchPercentages = {};
+      if (matchesResponse.isSuccess && matchesResponse.data != null) {
+        for (final m in matchesResponse.data!.matches) {
+          matchPercentages[m.userId] = m.matchPercentage;
+        }
       }
+
+      if (!mounted) return;
 
       final Map<int, int> postMap = {};
       final Map<int, int> userMap = {};
       final Map<String, int> uidMap = {};
       final List<HandoverOwnerModel> newOwners = [];
 
-      if (enquiryResponse.data != null) {
+      if (enquiryResponse.isSuccess && enquiryResponse.data != null) {
         for (final e in enquiryResponse.data!.enquiries) {
           // Map to HandoverOwnerModel for display
           newOwners.add(HandoverOwnerModel(
@@ -94,6 +96,67 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
           userMap[e.enquirerUserId] = e.enquiryId;
           uidMap[e.userUid] = e.enquiryId;
         }
+      }
+
+      // SUPPLEMENT: Also check chat rooms for enquiries where the current post was the matched post.
+      // This happens when the current user is the one who sent the enquiry.
+      final currentUserId = AppPreferences.getUserId()?.toString();
+      if (currentUserId != null) {
+        try {
+          final chatSnap = await FirebaseFirestore.instance
+              .collection('chatRooms')
+              .where('users', arrayContains: currentUserId)
+              .where('matchedPostId', isEqualTo: widget.postId.toString())
+              .get();
+
+          for (final doc in chatSnap.docs) {
+            final data = doc.data();
+            final users = List<String>.from(data['users'] ?? []);
+            final otherUserIdStr = users.firstWhere((id) => id != currentUserId, orElse: () => '');
+            if (otherUserIdStr.isEmpty) continue;
+
+            final otherUserId = int.tryParse(otherUserIdStr) ?? 0;
+            
+            // Skip if already added from viewEnquiry
+            if (userMap.containsKey(otherUserId)) continue;
+
+            final enquiryIdStr = data['enquiryId']?.toString() ?? '';
+            final enquiryId = int.tryParse(enquiryIdStr) ?? 0;
+            // If there's no enquiryId in the chat room, we can't proceed with the handover flow
+            if (enquiryId == 0) continue;
+
+            final participants = data['participants'] as Map<String, dynamic>? ?? {};
+            final otherPart = participants[otherUserIdStr] as Map<String, dynamic>? ?? {};
+
+            final otherPostId = int.tryParse(data['postId']?.toString() ?? '0') ?? 0;
+
+            newOwners.add(HandoverOwnerModel(
+              postId: otherPostId,
+              userId: otherUserId,
+              userUid: otherUserIdStr,
+              name: otherPart['name']?.toString() ?? 'User $otherUserId',
+              phoneno: otherPart['phone']?.toString() ?? '',
+              profileImageUrl: otherPart['avatar']?.toString(),
+              matchPercentage: matchPercentages[otherUserId] ?? 0,
+            ));
+
+            postMap[otherPostId] = enquiryId;
+            userMap[otherUserId] = enquiryId;
+            uidMap[otherUserIdStr] = enquiryId;
+          }
+        } catch (e) {
+          debugPrint('Error fetching chat rooms for handover: $e');
+        }
+      }
+
+      if (!mounted) return;
+
+      if (newOwners.isEmpty && !enquiryResponse.isSuccess) {
+        setState(() {
+          errorMessage = enquiryResponse.message.isNotEmpty ? enquiryResponse.message : 'Failed to fetch enquiries';
+          isLoading = false;
+        });
+        return;
       }
 
       setState(() {

@@ -83,6 +83,7 @@ class AppPreferences {
     await _prefs.remove(_tokenKey);
     await _prefs.remove(_userIdKey);
     await _prefs.remove(_userNameKey);
+    await _prefs.remove(_userAvatarKey);
     await _prefs.remove(_phoneKey);
     await _prefs.remove(_isItemPosted);
     await _prefs.setInt(_profileStatus, 0);
@@ -144,10 +145,22 @@ class AppPreferences {
     return _prefs.getString(_userNameKey);
   }
 
+  // NEW: user avatar storage
+  static const String _userAvatarKey = "user_avatar";
+
+  static Future<void> saveUserAvatar(String avatar) async {
+    await _prefs.setString(_userAvatarKey, avatar);
+  }
+
+  static String? getUserAvatar() {
+    return _prefs.getString(_userAvatarKey);
+  }
+
   static Future<void> clearAll() async {
     await _prefs.remove(_tokenKey);
     await _prefs.remove(_userIdKey);
     await _prefs.remove(_userNameKey);
+    await _prefs.remove(_userAvatarKey);
     await _prefs.remove(_phoneKey);
     await _prefs.setBool(_isLoggedIn, false);
     // await _prefs.clear();
