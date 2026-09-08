@@ -181,6 +181,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
         // Backend marks the post as completed as part of createHandover.
         // We do not pop the screen here because TransferCompleted's "Done" 
         // button handles the double pop to close both the dialog and this form.
+        AppRoutes.pop();
         AppDialogue.showPopup(
           context: context,
           content: TransferCompleted(
