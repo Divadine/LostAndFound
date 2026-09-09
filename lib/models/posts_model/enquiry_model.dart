@@ -112,8 +112,12 @@ class EnquiryItem {
           int.tryParse(json['user_uid']?.toString().replaceAll(RegExp(r'[^0-9]'), '') ?? '') ?? 0,
       userUid: json['user_uid']?.toString() ?? json['userUid']?.toString() ?? '',
       postUid: json['post_uid']?.toString() ?? json['postUid']?.toString() ?? '',
-      enquirerName: json['enquirer_name']?.toString() ?? json['name']?.toString() ?? '',
+      enquirerName: json['enquirer_name']?.toString() ??
+          json['user_name']?.toString() ??
+          json['name']?.toString() ??
+          '',
       enquirerProfileImg: json['enquirer_profile_img']?.toString() ??
+          json['user_avatar']?.toString() ??
           json['image_url']?.toString() ??
           json['profile_img']?.toString() ??
           json['avatar']?.toString() ??

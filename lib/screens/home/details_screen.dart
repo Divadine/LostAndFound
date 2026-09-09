@@ -145,9 +145,8 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
   }
 
   String get _posterAvatarUrl {
-    final avatar = widget.posterAvatar.isNotEmpty
-        ? widget.posterAvatar
-        : (postDetails?.posterAvatar ?? '');
+    final apiAvatar = postDetails?.posterAvatar ?? '';
+    final avatar = apiAvatar.isNotEmpty ? apiAvatar : widget.posterAvatar;
 
     return _getMediaUrl(avatar);
   }
@@ -278,9 +277,10 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
   // ============================================================
 
   String get _posterName {
-    return widget.posterName.isNotEmpty
-        ? widget.posterName
-        : (postDetails?.posterName ?? '');
+    final apiName = postDetails?.posterName ?? '';
+    if (apiName.isNotEmpty) return apiName;
+
+    return widget.posterName;
   }
 
   String get _posterAvatar {

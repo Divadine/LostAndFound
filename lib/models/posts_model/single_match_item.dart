@@ -183,8 +183,14 @@ class SingleMatchModel {
       imageUrl: foundImage ?? '',
       audioUrl: data['audioUrl']?.toString() ?? data['audio_url']?.toString(),
       videoUrl: foundVideo,
-      posterName: data['poster_name']?.toString() ?? data['user_name']?.toString() ?? '',
-      posterAvatar: data['poster_avatar']?.toString() ?? data['user_avatar']?.toString() ?? '',
+      posterName: data['poster_name']?.toString() ??
+          data['user_name']?.toString() ??
+          data['enquirer_name']?.toString() ??
+          '',
+      posterAvatar: data['poster_avatar']?.toString() ??
+          data['user_avatar']?.toString() ??
+          data['enquirer_profile_img']?.toString() ??
+          '',
       values: valuesList
           .map((e) => SingleMatchValue.fromJson(e as Map<String, dynamic>))
           .toList(),
