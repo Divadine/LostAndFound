@@ -2455,9 +2455,9 @@ class _IndividualChatScreenState
                   const SizedBox(width: 8),
                   Expanded(
                     child: Container(
+                      height: 50,
 
-
-                      constraints: const BoxConstraints(minHeight: 60),
+                      //constraints: const BoxConstraints(minHeight: 60),
                       // decoration: BoxDecoration(
                       //   color: AppColors.white,
                       //   borderRadius: BorderRadius.circular(
