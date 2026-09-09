@@ -1030,7 +1030,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (widget.profileModel.isFromEdit) {
                   context.pop();
                 } else {
-                  AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+                  AppRoutes.pushNamed(AppRoutes.firstHomeScreen);
                 }
               } else {
                 AppDialogue.showPopup(
@@ -1041,6 +1041,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               }
             } : null,
+
 
             bgColor: _isFormValid
                 ? AppColors.primaryColor
