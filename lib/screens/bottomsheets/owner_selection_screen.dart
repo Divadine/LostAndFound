@@ -317,7 +317,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
                 index: index,
                 image: owner.profileImageUrl,
                 profileName: owner.name,
-                id: owner.userUid,
+                id: 'LF${owner.userId.toString().padLeft(4, '0')}',
                 percentageMatch: owner.matchPercentage,
               );
             },
