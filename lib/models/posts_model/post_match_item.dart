@@ -95,11 +95,35 @@ class MatchItemModel {
   });
 
   factory MatchItemModel.fromJson(Map<String, dynamic> json) {
+    String? foundName = json['poster_name']?.toString() ??
+        json['user_name']?.toString() ??
+        json['full_name']?.toString() ??
+        json['display_name']?.toString();
+
+    if (foundName == null && json['user'] is Map) {
+      final user = json['user'] as Map<String, dynamic>;
+      foundName = user['name']?.toString() ??
+          user['user_name']?.toString() ??
+          user['full_name']?.toString() ??
+          user['display_name']?.toString();
+    }
+
+    String? foundAvatar = json['poster_avatar']?.toString() ??
+        json['user_avatar']?.toString() ??
+        json['image_url']?.toString();
+
+    if (foundAvatar == null && json['user'] is Map) {
+      final user = json['user'] as Map<String, dynamic>;
+      foundAvatar = user['profile_image']?.toString() ??
+          user['image_url']?.toString() ??
+          user['avatar']?.toString();
+    }
+
     return MatchItemModel(
       postId: json['post_id'] as int? ?? 0,
       postUid: json['post_uid']?.toString() ?? '',
-      posterName: json['poster_name']?.toString() ?? '',
-      posterAvatar: json['poster_avatar']?.toString() ?? '',
+      posterName: foundName ?? '',
+      posterAvatar: foundAvatar ?? '',
       userUid: json['user_uid']?.toString() ?? '',
       postImages: _parseImages(json['postimages']),
       name: json['name']?.toString() ?? '',
@@ -110,7 +134,7 @@ class MatchItemModel {
       matchPercentage: json['matchPercentage'] as int? ?? 0,
       matchTier: json['matchTier'] as int? ?? 0,
       hasImageMatch: json['hasImageMatch'] as bool? ?? false,
-      status: json['status'] as int? ?? 0, // ADDED
+      status: int.tryParse(json['status']?.toString() ?? '') ?? 0, // ADDED
     );
   }
 

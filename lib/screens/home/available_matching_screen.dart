@@ -160,7 +160,9 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
       }
     }
 
-    final winnerName = winnerMatch?.posterName ?? (widget.isFound ? 'Owner' : 'Finder');
+    final winnerName = (winnerMatch != null && winnerMatch.posterName.isNotEmpty)
+        ? winnerMatch.posterName
+        : (widget.isFound ? 'Owner' : 'Finder');
 
     return Scaffold(
       backgroundColor: isClosed ? AppColors.closedColor : AppColors.white,

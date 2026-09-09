@@ -263,14 +263,16 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
       bottomNavigationBar: isClosed
           ? SafeArea(
         child: SucessCard(
-          name: winnerEnquiry?.enquirerName ?? (widget.isFound ? 'Owner' : 'Finder'),
+          name: (winnerEnquiry != null && winnerEnquiry.enquirerName.isNotEmpty)
+              ? winnerEnquiry.enquirerName
+              : (widget.isFound ? 'Owner' : 'Finder'),
           location: post?.postDate != null
               ? DateFormat('d MMM yyyy').format(post!.postDate!)
               : '',
           isReceiver: !widget.isFound,
           onTap: () {
             if (winnerEnquiry == null) return;
-            // Show Handover Details bottom sheet directly
+
             AppUiHelper.showBottomSheet(
               context: context,
               showHandle: false,
@@ -281,7 +283,9 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               child: ReceivedDetails(
                 type: TransferType.handOverToOwner,
                 data: TransferData(
-                  name: winnerEnquiry.enquirerName,
+                  name: (winnerEnquiry != null && winnerEnquiry.enquirerName.isNotEmpty)
+                      ? winnerEnquiry.enquirerName
+                      : (widget.isFound ? 'Owner' : 'Finder'),
                   avatarUrl: winnerEnquiry.enquirerProfileImg,
                   userId: winnerEnquiry.userUid,
                   phoneNumber: winnerEnquiry.phoneno,

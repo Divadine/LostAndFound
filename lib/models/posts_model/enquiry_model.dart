@@ -37,7 +37,8 @@ class EnquiryPostModel {
           ? DateTime.tryParse(json['post_date'].toString())
           : null,
       status: int.tryParse(json['post_status']?.toString() ?? '') ??
-          int.tryParse(json['status']?.toString() ?? '') ?? 0,
+          int.tryParse(json['status']?.toString() ?? '') ??
+          0,
       postType: int.tryParse(json['post_type']?.toString() ?? '') ?? 0,
     );
   }
@@ -99,6 +100,40 @@ class EnquiryItem {
   });
 
   factory EnquiryItem.fromJson(Map<String, dynamic> json) {
+    String? foundName = json['enquirer_name']?.toString() ??
+        json['user_name']?.toString() ??
+        json['full_name']?.toString() ??
+        json['display_name']?.toString();
+
+    if (foundName == null && json['user'] is Map) {
+      final user = json['user'] as Map<String, dynamic>;
+      foundName = user['name']?.toString() ??
+          user['user_name']?.toString() ??
+          user['full_name']?.toString() ??
+          user['display_name']?.toString();
+    }
+
+    // Only fallback to 'name' if it doesn't match item name (common in this API)
+    if (foundName == null && json['name'] != null) {
+      final nameStr = json['name'].toString();
+      if (nameStr != json['item_name']?.toString() && nameStr != json['post_name']?.toString()) {
+        foundName = nameStr;
+      }
+    }
+
+    String? foundAvatar = json['enquirer_profile_img']?.toString() ??
+        json['user_avatar']?.toString() ??
+        json['image_url']?.toString() ??
+        json['profile_img']?.toString() ??
+        json['avatar']?.toString();
+
+    if (foundAvatar == null && json['user'] is Map) {
+      final user = json['user'] as Map<String, dynamic>;
+      foundAvatar = user['profile_image']?.toString() ??
+          user['image_url']?.toString() ??
+          user['avatar']?.toString();
+    }
+
     return EnquiryItem(
       enquiryId: int.tryParse(json['enquiry_id']?.toString() ?? '') ??
           int.tryParse(json['id']?.toString() ?? '') ?? 0,
@@ -112,24 +147,17 @@ class EnquiryItem {
           int.tryParse(json['user_uid']?.toString().replaceAll(RegExp(r'[^0-9]'), '') ?? '') ?? 0,
       userUid: json['user_uid']?.toString() ?? json['userUid']?.toString() ?? '',
       postUid: json['post_uid']?.toString() ?? json['postUid']?.toString() ?? '',
-      enquirerName: json['enquirer_name']?.toString() ??
-          json['user_name']?.toString() ??
-          json['name']?.toString() ??
-          '',
-      enquirerProfileImg: json['enquirer_profile_img']?.toString() ??
-          json['user_avatar']?.toString() ??
-          json['image_url']?.toString() ??
-          json['profile_img']?.toString() ??
-          json['avatar']?.toString() ??
-          '',
+      enquirerName: foundName ?? '',
+      enquirerProfileImg: foundAvatar ?? '',
       description: json['description']?.toString() ?? '',
       matchPercentage: int.tryParse(json['matchPercentage']?.toString() ?? '') ?? 0,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : null,
-      status: json['enquiry_status'] as int? ??
-          json['enquirystatus'] as int? ??
-          json['status'] as int? ?? 0,
+      status: int.tryParse(json['enquiry_status']?.toString() ?? '') ??
+          int.tryParse(json['enquirystatus']?.toString() ?? '') ??
+          int.tryParse(json['status']?.toString() ?? '') ??
+          0,
       phoneno: json['phoneno']?.toString() ?? json['mobile']?.toString() ?? json['phone']?.toString() ?? '',
     );
   }

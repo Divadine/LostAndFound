@@ -581,8 +581,8 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
             radius: BorderRadius.all(Radius.circular(10)),
             title: 'Confirm',
             onTap: () async{
-              await AppPreferences.setIsOnboarded(true);
               if (isChecked) {
+                await AppPreferences.setIsOnboarded(true);
                 AppRoutes.pop();
                 AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
               } else {

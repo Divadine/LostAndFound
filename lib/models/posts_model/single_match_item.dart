@@ -167,6 +167,32 @@ class SingleMatchModel {
       }
     }
 
+    String? foundName = data['poster_name']?.toString() ??
+        data['user_name']?.toString() ??
+        data['enquirer_name']?.toString() ??
+        data['full_name']?.toString() ??
+        data['display_name']?.toString();
+
+    if (foundName == null && data['user'] is Map) {
+      final user = data['user'] as Map<String, dynamic>;
+      foundName = user['name']?.toString() ??
+          user['user_name']?.toString() ??
+          user['full_name']?.toString() ??
+          user['display_name']?.toString();
+    }
+
+    String? foundAvatar = data['poster_avatar']?.toString() ??
+        data['user_avatar']?.toString() ??
+        data['enquirer_profile_img']?.toString() ??
+        data['image_url']?.toString();
+
+    if (foundAvatar == null && data['user'] is Map) {
+      final user = data['user'] as Map<String, dynamic>;
+      foundAvatar = user['profile_image']?.toString() ??
+          user['image_url']?.toString() ??
+          user['avatar']?.toString();
+    }
+
     return SingleMatchModel(
       id: data['id'] as int? ?? 0,
       postUid: data['post_uid']?.toString() ?? '',
@@ -179,18 +205,12 @@ class SingleMatchModel {
       description: data['description']?.toString() ?? '',
       location: data['location']?.toString() ?? '',
       postDate: data['post_date'] != null ? DateTime.tryParse(data['post_date'].toString()) : null,
-      status: data['status'] as int? ?? 0,
+      status: int.tryParse(data['status']?.toString() ?? '') ?? 0,
       imageUrl: foundImage ?? '',
       audioUrl: data['audioUrl']?.toString() ?? data['audio_url']?.toString(),
       videoUrl: foundVideo,
-      posterName: data['poster_name']?.toString() ??
-          data['user_name']?.toString() ??
-          data['enquirer_name']?.toString() ??
-          '',
-      posterAvatar: data['poster_avatar']?.toString() ??
-          data['user_avatar']?.toString() ??
-          data['enquirer_profile_img']?.toString() ??
-          '',
+      posterName: foundName ?? '',
+      posterAvatar: foundAvatar ?? '',
       values: valuesList
           .map((e) => SingleMatchValue.fromJson(e as Map<String, dynamic>))
           .toList(),

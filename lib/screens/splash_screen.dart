@@ -31,7 +31,11 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (!AppPreferences.getIsLoggedIn()) {
-      AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
+      if (!AppPreferences.getIsOnboarded()) {
+        AppRoutes.pushAndRemoveUntil(AppRoutes.onBoardingScreen);
+      } else {
+        AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
+      }
       return;
     }
 
