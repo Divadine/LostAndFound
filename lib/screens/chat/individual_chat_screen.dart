@@ -883,7 +883,7 @@ class _IndividualChatScreenState
               width: 16,
               height: 16,
               child: _isOffline
-                  ? const NoInternetWidget(size: 16)
+                  ? const NoInternetWidget(size: 16, showText: false)
                   : const CircularProgressIndicator(
                       strokeWidth: 2,
                     ),

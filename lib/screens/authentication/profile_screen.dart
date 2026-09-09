@@ -1025,7 +1025,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               final response = await authController.updateProfileForm(profile);
               if (!mounted) return;
               if (response.status == 1) {
-                await AppPreferences.setProfileStatus(1);
+                if (!widget.profileModel.isFromEdit) {
+                  await AppPreferences.setProfileStatus(1);
+                }
                 await AppPreferences.saveUserName(nameController.text);
                 if (widget.profileModel.isFromEdit) {
                   context.pop();

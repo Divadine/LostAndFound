@@ -48,9 +48,14 @@ class _SplashScreenState extends State<SplashScreen> {
     // so we must resume the form instead of jumping straight to BottomScreen.
     // =========================================================================
 
-    final isProfileComplete = AppPreferences.getProfileStatus() == 1;
+    final profileStatus = AppPreferences.getProfileStatus();
 
-    if (isProfileComplete) {
+    if (profileStatus == 1) {
+      AppRoutes.pushAndRemoveUntil(AppRoutes.firstHomeScreen);
+      return;
+    }
+
+    if (profileStatus >= 2) {
       AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
       return;
     }

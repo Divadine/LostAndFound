@@ -67,7 +67,7 @@ class _AppCachedNetworkImageState extends State<AppCachedNetworkImage> {
             ),
           ),
         ),
-        errorWidget: (context, url, error) => const NoInternetWidget(size: 40),
+        errorWidget: (context, url, error) => const NoInternetWidget(size: 40, showText: false),
       ),
     );
   }

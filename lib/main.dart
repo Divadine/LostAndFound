@@ -10,6 +10,7 @@ import 'package:lost_and_found/utils/app_utils.dart';
 import 'firebase_options.dart';
 
 void main() async {
+
   WidgetsFlutterBinding.ensureInitialized();
   try {
     if (Firebase.apps.isEmpty) {
@@ -29,8 +30,20 @@ void main() async {
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isTab = MediaQuery.of(context).size.shortestSide >= 600;
+    AppUtils.isTab = isTab;
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -127,9 +127,9 @@ class AppUtils {
     } else if (percentage >= 60) {
       return AppColors.percentageBlue;
     } else if (percentage >= 40) {
-      return AppColors.percentageOrange; // Orange
+      return AppColors.percentageOrange;
     } else {
-      return AppColors.percentageGrey; // Grey
+      return AppColors.percentageGrey;
     }
   }
 }

@@ -263,9 +263,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
       bottomNavigationBar: isClosed
           ? SafeArea(
         child: SucessCard(
-          name: (winnerEnquiry != null && winnerEnquiry.enquirerName.isNotEmpty)
-              ? winnerEnquiry.enquirerName
-              : (widget.isFound ? 'Owner' : 'Finder'),
+          name: winnerEnquiry?.enquirerName ?? (widget.isFound ? 'Owner' : 'Finder'),
           location: post?.postDate != null
               ? DateFormat('d MMM yyyy').format(post!.postDate!)
               : '',
@@ -283,7 +281,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               child: ReceivedDetails(
                 type: TransferType.handOverToOwner,
                 data: TransferData(
-                  name: (winnerEnquiry != null && winnerEnquiry.enquirerName.isNotEmpty)
+                  name: winnerEnquiry.enquirerName.isNotEmpty
                       ? winnerEnquiry.enquirerName
                       : (widget.isFound ? 'Owner' : 'Finder'),
                   avatarUrl: winnerEnquiry.enquirerProfileImg,

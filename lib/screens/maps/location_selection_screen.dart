@@ -1680,7 +1680,7 @@ class _LocationSelectionScreenState
             width: 16,
 
             child: _isOffline
-                ? const NoInternetWidget(size: 16)
+                ? const NoInternetWidget(size: 16, showText: false)
                 : const CircularProgressIndicator(
                     strokeWidth: 2,
                   ),
@@ -1955,7 +1955,7 @@ class _LocationSelectionScreenState
                 width: 16,
 
                 child: _isOffline
-                    ? const NoInternetWidget(size: 16)
+                    ? const NoInternetWidget(size: 16, showText: false)
                     : const CircularProgressIndicator(
                         strokeWidth: 2,
                       ),

@@ -5,6 +5,7 @@ import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 
 class FirstHomeScreen extends StatefulWidget {
   const FirstHomeScreen({super.key});
@@ -42,7 +43,8 @@ class _FirstHomeScreenState extends State<FirstHomeScreen> {
             description:
             'Post details about the item you lost and let others help you find it.',
             rightImg: AssetImages.right_arrow,
-            onTap: () {
+            onTap: () async {
+              await AppPreferences.setProfileStatus(2);
               AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 0); // lost
             },
           ),
@@ -53,14 +55,16 @@ class _FirstHomeScreenState extends State<FirstHomeScreen> {
             description:
             'Share details about the item. you found and help it reach its owner.',
             rightImg: AssetImages.right_arrow,
-            onTap: () {
+            onTap: () async {
+              await AppPreferences.setProfileStatus(2);
               AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 1); // found
             },
           ),
           SizedBox(height: 10),
 
           GestureDetector(
-            onTap: (){
+            onTap: () async {
+              await AppPreferences.setProfileStatus(2);
               AppRoutes.pushNamed(AppRoutes.bottomScreen);
             },
             child: Container(

@@ -1620,6 +1620,7 @@ class PostLive extends StatelessWidget {
               fontSize: 14,
               onTap: () async {
                 await AppPreferences.setIsItemPosted(true);
+                await AppPreferences.setProfileStatus(2);
                 if (!context.mounted) return;
                 Navigator.of(context).pop();
                 AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen, arguments: postType);
