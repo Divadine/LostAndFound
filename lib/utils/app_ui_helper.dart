@@ -93,6 +93,7 @@ class AppUiHelper {
     VoidCallback? onClose,
     Color? color,
     Color? iconColor,
+    BorderRadiusGeometry? radius,
     Color bgColor = AppColors.white,
   }) {
     return showModalBottomSheet<T>(

@@ -537,9 +537,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       title: 'Color',
       fieldWidget: AppDropdownField<String>(
         borderColor: AppColors.fieldGrey,
-        // Matches AppTextField's content padding so the dropdown renders
-        // at the same height as the text fields above it.
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        //contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         menuHeight: 200,
         value: selectedColor,
         hintText: isLoadingColors ? 'Loading...' : 'Select color',
@@ -679,9 +677,8 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
           title: field.displayName,
           fieldWidget: AppDropdownField<String>(
             borderColor: AppColors.fieldGrey,
-            // Matches AppTextField's content padding so this dropdown renders
-            // at the same height as the text fields around it.
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+
+            //contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             value: selectedDropdownValues[field.id],
             menuHeight: 250,
             hintText: hint,

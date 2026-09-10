@@ -365,22 +365,22 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               : '',
           postId: post?.postUid ?? '',
           bg: AppColors.lightBlue_2,
-          onTap: () {
-            if (post != null) {
-              AppRoutes.pushNamed(
-                AppRoutes.lostItemsDetailsScreen,
-                arguments: {
-                  'postId': post.id,
-                  'userId': post.userId,
-                  'isLostPost': !widget.isFound,
-                },
-              );
-            }
-          },
+          // onTap: () {
+          //   if (post != null) {
+          //     AppRoutes.pushNamed(
+          //       AppRoutes.lostItemsDetailsScreen,
+          //       arguments: {
+          //         'postId': post.id,
+          //         'userId': post.userId,
+          //         'isLostPost': !widget.isFound,
+          //       },
+          //     );
+          //   }
+          // },
           showPostId: true,
           status: post?.status,
-          showClosedStamp: false,
-        ).pad(10),
+          showClosedStamp: false, onTap: () {  },
+        ).pad(7),
 
         Row(
           spacing: 10,
@@ -405,7 +405,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               ),
             ),
           ],
-        ).pad(12),
+        ).pad(5),
 
         Expanded(
           child: enquiries.isEmpty
@@ -416,20 +416,10 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               itemCount: enquiries.length,
               itemBuilder: (context, index) {
                 final e = enquiries[index];
-
-                // Only the specific enquiry that was actually accepted /
-                // handed over gets highlighted once the post is closed.
-                // (Using match % as a fallback is unreliable — it can
-                // highlight the wrong card, or more than one card.)
                 final isWinner = isClosed && e.status == 2;
 
-                // TEMP DEBUG — remove once we confirm what field/value
-                // actually marks an enquiry as accepted.
-                debugPrint(
-                  'Enquiry ${e.enquiryId}: status=${e.status}, '
-                      'matchedPostId=${e.matchedPostId}, isClosed=$isClosed, '
-                      'isWinner=$isWinner',
-                );
+
+
 
                 return buildEnquiryCard(
                   context: context,
@@ -465,7 +455,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                     );
                     _fetchEnquiries();
                   },
-                );
+                ).padVertical(7);
               },
             ),
           ),

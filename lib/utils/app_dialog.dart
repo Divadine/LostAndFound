@@ -1626,7 +1626,7 @@ class PostLive extends StatelessWidget {
                 await AppPreferences.setProfileStatus(2);
                 if (!context.mounted) return;
                 Navigator.of(context).pop();
-                AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen, arguments: postType);
+                AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen, arguments: {'index': 0});
               },
               bgColor: AppColors.primaryColor,
 

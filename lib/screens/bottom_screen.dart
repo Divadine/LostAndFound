@@ -22,14 +22,15 @@ import 'maps/police_station_mapscreen.dart';
 
 class BottomScreen extends StatefulWidget {
   final int? initialTabIndex;
-  const BottomScreen({super.key, this.initialTabIndex});
+  final Object? navigationExtra;
+  const BottomScreen({super.key, this.initialTabIndex, this.navigationExtra});
 
   @override
   State<BottomScreen> createState() => _BottomScreenState();
 }
 
 class _BottomScreenState extends State<BottomScreen> {
-  int selectedIndex = 0;
+  late int selectedIndex;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
 
@@ -47,6 +48,7 @@ class _BottomScreenState extends State<BottomScreen> {
   @override
   void initState() {
     super.initState();
+    selectedIndex = widget.initialTabIndex ?? 0;
     pages = [
       HomeScreen(initialTabIndex: widget.initialTabIndex),
       PoliceStationMapScreen(),
@@ -55,6 +57,16 @@ class _BottomScreenState extends State<BottomScreen> {
       SettingsScreen(),
     ];
     _initConnectivityListener();
+  }
+
+  @override
+  void didUpdateWidget(covariant BottomScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.navigationExtra != oldWidget.navigationExtra) {
+      setState(() {
+        selectedIndex = widget.initialTabIndex ?? 0;
+      });
+    }
   }
 
   @override

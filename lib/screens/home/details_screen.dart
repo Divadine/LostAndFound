@@ -198,6 +198,11 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
       });
     }
 
+    debugPrint('========== GET SINGLE MATCH CALL ==========');
+    debugPrint('widget.postId (match/target postId) : ${widget.postId}');
+    debugPrint('widget.userId (match/target userId)  : ${widget.userId}');
+    debugPrint('widget.originalPostId (my own post)  : ${widget.originalPostId}');
+    debugPrint('current logged-in userId             : ${AppPreferences.getUserId()}');
     try {
       final response = await authController.getSingleMatch(
         postId: widget.postId,

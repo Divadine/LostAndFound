@@ -131,6 +131,12 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
   Future<void> _onMatchTap(MatchItemModel match) async {
     if (!mounted) return;
 
+    debugPrint('========== MATCH TAP DEBUG ==========');
+    debugPrint('match.postId       : ${match.postId}');
+    debugPrint('match.userId       : ${match.userId}');
+    debugPrint('match.posterName   : ${match.posterName}');
+    debugPrint('widget.postId (original) : ${widget.postId}');
+    debugPrint('=====================================');
     AppRoutes.pushNamed(
       AppRoutes.lostItemsDetailsScreen,
       arguments: {

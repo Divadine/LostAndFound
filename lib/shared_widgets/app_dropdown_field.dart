@@ -7,25 +7,21 @@ import 'package:lost_and_found/utils/app_images.dart';
 
 // =============================================================================
 // NO-EDIT FORMATTER
-//
-// Guarantees the text field can NEVER be changed by typing, pasting,
-// backspacing, or any other keyboard/IME action. Whatever the user tries to
-// do, we simply return the value the field already had.
-//
-// The ONLY way the displayed text changes is when WE set `controller.text`
-// programmatically (on selection, or when `widget.value` changes) — that
-// bypasses formatters entirely, so it still works normally.
 // =============================================================================
 
 class _NoEditTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue,
-      TextEditingValue newValue,
-      ) {
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     return oldValue;
   }
 }
+
+// =============================================================================
+// APP DROPDOWN FIELD
+// =============================================================================
 
 class AppDropdownField<T> extends StatefulWidget {
   final T? value;
@@ -33,6 +29,7 @@ class AppDropdownField<T> extends StatefulWidget {
   final String hintText;
 
   final double? height;
+
   final List<T> items;
 
   final String Function(T) itemLabel;
@@ -50,6 +47,7 @@ class AppDropdownField<T> extends StatefulWidget {
   final double? menuHeight;
 
   final Widget? suffixIcon;
+
   final EdgeInsetsGeometry? contentPadding;
 
   final Widget? selectedSuffixIcon;
@@ -67,17 +65,27 @@ class AppDropdownField<T> extends StatefulWidget {
     this.selectedItemTextColor,
     this.menuHeight,
     this.suffixIcon,
-    this.selectedSuffixIcon, this.height, this.contentPadding,
+    this.selectedSuffixIcon,
+    this.height,
+    this.contentPadding,
   });
 
   @override
   State<AppDropdownField<T>> createState() => _AppDropdownFieldState<T>();
 }
 
-class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
+// =============================================================================
+// STATE
+// =============================================================================
+
+class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
+    with SingleTickerProviderStateMixin {
   late TextEditingController controller;
 
-  late FocusNode focusNode;
+  late AnimationController rotationController;
+
+  // MenuAnchor controller.
+  final MenuController menuController = MenuController();
 
   bool isOpen = false;
 
@@ -85,12 +93,20 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
   void initState() {
     super.initState();
 
-    focusNode = FocusNode(
-      canRequestFocus: false,
+    controller = TextEditingController(
+      text: widget.value == null ? '' : widget.itemLabel(widget.value as T),
     );
 
-    controller = TextEditingController(
-      text: widget.value == null ? "" : widget.itemLabel(widget.value as T),
+    // -------------------------------------------------------------------------
+    // Rotation animation
+    //
+    // 0.0 = closed
+    // 0.5 = 180 degrees
+    // -------------------------------------------------------------------------
+
+    rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
     );
   }
 
@@ -99,135 +115,298 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.value != widget.value) {
-      controller.text =
-      widget.value == null ? "" : widget.itemLabel(widget.value as T);
+      controller.text = widget.value == null
+          ? ''
+          : widget.itemLabel(widget.value as T);
     }
   }
 
   @override
   void dispose() {
-    focusNode.dispose();
+    rotationController.dispose();
     controller.dispose();
+
     super.dispose();
   }
+
+  // =============================================================================
+  // OPEN MENU
+  // =============================================================================
+
+  void _openMenu() {
+    if (menuController.isOpen) {
+      return;
+    }
+
+    menuController.open();
+
+    setState(() {
+      isOpen = true;
+    });
+
+    rotationController.forward();
+  }
+
+  // =============================================================================
+  // CLOSE MENU
+  // =============================================================================
+
+  void _closeMenu() {
+    if (!menuController.isOpen) {
+      return;
+    }
+
+    menuController.close();
+
+    setState(() {
+      isOpen = false;
+    });
+
+    rotationController.reverse();
+  }
+
+  // =============================================================================
+  // TOGGLE MENU
+  // =============================================================================
+
+  void _toggleMenu() {
+    if (menuController.isOpen) {
+      _closeMenu();
+    } else {
+      _openMenu();
+    }
+  }
+
+  // =============================================================================
+  // SUFFIX ICON
+  // =============================================================================
+
+  Widget _buildSuffixIcon() {
+    final Widget closedIcon =
+        widget.suffixIcon ?? AppIconWidget(assetPath: AssetImages.dropDown);
+
+    final Widget openIcon =
+        widget.selectedSuffixIcon ??
+        widget.suffixIcon ??
+        AppIconWidget(assetPath: AssetImages.dropUp);
+
+    return Container(
+      height: 30,
+      width: 30,
+      child: Center(child: isOpen ? AppIconWidget(assetPath: AssetImages.dropUp) : AppIconWidget(assetPath: AssetImages.dropDown))
+    );
+  }
+
+  // =============================================================================
+  // BUILD
+  // =============================================================================
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Material(
-          borderRadius: BorderRadius.circular(6),
-          child: SizedBox(
-            //height: widget.height ?? 50,
-            child: DropdownMenu<T>(
-              width: constraints.maxWidth,
-              menuHeight: widget.menuHeight,
-              controller: controller,
-              focusNode: focusNode,
-              requestFocusOnTap: false,
-              enableSearch: false,
-              enableFilter: false,
+        return MenuAnchor(
+          controller: menuController,
 
-              // =================================================================
-              // Belt-and-suspenders: even if focus/IME somehow reached the
-              // field, every single edit attempt is rejected and reverted.
-              // =================================================================
+          // -------------------------------------------------------------------
+          // Detect when menu opens/closes.
+          // -------------------------------------------------------------------
+          onOpen: () {
+            if (!mounted) return;
 
-              inputFormatters: [
-                _NoEditTextInputFormatter(),
-              ],
+            setState(() {
+              isOpen = true;
+            });
 
-              initialSelection: widget.value,
-              trailingIcon: widget.suffixIcon ??
-                  AppIconWidget(
-                    assetPath: AssetImages.dropDown,
-                  ),
+            rotationController.forward();
+          },
 
-              selectedTrailingIcon: widget.selectedSuffixIcon ??
-                  widget.suffixIcon ??
-                  AppIconWidget(
-                    assetPath: AssetImages.dropUp,
-                  ),
+          onClose: () {
+            if (!mounted) return;
 
-              hintText: widget.hintText,
-              textStyle: appTextStyle(color: AppColors.black),
-              inputDecorationTheme: InputDecorationTheme(
-                filled: true,
-                fillColor: Colors.white,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 0,
-                ),
-                hintStyle: appTextStyle(
-                  color: Colors.grey,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(
-                    color: widget.borderColor ??
-                        AppColors.fieldGrey.withAlpha(20),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide(
-                    color: widget.borderColor ??
-                        AppColors.fieldGrey.withAlpha(20),
-                  ),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-              menuStyle: MenuStyle(
-                elevation: WidgetStateProperty.all(2),
-                backgroundColor: WidgetStateProperty.all(Colors.white),
-                shape: WidgetStateProperty.all(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-              ),
-              dropdownMenuEntries: widget.items.map((item) {
-                bool selected = item == widget.value;
-                return DropdownMenuEntry<T>(
-                  value: item,
-                  label: widget.itemLabel(item),
-                  style: ButtonStyle(
-                    padding: WidgetStateProperty.all(
-                      const EdgeInsets.symmetric(
-                        horizontal: 20,
-                      ),
-                    ),
-                    backgroundColor: WidgetStateProperty.resolveWith(
-                          (states) {
-                        if (selected) {
-                          return AppColors.idCardColor;
-                        }
-                        return Colors.white;
-                      },
-                    ),
-                    foregroundColor: WidgetStateProperty.resolveWith(
-                          (states) {
-                        if (selected) {
-                          return AppColors.black;
-                        }
-                        return Colors.black;
-                      },
-                    ),
-                    textStyle: WidgetStateProperty.all(
-                      appTextStyle(),
-                    ),
-                  ),
-                );
-              }).toList(),
-              onSelected: (value) {
-                focusNode.unfocus();
-                widget.onChanged?.call(value);
-              },
+            setState(() {
+              isOpen = false;
+            });
+
+            rotationController.reverse();
+          },
+
+          // -------------------------------------------------------------------
+          // MENU STYLE
+          // -------------------------------------------------------------------
+          style: MenuStyle(
+            maximumSize: WidgetStateProperty.all(
+              Size(constraints.maxWidth, widget.menuHeight ?? 300),
+            ),
+
+            elevation: WidgetStateProperty.all(2),
+
+            backgroundColor: WidgetStateProperty.all(Colors.white),
+
+            shape: WidgetStateProperty.all(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             ),
           ),
+
+          // -------------------------------------------------------------------
+          // MENU ITEMS
+          // -------------------------------------------------------------------
+          menuChildren: widget.items.map((item) {
+            final bool selected = item == widget.value;
+
+            return MenuItemButton(
+              style: ButtonStyle(
+                padding: WidgetStateProperty.all(
+                  const EdgeInsets.symmetric(horizontal: 20),
+                ),
+
+                backgroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (selected) {
+                    return widget.selectedItemColor ?? AppColors.idCardColor;
+                  }
+
+                  return Colors.white;
+                }),
+
+                foregroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (selected) {
+                    return widget.selectedItemTextColor ?? AppColors.black;
+                  }
+
+                  return Colors.black;
+                }),
+
+                textStyle: WidgetStateProperty.all(appTextStyle()),
+              ),
+
+              onPressed: () {
+                // -------------------------------------------------------------
+                // Update text.
+                // -------------------------------------------------------------
+
+                controller.text = widget.itemLabel(item);
+
+                // -------------------------------------------------------------
+                // Notify parent.
+                // -------------------------------------------------------------
+
+                widget.onChanged?.call(item);
+
+                // -------------------------------------------------------------
+                // Close menu.
+                // -------------------------------------------------------------
+
+                _closeMenu();
+              },
+
+              child: SizedBox(
+                width: constraints.maxWidth - 40,
+                child: Text(widget.itemLabel(item), style: appTextStyle()),
+              ),
+            );
+          }).toList(),
+
+          // -------------------------------------------------------------------
+          // DROPDOWN FIELD
+          // -------------------------------------------------------------------
+          builder: (BuildContext context, MenuController controller, Widget? child) {
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+
+              onTap: _toggleMenu,
+
+              child: AbsorbPointer(
+                absorbing: true,
+
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    // =========================================================
+                    // HINT
+                    // =========================================================
+                    hintText: widget.value == null ? widget.hintText : null,
+
+                    hintStyle: appTextStyle(color: Colors.grey),
+
+                    // =========================================================
+                    // BACKGROUND
+                    // =========================================================
+                    filled: true,
+
+                    fillColor: widget.backgroundColor ?? Colors.white,
+
+                    // =========================================================
+                    // DENSITY
+                    // =========================================================
+                    isDense: true,
+
+                    // =========================================================
+                    // PADDING
+                    // =========================================================
+                    contentPadding:
+                        widget.contentPadding ??
+                        const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+
+                    // =========================================================
+                    // BORDER
+                    // =========================================================
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+
+                      borderSide: BorderSide(
+                        color:
+                            widget.borderColor ??
+                            AppColors.fieldGrey.withAlpha(20),
+                      ),
+                    ),
+
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+
+                      borderSide: BorderSide(
+                        color:
+                            widget.borderColor ??
+                            AppColors.fieldGrey.withAlpha(20),
+                      ),
+                    ),
+
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+
+                      borderSide: BorderSide(
+                        color:
+                            widget.borderColor ??
+                            AppColors.fieldGrey.withAlpha(20),
+                      ),
+                    ),
+
+                    // =========================================================
+                    // CUSTOM ROTATING SUFFIX
+                    // =========================================================
+                    suffixIcon: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: _buildSuffixIcon(),
+                    ),
+                  ),
+
+                  // ===========================================================
+                  // SELECTED VALUE / HINT
+                  // ===========================================================
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      widget.value == null
+                          ? ''
+                          : widget.itemLabel(widget.value as T),
+                      style: appTextStyle(color: AppColors.black),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );

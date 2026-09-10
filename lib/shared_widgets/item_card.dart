@@ -361,7 +361,7 @@ class ItemCard extends StatelessWidget {
                 height: 35,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: AppColors.lightBlue,
+                  color: AppColors.viewAll,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(

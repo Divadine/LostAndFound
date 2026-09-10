@@ -35,6 +35,7 @@ class AppTextField extends StatelessWidget {
   final TextAlign? textAlign;
   final TextAlignVertical? textAlignVertical;
   final EdgeInsetsGeometry? contentPadding;
+  final FocusNode? focusNode;
 
 
   const AppTextField({
@@ -62,7 +63,7 @@ class AppTextField extends StatelessWidget {
     this.textBackgroundColor,
     this.textSize,
     this.textInputAction,
-    this.suffixIconConstraints, this.obscureText, this.borderColor, this.textAlign, this.textAlignVertical, this.contentPadding,
+    this.suffixIconConstraints, this.obscureText, this.borderColor, this.textAlign, this.textAlignVertical, this.contentPadding, this.focusNode,
   });
 
   @override
@@ -81,6 +82,7 @@ class AppTextField extends StatelessWidget {
               borderRadius: borderRadius ?? BorderRadius.circular(6),
               child: TextField(
                 controller: textController,
+                focusNode: focusNode,
                 textAlign: textAlign ?? TextAlign.start,
                 textAlignVertical: textAlignVertical,
                 style: appTextStyle(color: textBackgroundColor),
@@ -109,7 +111,7 @@ class AppTextField extends StatelessWidget {
                   isDense: true,
                   counterText: '',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: backgroundColor ?? Colors.white,
                   contentPadding: contentPadding ?? const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 10,

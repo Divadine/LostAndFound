@@ -125,8 +125,16 @@ class AppRoutes {
         path: '/bottomScreen',
         name: bottomScreen,
         builder: (context, state) {
-          final initialTabIndex = state.extra is int ? state.extra as int : 0;
-          return BottomScreen(initialTabIndex: initialTabIndex);
+          int? index;
+          if (state.extra is int) {
+            index = state.extra as int;
+          } else if (state.extra is Map) {
+            index = (state.extra as Map)['index'] as int?;
+          }
+          return BottomScreen(
+            initialTabIndex: index,
+            navigationExtra: state.extra,
+          );
         },
       ),
 

@@ -114,6 +114,7 @@ class _IndividualChatScreenState
   final TextEditingController textController =
   TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
 
   String? selectedMessageId;
 
@@ -128,6 +129,12 @@ class _IndividualChatScreenState
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
+
+  Stream<bool>? _blockedStream;
+  Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
+  Stream<Map<String, dynamic>>? _contactRequestStream;
+
+  RecorderState _lastRecorderState = RecorderState.idle;
 
   final AuthControllers _authController =
   AuthControllers(
@@ -151,12 +158,40 @@ class _IndividualChatScreenState
       userId: widget.currentUserId,
     );
 
+    _initStreams();
+
+    _lastRecorderState = AppRecorderService.instance.state;
     AppRecorderService.instance.addListener(_onRecorderChanged);
     AppRecorderService.instance.deleteRecording();
   }
 
+  void _initStreams() {
+    _blockedStream = ChatService.chatBlockedStream(roomId: widget.roomId);
+    _messagesStream = ChatService.messagesStream(widget.roomId);
+    _contactRequestStream = ChatService.contactRequestStream(roomId: widget.roomId);
+  }
+
   void _onRecorderChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final newState = AppRecorderService.instance.state;
+    if (newState != _lastRecorderState) {
+      setState(() {
+        _lastRecorderState = newState;
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant IndividualChatScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.roomId != widget.roomId) {
+      _initStreams();
+      _loadPhoneAndInitialize();
+      ChatService.markRoomAsRead(
+        roomId: widget.roomId,
+        userId: widget.currentUserId,
+      );
+    }
   }
 
   void _initConnectivityListener() async {
@@ -361,6 +396,7 @@ class _IndividualChatScreenState
     AppRecorderService.instance.removeListener(_onRecorderChanged);
     _connectivitySub?.cancel();
     textController.dispose();
+    _focusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -413,13 +449,13 @@ class _IndividualChatScreenState
       }
 
       if (text.isNotEmpty) {
+        textController.clear();
+        
         await ChatService.sendMessage(
           roomId: widget.roomId,
           senderId: widget.currentUserId,
           message: text,
         );
-
-        textController.clear();
       }
     } catch (e) {
       if (!mounted) return;
@@ -630,6 +666,7 @@ class _IndividualChatScreenState
                 ),
               ),
             ),
+            const Divider(),
             _buildBottomArea(),
           ],
         ),
@@ -644,10 +681,7 @@ class _IndividualChatScreenState
   Widget _buildPhoneRow() {
     return StreamBuilder<
         Map<String, dynamic>>(
-      stream:
-      ChatService.contactRequestStream(
-        roomId: widget.roomId,
-      ),
+      stream: _contactRequestStream,
 
       builder: (context, snapshot) {
         final data =
@@ -1279,9 +1313,7 @@ class _IndividualChatScreenState
 
   Widget _buildMessagesList() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: ChatService.messagesStream(
-        widget.roomId,
-      ),
+      stream: _messagesStream,
       builder: (
         context,
         snapshot,
@@ -1334,7 +1366,7 @@ class _IndividualChatScreenState
 
         // Schedule scroll to bottom after frame
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
+          if (mounted && _scrollController.hasClients) {
             _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
           }
         });
@@ -2390,9 +2422,7 @@ class _IndividualChatScreenState
     final isRecording = recorderService.isRecording || recorderService.isPaused;
 
     return StreamBuilder<bool>(
-      stream: ChatService.chatBlockedStream(
-        roomId: widget.roomId,
-      ),
+      stream: _blockedStream,
       builder: (
         context,
         snapshot,
@@ -2412,66 +2442,65 @@ class _IndividualChatScreenState
           return _buildChatRecordingUi();
         }
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+        return Container(
+          padding: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (_pendingAttachment != null) _buildPendingAttachmentPreview(),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  buildIconContainer(
-                    onTap: () {
-                      if (_isOffline) {
-                        _showNoInternetSnackbar();
-                        return;
-                      }
-                      AppUiHelper.showBottomSheet(
-                        context: context,
-                        showHandle: false,
-                        showCloseIcon: false,
-                        color: AppColors.primaryColor,
-                        bgColor: Colors.transparent,
-                        iconColor: AppColors.white,
-                        child: ChatSharingFiles(
-                          roomId: widget.roomId,
-                          currentUserId: widget.currentUserId,
-                          onAttachmentSelected: (attachment) {
-                            setState(() {
-                              _pendingAttachment = attachment;
-                            });
-                          },
-                        ),
-                      );
-                    },
-                    height: 50,
+                  AppContainer(
                     width: 50,
-                    context,
-                    icon: AssetImages.add,
-                    bgColor: AppColors.white,
-                    iconColor: AppColors.black,
-                    borderColor: AppColors.fieldGrey,
+                    height: 50,
+                    color: AppColors.fieldGrey.withAlpha(50),
+                    widget: InkWell(
+                      onTap: () {
+                        if (_isOffline) {
+                          _showNoInternetSnackbar();
+                          return;
+                        }
+                        AppUiHelper.showBottomSheet(
+                          radius: BorderRadius.circular(10),
+                          context: context,
+                          showHandle: false,
+                          showCloseIcon: false,
+                          color: AppColors.primaryColor,
+                          bgColor: Colors.transparent,
+                          iconColor: AppColors.white,
+                          child: ChatSharingFiles(
+                            roomId: widget.roomId,
+                            currentUserId: widget.currentUserId,
+                            onAttachmentSelected: (attachment) {
+                              setState(() {
+                                _pendingAttachment = attachment;
+                              });
+                            },
+                          ),
+                        );
+                      },
+                      child: Center(
+                        child: AppIconWidget(
+                          assetPath: AssetImages.add,
+                          color: AppColors.black,
+                          size: 24,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Container(
+                    child: AppContainer(
                       height: 50,
-
-                      //constraints: const BoxConstraints(minHeight: 60),
-                      // decoration: BoxDecoration(
-                      //   color: AppColors.white,
-                      //   borderRadius: BorderRadius.circular(
-                      //     30,
-                      //   ),
-                      //   boxShadow: const [
-                      //     BoxShadow(
-                      //       color: Colors.black12,
-                      //       blurRadius: 8,
-                      //       offset: Offset(0, 2),
-                      //     ),
-                      //   ],
-                      // ),
-                      child: AppTextField(
+                      color: AppColors.fieldGrey.withAlpha(50),
+                      widget: AppTextField(
+                        focusNode: _focusNode,
+                        borderRadius: BorderRadius.circular(14),
+                        borderColor: Colors.transparent,
+                        hintStyle: TextStyle(
+                          color: AppColors.black
+                        ),
                         hintText: 'Write your message..',
                         textController: textController,
                         onChange: (v) {},
@@ -2483,20 +2512,25 @@ class _IndividualChatScreenState
                   ValueListenableBuilder<TextEditingValue>(
                     valueListenable: textController,
                     builder: (context, value, child) {
-                     // final hasText = value.text.trim().isNotEmpty;
-                      return buildIconContainer(
-                        height: 50,
+                      return AppContainer(
                         width: 50,
-                        context,
-                        icon:  AssetImages.send,
+                        height: 50,
                         bgColor: AppColors.primaryColor,
-                        iconColor: AppColors.white,
-                        onTap: _send
+                        widget: InkWell(
+                          onTap: _send,
+                          child: Center(
+                            child: AppIconWidget(
+                              assetPath: AssetImages.send,
+                              color: AppColors.white,
+                              size: 24,
+                            ),
+                          ),
+                        ),
                       );
                     },
                   ),
                 ],
-              ).pad(),
+              ),
             ],
           ),
         );
@@ -2540,10 +2574,15 @@ class _IndividualChatScreenState
                 children: [
                   const Icon(Icons.mic, color: Colors.red, size: 16),
                   const SizedBox(width: 8),
-                  AppText(
-                    text: service.formatDuration(service.elapsed),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                  ListenableBuilder(
+                    listenable: service,
+                    builder: (context, _) {
+                      return AppText(
+                        text: service.formatDuration(service.elapsed),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      );
+                    },
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -2596,18 +2635,66 @@ class _IndividualChatScreenState
 
     final type = _pendingAttachment!['type'];
 
-    Widget content;
     if (type == 'image') {
-      content = ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          _pendingAttachment!['url'],
-          width: 50,
-          height: 50,
-          fit: BoxFit.cover,
+      return Container(
+        margin: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
+        height: 120,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  _pendingAttachment!['url'],
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: AppColors.fieldGrey,
+                    child: const Icon(Icons.broken_image),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _pendingAttachment = null;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       );
-    } else if (type == 'location') {
+    }
+
+    Widget content;
+    if (type == 'location') {
       content = Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
@@ -2788,6 +2875,7 @@ class _IndividualChatScreenState
           child: AppIconWidget(
             assetPath:
             AssetImages.backArrow,
+            size: 20,
           ),
         ),
 
@@ -2870,7 +2958,7 @@ class _IndividualChatScreenState
             ),
             borderRadius:
             BorderRadius.circular(
-              20,
+              10,
             ),
           ),
 
