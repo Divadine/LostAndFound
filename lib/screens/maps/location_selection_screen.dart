@@ -14,6 +14,7 @@ import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/services/place_service.dart';
 import 'package:lost_and_found/models/posts_model/selected_location_model.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
+import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
@@ -157,7 +158,11 @@ class _LocationSelectionScreenState
     // RESTORE PREVIOUS LOCATIONS
     // -------------------------------------------------------------------------
 
-    if (widget.mapScreenModel.selectedLocation != null) {
+    // Multi-location mode can restore its existing locations.
+    // Single-location/Profile mode must start from the user's CURRENT GPS,
+    // so an old saved/home location is not restored here.
+    if (widget.mapScreenModel.selectedLocation != null &&
+        !widget.mapScreenModel.needSingleLocation) {
       _selectedLocations = List<SelectedLocationModel>.from(
         widget.mapScreenModel.selectedLocation!,
       );
@@ -231,7 +236,7 @@ class _LocationSelectionScreenState
   Future<bool> _hasInternetConnection() async {
     // Fast check if possible, otherwise check actual connectivity
     if (_isOffline) return false;
-    
+
     try {
       final result = await Connectivity().checkConnectivity();
       return !result.contains(ConnectivityResult.none);
@@ -323,31 +328,36 @@ class _LocationSelectionScreenState
         return;
       }
 
-      if (_selectedLocations.isNotEmpty) {
+      // Only multi-location mode restores locations passed by the caller.
+      // Single-location/Profile mode MUST fetch the user's current GPS.
+      final bool useExistingLocations =
+          !widget.mapScreenModel.needSingleLocation &&
+              _selectedLocations.isNotEmpty;
+
+      if (useExistingLocations) {
         if (_mapController != null) {
           final selected = _selectedLocations.first;
-          _mapController!.animateCamera(
-            CameraUpdate.newLatLngZoom(
-              LatLng(selected.latitude, selected.longitude),
-              15,
-            ),
-          ).catchError((_) => null);
+          try {
+            await _mapController!.animateCamera(
+              CameraUpdate.newLatLngZoom(
+                LatLng(selected.latitude, selected.longitude),
+                15,
+              ),
+            );
+          } catch (e) {
+            debugPrint('[Map] Initial camera error: $e');
+          }
         }
         _isInitializing = false;
-        if (mounted) setState(() => _isLoadingInitialLocation = false);
+        if (mounted) {
+          setState(() => _isLoadingInitialLocation = false);
+        }
         return;
       }
 
-      // Quick load using last known position - Non-blocking
-      Geolocator.getLastKnownPosition().then((lastPosition) {
-        if (lastPosition != null && mounted && _selectedLocations.isEmpty && _pendingLocation == null) {
-          _setPinFromLatLng(
-            LatLng(lastPosition.latitude, lastPosition.longitude),
-            moveCamera: true,
-          );
-          if (mounted) setState(() => _isLoadingInitialLocation = false);
-        }
-      });
+      // IMPORTANT:
+      // Do NOT use getLastKnownPosition here. It may be an old/home location.
+      // Always fetch the user's actual CURRENT GPS for single-location mode.
 
       if (_isOffline) {
         _isInitializing = false;
@@ -814,7 +824,7 @@ class _LocationSelectionScreenState
           _pendingLocation = null;
         } else {
           final exists = _selectedLocations.any(
-            (location) => _isSameLocation(location, offlineLocation),
+                (location) => _isSameLocation(location, offlineLocation),
           );
           if (!exists && _selectedLocations.length < kMaxLocations) {
             _selectedLocations.add(offlineLocation);
@@ -916,7 +926,7 @@ class _LocationSelectionScreenState
       } else {
         // Add Another mode: Add to the list immediately but stay on screen.
         final exists = _selectedLocations.any(
-          (location) => _isSameLocation(location, resolvedLocation),
+              (location) => _isSameLocation(location, resolvedLocation),
         );
         if (!exists && _selectedLocations.length < kMaxLocations) {
           _selectedLocations.add(resolvedLocation);
@@ -1082,10 +1092,14 @@ class _LocationSelectionScreenState
               }
 
               // ===============================================================
-              // Restore camera to existing selected location.
+              // Restore camera only for multi-location mode.
+              // Single-location mode is positioned by CURRENT GPS in
+              // _initLocation(), so an old saved/home location must not
+              // override it here.
               // ===============================================================
 
-              if (_selectedLocations.isNotEmpty) {
+              if (!widget.mapScreenModel.needSingleLocation &&
+                  _selectedLocations.isNotEmpty) {
                 final location = _selectedLocations.first;
                 final target = LatLng(
                   location.latitude,
@@ -1122,8 +1136,8 @@ class _LocationSelectionScreenState
               child: _isOffline
                   ? const NoInternetWidget()
                   : const Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                child: CircularProgressIndicator(),
+              ),
             )
           else if (_isLoadingInitialLocation)
             Center(
@@ -1500,22 +1514,22 @@ class _LocationSelectionScreenState
               ),
               suffixIcon: _searchController.text.isNotEmpty
                   ? GestureDetector(
-                      onTap: () {
-                        _searchController.clear();
-                        if (!_suggestionsController.isClosed) {
-                          _suggestionsController.add([]);
-                        }
-                        setState(() {});
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: AppIconWidget(
-                          assetPath: AssetImages.close,
-                          color: Colors.grey,
-                          size: 18,
-                        ),
-                      ),
-                    )
+                onTap: () {
+                  _searchController.clear();
+                  if (!_suggestionsController.isClosed) {
+                    _suggestionsController.add([]);
+                  }
+                  setState(() {});
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: AppIconWidget(
+                    assetPath: AssetImages.close,
+                    color: Colors.grey,
+                    size: 18,
+                  ),
+                ),
+              )
                   : null,
             ),
           ),
@@ -1682,8 +1696,8 @@ class _LocationSelectionScreenState
             child: _isOffline
                 ? const NoInternetWidget(size: 16, showText: false)
                 : const CircularProgressIndicator(
-                    strokeWidth: 2,
-                  ),
+              strokeWidth: 2,
+            ),
           ),
 
           SizedBox(
@@ -1885,7 +1899,7 @@ class _LocationSelectionScreenState
                     width: 200,
                     onTap:
                     _confirm,
-  
+
                     title:
                     'Confirm location',
                   ),
@@ -1907,35 +1921,38 @@ class _LocationSelectionScreenState
         required bool isLoading,
         bool isPending = false,
       }) {
-    return Container(
-      margin:
-      const EdgeInsets.only(
-        bottom: 10,
-      ),
+    return AppContainer(
+      height:55,
+      // margin:
+      // const EdgeInsets.only(
+      //   bottom: 10,
+      // ),
+      //
+      // padding:
+      // const EdgeInsets.symmetric(
+      //   horizontal: 12,
+      //   vertical: 10,
+      // ),
 
-      padding:
-      const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 10,
-      ),
+      // decoration:
+      // BoxDecoration(
+      //   color:
+      //   const Color(
+      //     0xFFF5F6FA,
+      //   ),
+      //
+      //   borderRadius:
+      //   BorderRadius.circular(
+      //     12,
+      //   ),
+      // ),
 
-      decoration:
-      BoxDecoration(
-        color:
-        const Color(
-          0xFFF5F6FA,
-        ),
-
-        borderRadius:
-        BorderRadius.circular(
-          12,
-        ),
-      ),
-
-      child: Row(
+      widget:
+       Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment:
         CrossAxisAlignment
-            .start,
+            .center,
 
         children: [
           // ===================================================================
@@ -1957,8 +1974,8 @@ class _LocationSelectionScreenState
                 child: _isOffline
                     ? const NoInternetWidget(size: 16, showText: false)
                     : const CircularProgressIndicator(
-                        strokeWidth: 2,
-                      ),
+                  strokeWidth: 2,
+                ),
               ),
             )
           else
@@ -2038,8 +2055,8 @@ class _LocationSelectionScreenState
               ).pad(),
             ),
         ],
-      ),
-    );
+      ).padHorizontal(),
+    ).pad();
   }
 
   // ===========================================================================
@@ -2210,7 +2227,7 @@ Widget buildIconContainer(
         RoundedRectangleBorder(
           borderRadius:
           BorderRadius.circular(
-            10,
+          5,
           ),
 
           side:

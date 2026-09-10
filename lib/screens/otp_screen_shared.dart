@@ -8,6 +8,7 @@ import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class OtpSharedScreen extends StatefulWidget {
   final bool isAlternateNumber;
@@ -282,8 +283,8 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
             ),
 
           Container(
-            height: 20,
-            width: 70,
+            height: AppUtils.isTab ? 30 : 20,
+            width:  AppUtils.isTab ? 100 : 70,
             decoration: BoxDecoration(
               border: Border.all(color: AppColors.fieldGrey),
               borderRadius: BorderRadius.circular(15),

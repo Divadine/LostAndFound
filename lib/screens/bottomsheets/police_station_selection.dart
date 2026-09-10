@@ -55,20 +55,34 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
     if (!granted) return;
 
     if (!mounted) return;
+
+    List<SelectedLocationModel>? existingLocations;
+    if (latitude != null &&
+        longitude != null &&
+        textController.text.isNotEmpty) {
+      existingLocations = [
+        SelectedLocationModel(
+          address: textController.text,
+          latitude: double.tryParse(latitude!) ?? 0.0,
+          longitude: double.tryParse(longitude!) ?? 0.0,
+        )
+      ];
+    }
+
     final singleLocation = await context.pushNamed(
       AppRoutes.mapScreen,
-      extra: MapScreenModel(needSingleLocation: true),
+      extra: MapScreenModel(
+        needSingleLocation: true,
+        selectedLocation: existingLocations,
+      ),
     );
 
     if (singleLocation != null) {
       final location = singleLocation as SelectedLocationModel;
       setState(() {
         textController.text = location.address;
-        latitude = location.latitude?.toString();
-        longitude = location.longitude?.toString();
-        // if (mapTextController.text.isEmpty) {
-        //   mapTextController.text = location.address;
-        // }
+        latitude = location.latitude.toString();
+        longitude = location.longitude.toString();
       });
     }
   }

@@ -32,6 +32,7 @@ class AppDropdownField<T> extends StatefulWidget {
 
   final String hintText;
 
+  final double? height;
   final List<T> items;
 
   final String Function(T) itemLabel;
@@ -49,6 +50,7 @@ class AppDropdownField<T> extends StatefulWidget {
   final double? menuHeight;
 
   final Widget? suffixIcon;
+  final EdgeInsetsGeometry? contentPadding;
 
   final Widget? selectedSuffixIcon;
 
@@ -65,7 +67,7 @@ class AppDropdownField<T> extends StatefulWidget {
     this.selectedItemTextColor,
     this.menuHeight,
     this.suffixIcon,
-    this.selectedSuffixIcon,
+    this.selectedSuffixIcon, this.height, this.contentPadding,
   });
 
   @override
@@ -82,19 +84,6 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
   @override
   void initState() {
     super.initState();
-
-    // =========================================================================
-    // IMPORTANT
-    //
-    // `canRequestFocus: false` means the field can NEVER gain keyboard focus.
-    // No cursor, no keyboard, no IME input of any kind can reach it.
-    //
-    // Tapping still opens the dropdown menu — that's handled internally by
-    // DropdownMenu via its own tap gesture, completely independent of focus.
-    //
-    // DO NOT reassign `focusNode` again after this — a second assignment
-    // silently overwrites this configuration (this was the original bug).
-    // =========================================================================
 
     focusNode = FocusNode(
       canRequestFocus: false,
@@ -128,104 +117,116 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
       builder: (context, constraints) {
         return Material(
           borderRadius: BorderRadius.circular(6),
-          child: DropdownMenu<T>(
-            width: constraints.maxWidth,
-            menuHeight: widget.menuHeight,
-            controller: controller,
-            focusNode: focusNode,
-            requestFocusOnTap: false,
-            enableSearch: false,
-            enableFilter: false,
+          child: SizedBox(
+            //height: widget.height ?? 50,
+            child: DropdownMenu<T>(
+              width: constraints.maxWidth,
+              menuHeight: widget.menuHeight,
+              controller: controller,
+              focusNode: focusNode,
+              requestFocusOnTap: false,
+              enableSearch: false,
+              enableFilter: false,
 
-            // =================================================================
-            // Belt-and-suspenders: even if focus/IME somehow reached the
-            // field, every single edit attempt is rejected and reverted.
-            // =================================================================
+              // =================================================================
+              // Belt-and-suspenders: even if focus/IME somehow reached the
+              // field, every single edit attempt is rejected and reverted.
+              // =================================================================
 
-            inputFormatters: [
-              _NoEditTextInputFormatter(),
-            ],
+              inputFormatters: [
+                _NoEditTextInputFormatter(),
+              ],
 
-            initialSelection: widget.value,
-            trailingIcon: widget.suffixIcon ?? AppIconWidget(assetPath: AssetImages.dropDown),
-            selectedTrailingIcon: widget.selectedSuffixIcon ?? widget.suffixIcon ?? AppIconWidget(assetPath: AssetImages.dropUp),
-            hintText: widget.hintText,
-            textStyle: appTextStyle(color: AppColors.black),
-            inputDecorationTheme: InputDecorationTheme(
-              filled: true,
-              fillColor: Colors.white,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              hintStyle: appTextStyle(
-                color: Colors.grey,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: BorderSide(
-                  color: widget.borderColor ??
-                      AppColors.fieldGrey.withAlpha(20),
+              initialSelection: widget.value,
+              trailingIcon: widget.suffixIcon ??
+                  AppIconWidget(
+                    assetPath: AssetImages.dropDown,
+                  ),
+
+              selectedTrailingIcon: widget.selectedSuffixIcon ??
+                  widget.suffixIcon ??
+                  AppIconWidget(
+                    assetPath: AssetImages.dropUp,
+                  ),
+
+              hintText: widget.hintText,
+              textStyle: appTextStyle(color: AppColors.black),
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: Colors.white,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 0,
                 ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: BorderSide(
-                  color: widget.borderColor ??
-                      AppColors.fieldGrey.withAlpha(20),
+                hintStyle: appTextStyle(
+                  color: Colors.grey,
                 ),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-            menuStyle: MenuStyle(
-              elevation: WidgetStateProperty.all(2),
-              backgroundColor: WidgetStateProperty.all(Colors.white),
-              shape: WidgetStateProperty.all(
-                RoundedRectangleBorder(
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(
+                    color: widget.borderColor ??
+                        AppColors.fieldGrey.withAlpha(20),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(
+                    color: widget.borderColor ??
+                        AppColors.fieldGrey.withAlpha(20),
+                  ),
+                ),
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
               ),
-            ),
-            dropdownMenuEntries: widget.items.map((item) {
-              bool selected = item == widget.value;
-              return DropdownMenuEntry<T>(
-                value: item,
-                label: widget.itemLabel(item),
-                style: ButtonStyle(
-                  padding: WidgetStateProperty.all(
-                    const EdgeInsets.symmetric(
-                      horizontal: 20,
-                    ),
-                  ),
-                  backgroundColor: WidgetStateProperty.resolveWith(
-                        (states) {
-                      if (selected) {
-                        return AppColors.idCardColor;
-                      }
-                      return Colors.white;
-                    },
-                  ),
-                  foregroundColor: WidgetStateProperty.resolveWith(
-                        (states) {
-                      if (selected) {
-                        return AppColors.black;
-                      }
-                      return Colors.black;
-                    },
-                  ),
-                  textStyle: WidgetStateProperty.all(
-                    appTextStyle(),
+              menuStyle: MenuStyle(
+                elevation: WidgetStateProperty.all(2),
+                backgroundColor: WidgetStateProperty.all(Colors.white),
+                shape: WidgetStateProperty.all(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
                   ),
                 ),
-              );
-            }).toList(),
-            onSelected: (value) {
-              focusNode.unfocus();
-              widget.onChanged?.call(value);
-            },
+              ),
+              dropdownMenuEntries: widget.items.map((item) {
+                bool selected = item == widget.value;
+                return DropdownMenuEntry<T>(
+                  value: item,
+                  label: widget.itemLabel(item),
+                  style: ButtonStyle(
+                    padding: WidgetStateProperty.all(
+                      const EdgeInsets.symmetric(
+                        horizontal: 20,
+                      ),
+                    ),
+                    backgroundColor: WidgetStateProperty.resolveWith(
+                          (states) {
+                        if (selected) {
+                          return AppColors.idCardColor;
+                        }
+                        return Colors.white;
+                      },
+                    ),
+                    foregroundColor: WidgetStateProperty.resolveWith(
+                          (states) {
+                        if (selected) {
+                          return AppColors.black;
+                        }
+                        return Colors.black;
+                      },
+                    ),
+                    textStyle: WidgetStateProperty.all(
+                      appTextStyle(),
+                    ),
+                  ),
+                );
+              }).toList(),
+              onSelected: (value) {
+                focusNode.unfocus();
+                widget.onChanged?.call(value);
+              },
+            ),
           ),
         );
       },

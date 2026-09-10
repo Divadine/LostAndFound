@@ -112,7 +112,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     subCategoryController.text = widget.subCategory?.name ?? '';
     _initConnectivityListener();
     _fetchColors();
-    
+
     // Ensure recorder is clean when starting a new post flow
     AppRecorderService.instance.deleteRecording();
 
@@ -238,7 +238,6 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
     final response = await authController.getDynamicValues(brandMasterName: field.dropdownMaster);
 
-    print('23333333333333333333333333333333333333333$response');
     if (!mounted) return;
 
     setState(() {
@@ -264,7 +263,6 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       parentValue: parentValue,
       brandMasterName: field.dropdownMaster,
     );
-    print('DynamicNestedValue is -------------------->$response');
 
     if (!mounted) return;
 
@@ -444,7 +442,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
               ),
             )
                 : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(8),
               children: [
                 // Category — always shown, auto-filled, read-only
                 buildTextFieldWithHeading(
@@ -459,7 +457,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                     onChange: (v) {},
                     onSubmit: (v) {},
                   ).pad(),
-                ).pad(),
+                ),
 
                 // Sub-Category — only shown when one was actually chosen
                 // (skipped when Category = "Others" was picked at the top level).
@@ -476,7 +474,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                       onChange: (v) {},
                       onSubmit: (v) {},
                     ).pad(),
-                  ).pad(),
+                  ),
 
                 // Item Name — ONLY in generic mode ("Others" / "Not Sure").
                 // Hidden entirely for a normal category+subcategory selection.
@@ -491,7 +489,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                       onChange: (v) {},
                       onSubmit: (v) {},
                     ).pad(),
-                  ).pad(),
+                  ),
 
                 // Color — ALWAYS shown, ALWAYS from the dedicated getColors API,
                 // in every mode.
@@ -504,7 +502,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                   buildTextFieldWithHeading(
                     title: 'Item Description',
                     fieldWidget: AppTextField(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16,vertical: 12) ,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       maxLines: 4,
                       borderColor: AppColors.fieldGrey,
                       borderRadius: BorderRadius.circular(5),
@@ -513,7 +511,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                       onChange: (v) {},
                       onSubmit: (v) {},
                     ).pad(),
-                  ).pad()
+                  )
                 else
                   ...dynamicFields.map((field) => _buildField(field)),
 
@@ -539,7 +537,10 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       title: 'Color',
       fieldWidget: AppDropdownField<String>(
         borderColor: AppColors.fieldGrey,
-        menuHeight: 250,
+        // Matches AppTextField's content padding so the dropdown renders
+        // at the same height as the text fields above it.
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        menuHeight: 200,
         value: selectedColor,
         hintText: isLoadingColors ? 'Loading...' : 'Select color',
         items: colorOptions.map((c) => c.colorName).toList(),
@@ -548,7 +549,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         selectedItemTextColor: AppColors.primaryColor,
         onChanged: isLoadingColors ? null : (value) => setState(() => selectedColor = value),
       ).pad(),
-    ).pad();
+    );
   }
 
   Widget _buildImageUploadSection() {
@@ -639,7 +640,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
             onChange: (value) {},
             onSubmit: (value) {},
           ).pad(),
-        ).pad();
+        );
 
       case DynamicFieldType.textarea:
         return buildTextFieldWithHeading(
@@ -653,7 +654,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
             onChange: (value) {},
             onSubmit: (value) {},
           ).pad(),
-        ).pad();
+        );
 
       case DynamicFieldType.dropdown:
         final parentFieldId = dropdownParent[field.id];
@@ -678,6 +679,9 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
           title: field.displayName,
           fieldWidget: AppDropdownField<String>(
             borderColor: AppColors.fieldGrey,
+            // Matches AppTextField's content padding so this dropdown renders
+            // at the same height as the text fields around it.
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             value: selectedDropdownValues[field.id],
             menuHeight: 250,
             hintText: hint,
@@ -687,7 +691,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
             selectedItemTextColor: AppColors.primaryColor,
             onChanged: (isLockedByParent || isLoadingOptions) ? null : (value) => _onDropdownChanged(field, value),
           ).pad(),
-        ).pad();
+        );
 
       case DynamicFieldType.unknown:
         return const SizedBox();

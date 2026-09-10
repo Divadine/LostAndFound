@@ -66,159 +66,164 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.white,
       appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
 
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: AppUtils.isTab ? 500 : double.infinity),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
 
-        children: [
-          AppContainer(
-            widget: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-              child: Column(
-                spacing: 20,
-                children: [
-                  AppText(
-                    text: 'Login',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primaryColor,
-                  ),
-                  AppText(
-                    text: 'Welcome back! We’re excited to have you here again.',
-                    fontWeight: FontWeight.w400,
-                    fontSize: 14,
-                    color: AppColors.primaryColor,
-                    textAlign: TextAlign.center,
-                  ).padHorizontal(),
+            children: [
+              AppContainer(
+                widget: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+                  child: Column(
+                    spacing: 20,
+                    children: [
+                      AppText(
+                        text: 'Login',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryColor,
+                      ),
+                      AppText(
+                        text: 'Welcome back! We’re excited to have you here again.',
+                        fontWeight: FontWeight.w400,
+                        fontSize: 14,
+                        color: AppColors.primaryColor,
+                        textAlign: TextAlign.center,
+                      ).padHorizontal(),
 
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      spacing: 10,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        buildTextFieldWithHeading(
-                          title: 'Mobile Number',
-                          fieldWidget: StreamBuilder(
-                            stream: numberStream.stream,
-                            builder: (context, snapshot) {
-                              final snapData = snapshot.data;
-                              errorText = snapData;
-                              return Column(
-                                children: [
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    spacing: 10,
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          spacing: 10,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            buildTextFieldWithHeading(
+                              title: 'Mobile Number',
+                              fieldWidget: StreamBuilder(
+                                stream: numberStream.stream,
+                                builder: (context, snapshot) {
+                                  final snapData = snapshot.data;
+                                  errorText = snapData;
+                                  return Column(
                                     children: [
-                                      //+91
-                                      SizedBox(
-                                        width: 70,
-                                        child: AppTextField(
-                                          readOnly: true,
-                                          hintText: '+91',
-                                          textController:
-                                              TextEditingController(),
-                                          textInputType: TextInputType.phone,
-                                          maxLength: 10,
-                                          onChange: (v) {},
-                                          onSubmit: (v) {},
-                                        ),
-                                      ),
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        spacing: 10,
+                                        children: [
+                                          //+91
+                                          SizedBox(
+                                            width: 70,
+                                            child: AppTextField(
+                                              readOnly: true,
+                                              hintText: '+91',
+                                              textController:
+                                                  TextEditingController(),
+                                              textInputType: TextInputType.phone,
+                                              maxLength: 10,
+                                              onChange: (v) {},
+                                              onSubmit: (v) {},
+                                            ),
+                                          ),
 
-                                      Expanded(
-                                        flex: 8,
-                                        child: AppTextField(
-                                          hintText: 'Enter a mobile number',
-                                          textController: phoneController,
-                                          textInputType: TextInputType.phone,
-                                          maxLength: 10,
-                                          onChange: (v) {
-                                            errorText =
-                                                AppUtils.validateMobileNumber(
-                                                  v,
-                                                );
-                                            numberStream.add(errorText);
-                                          },
+                                          Expanded(
+                                            flex: 8,
+                                            child: AppTextField(
+                                              hintText: 'Enter a mobile number',
+                                              textController: phoneController,
+                                              textInputType: TextInputType.phone,
+                                              maxLength: 10,
+                                              onChange: (v) {
+                                                errorText =
+                                                    AppUtils.validateMobileNumber(
+                                                      v,
+                                                    );
+                                                numberStream.add(errorText);
+                                              },
 
-                                          onSubmit: (v) {},
-                                        ),
+                                              onSubmit: (v) {},
+                                            ),
+                                          ),
+                                        ],
                                       ),
+                                      if (errorText != null)
+                                        buildErrorText(errorText: errorText ?? ''),
                                     ],
-                                  ),
-                                  if (errorText != null)
-                                    buildErrorText(errorText: errorText ?? ''),
-                                ],
-                              );
-                            },
-                          ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
 
-                  AppButton(
-                    radius: BorderRadius.circular(8),
-                    title: "Login",
-                    onTap: () async {
-                      errorText = AppUtils.validateMobileNumber(
-                        phoneController.text,
-                      );
-
-                      numberStream.add(errorText);
-                      if (errorText == null &&
-                          phoneController.text.isNotEmpty) {
-                        print('________________________________________________');
-                        print(phoneController.text);
-                        //AppUiHelper.showLoadingDialog(context);
-                        final response = await authController.sendOtp(phoneController.text, type: 2,);
-                        if (!mounted) return;
-
-                        if(response.isSuccess){
-                          AppRoutes.pushNamed(AppRoutes.otpScreen, arguments: {
-                            'mobileNo': phoneController.text,
-                            'autoSend': false,
-                          });
-                        }else if (response.currentState == CurrentState.noInternet) {
-                          AppSnackBar.show(
-                            context: context,
-                            message: 'No internet connection. Please check your network.',
+                      AppButton(
+                        radius: BorderRadius.circular(8),
+                        title: "Login",
+                        onTap: () async {
+                          errorText = AppUtils.validateMobileNumber(
+                            phoneController.text,
                           );
-                        }
 
-                        else{
-                          AppSnackBar.show(context: context, message: response.message.isNotEmpty ? response.message  : 'OTP generation failed');
-                        }
-                      }
+                          numberStream.add(errorText);
+                          if (errorText == null &&
+                              phoneController.text.isNotEmpty) {
+                            print('________________________________________________');
+                            print(phoneController.text);
+                            //AppUiHelper.showLoadingDialog(context);
+                            final response = await authController.sendOtp(phoneController.text, type: 2,);
+                            if (!mounted) return;
+
+                            if(response.isSuccess){
+                              AppRoutes.pushNamed(AppRoutes.otpScreen, arguments: {
+                                'mobileNo': phoneController.text,
+                                'autoSend': false,
+                              });
+                            }else if (response.currentState == CurrentState.noInternet) {
+                              AppSnackBar.show(
+                                context: context,
+                                message: 'No internet connection. Please check your network.',
+                              );
+                            }
+
+                            else{
+                              AppSnackBar.show(context: context, message: response.message.isNotEmpty ? response.message  : 'OTP generation failed');
+                            }
+                          }
 
 
 
-                    },
-                  ).padHorizontal(30),
-                  SizedBox(height: 15),
+                        },
+                      ).padHorizontal(30),
+                      SizedBox(height: 15),
 
-                  AuthChangeText(
-                    text1: "Don't have an account?",
-                    tappableText: 'Register',
-                    onTap: () async {
-                      await AppRoutes.pushNamed(AppRoutes.registerScreen);
+                      AuthChangeText(
+                        text1: "Don't have an account?",
+                        tappableText: 'Register',
+                        onTap: () async {
+                          await AppRoutes.pushNamed(AppRoutes.registerScreen);
 
-                      if (!mounted) return;
+                          if (!mounted) return;
 
-                      setState(() {
-                        phoneController.clear();
-                        errorText = null;
-                      });
+                          setState(() {
+                            phoneController.clear();
+                            errorText = null;
+                          });
 
-                      numberStream.add(null);
-                    },
+                          numberStream.add(null);
+                        },
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
-      ).pad(18),
+            ],
+          ).pad(18),
+        ),
+      ),
     );
   }
 }

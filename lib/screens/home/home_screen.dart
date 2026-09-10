@@ -755,52 +755,52 @@ class _HomeScreenState extends State<HomeScreen>
                         MainAxisAlignment.spaceBetween,
 
                         children: [
-                          // const AppText(
-                          //   text: 'Lost & Found',
-                          //   color: AppColors.white,
-                          //   fontSize: 20,
-                          //   fontWeight: FontWeight.w600,
-                          // ),
-
-                          CustomPaint(
-                            painter: GlassBorderPainter(),
-                            child: Container(
-                              height: 25,
-                              padding: const EdgeInsets.symmetric(horizontal: 10),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Colors.white.withOpacity(0.15),
-                                    Colors.white.withOpacity(0.05),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 15,
-                                    child: AppIconWidget(
-                                      assetPath: AssetImages.trophy,
-                                      size: 18,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const AppText(
-                                    text: 'Community Success',
-                                    color: AppColors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    textOverflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
+                          const AppText(
+                            text: 'Lost & Found',
+                            color: AppColors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
                           ),
+
+                          // CustomPaint(
+                          //   painter: GlassBorderPainter(),
+                          //   child: Container(
+                          //     height: 25,
+                          //     padding: const EdgeInsets.symmetric(horizontal: 10),
+                          //     decoration: BoxDecoration(
+                          //       gradient: LinearGradient(
+                          //         begin: Alignment.topLeft,
+                          //         end: Alignment.bottomRight,
+                          //         colors: [
+                          //           Colors.white.withOpacity(0.15),
+                          //           Colors.white.withOpacity(0.05),
+                          //         ],
+                          //       ),
+                          //       borderRadius: BorderRadius.circular(30),
+                          //     ),
+                          //     child: Row(
+                          //       mainAxisSize: MainAxisSize.min,
+                          //       crossAxisAlignment: CrossAxisAlignment.center,
+                          //       children: [
+                          //         SizedBox(
+                          //           width: 15,
+                          //           child: AppIconWidget(
+                          //             assetPath: AssetImages.trophy,
+                          //             size: 18,
+                          //           ),
+                          //         ),
+                          //         const SizedBox(width: 8),
+                          //         const AppText(
+                          //           text: 'Community Success',
+                          //           color: AppColors.white,
+                          //           fontSize: 12,
+                          //           fontWeight: FontWeight.w500,
+                          //           textOverflow: TextOverflow.ellipsis,
+                          //         ),
+                          //       ],
+                          //     ),
+                          //   ),
+                          // ),
 
 
 
@@ -818,66 +818,66 @@ class _HomeScreenState extends State<HomeScreen>
                         ],
                       ),
 
-                      // const AppText(
-                      //   text:
-                      //   'Helping you reunite with what\nmatters.',
-                      //   color: AppColors.white,
-                      //   fontSize: 14,
-                      // ),
-
-
-                      SizedBox(height: 10,),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        spacing: 5,
-                        children: List.generate(_controller.length, (index) {
-                          final isLast = index == _controller.length - 1;
-                          return Container(
-                            height: 45,
-                            width: 30,
-                            decoration: BoxDecoration(
-                              color: AppColors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF6397FF).withOpacity(0.4),
-                                  blurRadius: 15,
-                                  spreadRadius: 0,
-                                ),
-                              ],
-                            ),
-                            alignment: Alignment.center,
-                            child: isLast
-                                ? const AppText(
-                              text: "+",
-                              color: AppColors.primaryColor,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w500,
-                            )
-                                : TextField(
-                              readOnly: true,
-                              controller: _controller[index],
-                              showCursor: false,
-                              enableInteractiveSelection: false,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: AppColors.primaryColor,
-                                fontSize: 32,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                isCollapsed: true,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                          );
-                        }),
+                      const AppText(
+                        text:
+                        'Helping you reunite with what\nmatters.',
+                        color: AppColors.white,
+                        fontSize: 14,
                       ),
 
 
-                      AppText(text: "Users benefited",fontWeight: FontWeight.bold,fontSize: 12,color: AppColors.white,)
+                      SizedBox(height: 10,),
+                      // Row(
+                      //   crossAxisAlignment: CrossAxisAlignment.center,
+                      //   mainAxisAlignment: MainAxisAlignment.start,
+                      //   spacing: 5,
+                      //   children: List.generate(_controller.length, (index) {
+                      //     final isLast = index == _controller.length - 1;
+                      //     return Container(
+                      //       height: 45,
+                      //       width: 30,
+                      //       decoration: BoxDecoration(
+                      //         color: AppColors.white,
+                      //         borderRadius: BorderRadius.circular(8),
+                      //         boxShadow: [
+                      //           BoxShadow(
+                      //             color: const Color(0xFF6397FF).withOpacity(0.4),
+                      //             blurRadius: 15,
+                      //             spreadRadius: 0,
+                      //           ),
+                      //         ],
+                      //       ),
+                      //       alignment: Alignment.center,
+                      //       child: isLast
+                      //           ? const AppText(
+                      //         text: "+",
+                      //         color: AppColors.primaryColor,
+                      //         fontSize: 32,
+                      //         fontWeight: FontWeight.w500,
+                      //       )
+                      //           : TextField(
+                      //         readOnly: true,
+                      //         controller: _controller[index],
+                      //         showCursor: false,
+                      //         enableInteractiveSelection: false,
+                      //         textAlign: TextAlign.center,
+                      //         style: const TextStyle(
+                      //           color: AppColors.primaryColor,
+                      //           fontSize: 32,
+                      //           fontWeight: FontWeight.w700,
+                      //         ),
+                      //         decoration: const InputDecoration(
+                      //           border: InputBorder.none,
+                      //           isCollapsed: true,
+                      //           contentPadding: EdgeInsets.zero,
+                      //         ),
+                      //       ),
+                      //     );
+                      //   }),
+                      // ),
+
+
+                      //AppText(text: "Users benefited",fontWeight: FontWeight.bold,fontSize: 12,color: AppColors.white,)
                     ],
                   ),
                 ),
@@ -1026,7 +1026,7 @@ class _HomeScreenState extends State<HomeScreen>
                   title: post.name,
                   location: post.location,
                   date: _formatDate(post.postDate),
-                  time: AppUtils.formatTimeAgo(post.postDate),
+                  time: AppUtils.formatTimeAgo(post.createdAt ?? post.postDate),
                   isFromHomePage: true,
                   postId: post.postUid,
                   foundCount: matchingCounts[post.id],
@@ -1198,7 +1198,7 @@ class _HomeScreenState extends State<HomeScreen>
                   title: post.name,
                   location: post.location,
                   date: _formatDate(post.postDate),
-                  time: AppUtils.formatTimeAgo(post.postDate),
+                  time: AppUtils.formatTimeAgo(post.createdAt ?? post.postDate),
                   isFromHomePage: true,
                   isFound: true,
                   postId: post.postUid,

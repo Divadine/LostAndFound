@@ -158,14 +158,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!granted) return;
 
     if (!mounted) return;
+
+    List<SelectedLocationModel>? existingLocations;
+    if (latitude != null &&
+        longitude != null &&
+        addressController.text.isNotEmpty) {
+      existingLocations = [
+        SelectedLocationModel(
+          address: addressController.text,
+          latitude: double.tryParse(latitude!) ?? 0.0,
+          longitude: double.tryParse(longitude!) ?? 0.0,
+        )
+      ];
+    }
+
     final singleLocation = await context.pushNamed(
       AppRoutes.mapScreen,
-      extra: MapScreenModel(needSingleLocation: true),
+      extra: MapScreenModel(
+        needSingleLocation: true,
+        selectedLocation: existingLocations,
+      ),
     );
 
     if (singleLocation != null) {
       final locations = singleLocation as SelectedLocationModel;
-      addressController.text = locations.address;
+      setState(() {
+        addressController.text = locations.address;
+        latitude = locations.latitude.toString();
+        longitude = locations.longitude.toString();
+      });
       _checkFormValidity();
     }
   }
@@ -469,13 +490,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fieldWidget: Row(
                     spacing: 10,
                     children: [
-                      Expanded(
-                        flex: 2,
+                      SizedBox(
+                        width: AppUtils.isTab ? 90 : 70,
                         child: AppTextField(
+                          textColor: AppColors.fieldGrey,
                           readOnly: true,
                           hintText: '+91',
-                          textController: TextEditingController(),
-
+                          textController: countryCodeController2,
                           onChange: (v) {},
                           onSubmit: (v) {},
                         ),
@@ -509,170 +530,175 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: 'Alternate Mobile Number (optional)',
                       fieldWidget: Column(
                         children: [
-                          Row(
-                            spacing: 10,
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: AppTextField(
-                                  textColor: AppColors.fieldGrey,
-                                  readOnly: true,
-                                  hintText: '+91',
-                                  textController: countryCodeController2,
-                                  onChange: (v) {},
-                                  onSubmit: (v) {},
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+
+                              spacing: 10,
+                              children: [
+                                SizedBox(
+                                  width: AppUtils.isTab ? 90 : 70,
+                                  child: AppTextField(
+                                    contentPadding: EdgeInsets.all(AppUtils.isTab ?16 : 10),
+                                    textColor: AppColors.fieldGrey,
+                                    readOnly: true,
+                                    hintText: '+91',
+                                    textController: countryCodeController2,
+                                    onChange: (v) {},
+                                    onSubmit: (v) {},
+                                  ),
                                 ),
-                              ),
 
-                              Expanded(
-                                flex: 8,
-                                child: AppTextField(
-                                  maxLength: 10,
-                                  readOnly: _isAltVerified,
-                                  hintText: 'Enter a mobile number',
-                                  textController: alternativeController,
-                                  onChange: (v) {
-                                    bool isValid = false;
-                                    if (v.isEmpty) {
-                                      mobileStream.add(null);
-                                      isValid = true;
-                                    } else if (v == mobileController.text) {
-                                      mobileStream.add(
-                                          "Alternate number cannot be same as mobile number");
-                                      isValid = false;
-                                    } else {
-                                      final error =
-                                      AppUtils.validateMobileNumber(v);
-                                      mobileStream.add(error);
-                                      isValid = error == null;
-                                    }
-
-                                    if (isValid != isAlternativeNumberValid) {
-                                      setState(() =>
-                                      isAlternativeNumberValid = isValid);
-                                    }
-
-                                    if (_isAltVerified) {
-                                      setState(() => _isAltVerified = false);
-                                      verifyMobileStream.add(false);
-                                    }
-                                    _checkFormValidity();
-                                  },
-                                  onSubmit: (v) {},
-                                  textInputType: TextInputType.phone,
-                                  suffixIcon: GestureDetector(
-                                    onTap: _isAltVerified ||
-                                        !isAlternativeNumberValid
-                                        ? null
-                                        : () {
-                                      if (AppUtils.validateMobileNumber(
-                                          alternativeController
-                                              .text) ==
-                                          null) {
-                                        AppDialogue.showPopup(
-                                          context: context,
-                                          content: OtpSharedScreen(
-                                            isAlternateNumber: true,
-                                            mobileNumber:
-                                            alternativeController
-                                                .text,
-                                            onVerifyOtp:
-                                                (String otp) async {
-                                              final response =
-                                              await authController
-                                                  .verifyMobileOtp(
-                                                phone:
-                                                alternativeController
-                                                    .text,
-                                                otp: otp,
-                                                userId: widget
-                                                    .profileModel.userId!,
-                                              );
-                                              if (response.status == 1) {
-                                                if (!mounted) return null;
-
-                                                setState(() {
-                                                  _isAltVerified = true;
-                                                  isAlternativeNumberValid = true;
-                                                });
-
-                                                verifyMobileStream.add(true);
-
-                                                return null;
-                                              }
-                                              return response.message;
-                                            },
-                                            onSendOtp: () async {
-                                              final response =
-                                              await authController
-                                                  .generateMobileOtp(
-                                                  alternativeController
-                                                      .text);
-                                              if (response.isSuccess)
-                                                return null;
-                                              if (response.currentState ==
-                                                  CurrentState
-                                                      .noInternet) {
-                                                return 'No internet connection. Please check your network.';
-                                              }
-                                              return response
-                                                  .message.isNotEmpty
-                                                  ? response.message
-                                                  : 'Failed to send OTP';
-                                            },
-                                          ),
-                                        );
+                                Expanded(
+                                  flex: 8,
+                                  child: AppTextField(
+                                    maxLength: 10,
+                                    readOnly: _isAltVerified,
+                                    hintText: 'Enter a mobile number',
+                                    textController: alternativeController,
+                                    onChange: (v) {
+                                      bool isValid = false;
+                                      if (v.isEmpty) {
+                                        mobileStream.add(null);
+                                        isValid = true;
+                                      } else if (v == mobileController.text) {
+                                        mobileStream.add(
+                                            "Alternate number cannot be same as mobile number");
+                                        isValid = false;
+                                      } else {
+                                        final error =
+                                        AppUtils.validateMobileNumber(v);
+                                        mobileStream.add(error);
+                                        isValid = error == null;
                                       }
+
+                                      if (isValid != isAlternativeNumberValid) {
+                                        setState(() =>
+                                        isAlternativeNumberValid = isValid);
+                                      }
+
+                                      if (_isAltVerified) {
+                                        setState(() => _isAltVerified = false);
+                                        verifyMobileStream.add(false);
+                                      }
+                                      _checkFormValidity();
                                     },
-                                    child: SizedBox(
-                                      width: 100,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: _isAltVerified
-                                              ? AppColors.lightGreen
-                                              : AppColors.idCardColor,
-                                          borderRadius: const BorderRadius.only(
-                                            topRight: Radius.circular(6),
-                                            bottomRight: Radius.circular(6),
+                                    onSubmit: (v) {},
+                                    textInputType: TextInputType.phone,
+                                    suffixIcon: GestureDetector(
+                                      onTap: _isAltVerified ||
+                                          !isAlternativeNumberValid
+                                          ? null
+                                          : () {
+                                        if (AppUtils.validateMobileNumber(
+                                            alternativeController
+                                                .text) ==
+                                            null) {
+                                          AppDialogue.showPopup(
+                                            context: context,
+                                            content: OtpSharedScreen(
+                                              isAlternateNumber: true,
+                                              mobileNumber:
+                                              alternativeController
+                                                  .text,
+                                              onVerifyOtp:
+                                                  (String otp) async {
+                                                final response =
+                                                await authController
+                                                    .verifyMobileOtp(
+                                                  phone:
+                                                  alternativeController
+                                                      .text,
+                                                  otp: otp,
+                                                  userId: widget
+                                                      .profileModel.userId!,
+                                                );
+                                                if (response.status == 1) {
+                                                  if (!mounted) return null;
+
+                                                  setState(() {
+                                                    _isAltVerified = true;
+                                                    isAlternativeNumberValid = true;
+                                                  });
+
+                                                  verifyMobileStream.add(true);
+
+                                                  return null;
+                                                }
+                                                return response.message;
+                                              },
+                                              onSendOtp: () async {
+                                                final response =
+                                                await authController
+                                                    .generateMobileOtp(
+                                                    alternativeController
+                                                        .text);
+                                                if (response.isSuccess)
+                                                  return null;
+                                                if (response.currentState ==
+                                                    CurrentState
+                                                        .noInternet) {
+                                                  return 'No internet connection. Please check your network.';
+                                                }
+                                                return response
+                                                    .message.isNotEmpty
+                                                    ? response.message
+                                                    : 'Failed to send OTP';
+                                              },
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: SizedBox(
+                                        width: AppUtils.isTab ? 110 :100,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: _isAltVerified
+                                                ? AppColors.lightGreen
+                                                : AppColors.idCardColor,
+                                            borderRadius: const BorderRadius.only(
+                                              topRight: Radius.circular(6),
+                                              bottomRight: Radius.circular(6),
+                                            ),
                                           ),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 14,
-                                        ),
-                                        child: Center(
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              if (_isAltVerified)
-                                                Icon(
-                                                  Icons.check,
-                                                  color: AppColors.green,
-                                                  size: 14,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 14,
+                                          ),
+                                          child: Center(
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                if (_isAltVerified)
+                                                  Icon(
+                                                    Icons.check,
+                                                    color: AppColors.green,
+                                                    size: AppUtils.isTab ? 20 :14,
+                                                  ),
+                                                if (_isAltVerified)
+                                                  const SizedBox(width: 4),
+                                                AppText(
+                                                  text: _isAltVerified
+                                                      ? "Verified"
+                                                      : "Verify",
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: _isAltVerified
+                                                      ? AppColors.green
+                                                      : (isAlternativeNumberValid
+                                                      ? AppColors.primaryColor
+                                                      : AppColors.grey),
                                                 ),
-                                              if (_isAltVerified)
-                                                const SizedBox(width: 4),
-                                              AppText(
-                                                text: _isAltVerified
-                                                    ? "Verified"
-                                                    : "Verify",
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                color: _isAltVerified
-                                                    ? AppColors.green
-                                                    : (isAlternativeNumberValid
-                                                    ? AppColors.primaryColor
-                                                    : AppColors.grey),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           if (numberData != null)
                             buildErrorText(errorText: numberData ?? ''),
@@ -760,7 +786,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             }
                                 : null,
                             child: SizedBox(
-                              width: 100,
+                              width: AppUtils.isTab ?150 : 100,
                               child: Container(
                                 padding: EdgeInsets.symmetric(
                                   vertical: 16,
@@ -775,12 +801,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 child: Center(
                                   child: AppText(
+                                    maxLine: 1,
                                     text: 'Get Details',
                                     color: isPinCodeValid
                                         ? AppColors.primaryColor
                                         : AppColors.grey,
                                     fontWeight: FontWeight.w500,
                                     fontSize: 12,
+                                    softWrap: false,
                                   ),
                                 ),
                               ),
@@ -956,7 +984,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                     onSubmit: (v) {},
                     validator: (v) {
-                      return AppUtils.required(v);
+                      //return AppUtils.required(v);
                     },
                   ),
                 ),
@@ -1032,7 +1060,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (widget.profileModel.isFromEdit) {
                   context.pop();
                 } else {
-                  AppRoutes.pushNamed(AppRoutes.firstHomeScreen);
+                  AppRoutes.pushAndRemoveUntil(AppRoutes.firstHomeScreen);
                 }
               } else {
                 AppDialogue.showPopup(

@@ -320,7 +320,7 @@ class _CategoryRadiosListsScreenState
               ),
             ),
 
-            const SizedBox(height: 15),
+            const SizedBox(height: 20),
 
             // IMPORTANT:
             // Expanded is directly inside Column.
@@ -348,8 +348,9 @@ class _CategoryRadiosListsScreenState
                   }
 
                   return ListView.builder(
+                    padding: const EdgeInsets.only(top: 4),
                     controller: _scrollController,
-                    padding: EdgeInsets.zero,
+
                     itemCount: catData.length + (isMoreLoading ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == catData.length) {
@@ -505,6 +506,13 @@ class _CategoryRadiosListsScreenState
               AppColors.primaryColor,
               hoverColor:
               AppColors.primaryColor,
+              fillColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppColors.primaryColor;   // filled dot when selected
+                }
+                return AppColors.primaryColor;     // outline color stays primary when unselected too
+              }),
+
               onChanged: (val) {
                 if (!mounted || val == null) {
                   return;

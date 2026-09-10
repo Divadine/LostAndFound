@@ -158,6 +158,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
           break;
         }
       }
+      winnerMatch ??= matches.isNotEmpty ? matches.first : null;
     }
 
     final winnerName = (winnerMatch != null && winnerMatch.posterName.isNotEmpty)
@@ -304,9 +305,14 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                           type: TransferType.receiveToOwner,
                           data: TransferData(
                             name: winnerName,
-                            phoneNumber: winnerMatch?.userUid ?? widget.postUid,
+                            avatarUrl: winnerMatch?.posterAvatar ?? widget.imgUrl,
+                            userId: winnerMatch?.userUid ?? widget.postUid,
+                            phoneNumber: '',
                             description: winnerMatch?.description ?? "Successfully processed",
-                            avatarUrl: winnerMatch?.posterAvatar ?? '',
+                            proofPhotos: winnerMatch != null && winnerMatch.postImages.isNotEmpty
+                                ? [winnerMatch.postImages]
+                                : [widget.imgUrl],
+                            matchPercentage: winnerMatch?.matchPercentage,
                           ),
                         ),
                       );

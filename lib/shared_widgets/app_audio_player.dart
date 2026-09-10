@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/services/media_playback_coordinator.dart';
 
 class AppAudioPlayer extends StatefulWidget {
   final String url;
@@ -21,6 +23,10 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  // NEW: pause this audio if anything else (a video, or another
+  // AppAudioPlayer) announces that it started playing.
+  StreamSubscription<String>? _mediaCoordinatorSub;
+
   static const List<double> _waveHeights = [
     2, 5, 8, 10, 14, 18, 20, 25, 20, 14, 10, 14, 18, 20, 25, 20, 14, 10, 15, 18, 20, 25, 20, 14, 10, 8, 5, 2,
   ];
@@ -29,6 +35,12 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
   void initState() {
     super.initState();
     _initializeAudio();
+
+    _mediaCoordinatorSub = MediaPlaybackCoordinator.instance.onPlayRequested.listen((id) {
+      if (id != MediaPlaybackCoordinator.audioId && _audioPlayer.playing) {
+        _audioPlayer.pause();
+      }
+    });
   }
 
   @override
@@ -110,6 +122,9 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
       if (_audioPlayer.playing) {
         await _audioPlayer.pause();
       } else {
+        // NEW: tell every video/other audio player to pause before we start.
+        MediaPlaybackCoordinator.instance.requestPlay(MediaPlaybackCoordinator.audioId);
+
         // If audio finished, start from beginning.
         if (_audioPlayer.processingState == ProcessingState.completed) {
           await _audioPlayer.seek(Duration.zero);
@@ -134,6 +149,7 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
 
   @override
   void dispose() {
+    _mediaCoordinatorSub?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -234,7 +250,7 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
                                 _audioPlayer.seek(
                                   Duration(
                                     milliseconds: (duration.inMilliseconds *
-                                            seekProgress)
+                                        seekProgress)
                                         .toInt(),
                                   ),
                                 );
@@ -266,7 +282,7 @@ class _AppAudioPlayerState extends State<AppAudioPlayer> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: List.generate(total, (i) {
           final bool filled = i < filledCount;
-  
+
           return AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             margin: const EdgeInsets.symmetric(horizontal: 3),

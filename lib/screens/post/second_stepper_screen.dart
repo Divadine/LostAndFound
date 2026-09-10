@@ -95,9 +95,6 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   );
   DateTime? selectedDate;
 
-  bool isVideoPlaying = false;
-  Duration videoDuration = Duration.zero;
-
   XFile? selectedVideo;
   List<SelectedLocationModel> loc = [];
   StreamController<List<SelectedLocationModel>> locationController = StreamController.broadcast();
@@ -180,9 +177,9 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     _videoController?.dispose();
     _videoController = VideoPlayerController.file(file);
     await _videoController!.initialize();
-    videoDuration = _videoController!.value.duration;
     if (mounted) {
-      videoStreamController.add(file);
+      videoStreamController.add(null);
+      setState(() {});
     }
   }
 
@@ -227,10 +224,8 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
     await _videoController!.initialize();
 
-    videoDuration = _videoController!.value.duration;
-
     videoStreamController.add(null);
-    //setState(() {});
+    setState(() {});
   }
 
   Future<void> pickVideo() async {
@@ -258,22 +253,24 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     await _videoController!.initialize();
 
     videoStreamController.add(file);
-    //setState(() {});
+    setState(() {});
   }
 
   String formatDuration(Duration duration) {
+    if (duration.isNegative) duration = Duration.zero;
     String two(int n) => n.toString().padLeft(2, '0');
 
     return "${two(duration.inMinutes)}:${two(duration.inSeconds % 60)}";
   }
 
   void deleteVideo() {
+    _videoController?.pause();
     _videoController?.dispose();
     _videoController = null;
     selectedVideo = null;
-    isVideoPlaying = false;
 
     videoStreamController.add(null);
+    setState(() {});
   }
 
   Future<void> _handleMicPermission() async {
@@ -467,7 +464,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                               fieldWidget: loc.isEmpty
                                   ? AppTextField(
                                 readOnly: true,
-  
+
                                 onTap: _openMapForLocations,
                                 hintText: 'Chennai, Tamil Nadu, India',
                                 textController: mapController,
@@ -513,7 +510,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                               },
                                               child: AppIconWidget(
                                                 assetPath: AssetImages.delete,
-  
+
                                                 color: AppColors.black,
                                               ).pad(),
                                             ),
@@ -522,7 +519,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                       ).padBottom();
                                     },
                                   ),
-  
+
                                   if (loc.length < 3)
                                     AppButton(
                                       prefixIcon: AssetImages.add,
@@ -588,13 +585,13 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                             service: _recorderService,
                             onRecordTap: _handleMicPermission,
                           )
-  
+
                         ],
                       ),
                       const SizedBox(height: 10),
                       StreamBuilder(
                           stream: videoStreamController.stream,
-                          initialData: selectedVideo != null ? File(selectedVideo!.path) : null,
+                          initialData: null,
                           builder: (context, asyncSnapshot) {
                             return Column(
                               mainAxisAlignment: MainAxisAlignment.start,
@@ -606,31 +603,37 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                   fontWeight: FontWeight.w500,
                                 ),
                                 const SizedBox(height: 10),
-                                AppContainer(
+
+                                // FIX: single card either shows the "tap to choose"
+                                // placeholder OR the full preview (thumbnail +
+                                // Replace/Delete row). Previously buildVideoPreview()
+                                // (which already contains its own button row) was
+                                // nested inside another outer AppContainer here,
+                                // which made it look like two separate boxes instead
+                                // of the single grouped card in the screenshot.
+                                (_videoController != null &&
+                                    _videoController!.value.isInitialized)
+                                    ? buildVideoPreview()
+                                    : AppContainer(
                                   widget: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
-                                      if (selectedVideo == null)
-                                        AppText(
-                                          text: 'Tap to choose a video',
-                                          fontWeight: FontWeight.w400,
-                                          fontSize: 12,
-                                          color: AppColors.grey,
-                                        ),
+                                      AppText(
+                                        text: 'Tap to choose a video',
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 12,
+                                        color: AppColors.grey,
+                                      ),
                                       const SizedBox(height: 10),
-  
-                                      if (_videoController != null &&
-                                          _videoController!.value.isInitialized)
-                                        buildVideoPreview()
-                                      else
-                                        GestureDetector(
-                                          onTap: pickVideo,
-                                          child: AppIconWidget(assetPath: AssetImages.video),
-                                        ),
+                                      GestureDetector(
+                                        onTap: pickVideo,
+                                        child: AppIconWidget(assetPath: AssetImages.video),
+                                      ),
                                     ],
                                   ).pad(),
                                 ),
+
                                 const SizedBox(height: 10),
                                 AppText(
                                   text: 'Max 30 seconds & Max size 15 MB',
@@ -644,12 +647,12 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                       ),
                       const SizedBox(height: 10),
                       if (!_isOffline)
-                      AppButton(
-                        title: 'Review & Submit',
-                        onTap: _goToPreview,
-                        radius: BorderRadius.circular(10),
-                        fontSize: 14,
-                      ),
+                        AppButton(
+                          title: 'Review & Submit',
+                          onTap: _goToPreview,
+                          radius: BorderRadius.circular(10),
+                          fontSize: 14,
+                        ),
                     ],
                   ).pad(16),
                 ),
@@ -662,119 +665,135 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   }
 
   Widget buildVideoPreview() {
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                height: 100,
-                width: double.infinity,
-                child: FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: _videoController!.value.size.width,
-                    height: _videoController!.value.size.height,
-                    child: VideoPlayer(_videoController!),
-                  ),
-                ),
-              ),
+    final controller = _videoController!;
 
-              // Play button
-              GestureDetector(
-                onTap: () {
+    // FIX: ValueListenableBuilder listens to the controller's own value
+    // (VideoPlayerController is a ValueNotifier<VideoPlayerValue>), so the
+    // duration badge always reflects the controller's real, current state
+    // instead of a value read once right after initialize() (which is why
+    // it was showing 00:00 — the real duration often isn't known that
+    // early). It also gives a live "position" every frame, so the badge
+    // counts down while playing.
+    return ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final remaining = value.duration - value.position;
+        final displayTime = value.duration == Duration.zero ? value.duration : remaining;
 
-                  if (_videoController!.value.isPlaying) {
-                    _videoController!.pause();
-                    isVideoPlaying = false;
-                  } else {
-                    _videoController!.play();
-                    isVideoPlaying = true;
-                  }
-                  videoStreamController.add(null);
-                },
-
-                child: CircleAvatar(
-                  radius: 22,
-                  backgroundColor: Colors.white.withOpacity(0.8),
-                  child: Icon(
-                    isVideoPlaying ? Icons.pause : Icons.play_arrow,
-                    color: AppColors.primaryColor,
-                    size: 30,
-                  ),
-                ),
-              ),
-
-              // Duration bottom right
-              Positioned(
-                bottom: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: AppText(
-                    text: formatDuration(videoDuration),
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 10),
-
-        Row(
+        return Column(
           children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: pickVideo,
-                child: AppContainer(
-                  widget: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AppIconWidget(assetPath: AssetImages.refresh),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    height: 100,
+                    width: double.infinity,
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: value.size.width,
+                        height: value.size.height,
+                        child: VideoPlayer(controller),
+                      ),
+                    ),
+                  ),
 
-                      const SizedBox(width: 8),
+                  // Play button
+                  GestureDetector(
+                    onTap: () {
+                      if (value.isPlaying) {
+                        controller.pause();
+                      } else {
+                        if (value.position >= value.duration) {
+                          controller.seekTo(Duration.zero);
+                        }
+                        controller.play();
+                      }
+                    },
 
-                      AppText(text: "Replace Video", fontSize: 12),
-                    ],
-                  ).pad(),
-                ),
+                    child: CircleAvatar(
+                      radius: 22,
+                      backgroundColor: Colors.white.withOpacity(0.8),
+                      child: Icon(
+                        value.isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: AppColors.primaryColor,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+
+                  // Duration bottom right
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: AppText(
+                        text: formatDuration(displayTime),
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(width: 12),
+            const SizedBox(height: 10),
 
-            Expanded(
-              child: GestureDetector(
-                onTap: deleteVideo,
-                child: AppContainer(
-                  widget: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AppIconWidget(assetPath: AssetImages.delete),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: pickVideo,
+                    child: AppContainer(
+                      widget: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AppIconWidget(assetPath: AssetImages.refresh),
 
-                      const SizedBox(width: 8),
+                          const SizedBox(width: 8),
 
-                      AppText(text: "Delete", fontSize: 12),
-                    ],
-                  ).pad(),
+                          AppText(text: "Replace Video", fontSize: 12),
+                        ],
+                      ).pad(),
+                    ),
+                  ),
                 ),
-              ),
+
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: GestureDetector(
+                    onTap: deleteVideo,
+                    child: AppContainer(
+                      widget: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AppIconWidget(assetPath: AssetImages.delete),
+
+                          const SizedBox(width: 8),
+
+                          AppText(text: "Delete", fontSize: 12),
+                        ],
+                      ).pad(),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 }

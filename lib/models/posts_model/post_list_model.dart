@@ -23,27 +23,51 @@ class PostModel{
   final String userUid;
   final String location;
   final DateTime? postDate;
+  final DateTime? createdAt;
   final List<String> images;
   final int status;
   final int enquiriesCount;
   final List<EnquirerAvatarModel> enquirerAvatars;
-  PostModel({required this.id, required this.postUid, required this.name, required this.userUid, required this.location, this.postDate, required this.images, required this.status, required this.enquiriesCount, required this.enquirerAvatars});
+  PostModel({
+    required this.id,
+    required this.postUid,
+    required this.name,
+    required this.userUid,
+    required this.location,
+    this.postDate,
+    this.createdAt,
+    required this.images,
+    required this.status,
+    required this.enquiriesCount,
+    required this.enquirerAvatars,
+  });
 
-  factory PostModel.fromJson(Map<String,dynamic> json) {
+  factory PostModel.fromJson(Map<String, dynamic> json) {
     return PostModel(
-        id: json['id'] ?? 0,
-        name: json['name']?.toString() ?? '',
+      id: json['id'] ?? 0,
+      name: json['name']?.toString() ?? '',
       postUid: json['post_uid']?.toString() ?? '',
       userUid: json['user_uid']?.toString() ?? '',
-        location: json['location']?.toString() ?? '',
-        postDate: json['post_date'] != null ? DateTime.tryParse(json['post_date'].toString())  : null,
-        images: (json['images'] as List? ?? []).map((e) => e.toString()).toList(),
-        status:  json['status'] ?? 0,
-        enquiriesCount: json['enquiries_count'] ?? json['enquiriesCount'] ?? json['enquiry_count'] ?? 0,
-        enquirerAvatars: (json['enquirer_avatars'] as List? ?? json['enquirerAvatars'] as List? ?? []).map((e) => EnquirerAvatarModel.fromJson(e as Map<String,dynamic>)).toList(),
+      location: json['location']?.toString() ?? '',
+      postDate: json['post_date'] != null
+          ? DateTime.tryParse(json['post_date'].toString())
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString())
+          : null,
+      images: (json['images'] as List? ?? []).map((e) => e.toString()).toList(),
+      status: json['status'] ?? 0,
+      enquiriesCount: json['enquiries_count'] ??
+          json['enquiriesCount'] ??
+          json['enquiry_count'] ??
+          0,
+      enquirerAvatars: (json['enquirer_avatars'] as List? ??
+              json['enquirerAvatars'] as List? ??
+              [])
+          .map((e) => EnquirerAvatarModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
-
 }
 
 class EnquirerAvatarModel {

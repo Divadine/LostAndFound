@@ -103,36 +103,34 @@ class _SendEnquiryState extends State<SendEnquiry> {
   void initState() {
     super.initState();
 
+    // ============================================================
+    // SENDER INFO (the "lost person")
+    //
+    // The name & description in this bottom sheet always belong
+    // to the CURRENT LOGGED-IN USER — the person sending the
+    // enquiry — regardless of whether widget.isLostPost is true
+    // or false. It should NEVER show the target post owner's
+    // name (widget.otherUserName) or widget.name passed in from
+    // elsewhere.
+    // ============================================================
+
+    final currentUserName = AppPreferences.getUserName() ?? '';
+
     nameController = TextEditingController(
-      text: widget.name,
+      text: currentUserName,
     );
 
     descriptionController = TextEditingController(
       text: widget.description,
     );
 
-    debugPrint(
-      '[SendEnquiry] INIT',
-    );
-
-    debugPrint(
-      '[SendEnquiry] otherUserId: ${widget.otherUserId}',
-    );
-
-    debugPrint(
-      '[SendEnquiry] otherUserName: ${widget.otherUserName}',
-    );
-
-    debugPrint(
-      '[SendEnquiry] otherUserPhone: "${widget.otherUserPhone}"',
-    );
-
-    debugPrint(
-      '[SendEnquiry] matchedPostId: ${widget.matchedPostId}',
-    );
-    debugPrint(
-      '[SendEnquiry] PostId: ${widget.postId}',
-    );
+    debugPrint('[SendEnquiry] INIT');
+    debugPrint('[SendEnquiry] currentUserName (sender/lost person): "$currentUserName"');
+    debugPrint('[SendEnquiry] otherUserId: ${widget.otherUserId}');
+    debugPrint('[SendEnquiry] otherUserName: ${widget.otherUserName}');
+    debugPrint('[SendEnquiry] otherUserPhone: "${widget.otherUserPhone}"');
+    debugPrint('[SendEnquiry] matchedPostId: ${widget.matchedPostId}');
+    debugPrint('[SendEnquiry] PostId: ${widget.postId}');
   }
 
   // ============================================================

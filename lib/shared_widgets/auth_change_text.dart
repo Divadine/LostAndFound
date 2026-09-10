@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class AuthChangeText extends StatelessWidget {
   final String text1;
@@ -27,22 +28,22 @@ class AuthChangeText extends StatelessWidget {
   Widget build(BuildContext context) {
     return RichText(
       text: TextSpan(
-        style: const TextStyle(color: AppColors.black, fontSize: 14),
+        style:  TextStyle(color: AppColors.black, fontSize: AppUtils.isTab ? 18 : 14),
         children: [
-          TextSpan(text: text1, style: TextStyle(fontSize: 14)),
+          TextSpan(text: text1, style: TextStyle(fontSize:AppUtils.isTab ? 18 : 14)),
           TextSpan(
             text: '  $tappableText',
-            style: TextStyle(color: fadeColor ?? AppColors.blue, fontSize: 14),
+            style: TextStyle(color: fadeColor ?? AppColors.blue, fontSize: AppUtils.isTab ? 18 : 14),
             recognizer: TapGestureRecognizer()..onTap = onTap,
           ),
           if (text2 != null)
-            TextSpan(text: text2, style: TextStyle(fontSize: 14)),
+            TextSpan(text: text2, style: TextStyle(fontSize: AppUtils.isTab ? 18 : 14)),
           if (tappableText2 != null)
             TextSpan(
               text: '  $tappableText2',
               style: TextStyle(
                 color: fadeColor ?? AppColors.blue,
-                fontSize: 14,
+                fontSize: AppUtils.isTab ? 18 : 14,
               ),
               recognizer: TapGestureRecognizer()..onTap = onTap2,
             ),

@@ -263,7 +263,7 @@ class _SubCategoryScreenState
           othersSubCategory,
         ];
       } else {
-        subCategories = [];
+        subCategories = [othersSubCategory];
       }
 
       if (!subCategoryStream.isClosed) {
@@ -418,8 +418,7 @@ class _SubCategoryScreenState
                     }
 
                     return ListView.builder(
-                      padding:
-                      EdgeInsets.zero,
+                      padding: const EdgeInsets.only(top: 4),
                       itemCount:
                       subCat.length,
                       itemBuilder:
@@ -578,50 +577,55 @@ class _SubCategoryScreenState
       child: AppContainer(
         widget: Row(
           children: [
-            img.isEmpty
-                ? Container(
-              height: 50,
-              width: 50,
-              decoration:
-              BoxDecoration(
-                color:
-                AppColors
-                    .primaryColor
-                    .withAlpha(
-                    30),
-                borderRadius:
-                BorderRadius
-                    .circular(
-                    30),
-              ),
-              child:
-              const Icon(
-                Icons.more_horiz,
-                color: AppColors
-                    .primaryColor,
-              ),
-            )
-                : AppCachedNetworkImage(
-              imageUrl: img,
-              fit: BoxFit.cover,
-              height: 50,
-              width: 50,
-              borderRadius:
-              BorderRadius
-                  .circular(30),
-            ),
-
-            const SizedBox(width: 20),
+            // img.isEmpty
+            //     ? Container(
+            //   height: 50,
+            //   width: 50,
+            //   decoration:
+            //   BoxDecoration(
+            //     color:
+            //     AppColors
+            //         .primaryColor
+            //         .withAlpha(
+            //         30),
+            //     borderRadius:
+            //     BorderRadius
+            //         .circular(
+            //         30),
+            //   ),
+            //   child:
+            //   const Icon(
+            //     Icons.more_horiz,
+            //     color: AppColors
+            //         .primaryColor,
+            //   ),
+            // )
+            //     : AppCachedNetworkImage(
+            //   imageUrl: img,
+            //   fit: BoxFit.cover,
+            //   height: 50,
+            //   width: 50,
+            //   borderRadius:
+            //   BorderRadius
+            //       .circular(30),
+            // ),
+            //
+            // const SizedBox(width: 20),
 
             Expanded(
-              child: AppText(
-                text: categoryName,
-                fontWeight:
-                FontWeight.w500,
-                fontSize: 14,
-                maxLine: 2,
-                textOverflow:
-                TextOverflow.ellipsis,
+
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: AppText(
+
+                  text: categoryName,
+                  fontWeight:
+                  FontWeight.w500,
+                  fontSize: 14,
+                  maxLine: 2,
+                  textOverflow:
+                  TextOverflow.ellipsis,
+                ),
               ),
             ),
 
@@ -633,6 +637,12 @@ class _SubCategoryScreenState
               AppColors.primaryColor,
               hoverColor:
               AppColors.primaryColor,
+              fillColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppColors.primaryColor;
+                }
+                return AppColors.primaryColor;
+              }),
               onChanged: onChange,
             ),
           ],

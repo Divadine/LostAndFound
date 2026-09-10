@@ -345,7 +345,7 @@ class ItemCard extends StatelessWidget {
                               fontWeight: FontWeight.w500,
                               color: AppColors.primaryColor,
                             ),
-                            AppIconWidget(assetPath: AssetImages.iosForward),
+                            AppIconWidget(assetPath: AssetImages.iosForward,color: AppColors.primaryColor,),
                           ],
                         ),
                       ],

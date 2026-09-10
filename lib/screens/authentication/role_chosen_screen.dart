@@ -44,7 +44,6 @@ class _FirstHomeScreenState extends State<FirstHomeScreen> {
             'Post details about the item you lost and let others help you find it.',
             rightImg: AssetImages.right_arrow,
             onTap: () async {
-              await AppPreferences.setProfileStatus(2);
               AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 0); // lost
             },
           ),
@@ -56,7 +55,6 @@ class _FirstHomeScreenState extends State<FirstHomeScreen> {
             'Share details about the item. you found and help it reach its owner.',
             rightImg: AssetImages.right_arrow,
             onTap: () async {
-              await AppPreferences.setProfileStatus(2);
               AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 1); // found
             },
           ),
@@ -64,8 +62,7 @@ class _FirstHomeScreenState extends State<FirstHomeScreen> {
 
           GestureDetector(
             onTap: () async {
-              await AppPreferences.setProfileStatus(2);
-              AppRoutes.pushNamed(AppRoutes.bottomScreen);
+              AppRoutes.pushNamed(AppRoutes.bottomScreen, arguments: 1);
             },
             child: Container(
               decoration: BoxDecoration(

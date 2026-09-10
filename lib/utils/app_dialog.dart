@@ -484,125 +484,128 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
     if (_isOffline) {
       return const NoInternetWidget();
     }
-    return Column(
-      spacing: 15,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AppText(text: 'Disclaimer', fontWeight: FontWeight.w500, fontSize: 18),
-        AppText(
-          text:
-              'The information provided in this Lost & Found application is intended to help users report, search, and recover lost or found items. While we strive to keep the information accurate and up to date, we do not guarantee the authenticity ownership, or availability of any item listed. This pp is a platform that connects users and does not involve in the exchange or return of items. Users are advised to take necessary precautions  while sharing personal information or meeting others. Lost & Found is not responsible for any loss, damage, disputes, or consequences resulting from the use of this application.',
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          textAlign: .center,
-          color: AppColors.black,
-        ),
-        if (!widget.isFromOnBoard)
-          AppButton(
-            title: 'Ok',
-            onTap: () {
-              AppRoutes.pop();
-            },
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: AppUtils.isTab ? 450 : double.infinity),
+      child: Column(
+        spacing: 15,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppText(text: 'Disclaimer', fontWeight: FontWeight.w500, fontSize: 18),
+          AppText(
+            text:
+                'The information provided in this Lost & Found application is intended to help users report, search, and recover lost or found items. While we strive to keep the information accurate and up to date, we do not guarantee the authenticity ownership, or availability of any item listed. This pp is a platform that connects users and does not involve in the exchange or return of items. Users are advised to take necessary precautions  while sharing personal information or meeting others. Lost & Found is not responsible for any loss, damage, disputes, or consequences resulting from the use of this application.',
             fontSize: 14,
-            bgColor: AppColors.primaryColor,
-            textColor: AppColors.white,
-            radius: BorderRadius.circular(7),
-          ).padHorizontal(80),
-
-        if (widget.isFromOnBoard)
-          Row(
-            crossAxisAlignment: .start,
-            spacing: 5,
-            children: [
-              Checkbox(
-                value: isChecked,
-                onChanged: (e) {
-                  setState(() {
-                    isChecked = e!;
-                  });
-                },
-                hoverColor: AppColors.grey,
-                focusColor: AppColors.fieldGrey,
-                fillColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return AppColors.primaryColor;
-                  }
-                  return AppColors.white;
-                }),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: const VisualDensity(
-                  horizontal: -4,
-                  vertical: -4,
-                ),
-
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                side: BorderSide(color: AppColors.fieldGrey, width: 2),
-              ),
-              Flexible(
-                child: AuthChangeText(
-                  text1: "I have read and agree to the ",
-                  tappableText: 'terms & conditions ',
-                  text2: "and",
-                  tappableText2: 'Privacy Policy.',
-                  onTap: () {
-                    AppRoutes.pushNamed(
-                      AppRoutes.webViewScreen,
-                      arguments: WebViewModel(
-                        appbar: CustomAppBar(
-                          title: "Terms and Condition",
-                          leadingSvg: AssetImages.backArrow,
-                        ),
-                        link: AppUrls.termsAndConditions,
-                        isGenerateUrl: true,
-                      ),
-                    );
-                  },
-                  onTap2: () {
-                    AppRoutes.pushNamed(
-                      AppRoutes.webViewScreen,
-                      arguments: WebViewModel(
-                        appbar: CustomAppBar(
-                          title: "Privacy & Policy",
-                          leadingSvg: AssetImages.backArrow,
-                        ),
-                        link: AppUrls.privacyPolicyLink,
-                        isGenerateUrl: true,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+            fontWeight: FontWeight.w400,
+            textAlign: .center,
+            color: AppColors.black,
           ),
-        if (widget.isFromOnBoard)
-          AppButton(
-            radius: BorderRadius.all(Radius.circular(10)),
-            title: 'Confirm',
-            onTap: () async{
-              if (isChecked) {
-                await AppPreferences.setIsOnboarded(true);
+          if (!widget.isFromOnBoard)
+            AppButton(
+              title: 'Ok',
+              onTap: () {
                 AppRoutes.pop();
-                AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Please check the disclaimer"),
-                    behavior: SnackBarBehavior.floating,
+              },
+              fontSize: 14,
+              bgColor: AppColors.primaryColor,
+              textColor: AppColors.white,
+              radius: BorderRadius.circular(7),
+            ).padHorizontal(80),
+
+          if (widget.isFromOnBoard)
+            Row(
+              crossAxisAlignment: .start,
+              spacing: 5,
+              children: [
+                Checkbox(
+                  value: isChecked,
+                  onChanged: (e) {
+                    setState(() {
+                      isChecked = e!;
+                    });
+                  },
+                  hoverColor: AppColors.grey,
+                  focusColor: AppColors.fieldGrey,
+                  fillColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return AppColors.primaryColor;
+                    }
+                    return AppColors.white;
+                  }),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: const VisualDensity(
+                    horizontal: -4,
+                    vertical: -4,
                   ),
-                );
-                // AppSnackBar.show(
-                //   context: context,
-                //   message: "please check the disclaimer",
-                // );
-              }
-            },
-            bgColor: isChecked ? AppColors.primaryColor : AppColors.disclaimerGrey,
-            fontSize: 16,
-            textColor: AppColors.white,
-          ),
-      ],
+
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  side: BorderSide(color: AppColors.fieldGrey, width: 2),
+                ),
+                Flexible(
+                  child: AuthChangeText(
+                    text1: "I have read and agree to the ",
+                    tappableText: 'terms & conditions ',
+                    text2: "and",
+                    tappableText2: 'Privacy Policy.',
+                    onTap: () {
+                      AppRoutes.pushNamed(
+                        AppRoutes.webViewScreen,
+                        arguments: WebViewModel(
+                          appbar: CustomAppBar(
+                            title: "Terms and Condition",
+                            leadingSvg: AssetImages.backArrow,
+                          ),
+                          link: AppUrls.termsAndConditions,
+                          isGenerateUrl: true,
+                        ),
+                      );
+                    },
+                    onTap2: () {
+                      AppRoutes.pushNamed(
+                        AppRoutes.webViewScreen,
+                        arguments: WebViewModel(
+                          appbar: CustomAppBar(
+                            title: "Privacy & Policy",
+                            leadingSvg: AssetImages.backArrow,
+                          ),
+                          link: AppUrls.privacyPolicyLink,
+                          isGenerateUrl: true,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          if (widget.isFromOnBoard)
+            AppButton(
+              radius: BorderRadius.all(Radius.circular(10)),
+              title: 'Confirm',
+              onTap: () async{
+                if (isChecked) {
+                  await AppPreferences.setIsOnboarded(true);
+                  AppRoutes.pop();
+                  AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Please check the disclaimer"),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  // AppSnackBar.show(
+                  //   context: context,
+                  //   message: "please check the disclaimer",
+                  // );
+                }
+              },
+              bgColor: isChecked ? AppColors.primaryColor : AppColors.disclaimerGrey,
+              fontSize: 16,
+              textColor: AppColors.white,
+            ),
+        ],
+      ),
     );
   }
 }

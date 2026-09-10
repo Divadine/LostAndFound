@@ -70,7 +70,6 @@ class AppTextField extends StatelessWidget {
     return FormField<String>(
       initialValue: textController.text,
       validator: validator,
-
       autovalidateMode:
       autoValidateMode ?? AutovalidateMode.onUserInteraction,
       builder: (field) {
@@ -194,7 +193,7 @@ Widget buildErrorText({required String errorText}) {
   return Padding(
     padding: const EdgeInsets.only(top: 6, bottom: 6),
     child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const Icon(Icons.info_outline, color: AppColors.red, size: 16),
         const SizedBox(width: 4),

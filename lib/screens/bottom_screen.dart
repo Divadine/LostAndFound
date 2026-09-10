@@ -15,6 +15,7 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 import 'chat/chat_screen.dart';
 import 'authentication/role_chosen_screen.dart';
 import 'maps/police_station_mapscreen.dart';
@@ -86,6 +87,7 @@ class _BottomScreenState extends State<BottomScreen> {
 
   void _showPostBottomSheet() {
     AppUiHelper.showCustomBottomDialog(
+      barrier: true,
       Row(
         crossAxisAlignment: CrossAxisAlignment.start,
 
@@ -175,7 +177,7 @@ class _BottomScreenState extends State<BottomScreen> {
         ),
         bottomNavigationBar: SafeArea(
           child: Container(
-            height: 60,
+            height: AppUtils.isTab ? 80 : 60,
             decoration: BoxDecoration(color: AppColors.primaryColor),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -194,7 +196,7 @@ class _BottomScreenState extends State<BottomScreen> {
                   },
                   behavior: HitTestBehavior.opaque,
                   child: SizedBox(
-                    width: 50,
+                    width: AppUtils.isTab ? 80 : 55,
                     child: Column(
                       spacing: 5,
                       mainAxisAlignment: MainAxisAlignment.center,

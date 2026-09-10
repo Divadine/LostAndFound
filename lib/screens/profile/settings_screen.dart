@@ -231,6 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 10),
                   AppButton(
+                    width: AppUtils.isTab ? 200 : 150,
                     title: "Edit Profile",
                     onTap: _isLoadingProfile ? null : () async {
                       final userId = AppPreferences.getUserId();

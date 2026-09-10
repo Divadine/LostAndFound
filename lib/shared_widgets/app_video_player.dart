@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:lost_and_found/services/media_playback_coordinator.dart';
 
 class AppVideoPlayer extends StatefulWidget {
   final String url;
@@ -21,10 +23,25 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  // NEW: pause this video if anything else (an audio player, or another
+  // AppVideoPlayer) announces that it started playing.
+  StreamSubscription<String>? _mediaCoordinatorSub;
+
   @override
   void initState() {
     super.initState();
     _initializeVideo();
+
+    _mediaCoordinatorSub = MediaPlaybackCoordinator.instance.onPlayRequested.listen((id) {
+      final controller = _controller;
+      if (id != MediaPlaybackCoordinator.videoId &&
+          controller != null &&
+          controller.value.isInitialized &&
+          controller.value.isPlaying) {
+        controller.pause();
+        if (mounted) setState(() {});
+      }
+    });
   }
 
   @override
@@ -107,6 +124,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
 
   @override
   void dispose() {
+    _mediaCoordinatorSub?.cancel();
     _disposeController();
     super.dispose();
   }
@@ -121,6 +139,8 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
     if (controller.value.isPlaying) {
       controller.pause();
     } else {
+      // NEW: tell every audio/other video player to pause before we start.
+      MediaPlaybackCoordinator.instance.requestPlay(MediaPlaybackCoordinator.videoId);
       controller.play();
     }
 

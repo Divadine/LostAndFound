@@ -21,23 +21,56 @@ class AppUtils {
 
   static String formatTimeAgo(DateTime? date) {
     if (date == null) return '';
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final postDate = DateTime(date.year, date.month, date.day);
-    final diffDays = today.difference(postDate).inDays;
 
-    if (diffDays == 0) {
-      final diffSeconds = now.difference(date).inSeconds;
-      if (diffSeconds < 60) return 'just now';
-      final diffMinutes = now.difference(date).inMinutes;
-      if (diffMinutes < 60) return '$diffMinutes mins ago';
-      final diffHours = now.difference(date).inHours;
-      if (diffHours < 24 && date.day == now.day) return 'Today';
-      return 'Today';
-    } else if (diffDays == 1) {
-      return 'Yesterday';
-    } else {
+    // Step 1: Handle date-only fields (midnight)
+    // If time is exactly 00:00:00, it's likely a date-only field from the server.
+    // Showing "X hours ago" for a date-only field is confusing (e.g. 14 hours ago since midnight).
+    if (date.hour == 0 && date.minute == 0 && date.second == 0) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final postDate = DateTime(date.year, date.month, date.day);
+      final diffDays = today.difference(postDate).inDays;
+
+      if (diffDays == 0) return 'Today';
+      if (diffDays == 1) return 'Yesterday';
       return DateFormat('d MMM yyyy').format(date);
+    }
+
+    // Step 2: Handle relative time for fields with actual time data
+    final nowUtc = DateTime.now().toUtc();
+    final postDateUtc = date.isUtc
+        ? date
+        : DateTime.utc(
+            date.year,
+            date.month,
+            date.day,
+            date.hour,
+            date.minute,
+            date.second,
+            date.millisecond,
+            date.microsecond,
+          );
+
+    Duration difference = nowUtc.difference(postDateUtc);
+
+    if (difference.isNegative) {
+      difference = Duration.zero;
+    }
+
+    if (difference.inSeconds < 60) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} minute${difference.inMinutes != 1 ? 's' : ''} ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hour${difference.inHours != 1 ? 's' : ''} ago';
+    } else if (difference.inDays < 30) {
+      return '${difference.inDays} day${difference.inDays != 1 ? 's' : ''} ago';
+    } else if (difference.inDays < 365) {
+      final months = (difference.inDays / 30).floor();
+      return '$months month${months != 1 ? 's' : ''} ago';
+    } else {
+      final years = (difference.inDays / 365).floor();
+      return '$years year${years != 1 ? 's' : ''} ago';
     }
   }
 

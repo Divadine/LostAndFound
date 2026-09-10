@@ -6,6 +6,7 @@ import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 import '../../utils/app_images.dart';
 
@@ -84,10 +85,11 @@ class OnboardingScreenState extends State<OnboardingScreen> {
                           children: [
                             const SizedBox(height: 20),
                             SizedBox(
-                              height: 350,
+                              height: AppUtils.isTab ? 500 : 350,
                               child: AppIconWidget(
                                 assetPath: model.image,
                                 fit: BoxFit.cover,
+
                               ),
                             ),
   

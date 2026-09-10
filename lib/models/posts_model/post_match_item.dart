@@ -24,6 +24,7 @@ class MatchedPostSummary {
   final int userId;
   final String location;
   final DateTime? postDate;
+  final DateTime? createdAt;
   final List<String> images;
 
   MatchedPostSummary({
@@ -33,6 +34,7 @@ class MatchedPostSummary {
     required this.userId,
     required this.location,
     this.postDate,
+    this.createdAt,
     required this.images,
   });
 
@@ -43,7 +45,12 @@ class MatchedPostSummary {
       name: json['name']?.toString() ?? '',
       userId: json['user_id'] as int? ?? 0,
       location: json['location']?.toString() ?? '',
-      postDate: json['post_date'] != null ? DateTime.tryParse(json['post_date'].toString()) : null,
+      postDate: json['post_date'] != null
+          ? DateTime.tryParse(json['post_date'].toString())
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString())
+          : null,
       images: _parseImages(json['images']),
     );
   }
@@ -70,6 +77,7 @@ class MatchItemModel {
   final int userId;
   final String location;
   final DateTime? postDate;
+  final DateTime? createdAt;
   final String description;
   final int matchPercentage;
   final int matchTier;
@@ -87,6 +95,7 @@ class MatchItemModel {
     required this.userId,
     required this.location,
     this.postDate,
+    this.createdAt,
     required this.description,
     required this.matchPercentage,
     required this.matchTier,
@@ -129,7 +138,12 @@ class MatchItemModel {
       name: json['name']?.toString() ?? '',
       userId: json['user_id'] as int? ?? 0,
       location: json['location']?.toString() ?? '',
-      postDate: json['post_date'] != null ? DateTime.tryParse(json['post_date'].toString()) : null,
+      postDate: json['post_date'] != null
+          ? DateTime.tryParse(json['post_date'].toString())
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString())
+          : null,
       description: json['description']?.toString() ?? '',
       matchPercentage: json['matchPercentage'] as int? ?? 0,
       matchTier: json['matchTier'] as int? ?? 0,

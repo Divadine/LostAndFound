@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class AppText extends StatelessWidget {
   final String text;
@@ -39,7 +40,7 @@ class AppText extends StatelessWidget {
         softWrap: softWrap,
         style: appTextStyle(
           color: color ?? Theme.of(context).textTheme.bodyMedium!.color!,
-          fontSize: fontSize,
+          fontSize: AppUtils.isTab ? fontSize + 7 : fontSize,
           fontWeight: fontWeight,
           height: height,
           textDecoration: textDecoration,
