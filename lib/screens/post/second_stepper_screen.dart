@@ -302,11 +302,14 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   }
 
   Future<void> _selectDate() async {
+    final DateTime now = DateTime.now();
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: selectedDate ?? DateTime.now(),
+      initialDate: selectedDate != null && selectedDate!.isBefore(now)
+          ? selectedDate!
+          : now,
       firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+      lastDate: now,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(

@@ -688,10 +688,12 @@ class _HomeScreenState extends State<HomeScreen>
                                 child: Container(
                                   height: 40,
                                   width: 40,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.white,
+                                  decoration: BoxDecoration(
+                                    color: filterState.filterApplied
+                                        ? AppColors.viewAll
+                                        : AppColors.white,
                                     shape: BoxShape.circle,
-                                    boxShadow: [
+                                    boxShadow: const [
                                       BoxShadow(
                                         color: Colors.black12,
                                         blurRadius: 8,
@@ -947,7 +949,7 @@ class _HomeScreenState extends State<HomeScreen>
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: AppColors.lightBlue,
+                  color: AppColors.customRange,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
