@@ -319,7 +319,7 @@ class ItemCard extends StatelessWidget {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     //border: Border.all(color: AppColors.primaryColor),
-                    color: AppColors.lightBlue,
+                    color: AppColors.viewAll,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: GestureDetector(
@@ -343,7 +343,7 @@ class ItemCard extends StatelessWidget {
                               text: 'View All',
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.viewAll,
+                              color: AppColors.primaryColor,
                             ),
                             AppIconWidget(assetPath: AssetImages.iosForward,color: AppColors.primaryColor,),
                           ],
