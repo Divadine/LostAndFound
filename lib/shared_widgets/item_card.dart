@@ -343,7 +343,7 @@ class ItemCard extends StatelessWidget {
                               text: 'View All',
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.primaryColor,
+                              color: AppColors.viewAll,
                             ),
                             AppIconWidget(assetPath: AssetImages.iosForward,color: AppColors.primaryColor,),
                           ],

@@ -94,6 +94,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
   late final TextEditingController descriptionController;
 
   bool isSubmitting = false;
+  bool isLoadingSource = true;
 
   // ============================================================
   // INIT
@@ -121,8 +122,10 @@ class _SendEnquiryState extends State<SendEnquiry> {
     );
 
     descriptionController = TextEditingController(
-      text: widget.description,
+      text: '',
     );
+
+    _fetchSourcePostDetails();
 
     debugPrint('[SendEnquiry] INIT');
     debugPrint('[SendEnquiry] currentUserName (sender/lost person): "$currentUserName"');
@@ -131,6 +134,37 @@ class _SendEnquiryState extends State<SendEnquiry> {
     debugPrint('[SendEnquiry] otherUserPhone: "${widget.otherUserPhone}"');
     debugPrint('[SendEnquiry] matchedPostId: ${widget.matchedPostId}');
     debugPrint('[SendEnquiry] PostId: ${widget.postId}');
+  }
+
+  Future<void> _fetchSourcePostDetails() async {
+    try {
+      final currentUserId = AppPreferences.getUserId();
+      if (currentUserId != null && widget.matchedPostId != 0) {
+        final response = await authController.getSingleMatch(
+          postId: widget.matchedPostId,
+          userId: currentUserId,
+        );
+        if (response.isSuccess && response.data != null) {
+          final sourcePost = response.data!;
+          if (mounted) {
+            setState(() {
+              if (sourcePost.posterName.isNotEmpty) {
+                nameController.text = sourcePost.posterName;
+              }
+              descriptionController.text = sourcePost.description;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[SendEnquiry] Error fetching source post details: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoadingSource = false;
+        });
+      }
+    }
   }
 
   // ============================================================
@@ -631,7 +665,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
             hintText: '',
             textController:
             nameController,
-            readOnly: false,
+            readOnly: true,
             onChange: (v) {},
             onSubmit: (v) {},
           ),
@@ -647,7 +681,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
             hintText: '',
             textController:
             descriptionController,
-            readOnly: false,
+            readOnly: true,
             onChange: (v) {},
             onSubmit: (v) {},
             maxLines: 5,
@@ -659,10 +693,10 @@ class _SendEnquiryState extends State<SendEnquiry> {
         // ========================================================
 
         AppButton(
-          title: isSubmitting
+          title: (isSubmitting || isLoadingSource)
               ? 'Please wait...'
               : 'Send Enquiry',
-          onTap: isSubmitting
+          onTap: (isSubmitting || isLoadingSource)
               ? () {}
               : _onSubmit,
         ),

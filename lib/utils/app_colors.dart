@@ -39,6 +39,8 @@ class AppColors {
   static const Color requestColor = Color(0xffFEF1DA);
   static const Color closedColor = Color(0xffEDFFF0);
   static const Color disclaimerGrey = Color(0xff747781);
+  static const Color viewAll = Color(0xffD7E1FF);
+
 
 
 
