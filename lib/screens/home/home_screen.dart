@@ -739,7 +739,7 @@ class _HomeScreenState extends State<HomeScreen>
 
 
                 Positioned(
-                  top: 25,
+                  top: 30,
                   left: 20,
                   right: 20,
 
@@ -755,6 +755,7 @@ class _HomeScreenState extends State<HomeScreen>
                         MainAxisAlignment.spaceBetween,
 
                         children: [
+
                           const AppText(
                             text: 'Lost & Found',
                             color: AppColors.white,
@@ -818,6 +819,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ],
                       ),
 
+                      SizedBox(height: 10,),
                       const AppText(
                         text:
                         'Helping you reunite with what\nmatters.',

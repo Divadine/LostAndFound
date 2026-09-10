@@ -451,6 +451,10 @@ class _LocationSelectionScreenState
       return;
     }
 
+    // Clear previous search text when starting a new location search.
+   // _searchController.clear();
+    _clearLocationSearch();
+
     setState(() {
       _addingNewLocation = true;
 
@@ -464,8 +468,23 @@ class _LocationSelectionScreenState
 
   // ===========================================================================
   // SEARCH
-  // ===========================================================================
+  // =================================  ==========================================
 
+  void _clearLocationSearch() {
+    _debounce?.cancel();
+
+    _searchController.clear();
+
+    if (!_suggestionsController.isClosed) {
+      _suggestionsController.add([]);
+    }
+
+    if (mounted) {
+      setState(() {
+        _searchFocused = false;
+      });
+    }
+  }
   void _onSearchChanged(String value) {
     _debounce?.cancel();
 
@@ -602,6 +621,8 @@ class _LocationSelectionScreenState
           '${latLng.latitude}, '
           '${latLng.longitude}',
     );
+
+    _clearLocationSearch();
 
     await _setPinFromLatLng(
       latLng,
