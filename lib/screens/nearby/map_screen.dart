@@ -394,26 +394,28 @@ class MapScreenState extends State<MapScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 15),
-                  AppButton(
-                    width: 200,
-                    title: 'Confirm location',
-                    height: 50,
-                    radius: BorderRadius.circular(10),
-                    bgColor: AppColors.primaryColor,
-                    onTap: () {
-                      if (selectedLocation != null) {
-                        Navigator.pop(
-                          context,
-                          SelectedLocationModel(
-                            address: selectedAddress ?? '',
-                            latitude: selectedLocation!.latitude,
-                            longitude: selectedLocation!.longitude,
-                          ),
-                        );
-                      }
-                    },
-                  ),
+                  if (_isMapReady) ...[
+                    const SizedBox(height: 15),
+                    AppButton(
+                      width: 200,
+                      title: 'Confirm location',
+                      height: 50,
+                      radius: BorderRadius.circular(10),
+                      bgColor: AppColors.primaryColor,
+                      onTap: () {
+                        if (selectedLocation != null) {
+                          Navigator.pop(
+                            context,
+                            SelectedLocationModel(
+                              address: selectedAddress ?? '',
+                              latitude: selectedLocation!.latitude,
+                              longitude: selectedLocation!.longitude,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),
