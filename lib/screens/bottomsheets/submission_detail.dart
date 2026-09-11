@@ -103,7 +103,7 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
               fontWeight: FontWeight.w400,
               fontSize: 12,
             ),
-          ),
+          ).padBottom(10),
 
           // ======================================================
           // PHONE
@@ -189,11 +189,8 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppUtils
-                          .getMatchColor(
-                        widget.data.matchPercentage!,
-                      )
-                          .withAlpha(70),
+                      color: AppColors.idCardColor,
+
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: AppText(

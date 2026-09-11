@@ -117,9 +117,8 @@ class AppUiHelper {
                     maxHeight: maxHeight,
                     minHeight: minHeight == true ? maxHeight : 0,
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                  padding: const EdgeInsets.fromLTRB(
+                    16,12,16,60
                   ),
                   decoration: BoxDecoration(
                     color: bgColor,
@@ -156,7 +155,7 @@ class AppUiHelper {
                         ).padBottom(10),
                       if (titleWidget != null) titleWidget,
 
-                      /// Content
+
                       Flexible(child: child),
                     ],
                   ),
@@ -171,7 +170,7 @@ class AppUiHelper {
                         height: 30,
                         width: 30,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(10),
                           color: color ?? AppColors.white,
                         ),
                         child: Icon(

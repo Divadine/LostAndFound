@@ -690,6 +690,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
               location: _formatDate(post.postDate),
               onTap: () {
                 AppUiHelper.showBottomSheet(
+                  //radius: BorderRadius.circular(10),
                   context: context,
                   showHandle: false,
                   showCloseIcon: true,
