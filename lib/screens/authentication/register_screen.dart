@@ -6,6 +6,7 @@ import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/otp_screen_shared.dart';
+import 'package:lost_and_found/screens/post/first_stepper_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
@@ -289,17 +290,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-Widget buildTextFieldWithHeading({
-  required String title,
-  required Widget fieldWidget,
-}) {
-  return Column(
-    mainAxisSize: MainAxisSize.min,
-    spacing: 10,
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      AppText(text: title, fontSize: 14, fontWeight: FontWeight.w500),
-      fieldWidget,
-    ],
-  );
-}
+// Widget buildTextFieldWithHeading({
+//   required String title,
+//   required Widget fieldWidget,
+// }) {
+//   return Column(
+//     mainAxisSize: MainAxisSize.min,
+//     spacing: 10,
+//     crossAxisAlignment: CrossAxisAlignment.start,
+//     children: [
+//       AppText(text: title, fontSize: 14, fontWeight: FontWeight.w500),
+//       fieldWidget,
+//     ],
+//   );
+// }

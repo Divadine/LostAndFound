@@ -281,13 +281,8 @@ class _SendEnquiryState extends State<SendEnquiry> {
         });
       }
 
-      // Close the bottom sheet FIRST, otherwise the snackbar
-      // renders behind it and is invisible to the user.
       AppRoutes.pop();
 
-      // Wait for the sheet-close animation/frame to finish, then
-      // show the snackbar using the app's root navigator context
-      // so it appears above the (now-closed) sheet.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final rootContext = AppUtils.navigatorKey.currentContext;
         if (rootContext != null) {

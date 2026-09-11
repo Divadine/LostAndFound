@@ -20,6 +20,8 @@ import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
+import 'first_stepper_screen.dart';
 import 'reording_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_step_indicator.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
@@ -581,7 +583,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                           AppText(
                             text: 'Voice Description',
                             fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: AppUtils.isTab ? FontWeight.w400 : FontWeight.w500,
                           ),
                           const SizedBox(height: 10),
                           AppRecorder(
@@ -603,21 +605,16 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                 AppText(
                                   text: 'Add a short video of your item or place',
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: AppUtils.isTab ? FontWeight.w400 : FontWeight.w500,
                                 ),
                                 const SizedBox(height: 10),
 
-                                // FIX: single card either shows the "tap to choose"
-                                // placeholder OR the full preview (thumbnail +
-                                // Replace/Delete row). Previously buildVideoPreview()
-                                // (which already contains its own button row) was
-                                // nested inside another outer AppContainer here,
-                                // which made it look like two separate boxes instead
-                                // of the single grouped card in the screenshot.
+
                                 (_videoController != null &&
                                     _videoController!.value.isInitialized)
                                     ? buildVideoPreview()
                                     : AppContainer(
+
                                   widget: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.center,

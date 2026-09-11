@@ -21,6 +21,7 @@ import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_permission.dart';
 import 'package:lost_and_found/utils/app_urls.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PoliceStationMapScreen extends StatefulWidget {
@@ -1057,7 +1058,7 @@ class _PoliceStationMapScreenState extends State<PoliceStationMapScreen> {
             const SizedBox(height: 20),
             Center(
               child: AppButton(
-                width: 200,
+                width: AppUtils.isTab ? 300 : 200,
                 title: 'Confirm location',
                 height: 50,
                 radius: BorderRadius.circular(10),

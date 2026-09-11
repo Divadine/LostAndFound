@@ -24,6 +24,7 @@ import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_permission.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class LocationSelectionScreen extends StatefulWidget {
@@ -1917,7 +1918,7 @@ class _LocationSelectionScreenState
                 child:
                 Center(
                   child: AppButton(
-                    width: 200,
+                    width: AppUtils.isTab ? 300 : 200,
                     onTap:
                     _confirm,
 

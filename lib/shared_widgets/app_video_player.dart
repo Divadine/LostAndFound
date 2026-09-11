@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:video_player/video_player.dart';
 import 'package:lost_and_found/services/media_playback_coordinator.dart';
 
 class AppVideoPlayer extends StatefulWidget {
   final String url;
   final BorderRadius? borderRadius;
+
 
   const AppVideoPlayer({
     super.key,
@@ -170,7 +172,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
     if (_errorMessage != null || _controller == null) {
       return Container(
         width: double.infinity,
-        height: videoHeight,
+        height:  videoHeight,
         decoration: BoxDecoration(
           color: Colors.black12,
           borderRadius:
@@ -221,7 +223,7 @@ class _AppVideoPlayerState extends State<AppVideoPlayer> {
       widget.borderRadius ?? BorderRadius.circular(12),
       child: SizedBox(
         width: double.infinity,
-        height: videoHeight,
+        height: AppUtils.isTab ? 300  : videoHeight,
         child: Stack(
           alignment: Alignment.center,
           children: [

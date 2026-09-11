@@ -558,6 +558,7 @@ class _HomeScreenState extends State<HomeScreen>
                   right: -10,
                   child: AppIconWidget(
                     assetPath: AssetImages.homeBox,
+                    size: AppUtils.isTab ? 330 : null,
                   ),
                 ),
 

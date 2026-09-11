@@ -29,6 +29,7 @@ import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class FirstStepperScreen extends StatefulWidget {
   final CategoryModel category;
@@ -704,7 +705,7 @@ Widget buildTextFieldWithHeading({
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      AppText(text: title, fontSize: 16, fontWeight: FontWeight.w600),
+      AppText(text: title, fontSize: 16, fontWeight: AppUtils.isTab ?FontWeight.w400 : FontWeight.w600),
       const SizedBox(height: 10),
       fieldWidget,
     ],

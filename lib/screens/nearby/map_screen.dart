@@ -397,7 +397,7 @@ class MapScreenState extends State<MapScreen> {
                   if (_isMapReady) ...[
                     const SizedBox(height: 15),
                     AppButton(
-                      width: 200,
+                      width: AppUtils.isTab ? 250 : 200,
                       title: 'Confirm location',
                       height: 50,
                       radius: BorderRadius.circular(10),

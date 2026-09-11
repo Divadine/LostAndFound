@@ -7,6 +7,7 @@ import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 
 class AppRecorder extends StatefulWidget {
@@ -268,6 +269,10 @@ class _AppRecorderState extends State<AppRecorder> {
     final progress = _service.waveProgress;
     final total = _waveHeights.length;
     final filledCount = (progress * total).floor();
+
+    final double barWidth = AppUtils.isTab ? 6 : 3;
+    final double horizontalMargin = AppUtils.isTab ? 6 : 3;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -276,8 +281,8 @@ class _AppRecorderState extends State<AppRecorder> {
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: 3,
+          margin: EdgeInsets.symmetric(horizontal: horizontalMargin),
+          width: barWidth,
           height: _waveHeights[i] + 6,
           decoration: BoxDecoration(
             color: filled ? AppColors.primaryColor : AppColors.grey,
