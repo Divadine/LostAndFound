@@ -1846,6 +1846,20 @@ class _LocationSelectionScreenState
                   ),
             ),
 
+            ///circular pin will come instead of fetching address
+            // ...List.generate(_selectedLocations.length, (index) {
+            //   final loc = _selectedLocations[index];
+            //
+            //   final isThisResolving =
+            //       index == 0 && _resolvingPin && !_addingNewLocation;
+            //
+            //   return _buildLocationCard(
+            //     loc,
+            //     isLoading: isThisResolving,
+            //     isPending: false,
+            //   );
+            // }),
+
             // =================================================================
             // PENDING
             // =================================================================
@@ -1945,29 +1959,6 @@ class _LocationSelectionScreenState
       }) {
     return AppContainer(
       height:55,
-      // margin:
-      // const EdgeInsets.only(
-      //   bottom: 10,
-      // ),
-      //
-      // padding:
-      // const EdgeInsets.symmetric(
-      //   horizontal: 12,
-      //   vertical: 10,
-      // ),
-
-      // decoration:
-      // BoxDecoration(
-      //   color:
-      //   const Color(
-      //     0xFFF5F6FA,
-      //   ),
-      //
-      //   borderRadius:
-      //   BorderRadius.circular(
-      //     12,
-      //   ),
-      // ),
 
       widget:
        Row(
@@ -1981,26 +1972,26 @@ class _LocationSelectionScreenState
           // LOADING / MAP ICON
           // ===================================================================
 
-          if (isLoading)
-            Padding(
-              padding:
-              const EdgeInsets.only(
-                top: 2,
-              ),
-
-              child: SizedBox(
-                height: 16,
-
-                width: 16,
-
-                child: _isOffline
-                    ? const NoInternetWidget(size: 16, showText: false)
-                    : const CircularProgressIndicator(
-                  strokeWidth: 2,
-                ),
-              ),
-            )
-          else
+          // if (isLoading)
+          //   Padding(
+          //     padding:
+          //     const EdgeInsets.only(
+          //       top: 2,
+          //     ),
+          //
+          //     child: SizedBox(
+          //       height: 16,
+          //
+          //       width: 16,
+          //
+          //       child: _isOffline
+          //           ? const NoInternetWidget(size: 16, showText: false)
+          //           : const CircularProgressIndicator(
+          //         strokeWidth: 2,
+          //       ),
+          //     ),
+          //   )
+          // else
             buildIconContainer(
               context,
 
@@ -2025,16 +2016,10 @@ class _LocationSelectionScreenState
 
           Expanded(
             child: isLoading
-                ? AppText(
-              text:
-              'Fetching address...',
-
-              fontSize:
-              13,
-
-              color:
-              AppColors
-                  .grey,
+                ? const SizedBox(
+              height: 14,
+              width: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
             )
                 : AppText(
               text:
