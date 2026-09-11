@@ -614,7 +614,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                     _videoController!.value.isInitialized)
                                     ? buildVideoPreview()
                                     : AppContainer(
-
+                                  height: AppUtils.isTab ? 160 : null,
                                   widget: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -688,7 +688,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
-                    height: 100,
+                    height: AppUtils.isTab ? 160 : 100,
                     width: double.infinity,
                     child: FittedBox(
                       fit: BoxFit.cover,

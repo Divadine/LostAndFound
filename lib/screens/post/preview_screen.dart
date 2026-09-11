@@ -604,6 +604,10 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
     final progress = totalMs > 0 ? (_audioPosition.inMilliseconds / totalMs).clamp(0.0, 1.0) : 0.0;
     final total = _waveHeights.length;
     final filledCount = (progress * total).floor();
+
+    final double barWidth = AppUtils.isTab ? 6 : 3;
+    final double horizontalMargin = AppUtils.isTab ? 6 : 3;
+
     return FittedBox(
       fit: BoxFit.scaleDown,
       child: Row(
@@ -613,8 +617,8 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
           final bool filled = i < filledCount;
           return AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.symmetric(horizontal: 3),
-            width: 3,
+            margin: EdgeInsets.symmetric(horizontal: horizontalMargin),
+            width: barWidth,
             height: _waveHeights[i] + 6,
             decoration: BoxDecoration(
               color: filled ? AppColors.primaryColor : AppColors.grey,
@@ -647,15 +651,18 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
 
   Widget _buildLocalVideoPlayer() {
     if (_videoController == null || !_videoController!.value.isInitialized) {
-      return AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Container(
-          color: AppColors.fieldGrey,
-          child: _isOffline
-              ? const NoInternetWidget(size: 50)
-              : const Center(
-                  child: CircularProgressIndicator(),
-                ),
+      return SizedBox(
+        height: AppUtils.isTab ? 280 : null,
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Container(
+            color: AppColors.fieldGrey,
+            child: _isOffline
+                ? const NoInternetWidget(size: 50)
+                : const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+          ),
         ),
       );
     }
@@ -664,14 +671,18 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _videoController!.value.size.width,
-                height: _videoController!.value.size.height,
-                child: VideoPlayer(_videoController!),
+          SizedBox(
+            height: AppUtils.isTab ? 220 : null,
+            width: double.infinity,
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _videoController!.value.size.width,
+                  height: _videoController!.value.size.height,
+                  child: VideoPlayer(_videoController!),
+                ),
               ),
             ),
           ),
