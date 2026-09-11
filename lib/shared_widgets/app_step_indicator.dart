@@ -14,7 +14,7 @@ class AppStepIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double lineWidth = AppUtils.isTab ? 60 : 40;
+    final double lineWidth = AppUtils.isTab ? 200 : 40;
     final double circleRadius = AppUtils.isTab ? 14 : 12;
 
     return Padding(
