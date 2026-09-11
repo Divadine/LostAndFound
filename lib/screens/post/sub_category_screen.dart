@@ -316,14 +316,11 @@ class _SubCategoryScreenState
           didPop,
           result,
           ) {
-        // Do not call pop here.
-        //
-        // GoRouter/Flutter already handles the system
-        // back button because canPop = true.
+
       },
       child: Scaffold(
         backgroundColor: AppColors.white,
-
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           toolbarHeight: 0,
           backgroundColor:
@@ -388,8 +385,7 @@ class _SubCategoryScreenState
 
               const SizedBox(height: 15),
 
-            // IMPORTANT:
-            // Expanded directly inside Column.
+
             Expanded(
               child: _isOffline
                   ? const NoInternetWidget()
@@ -405,17 +401,17 @@ class _SubCategoryScreenState
                     );
                   }
 
-                    if (subCat.isEmpty) {
-                      return CategoryNotFound(
-                        key: const ValueKey(
-                          'subcategory_not_found',
-                        ),
-                        isFromCategory:
-                        false,
-                        onRetry:
-                        _retrySubCategories,
-                      );
-                    }
+                    // if (subCat.isEmpty) {
+                    //   return CategoryNotFound(
+                    //     key: const ValueKey(
+                    //       'subcategory_not_found',
+                    //     ),
+                    //     isFromCategory:
+                    //     false,
+                    //     onRetry:
+                    //     _retrySubCategories,
+                    //   );
+                    // }
 
                     return ListView.builder(
                       padding: const EdgeInsets.only(top: 4),
@@ -497,14 +493,6 @@ class _SubCategoryScreenState
       selectedIndex = index;
     });
 
-    debugPrint(
-      'Selected sub-category index: $index',
-    );
-
-    debugPrint(
-      'Selected sub-category: '
-          '${subCategories[index].name}',
-    );
   }
 
   // ===========================================================================
@@ -525,27 +513,6 @@ class _SubCategoryScreenState
     final selectedSubCategory =
     subCategories[selectedIndex!];
 
-    debugPrint(
-      'SELECTED SUB CATEGORY',
-    );
-
-    debugPrint(
-      'Category: ${widget.category.name}',
-    );
-
-    debugPrint(
-      'Category ID: ${widget.category.id}',
-    );
-
-    debugPrint(
-      'Sub Category: '
-          '${selectedSubCategory.name}',
-    );
-
-    debugPrint(
-      'Sub Category ID: '
-          '${selectedSubCategory.id}',
-    );
 
     if (!mounted) return;
 
@@ -577,43 +544,7 @@ class _SubCategoryScreenState
       child: AppContainer(
         widget: Row(
           children: [
-            // img.isEmpty
-            //     ? Container(
-            //   height: 50,
-            //   width: 50,
-            //   decoration:
-            //   BoxDecoration(
-            //     color:
-            //     AppColors
-            //         .primaryColor
-            //         .withAlpha(
-            //         30),
-            //     borderRadius:
-            //     BorderRadius
-            //         .circular(
-            //         30),
-            //   ),
-            //   child:
-            //   const Icon(
-            //     Icons.more_horiz,
-            //     color: AppColors
-            //         .primaryColor,
-            //   ),
-            // )
-            //     : AppCachedNetworkImage(
-            //   imageUrl: img,
-            //   fit: BoxFit.cover,
-            //   height: 50,
-            //   width: 50,
-            //   borderRadius:
-            //   BorderRadius
-            //       .circular(30),
-            // ),
-            //
-            // const SizedBox(width: 20),
-
             Expanded(
-
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: AppText(

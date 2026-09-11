@@ -270,7 +270,7 @@ class _CategoryRadiosListsScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
-
+      resizeToAvoidBottomInset : false,
       appBar: AppBar(
         toolbarHeight: 0,
         backgroundColor: AppColors.primaryColor,

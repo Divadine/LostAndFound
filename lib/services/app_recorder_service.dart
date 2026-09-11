@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:lost_and_found/services/media_playback_coordinator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
@@ -28,11 +29,18 @@ class AppRecorderService extends ChangeNotifier {
         await _player.pause();
         isPlaying = false;
         _isCompleted = true;
-        playbackPosition = Duration.zero;
-        await _player.seek(Duration.zero);
+        playbackPosition = recordedDuration;
+        // await _player.seek(Duration.zero); // Don't seek to zero immediately
         notifyListeners();
       }
-    });  }
+    });
+
+    _mediaCoordinatorSub = MediaPlaybackCoordinator.instance.onPlayRequested.listen((id) {
+      if (id != MediaPlaybackCoordinator.audioId && _player.playing) {
+        _player.pause();
+      }
+    });
+  }
 
   static final AppRecorderService instance = AppRecorderService._();
 
@@ -51,6 +59,7 @@ class AppRecorderService extends ChangeNotifier {
   Timer? _recordTimer;
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<PlayerState>? _playerStateSub;
+  StreamSubscription<String>? _mediaCoordinatorSub;
   bool get isRecording => state == RecorderState.recording;
   bool get isPaused => state == RecorderState.paused;
   bool get isRecorded => state == RecorderState.recorded;
@@ -189,9 +198,9 @@ class AppRecorderService extends ChangeNotifier {
     if (_isCompleted) {
       _isCompleted = false;
       await _player.seek(Duration.zero);
-
     }
 
+    MediaPlaybackCoordinator.instance.requestPlay(MediaPlaybackCoordinator.audioId);
     await _player.play();
   }
   Future<void> reRecord() async {

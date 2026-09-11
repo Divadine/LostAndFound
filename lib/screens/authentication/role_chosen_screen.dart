@@ -21,87 +21,108 @@ class _FirstHomeScreenState extends State<FirstHomeScreen> {
       backgroundColor: AppColors.white,
       appBar: AppBar(toolbarHeight: 0, backgroundColor: AppColors.primaryColor),
 
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        //crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 10,
+      body: Stack(
         children: [
-          AppIconWidget(assetPath: AssetImages.lostFoundImage),
-          AppText(
-            text: 'What would you like to do ?',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-          AppText(
-            text: 'Choose an option below to get started',
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
-          buildLostContainer(
-            leftImg: AssetImages.bag,
-            title: 'I lost Something',
-            description:
-            'Post details about the item you lost and let others help you find it.',
-            rightImg: AssetImages.right_arrow,
-            onTap: () async {
-              AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 0); // lost
-            },
-          ),
 
-          buildLostContainer(
-            leftImg: AssetImages.box_image,
-            title: 'I Found Something',
-            description:
-            'Share details about the item. you found and help it reach its owner.',
-            rightImg: AssetImages.right_arrow,
-            onTap: () async {
-              AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 1); // found
-            },
-          ),
-          SizedBox(height: 10),
-
-          GestureDetector(
-            onTap: () async {
-              AppRoutes.pushNamed(AppRoutes.bottomScreen, arguments: 1);
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.shieldBlue,
-                borderRadius: BorderRadius.circular(16),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            //crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 10,
+            children: [
+              AppIconWidget(assetPath: AssetImages.lostFoundImage),
+              AppText(
+                text: 'What would you like to do ?',
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
-              child: Row(
-                //mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                spacing: 10,
-                children: [
-                  AppIconWidget(assetPath: AssetImages.shieldTick),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      spacing: 10,
-                      children: [
-                        AppText(
-                          text: 'Safety First',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.primaryColor,
-                        ),
-                        AppText(
-                          text:
-                              'We recommend handing over found items to the nearest police station for everyone’s safety',
-                          fontWeight: FontWeight.w400,
-                          fontSize: 14,
-                          color: AppColors.primaryColor,
-                        ),
-                      ],
-                    ),
+              AppText(
+                text: 'Choose an option below to get started',
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              buildLostContainer(
+                leftImg: AssetImages.bag,
+                title: 'I lost Something',
+                description:
+                'Post details about the item you lost and let others help you find it.',
+                rightImg: AssetImages.right_arrow,
+                onTap: () async {
+                  AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 0); // lost
+                },
+              ),
+
+              buildLostContainer(
+                leftImg: AssetImages.box_image,
+                title: 'I Found Something',
+                description:
+                'Share details about the item. you found and help it reach its owner.',
+                rightImg: AssetImages.right_arrow,
+                onTap: () async {
+                  AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 1); // found
+                },
+              ),
+              SizedBox(height: 10),
+
+              GestureDetector(
+                onTap: () async {
+                  AppRoutes.pushNamed(AppRoutes.bottomScreen, arguments: 1);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.shieldBlue,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ],
+                  child: Row(
+                    //mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    spacing: 10,
+                    children: [
+                      AppIconWidget(assetPath: AssetImages.shieldTick),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          spacing: 10,
+                          children: [
+                            AppText(
+                              text: 'Safety First',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.primaryColor,
+                            ),
+                            AppText(
+                              text:
+                              'We recommend handing over found items to the nearest police station for everyone’s safety',
+                              fontWeight: FontWeight.w400,
+                              fontSize: 14,
+                              color: AppColors.primaryColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
+            ],
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            child: GestureDetector(
+
+              onTap: () {
+                if (Navigator.canPop(context)) { AppRoutes.pop(); }
+                else{
+                  AppRoutes.replaceNamed(AppRoutes.loginScreen);
+                }
+
+              },
+              child: AppIconWidget(assetPath: AssetImages.backArrow,color: AppColors.primaryColor,),
             ),
           ),
-        ],
+        ]
+
       ).pad(16),
     );
   }

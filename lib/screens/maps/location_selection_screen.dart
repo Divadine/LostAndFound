@@ -2037,6 +2037,7 @@ class _LocationSelectionScreenState
           // DELETE
           // ===================================================================
 
+          Spacer(),
           if (!isLoading)
             GestureDetector(
               onTap: () {

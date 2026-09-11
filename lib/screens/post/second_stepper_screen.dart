@@ -34,6 +34,7 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
+import 'package:lost_and_found/services/media_playback_coordinator.dart';
 import 'package:video_player/video_player.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
@@ -116,6 +117,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   final AppLocationPermission _appPermissions = AppLocationPermission();
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<String>? _mediaCoordinatorSub;
   bool _isOffline = false;
 
   @override
@@ -123,6 +125,13 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     super.initState();
 
     _initConnectivityListener();
+
+    _mediaCoordinatorSub = MediaPlaybackCoordinator.instance.onPlayRequested.listen((id) {
+      if (id != MediaPlaybackCoordinator.videoId && (_videoController?.value.isPlaying ?? false)) {
+        _videoController?.pause();
+        if (mounted) setState(() {});
+      }
+    });
 
     // Use post frame callback to avoid notifyListeners() or stream events
     // triggering rebuilds during the navigation transition/build phase.
@@ -188,6 +197,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   @override
   void dispose() {
     _connectivitySub?.cancel();
+    _mediaCoordinatorSub?.cancel();
     _videoController?.dispose();
     locationController.close();
     dateStreamController.close();
@@ -614,7 +624,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                     _videoController!.value.isInitialized)
                                     ? buildVideoPreview()
                                     : AppContainer(
-                                  height: AppUtils.isTab ? 160 : null,
+                                  height: 120,
                                   widget: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -667,18 +677,11 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
   Widget buildVideoPreview() {
     final controller = _videoController!;
 
-    // FIX: ValueListenableBuilder listens to the controller's own value
-    // (VideoPlayerController is a ValueNotifier<VideoPlayerValue>), so the
-    // duration badge always reflects the controller's real, current state
-    // instead of a value read once right after initialize() (which is why
-    // it was showing 00:00 — the real duration often isn't known that
-    // early). It also gives a live "position" every frame, so the badge
-    // counts down while playing.
     return ValueListenableBuilder<VideoPlayerValue>(
       valueListenable: controller,
       builder: (context, value, _) {
         final remaining = value.duration - value.position;
-        final displayTime = value.duration == Duration.zero ? value.duration : remaining;
+        final displayTime = (value.position >= value.duration) ? value.duration : remaining;
 
         return Column(
           children: [
@@ -688,7 +691,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
-                    height: AppUtils.isTab ? 160 : 100,
+                    height: AppUtils.isTab ? 200 : 140,
                     width: double.infinity,
                     child: FittedBox(
                       fit: BoxFit.cover,
@@ -709,6 +712,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                         if (value.position >= value.duration) {
                           controller.seekTo(Duration.zero);
                         }
+                        MediaPlaybackCoordinator.instance.requestPlay(MediaPlaybackCoordinator.videoId);
                         controller.play();
                       }
                     },

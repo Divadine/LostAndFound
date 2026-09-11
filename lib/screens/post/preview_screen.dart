@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
+import 'package:lost_and_found/services/media_playback_coordinator.dart';
 import 'package:video_player/video_player.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 
@@ -92,6 +93,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
   bool _isVideoPlaying = false;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<String>? _mediaCoordinatorSub;
   bool _isOffline = false;
 
   @override
@@ -100,6 +102,15 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
     _initConnectivityListener();
     _setupAudio();
     _setupVideo();
+
+    _mediaCoordinatorSub = MediaPlaybackCoordinator.instance.onPlayRequested.listen((id) {
+      if (id != MediaPlaybackCoordinator.audioId && _isAudioPlaying) {
+        _waveController.pausePlayer();
+      }
+      if (id != MediaPlaybackCoordinator.videoId && (_videoController?.value.isPlaying ?? false)) {
+        _videoController?.pause();
+      }
+    });
   }
 
   void _initConnectivityListener() async {
@@ -158,6 +169,16 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
     if (widget.videoFile == null) return;
     _videoController = VideoPlayerController.file(widget.videoFile!);
     await _videoController!.initialize();
+    _videoController!.addListener(() {
+      if (mounted) {
+        final isPlaying = _videoController!.value.isPlaying;
+        if (isPlaying != _isVideoPlaying) {
+          setState(() {
+            _isVideoPlaying = isPlaying;
+          });
+        }
+      }
+    });
     if (!mounted) return;
     setState(() {});
   }
@@ -165,6 +186,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
   @override
   void dispose() {
     _connectivitySub?.cancel();
+    _mediaCoordinatorSub?.cancel();
     _waveController.dispose();
     _videoController?.dispose();
     super.dispose();
@@ -182,6 +204,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
     if (_isAudioPlaying) {
       await _waveController.pausePlayer();
     } else {
+      MediaPlaybackCoordinator.instance.requestPlay(MediaPlaybackCoordinator.audioId);
       await _waveController.startPlayer();
     }
   }
@@ -672,7 +695,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
         alignment: Alignment.center,
         children: [
           SizedBox(
-            height: AppUtils.isTab ? 220 : null,
+            height: AppUtils.isTab ? 240 : 160,
             width: double.infinity,
             child: AspectRatio(
               aspectRatio: 16 / 9,
@@ -688,15 +711,15 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
           ),
           GestureDetector(
             onTap: () {
-              setState(() {
-                if (_videoController!.value.isPlaying) {
-                  _videoController!.pause();
-                  _isVideoPlaying = false;
-                } else {
-                  _videoController!.play();
-                  _isVideoPlaying = true;
+              if (_videoController!.value.isPlaying) {
+                _videoController!.pause();
+              } else {
+                if (_videoController!.value.position >= _videoController!.value.duration) {
+                  _videoController!.seekTo(Duration.zero);
                 }
-              });
+                MediaPlaybackCoordinator.instance.requestPlay(MediaPlaybackCoordinator.videoId);
+                _videoController!.play();
+              }
             },
             child: CircleAvatar(
               radius: 22,
@@ -707,10 +730,22 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
           Positioned(
             bottom: 8,
             right: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(6)),
-              child: AppText(text: _formatDuration(_videoController!.value.duration), color: Colors.white, fontSize: 12),
+            child: ValueListenableBuilder<VideoPlayerValue>(
+              valueListenable: _videoController!,
+              builder: (context, value, _) {
+                final remaining = value.duration - value.position;
+                final displayTime = (value.position >= value.duration) ? value.duration : remaining;
+                
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(6)),
+                  child: AppText(
+                    text: _formatDuration(displayTime),
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
+                );
+              },
             ),
           ),
         ],
