@@ -17,6 +17,7 @@ import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 import '../post/first_stepper_screen.dart';
 
@@ -122,7 +123,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
     );
 
     descriptionController = TextEditingController(
-      text: '',
+      text: 'Hi,\nI think I found your item.\nPlease let me know if it belongs to you.',
     );
 
     _fetchSourcePostDetails();
@@ -151,7 +152,6 @@ class _SendEnquiryState extends State<SendEnquiry> {
               if (sourcePost.posterName.isNotEmpty) {
                 nameController.text = sourcePost.posterName;
               }
-              descriptionController.text = sourcePost.description;
             });
           }
         }
@@ -271,6 +271,35 @@ class _SendEnquiryState extends State<SendEnquiry> {
 
     final otherUserId =
     widget.otherUserId.toString().trim();
+
+    if (currentUserId.isNotEmpty &&
+        otherUserId.isNotEmpty &&
+        currentUserId == otherUserId) {
+      if (mounted) {
+        setState(() {
+          isSubmitting = false;
+        });
+      }
+
+      // Close the bottom sheet FIRST, otherwise the snackbar
+      // renders behind it and is invisible to the user.
+      AppRoutes.pop();
+
+      // Wait for the sheet-close animation/frame to finish, then
+      // show the snackbar using the app's root navigator context
+      // so it appears above the (now-closed) sheet.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final rootContext = AppUtils.navigatorKey.currentContext;
+        if (rootContext != null) {
+          AppSnackBar.show(
+            context: rootContext,
+            message: 'You cannot send an enquiry to your own post.',
+          );
+        }
+      });
+
+      return;
+    }
 
     try {
       // ==========================================================
@@ -681,7 +710,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
             hintText: '',
             textController:
             descriptionController,
-            readOnly: true,
+            readOnly: false,
             onChange: (v) {},
             onSubmit: (v) {},
             maxLines: 5,

@@ -118,7 +118,7 @@ class AppUiHelper {
                     minHeight: minHeight == true ? maxHeight : 0,
                   ),
                   padding: const EdgeInsets.fromLTRB(
-                    16,12,16,60
+                    16,12,16,30
                   ),
                   decoration: BoxDecoration(
                     color: bgColor,

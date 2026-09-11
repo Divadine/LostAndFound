@@ -631,44 +631,66 @@ class _IndividualChatScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
-        toolbarHeight: 0,
-        backgroundColor: AppColors.primaryColor,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 16),
-                      selectedMessageId != null
-                          ? _buildSelectionTopRow()
-                          : _buildHeaderRow(),
-                      const SizedBox(height: 10),
-                      const Divider(),
-                      _buildPhoneRow(),
-                      const SizedBox(height: 8),
-                      _buildTopItemCard(),
-                      const SizedBox(height: 8),
-                      _buildSafetyCard(),
-                      const SizedBox(height: 5),
-                      _buildMessagesList(),
-                    ],
-                  ),
+    return PopScope(
+      canPop: selectedMessageId == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (selectedMessageId != null) {
+          setState(() {
+            selectedMessageId = null;
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        appBar: AppBar(
+          toolbarHeight: 0,
+          backgroundColor: AppColors.primaryColor,
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 16),
+                    selectedMessageId != null
+                        ? _buildSelectionTopRow()
+                        : _buildHeaderRow(),
+                    const SizedBox(height: 10),
+                    const Divider(),
+                  ],
                 ),
               ),
-            ),
-            const Divider(),
-            _buildBottomArea(),
-          ],
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      children: [
+                        _buildPhoneRow(),
+                    const SizedBox(height: 8),
+                    _buildTopItemCard(),
+                    const SizedBox(height: 8),
+                    _buildSafetyCard(),
+                    const SizedBox(height: 5),
+                    _buildMessagesList(),
+
+                      ]
+                    ),
+                  )
+
+
+                ),
+              ),
+              Divider(),
+              _buildBottomArea(),
+            ],
+          ),
         ),
       ),
     );
