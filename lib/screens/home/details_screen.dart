@@ -217,6 +217,17 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
           isLoading = false;
         });
 
+        debugPrint('========== NAME/ID DEBUG ==========');
+        debugPrint('post.userId        : ${postDetails?.userId}');
+        debugPrint('post.postType      : ${postDetails?.postType}');
+        debugPrint('post.posterName    : ${postDetails?.posterName}');
+        debugPrint('post.finderName    : ${postDetails?.finderName}');
+        debugPrint('post.ownerName     : ${postDetails?.ownerName}');
+        debugPrint('_posterName getter : $_posterName');
+        debugPrint('My current userId  : ${AppPreferences.getUserId()}');
+        debugPrint('My current userName: ${AppPreferences.getUserName()}');
+        debugPrint('====================================');
+
         // ========================================================
         // IMAGE DEBUG
         // ========================================================
@@ -686,7 +697,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
         if (post.status == 2)
           SafeArea(
             child: SucessCard(
-              name: _posterName,
+              name: post.postType == 0 ? post.finderName : post.ownerName,
               location: _formatDate(post.postDate),
               onTap: () {
                 AppUiHelper.showBottomSheet(
@@ -702,8 +713,10 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                         ? TransferType.receiveToOwner
                         : TransferType.handOverToOwner,
                     data: TransferData(
-                      name: _posterName,
-                      avatarUrl: _posterAvatarUrl,
+                      name: post.postType == 0 ? post.finderName : post.ownerName,
+                      avatarUrl: _getMediaUrl(
+                        post.postType == 0 ? post.finderAvatar : post.ownerAvatar,
+                      ),
                       userId: post.userId.toString(),
                       phoneNumber: '',
                       description: post.description,

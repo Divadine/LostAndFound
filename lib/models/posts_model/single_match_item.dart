@@ -18,6 +18,10 @@ class SingleMatchModel {
   final String? videoUrl;
   final String posterName;
   final String posterAvatar;
+  final String finderName;
+  final String ownerName;
+  final String finderAvatar;
+  final String ownerAvatar;
   final List<SingleMatchValue> values;
 
   SingleMatchModel({
@@ -38,6 +42,10 @@ class SingleMatchModel {
     this.videoUrl,
     this.posterName = '',
     this.posterAvatar = '',
+    this.finderName = '',
+    this.ownerName = '',
+    this.finderAvatar = '',
+    this.ownerAvatar = '',
     required this.values,
   });
 
@@ -211,6 +219,10 @@ class SingleMatchModel {
       videoUrl: foundVideo,
       posterName: foundName ?? '',
       posterAvatar: foundAvatar ?? '',
+      finderName: data['finder_name']?.toString() ?? '',
+      ownerName: data['owner_name']?.toString() ?? '',
+      finderAvatar: data['finder_avatar']?.toString() ?? '',
+      ownerAvatar: data['owner_avatar']?.toString() ?? '',
       values: valuesList
           .map((e) => SingleMatchValue.fromJson(e as Map<String, dynamic>))
           .toList(),
