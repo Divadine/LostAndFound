@@ -145,6 +145,9 @@ class AssetImages {
   static const String copy = "assets/images/copy.svg";
   static const String micNoInternet = "assets/images/micNotification.svg";
   static const String noInternet = "assets/images/noInternet.svg";
+  static const String notificationDot = "assets/images/notificationDot.svg";
+
+
 
 
 

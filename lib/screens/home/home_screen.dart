@@ -814,9 +814,17 @@ class _HomeScreenState extends State<HomeScreen>
 
                           GestureDetector(
                             onTap: (){},
-                            child: AppIconWidget(
-                              assetPath:
-                              AssetImages.notification,
+                            child: Stack(
+                              children: [
+                                AppIconWidget(
+                                  assetPath:
+                                  AssetImages.notification,
+                                ),
+                                Positioned(
+                                  top: -1,right: 0,
+                                    child: AppIconWidget(assetPath: AssetImages.notificationDot))
+                              ]
+
                             ),
                           ),
                         ],

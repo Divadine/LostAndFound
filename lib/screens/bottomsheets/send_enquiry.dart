@@ -128,13 +128,13 @@ class _SendEnquiryState extends State<SendEnquiry> {
 
     _fetchSourcePostDetails();
 
-    debugPrint('[SendEnquiry] INIT');
-    debugPrint('[SendEnquiry] currentUserName (sender/lost person): "$currentUserName"');
-    debugPrint('[SendEnquiry] otherUserId: ${widget.otherUserId}');
-    debugPrint('[SendEnquiry] otherUserName: ${widget.otherUserName}');
-    debugPrint('[SendEnquiry] otherUserPhone: "${widget.otherUserPhone}"');
-    debugPrint('[SendEnquiry] matchedPostId: ${widget.matchedPostId}');
-    debugPrint('[SendEnquiry] PostId: ${widget.postId}');
+    print('[SendEnquiry] INIT');
+    print('[SendEnquiry] currentUserName (sender/lost person): "$currentUserName"');
+    print('[SendEnquiry] otherUserId: ${widget.otherUserId}');
+    print('[SendEnquiry] otherUserName: ${widget.otherUserName}');
+    print('[SendEnquiry] otherUserPhone: "${widget.otherUserPhone}"');
+    print('[SendEnquiry] matchedPostId: ${widget.matchedPostId}');
+    print('[SendEnquiry] PostId: ${widget.postId}');
   }
 
   Future<void> _fetchSourcePostDetails() async {
@@ -157,7 +157,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
         }
       }
     } catch (e) {
-      debugPrint('[SendEnquiry] Error fetching source post details: $e');
+      print('[SendEnquiry] Error fetching source post details: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -307,7 +307,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
         postId: widget.postId.toString(),
       );
 
-      debugPrint('[SendEnquiry] Checking for existing room: $roomIdCheck');
+      print('[SendEnquiry] Checking for existing room: $roomIdCheck');
       final existingRoom = await ChatService.getRoom(roomIdCheck);
 
       if (existingRoom != null) {
@@ -350,27 +350,27 @@ class _SendEnquiryState extends State<SendEnquiry> {
         '==================================================',
       );
 
-      debugPrint(
+      print(
         '[SendEnquiry] START',
       );
 
-      debugPrint(
+      print(
         '[SendEnquiry] currentUserId: $currentUserId',
       );
 
-      debugPrint(
+      print(
         '[SendEnquiry] otherUserId: $otherUserId',
       );
 
-      debugPrint(
+      print(
         '[SendEnquiry] postId: ${widget.postId}',
       );
 
-      debugPrint(
+      print(
         '[SendEnquiry] matchedPostId: ${widget.matchedPostId}',
       );
 
-      debugPrint(
+      print(
         '[SendEnquiry] otherUserPhone: "${widget.otherUserPhone}"',
       );
 
@@ -380,7 +380,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
       // CREATE ENQUIRY IN API
       // ==========================================================
 
-      debugPrint(
+      print(
         '[SendEnquiry] Creating enquiry API...',
       );
 
@@ -425,7 +425,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
         return;
       }
 
-      debugPrint(
+      print(
         '[SendEnquiry] Enquiry API SUCCESS',
       );
 
@@ -451,7 +451,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
       //
       // ==========================================================
 
-      debugPrint(
+      print(
         '[Chat] Creating Firestore room...',
       );
 
@@ -490,7 +490,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
         description: descriptionController.text.trim(),
       );
 
-      debugPrint(
+      print(
         '[Chat] Room created/found: $roomId',
       );
 
@@ -506,7 +506,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
       // Contact request must remain "none".
       // ==========================================================
 
-      debugPrint(
+      print(
         '[Chat] Contact request NOT sent automatically.',
       );
 
@@ -520,7 +520,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
       descriptionController.text.trim();
 
       if (description.isNotEmpty) {
-        debugPrint(
+        print(
           '[Chat] Sending initial enquiry message...',
         );
 
@@ -530,7 +530,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
           message: description,
         );
 
-        debugPrint(
+        print(
           '[Chat] Initial enquiry message sent.',
         );
       }
@@ -557,7 +557,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
       // OPEN CHAT
       // ==========================================================
 
-      debugPrint(
+      print(
         '[Chat] Opening room: $roomId',
       );
 
@@ -604,19 +604,19 @@ class _SendEnquiryState extends State<SendEnquiry> {
         },
       );
 
-      debugPrint(
+      print(
         '[SendEnquiry] COMPLETE',
       );
 
-      debugPrint(
+      print(
         '==================================================',
       );
     } catch (e, stackTrace) {
-      debugPrint(
+      print(
         '[SendEnquiry] ERROR: $e',
       );
 
-      debugPrint(
+      print(
         '[SendEnquiry] STACK TRACE: $stackTrace',
       );
 
