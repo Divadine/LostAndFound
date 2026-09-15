@@ -3178,8 +3178,9 @@ class _ExitAppPopUpState extends State<ExitAppPopUp> with WidgetsBindingObserver
         AppText(
           text: 'Are you Sure you want to exit ? ',
           fontWeight: FontWeight.w500,
-          fontSize: 20,
+          fontSize: 18,
           textAlign: TextAlign.center,
+          color: AppColors.primaryColor,
         ),
         SizedBox(height: 7),
         AppText(
