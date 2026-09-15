@@ -2660,7 +2660,7 @@ class _IndividualChatScreenState
     if (type == 'image') {
       return Container(
         margin: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
-        height: 120,
+        height: 150,
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
