@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lost_and_found/screens/home/home_screen.dart';
 import 'package:lost_and_found/screens/authentication/login_screen.dart';
 import 'package:lost_and_found/screens/nearby/map_screen.dart';
@@ -10,6 +11,7 @@ import 'package:lost_and_found/screens/profile/settings_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
+import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
@@ -160,15 +162,34 @@ class _BottomScreenState extends State<BottomScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: selectedIndex == 0,
-      onPopInvokedWithResult: (didPop, result) {
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+
         if (selectedIndex != 0) {
           setState(() {
             selectedIndex = 0;
           });
+          return;
+        }
+
+        final shouldExit = await AppDialogue.showPopup(
+          context: context,
+          content: const ExitAppPopUp(),
+        );
+        if (shouldExit) {
+          SystemNavigator.pop();
         }
       },
+      // canPop: selectedIndex == 0,
+      // onPopInvokedWithResult: (didPop, result) {
+      //   if (didPop) return;
+      //   if (selectedIndex != 0) {
+      //     setState(() {
+      //       selectedIndex = 0;
+      //     });
+      //   }
+      // },
       child: Scaffold(
         appBar: AppBar(toolbarHeight: 0,backgroundColor: AppColors.primaryColor,),
         backgroundColor: Colors.transparent,

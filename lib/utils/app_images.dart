@@ -30,6 +30,8 @@ class AssetImages {
   static const String closedStatus = "assets/images/closedStatus.png";
   static const String closed = "assets/images/closed.png";
   static const String trophy = "assets/images/trophy.png";
+  static const String exitApp = "assets/images/exitApp.png";
+
 
 
 

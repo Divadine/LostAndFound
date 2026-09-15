@@ -3154,3 +3154,72 @@ class _AppMicAccessState extends State<AppMicAccess> with WidgetsBindingObserver
     );
   }
 }
+
+
+class ExitAppPopUp extends StatefulWidget {
+  const ExitAppPopUp({super.key});
+
+  @override
+  State<ExitAppPopUp> createState() => _ExitAppPopUpState();
+}
+
+class _ExitAppPopUpState extends State<ExitAppPopUp> with WidgetsBindingObserver  {
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      spacing: 5,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AppIconWidget(assetPath: AssetImages.exitApp),
+
+        SizedBox(height: 7),
+        AppText(
+          text: 'Are you Sure you want to exit ? ',
+          fontWeight: FontWeight.w500,
+          fontSize: 20,
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: 7),
+        AppText(
+          text:
+          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          textAlign: TextAlign.center,
+          color: AppColors.fieldGrey,
+        ).padHorizontal(10),
+        SizedBox(height: 15),
+        Row(
+          spacing: 10,
+          children: [
+            Expanded(
+              child: AppButton(
+                title: 'Cancel',
+                onTap: () {
+                  AppRoutes.pop(false);
+                },
+                fontSize: 14,
+                bgColor: Colors.transparent,
+                border: Border.all(color: AppColors.black),
+                textColor: AppColors.black,
+                radius: BorderRadius.circular(7),
+              ),
+            ),
+            Expanded(
+              child: AppButton(
+                title: 'Exit',
+                onTap: () async {
+                   AppRoutes.pop(true);
+                },
+                fontSize: 16,
+                radius: BorderRadius.circular(7),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
