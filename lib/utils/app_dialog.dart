@@ -2083,7 +2083,7 @@ class _AppLocationAccessState extends State<AppLocationAccess> with WidgetsBindi
 
         SizedBox(height: 7),
         AppText(
-          text: 'Set your location',
+          text: 'Allow your location',
           fontWeight: FontWeight.w500,
           fontSize: 20,
         ),
