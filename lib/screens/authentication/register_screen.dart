@@ -179,7 +179,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   spacing: 20,
                   children: [
                     AppText(
-                      text: 'Register Screen',
+                      text: 'Register',
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: AppColors.primaryColor,
@@ -187,7 +187,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     AppText(
                       text:
                       'Start your journey by registering now. Fill in Your details to create an account.',
-                      fontWeight: FontWeight.w400,
+                      fontWeight: FontWeight.w500,
                       fontSize: 14,
                       color: AppColors.primaryColor,
                       textAlign: TextAlign.center,

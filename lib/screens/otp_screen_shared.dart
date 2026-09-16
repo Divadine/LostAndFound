@@ -189,7 +189,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
             text: widget.isAlternateNumber
                 ? "We have sent a 4-digit OTP to +91 ${widget.mobileNumber}"
                 : 'Please enter the OTP sent to your entered mobile number to continue.',
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w500,
             fontSize: 14,
             color: AppColors.primaryColor,
             textAlign: TextAlign.center,
@@ -203,7 +203,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
-                spacing: 10,
+                spacing: 15,
                 children: List.generate(_controller.length, (index) {
                   return Container(
                     height: 50,

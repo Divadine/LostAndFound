@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 class AppIconWidget extends StatelessWidget {
   final String assetPath;
   final double? size;
+  final double? height;
   final Color? color;
   final BoxFit fit;
 
@@ -11,6 +12,7 @@ class AppIconWidget extends StatelessWidget {
     super.key,
     required this.assetPath,
     this.size,
+    this.height,
     this.color,
     this.fit = BoxFit.contain,
   });
@@ -34,7 +36,7 @@ class AppIconWidget extends StatelessWidget {
     return Image.asset(
       assetPath,
       width: size,
-      height: size,
+      height: height ?? size,
       fit: fit,
       color: color,
     );

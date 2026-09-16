@@ -89,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       AppText(
                         text: 'Welcome back! We’re excited to have you here again.',
-                        fontWeight: FontWeight.w400,
+                        fontWeight: FontWeight.w500,
                         fontSize: 14,
                         color: AppColors.primaryColor,
                         textAlign: TextAlign.center,

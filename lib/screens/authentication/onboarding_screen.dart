@@ -81,19 +81,22 @@ class OnboardingScreenState extends State<OnboardingScreen> {
                         child: Column(
                           spacing: 10,
                           crossAxisAlignment: .center,
-                          mainAxisAlignment: .center,
+                          mainAxisAlignment: .spaceAround,
                           children: [
                             const SizedBox(height: 20),
                             SizedBox(
-                              height: AppUtils.isTab ? 500 : 350,
+                        
+                              // height: AppUtils.isTab ? 500 : 350,
                               child: AppIconWidget(
                                 assetPath: model.image,
-                                fit: BoxFit.cover,
-
+                                fit: BoxFit.contain,
+                                size: MediaQuery.sizeOf(context).width,
+                                height: MediaQuery.sizeOf(context).height*0.55,
+                        
                               ),
                             ),
-  
-                            const SizedBox(height: 40),
+                        
+                            const SizedBox(),
                             AppText(
                               text: model.title,
                               fontSize: 24,
@@ -113,7 +116,7 @@ class OnboardingScreenState extends State<OnboardingScreen> {
                               textAlign: .center,
                               fontWeight: FontWeight.w400,
                             ).padHorizontal(30),
-                            const SizedBox(height: 20),
+                            const SizedBox(),
                           ],
                         ),
                       ),
@@ -139,7 +142,7 @@ class OnboardingScreenState extends State<OnboardingScreen> {
                               ),
                               child: AppText(
                                 text: 'skip',
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w400,
                                 color: AppColors.white,
                               ),
