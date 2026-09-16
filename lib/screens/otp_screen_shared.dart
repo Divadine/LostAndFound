@@ -312,7 +312,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
               ],
             ),
           ),
-
+          SizedBox(height: 2,),
           StreamBuilder(
             stream: timeStream.stream,
             initialData: seconds,
