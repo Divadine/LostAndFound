@@ -451,7 +451,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                   fieldWidget: AppTextField(
                     suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad(),
                     readOnly: true,
-                    borderColor: AppColors.fieldGrey,
+                    borderColor: AppColors.fieldGrey.withAlpha(60),
                     borderRadius: BorderRadius.circular(5),
                     hintText: '',
                     textController: categoryController,
@@ -468,7 +468,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                     fieldWidget: AppTextField(
                       suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad(),
                       readOnly: true,
-                      borderColor: AppColors.fieldGrey,
+                      borderColor: AppColors.fieldGrey.withAlpha(60),
                       borderRadius: BorderRadius.circular(5),
                       hintText: '',
                       textController: subCategoryController,
@@ -483,7 +483,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                   buildTextFieldWithHeading(
                     title: 'Item Name',
                     fieldWidget: AppTextField(
-                      borderColor: AppColors.fieldGrey,
+                      borderColor: AppColors.fieldGrey.withAlpha(60),
                       borderRadius: BorderRadius.circular(5),
                       hintText: 'Enter item name',
                       textController: itemNameController,
@@ -505,7 +505,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
                     fieldWidget: AppTextField(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       maxLines: 4,
-                      borderColor: AppColors.fieldGrey,
+                      borderColor: AppColors.fieldGrey.withAlpha(60),
                       borderRadius: BorderRadius.circular(5),
                       hintText: 'Write a item description',
                       textController: descriptionController,
@@ -537,7 +537,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     return buildTextFieldWithHeading(
       title: 'Color',
       fieldWidget: AppDropdownField<String>(
-        borderColor: AppColors.fieldGrey,
+        borderColor: AppColors.fieldGrey.withAlpha(60),
         //contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         menuHeight: 200,
         value: selectedColor,
@@ -632,7 +632,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         return buildTextFieldWithHeading(
           title: field.displayName,
           fieldWidget: AppTextField(
-            borderColor: AppColors.fieldGrey,
+            borderColor: AppColors.fieldGrey.withAlpha(60),
             borderRadius: BorderRadius.circular(5),
             hintText: 'Enter ${field.displayName.toLowerCase()}',
             textController: textControllers[field.id]!,
@@ -646,7 +646,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
           title: field.displayName,
           fieldWidget: AppTextField(
             maxLines: 4,
-            borderColor: AppColors.fieldGrey,
+            borderColor: AppColors.fieldGrey.withAlpha(60),
             borderRadius: BorderRadius.circular(5),
             hintText: '',
             textController: textControllers[field.id]!,
@@ -677,7 +677,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         return buildTextFieldWithHeading(
           title: field.displayName,
           fieldWidget: AppDropdownField<String>(
-            borderColor: AppColors.fieldGrey,
+            borderColor: AppColors.fieldGrey.withAlpha(60),
 
             //contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             value: selectedDropdownValues[field.id],
@@ -705,7 +705,7 @@ Widget buildTextFieldWithHeading({
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      AppText(text: title, fontSize: 16, fontWeight: AppUtils.isTab ?FontWeight.w400 : FontWeight.w600),
+      AppText(text: title, fontSize: 14, fontWeight: AppUtils.isTab ?FontWeight.w400 : FontWeight.w600),
       const SizedBox(height: 10),
       fieldWidget,
     ],

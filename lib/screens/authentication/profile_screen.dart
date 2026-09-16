@@ -57,6 +57,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   );
   bool isNotFromSetUp = false;
   bool isAlternativeNumberValid = false;
+  bool _canVerifyAlternative = false;
   bool isPinCodeValid = false;
   String otp = '';
   Timer? timer;
@@ -130,6 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       isAlternativeNumberValid =
           AppUtils.validateMobileNumber(alternativeController.text) == null &&
               alternativeController.text != mobileController.text;
+      _canVerifyAlternative = isAlternativeNumberValid;
     }
 
     // Use addPostFrameCallback to ensure the StreamBuilder is ready to receive the initial data if needed
@@ -540,6 +542,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 SizedBox(
                                   width: AppUtils.isTab ? 90 : 70,
                                   child: AppTextField(
+                                    borderColor: AppColors.fieldGrey.withAlpha(50),
                                     contentPadding: EdgeInsets.all(AppUtils.isTab ?16 : 10),
                                     textColor: AppColors.fieldGrey,
                                     readOnly: true,
@@ -556,26 +559,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     maxLength: 10,
                                     readOnly: _isAltVerified,
                                     hintText: 'Enter a mobile number',
+                                    contentPadding: EdgeInsets.all(AppUtils.isTab ?16 : 10),
+                                    borderColor: AppColors.fieldGrey.withAlpha(50),
                                     textController: alternativeController,
                                     onChange: (v) {
                                       bool isValid = false;
+                                      bool canVerify = false;
                                       if (v.isEmpty) {
                                         mobileStream.add(null);
                                         isValid = true;
+                                        canVerify = false;
                                       } else if (v == mobileController.text) {
                                         mobileStream.add(
                                             "Alternate number cannot be same as mobile number");
                                         isValid = false;
+                                        canVerify = false;
                                       } else {
                                         final error =
                                         AppUtils.validateMobileNumber(v);
                                         mobileStream.add(error);
                                         isValid = error == null;
+                                        canVerify = error == null;
                                       }
 
                                       if (isValid != isAlternativeNumberValid) {
                                         setState(() =>
                                         isAlternativeNumberValid = isValid);
+                                      }
+                                      if (canVerify != _canVerifyAlternative) {
+                                        setState(() => _canVerifyAlternative = canVerify);
                                       }
 
                                       if (_isAltVerified) {
@@ -588,7 +600,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     textInputType: TextInputType.phone,
                                     suffixIcon: GestureDetector(
                                       onTap: _isAltVerified ||
-                                          !isAlternativeNumberValid
+                                          !_canVerifyAlternative
                                           ? null
                                           : () {
                                         if (AppUtils.validateMobileNumber(
@@ -620,6 +632,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                   setState(() {
                                                     _isAltVerified = true;
                                                     isAlternativeNumberValid = true;
+                                                    _canVerifyAlternative = true;
                                                   });
 
                                                   verifyMobileStream.add(true);
@@ -674,7 +687,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                   Icon(
                                                     Icons.check,
                                                     color: AppColors.green,
-                                                    size: AppUtils.isTab ? 20 :14,
+                                                    size: AppUtils.isTab ? 20 :18,
                                                   ),
                                                 if (_isAltVerified)
                                                   const SizedBox(width: 4),
@@ -686,7 +699,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                   fontWeight: FontWeight.w600,
                                                   color: _isAltVerified
                                                       ? AppColors.green
-                                                      : (isAlternativeNumberValid
+                                                      : (_canVerifyAlternative
                                                       ? AppColors.primaryColor
                                                       : AppColors.grey),
                                                 ),

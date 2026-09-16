@@ -78,84 +78,99 @@ class AppTextField extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Material(
-              borderRadius: borderRadius ?? BorderRadius.circular(6),
-              child: TextField(
-                controller: textController,
-                focusNode: focusNode,
-                textAlign: textAlign ?? TextAlign.start,
-                textAlignVertical: textAlignVertical,
-                style: appTextStyle(color: textBackgroundColor),
-                readOnly: readOnly ?? false,
-                maxLength: maxLength,
-                maxLines: maxLines ?? 1,
-                obscureText: obscureText ?? false,
-                textCapitalization:
-                textCapitalization ?? TextCapitalization.none,
-                inputFormatters: [
-                  NoLeadingSpaceFormatter(),
-                  ...?inputFormatters,
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: borderRadius ?? BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.black.withAlpha(10),
+                    blurRadius: 10,
+                    //spreadRadius: 0,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
-                keyboardType: textInputType ??
-                    (maxLines != null && maxLines! > 1
-                        ? TextInputType.multiline
-                        : TextInputType.text),
-                textInputAction: textInputAction,
-                onTap: onTap,
-                onSubmitted: onSubmit,
-                onChanged: (value) {
-                  field.didChange(value);
-                  onChange(value);
-                },
-                decoration: InputDecoration(
-                  isDense: true,
-                  counterText: '',
-                  filled: true,
-                  fillColor: backgroundColor ?? Colors.white,
-                  contentPadding: contentPadding ?? const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  hintText: hintText,
-                  hintStyle: hintStyle ?? appTextStyle(color: Colors.grey),
-                  prefixIcon: prefixIcon,
-                  suffixIcon: suffixIcon,
-                  suffixIconConstraints: suffixIcon == null
-                      ? const BoxConstraints(minWidth: 0, minHeight: 0)
-                      : suffixIconConstraints ??
-                      const BoxConstraints(minWidth: 0, minHeight: 0),
-
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius:
-                    borderRadius ?? BorderRadius.circular(6),
-                    borderSide: BorderSide(
-                      color: borderColor ??
-                          AppColors.fieldGrey,
+              ),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: borderRadius ?? BorderRadius.circular(6),
+                child: TextField(
+                  controller: textController,
+                  focusNode: focusNode,
+                  textAlign: textAlign ?? TextAlign.start,
+                  textAlignVertical: textAlignVertical,
+                  style: appTextStyle(color: textBackgroundColor),
+                  readOnly: readOnly ?? false,
+                  maxLength: maxLength,
+                  maxLines: maxLines ?? 1,
+                  obscureText: obscureText ?? false,
+                  textCapitalization:
+                  textCapitalization ?? TextCapitalization.none,
+                  inputFormatters: [
+                    NoLeadingSpaceFormatter(),
+                    ...?inputFormatters,
+                  ],
+                  keyboardType: textInputType ??
+                      (maxLines != null && maxLines! > 1
+                          ? TextInputType.multiline
+                          : TextInputType.text),
+                  textInputAction: textInputAction,
+                  onTap: onTap,
+                  onSubmitted: onSubmit,
+                  onChanged: (value) {
+                    field.didChange(value);
+                    onChange(value);
+                  },
+                  decoration: InputDecoration(
+                    isDense: true,
+                    counterText: '',
+                    filled: true,
+                    fillColor: backgroundColor ?? Colors.white,
+                    contentPadding: contentPadding ?? const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
                     ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius:
-                    borderRadius ?? BorderRadius.circular(6),
-                    borderSide: BorderSide(
-                      color: borderColor ??
-                          AppColors.fieldGrey,
-                    ),
-                  ),
-                  errorBorder: OutlineInputBorder(
-                    borderRadius:
-                    borderRadius ?? BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: AppColors.red),
-                  ),
-                  focusedErrorBorder: OutlineInputBorder(
-                    borderRadius:
-                    borderRadius ?? BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: AppColors.red),
-                  ),
+                    hintText: hintText,
+                    hintStyle: hintStyle ?? appTextStyle(color: Colors.grey),
+                    prefixIcon: prefixIcon,
+                    suffixIcon: suffixIcon,
+                    suffixIconConstraints: suffixIcon == null
+                        ? const BoxConstraints(minWidth: 0, minHeight: 0)
+                        : suffixIconConstraints ??
+                        const BoxConstraints(minWidth: 0, minHeight: 0),
 
-                  // Show red border when invalid
-                  border: OutlineInputBorder(
-                    borderRadius:
-                    borderRadius ?? BorderRadius.circular(6),
+
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius:
+                      borderRadius ?? BorderRadius.circular(6),
+                      borderSide: BorderSide(
+                        color: borderColor ??
+                            AppColors.fieldGrey.withAlpha(50),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius:
+                      borderRadius ?? BorderRadius.circular(6),
+                      borderSide: BorderSide(
+                        color: borderColor ??
+                            AppColors.fieldGrey,
+                      ),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius:
+                      borderRadius ?? BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: AppColors.red),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius:
+                      borderRadius ?? BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: AppColors.red),
+                    ),
+
+                    // Show red border when invalid
+                    border: OutlineInputBorder(
+                      borderRadius:
+                      borderRadius ?? BorderRadius.circular(6),
+                    ),
                   ),
                 ),
               ),

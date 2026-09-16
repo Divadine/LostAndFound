@@ -175,7 +175,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        spacing: 10,
+        spacing: 5,
         children: [
           if (widget.isAlternateNumber)
             AppIconWidget(assetPath: AssetImages.enterOtpIcon),
@@ -185,16 +185,17 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
             fontWeight: FontWeight.w600,
             color: AppColors.primaryColor,
           ),
+          SizedBox(height: 2,),
           AppText(
             text: widget.isAlternateNumber
-                ? "We have sent a 4-digit OTP to +91 ${widget.mobileNumber}"
+                ? "We have sent a 4-digit OTP to \n+91 ${widget.mobileNumber}"
                 : 'Please enter the OTP sent to your entered mobile number to continue.',
             fontWeight: FontWeight.w500,
             fontSize: 14,
             color: AppColors.primaryColor,
             textAlign: TextAlign.center,
           ).padHorizontal(),
-
+          SizedBox(height: 2,),
           StreamBuilder<String>(
             stream: otpStream.stream,
             initialData: '',
@@ -273,7 +274,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
               );
             },
           ),
-
+          SizedBox(height: 2,),
           if (errorText != null)
             AppText(
               text: errorText!,
@@ -281,7 +282,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
               fontSize: 14,
               color: AppColors.errorRed,
             ),
-
+          SizedBox(height: 2,),
           Container(
             height: AppUtils.isTab ? 30 : 20,
             width:  AppUtils.isTab ? 100 : 70,
@@ -329,7 +330,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
               );
             },
           ),
-
+          SizedBox(height: 2,),
           AppButton(
             title: isVerifying ? 'Verifying...' : 'Verify',
             onTap: isVerifying ? () {} : _onVerifyTap,
