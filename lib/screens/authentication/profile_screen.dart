@@ -752,6 +752,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 selectedCityName = null;
                                 latitude = null;
                                 longitude = null;
+                                _isCityFetched = false;
                               }
                             });
 
@@ -866,10 +867,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
 
                       //city
+                      //city
                       buildTextFieldWithHeading(
                         title: 'City',
-                        fieldWidget:
-                        AppDropdownField<String>(
+                        fieldWidget: AppDropdownField<String>(
                           value: selectedCityName,
                           menuHeight: 250,
                           borderColor: AppColors.fieldGrey.withAlpha(20),
@@ -885,10 +886,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           selectedItemColor: AppColors.primaryColor.withAlpha(30),
                           selectedItemTextColor: AppColors.primaryColor,
 
+                          // Only reserve/show the dropdown arrow once city options are actually fetched.
+                          // Passing null (not SizedBox.shrink()) means no icon slot is rendered at all,
+                          // so the field looks identical to your other empty fields until then.
                           suffixIcon: _isCityFetched
                               ? const Icon(Icons.keyboard_arrow_down)
-                              : const SizedBox.shrink(),
-
+                              : null,
+                          hideSuffixIcon: cityOptions.isEmpty,
+                          //hideSuffixIcon: !_isCityFetched,
                           onChanged: !_isCityFetched
                               ? null
                               : (v) {
@@ -901,6 +906,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                         ),
                       ),
+                      // buildTextFieldWithHeading(
+                      //   title: 'City',
+                      //   fieldWidget:
+                      //   AppDropdownField<String>(
+                      //     value: selectedCityName,
+                      //     menuHeight: 250,
+                      //     borderColor: AppColors.fieldGrey.withAlpha(20),
+                      //
+                      //     hintText: !_isCityFetched
+                      //         ? 'Fetch pincode first'
+                      //         : 'Select city',
+                      //
+                      //     items: cityOptions.map((a) => a.name).toList(),
+                      //
+                      //     itemLabel: (value) => value,
+                      //
+                      //     selectedItemColor: AppColors.primaryColor.withAlpha(30),
+                      //     selectedItemTextColor: AppColors.primaryColor,
+                      //
+                      //     suffixIcon: _isCityFetched
+                      //         ? const Icon(Icons.keyboard_arrow_down)
+                      //         : const SizedBox.shrink(),
+                      //
+                      //     onChanged: !_isCityFetched
+                      //         ? null
+                      //         : (v) {
+                      //       setState(() {
+                      //         selectedCityName = v;
+                      //         cityController.text = v ?? '';
+                      //       });
+                      //
+                      //       _checkFormValidity();
+                      //     },
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),

@@ -51,7 +51,7 @@ class AppDropdownField<T> extends StatefulWidget {
   final EdgeInsetsGeometry? contentPadding;
 
   final Widget? selectedSuffixIcon;
-
+  final bool hideSuffixIcon;
   const AppDropdownField({
     super.key,
     required this.value,
@@ -67,7 +67,7 @@ class AppDropdownField<T> extends StatefulWidget {
     this.suffixIcon,
     this.selectedSuffixIcon,
     this.height,
-    this.contentPadding,
+    this.contentPadding, this.hideSuffixIcon=false,
   });
 
   @override
@@ -182,20 +182,35 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
   // =============================================================================
 
   Widget _buildSuffixIcon() {
-    final Widget closedIcon =
-        widget.suffixIcon ?? AppIconWidget(assetPath: AssetImages.dropDown);
-
-    final Widget openIcon =
-        widget.selectedSuffixIcon ??
-        widget.suffixIcon ??
-        AppIconWidget(assetPath: AssetImages.dropUp);
+    if (widget.hideSuffixIcon) {
+      return const SizedBox.shrink();
+    }
 
     return Container(
       height: 30,
       width: 30,
-      child: Center(child: isOpen ? AppIconWidget(assetPath: AssetImages.dropUp) : AppIconWidget(assetPath: AssetImages.dropDown))
+      child: Center(
+        child: isOpen
+            ? AppIconWidget(assetPath: AssetImages.dropUp)
+            : AppIconWidget(assetPath: AssetImages.dropDown),
+      ),
     );
   }
+  // Widget _buildSuffixIcon() {
+  //   final Widget closedIcon =
+  //       widget.suffixIcon ?? AppIconWidget(assetPath: AssetImages.dropDown);
+  //
+  //   final Widget openIcon =
+  //       widget.selectedSuffixIcon ??
+  //       widget.suffixIcon ??
+  //       AppIconWidget(assetPath: AssetImages.dropUp);
+  //
+  //   return Container(
+  //     height: 30,
+  //     width: 30,
+  //     child: Center(child: isOpen ? AppIconWidget(assetPath: AssetImages.dropUp) : AppIconWidget(assetPath: AssetImages.dropDown))
+  //   );
+  // }
 
   // =============================================================================
   // BUILD
@@ -385,7 +400,14 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
                     // =========================================================
                     // CUSTOM ROTATING SUFFIX
                     // =========================================================
-                    suffixIcon: Padding(
+                    // suffixIcon: Padding(
+                    //   padding: const EdgeInsets.only(right: 12),
+                    //   child: _buildSuffixIcon(),
+                    // ),
+
+                    suffixIcon: widget.hideSuffixIcon
+                        ? null
+                        : Padding(
                       padding: const EdgeInsets.only(right: 12),
                       child: _buildSuffixIcon(),
                     ),

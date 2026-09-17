@@ -1,7 +1,7 @@
 class ApiEndPoints {
   ApiEndPoints._();
-
-  static const String baseUrl = "https://lost-and-found.skyraantech.com/backend/";
+  static const String baseUrl = "https://findora.skyraantechnologies.com/backend/";
+  //static const String baseUrl = "https://lost-and-found.skyraantech.com/backend/";
 
   //auth
   static const String generateOtp = 'user/generateOtp';
