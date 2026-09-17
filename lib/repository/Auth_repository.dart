@@ -800,6 +800,13 @@ class AuthRepository {
 
 
   Future<ResponseModel<PostEnquiriesModel>> viewEnquiry({required int postId}) async {
+
+    debugPrint('========== VIEW ENQUIRY API ==========');
+    debugPrint('postId received by repository : $postId');
+    debugPrint(
+      'Final API URL : ${ApiEndPoints.viewEnquiry}/$postId',
+    );
+    debugPrint('=======================================');
     final response = await apiClient.get('${ApiEndPoints.viewEnquiry}/$postId', addToken: false);
 
     if (!response.isSuccess) {

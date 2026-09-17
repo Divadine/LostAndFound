@@ -125,15 +125,15 @@ class _ChatScreenState
                   Expanded(
                     child: (currentUserId == null || currentUserId!.isEmpty)
                         ? Center(
-                            child: AppText(
-                              text: 'Please login to see chats',
-                              color: AppColors.grey,
-                              fontSize: 14,
-                            ),
-                          )
+                      child: AppText(
+                        text: 'Please login to see chats',
+                        color: AppColors.grey,
+                        fontSize: 14,
+                      ),
+                    )
                         : StreamBuilder<
-                            QuerySnapshot<
-                                Map<String, dynamic>>>(
+                        QuerySnapshot<
+                            Map<String, dynamic>>>(
                       stream:
                       ChatService.chatRoomsStream(
                         currentUserId!,
@@ -146,8 +146,8 @@ class _ChatScreenState
                           return _isOffline
                               ? const NoInternetWidget()
                               : const Center(
-                                  child: CircularProgressIndicator(),
-                                );
+                            child: CircularProgressIndicator(),
+                          );
                         }
 
                         if (snapshot.hasError) {
@@ -388,6 +388,14 @@ class _ChatScreenState
   // ============================================================
   // CHAT LIST
   // ============================================================
+  //
+  // FIX: previously each chat tile computed and rendered its own
+  // date-section header inside _buildChatRoomTile, so every chat
+  // got its own "Today" / "Yesterday" label instead of one header
+  // per date group. Grouping now happens here, once, before the
+  // list is built: we walk the already-sorted `chats` list, and
+  // only insert a header when the date section actually changes.
+  // ============================================================
 
   Widget _buildChatList(
       List<ChatRoomData> chats, {
@@ -403,21 +411,37 @@ class _ChatScreenState
       );
     }
 
+    String? lastSection;
+    final children = <Widget>[];
+
+    for (final chat in chats) {
+      final section = _getDateSection(chat.lastMessageTime);
+
+      if (section != lastSection) {
+        children.add(_buildDateHeader(section));
+        lastSection = section;
+      }
+
+      children.add(_buildChatRoomTile(chat));
+    }
+
     return ListView(
       padding:
       const EdgeInsets.only(
         bottom: 20,
       ),
 
-      children: [
-        for (final chat in chats)
-          _buildChatRoomTile(chat),
-      ],
+      children: children,
     );
   }
 
   // ============================================================
   // CHAT ROOM TILE
+  // ============================================================
+  //
+  // FIX: no longer computes/renders a date header itself — it just
+  // returns the ChatTile. Header placement is handled once in
+  // _buildChatList above.
   // ============================================================
 
   Widget _buildChatRoomTile(
@@ -554,62 +578,45 @@ class _ChatScreenState
           }
         }
 
-        final section =
-        _getDateSection(
-          visibleLatestTime ??
-              chat.lastMessageTime,
-        );
+        return ChatTile(
+          imageUrl:
+          chat.otherUserAvatar,
 
-        return Column(
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
+          name:
+          chat.otherUserName,
 
-          children: [
-            _buildDateHeader(
-              section,
-            ),
+          lastMessage:
+          visibleLastMessage.isEmpty
+              ? 'No messages yet'
+              : visibleLastMessage,
 
-            ChatTile(
-              imageUrl:
-              chat.otherUserAvatar,
+          time:
+          _formatChatTime(
+            visibleLatestTime ??
+                chat.lastMessageTime,
+          ),
 
-              name:
-              chat.otherUserName,
+          unreadCount:
+          chat.unreadCount,
 
-              lastMessage:
-              visibleLastMessage.isEmpty
-                  ? 'No messages yet'
-                  : visibleLastMessage,
+          lastMessageIsMine:
+          visibleLastSenderId ==
+              currentUserId,
 
-              time:
-              _formatChatTime(
-                visibleLatestTime ??
-                    chat.lastMessageTime,
-              ),
+          lastMessageRead:
+          visibleLastMessageRead,
 
-              unreadCount:
-              chat.unreadCount,
+          lastMessageDelivered:
+          visibleLastMessageDelivered,
 
-              lastMessageIsMine:
-              visibleLastSenderId ==
-                  currentUserId,
+          lastMessageDeleted:
+          visibleLastMessageDeleted,
 
-              lastMessageRead:
-              visibleLastMessageRead,
-
-              lastMessageDelivered:
-              visibleLastMessageDelivered,
-
-              lastMessageDeleted:
-              visibleLastMessageDeleted,
-
-              onTap: () {
-                _openExistingChat(
-                  chat,
-                );
-              },
-            ),
-          ],
+          onTap: () {
+            _openExistingChat(
+              chat,
+            );
+          },
         );
       },
     );

@@ -71,6 +71,14 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
   @override
   void initState() {
     super.initState();
+
+    debugPrint('========== AVAILABLE MATCHING INIT ==========');
+    debugPrint('widget.postId   : ${widget.postId}');
+    debugPrint('widget.postUid  : ${widget.postUid}');
+    debugPrint('widget.isFound  : ${widget.isFound}');
+    debugPrint('widget.status   : ${widget.status}');
+    debugPrint('widget.isReceived : ${widget.isReceived}');
+    debugPrint('==============================================');
     _initConnectivityListener();
     _fetchMatches();
   }
@@ -110,12 +118,42 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
     if (!mounted) return;
 
     if (response.isSuccess && response.data != null) {
+      debugPrint('========== GET POST MATCHES DEBUG ==========');
+      debugPrint('Requested postId : ${widget.postId}');
+      debugPrint('matchingCount    : ${response.data!.matchingCount}');
+      debugPrint('matches.length   : ${response.data!.matches.length}');
+
+      for (final match in response.data!.matches) {
+        debugPrint('----- MATCH -----');
+        debugPrint('postId          : ${match.postId}');
+        debugPrint('postUid         : ${match.postUid}');
+        debugPrint('userId          : ${match.userId}');
+        debugPrint('userUid         : ${match.userUid}');
+        debugPrint('posterName      : ${match.posterName}');
+        debugPrint('posterAvatar    : ${match.posterAvatar}');
+        debugPrint('name            : ${match.name}');
+        debugPrint('description     : ${match.description}');
+        debugPrint('postImages      : ${match.postImages}');
+        debugPrint('matchPercentage : ${match.matchPercentage}');
+        debugPrint('status          : ${match.status}');
+      }
+
+      debugPrint('============================================');
+
       setState(() {
         matches = response.data!.matches;
         matchingCount = response.data!.matchingCount;
         isLoadingMatches = false;
       });
-    } else {
+    }
+    // if (response.isSuccess && response.data != null) {
+    //   setState(() {
+    //     matches = response.data!.matches;
+    //     matchingCount = response.data!.matchingCount;
+    //     isLoadingMatches = false;
+    //   });
+    // }
+    else {
       setState(() {
         matchesErrorMessage = response.message.isNotEmpty ? response.message : 'Failed to fetch matches';
         isLoadingMatches = false;
@@ -165,6 +203,8 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
         }
       }
       winnerMatch ??= matches.isNotEmpty ? matches.first : null;
+      debugPrint('[WinnerMatch] isClosed=$isClosed isReceived=${widget.isReceived} '
+          'matches=${matches.length} winnerMatch=${winnerMatch?.posterName ?? "NULL"}');
     }
 
     final winnerName = (winnerMatch != null && winnerMatch.posterName.isNotEmpty)
@@ -267,6 +307,20 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                 location: widget.date,
                 isReceiver: !widget.isFound,
                 onTap: () {
+
+                  debugPrint('========== TRANSFER DATA DEBUG ==========');
+                  debugPrint('widget.isFound        : ${widget.isFound}');
+                  debugPrint('widget.status         : ${widget.status}');
+                  debugPrint('matches.length        : ${matches.length}');
+                  debugPrint('winnerMatch == null   : ${winnerMatch == null}');
+                  debugPrint('winnerMatch.posterName: ${winnerMatch?.posterName}');
+                  debugPrint('winnerMatch.userUid   : ${winnerMatch?.userUid}');
+                  debugPrint('winnerMatch.postImages: ${winnerMatch?.postImages}');
+                  debugPrint('winnerMatch.description: ${winnerMatch?.description}');
+                  debugPrint('winnerName (computed) : $winnerName');
+                  debugPrint('widget.imgUrl         : ${widget.imgUrl}');
+                  debugPrint('widget.postUid        : ${widget.postUid}');
+                  debugPrint('==========================================');
                   AppUiHelper.showBottomSheet(
                     showHandle: false,
                     showCloseIcon: true,
@@ -300,6 +354,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                     name: winnerName,
                     location: widget.date,
                     onTap: () {
+
                       AppUiHelper.showBottomSheet(
                         showHandle: false,
                         showCloseIcon: true,
