@@ -263,9 +263,12 @@ class ItemCard extends StatelessWidget {
                             print('DELETE TAPPED — postIntId: $postIntId');
                             AppDialogue.showPopup(
                               context: context,
-                              content: DeletePostReasonsDialog(
-                                postId: postIntId!,
-                                onDeleted: onDeleted,
+                              content: SizedBox(
+                                width: 500,
+                                child: DeletePostReasonsDialog(
+                                  postId: postIntId!,
+                                  onDeleted: onDeleted,
+                                ),
                               ),
                             );
                           }
@@ -305,7 +308,7 @@ class ItemCard extends StatelessWidget {
                   AppText(
                     text: "Posted : $time",
                     fontWeight: FontWeight.w400,
-                    fontSize: 10,
+                    fontSize: 11,
                     color: AppColors.grey,
                   ).padRight(10),
                 ],

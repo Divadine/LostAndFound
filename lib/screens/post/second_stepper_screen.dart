@@ -462,7 +462,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                       buildTextFieldWithHeading(
                         title: widget.postType == 0 ? 'Where did you lose it ?' : 'Where did you find it ?',
                         fieldWidget: AppTextField(
-                          hintText: 'Chennai, Tamil Nadu, India',
+                          hintText: 'eg. near bus stop',
                           textController: textController,
                           onChange: (v) {},
                           onSubmit: (v) {},
@@ -787,7 +787,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
 
                           const SizedBox(width: 8),
 
-                          AppText(text: "Delete", fontSize: 12),
+                          AppText(text: "Delete", fontSize: 12,color: AppColors.red,),
                         ],
                       ).pad(),
                     ),

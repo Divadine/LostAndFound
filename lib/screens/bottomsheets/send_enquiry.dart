@@ -123,7 +123,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
     );
 
     descriptionController = TextEditingController(
-      text: 'Hi,\nI think I found your item.\nPlease let me know if it belongs to you.',
+      text: "I think this might be mine! \n I lost something that looks like this. Let’s compare the details and see if we’ve found a match. ",
     );
 
     _fetchSourcePostDetails();

@@ -35,6 +35,7 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
   // TYPE CHECKS
   // ============================================================
 
+
   bool get isPolice {
     return widget.type == TransferType.receiveToPolice ||
         widget.type == TransferType.handOverToPolice;
@@ -56,6 +57,19 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
         widget.type == TransferType.receiveToOwner;
   }
 
+  @override
+  void initState() {
+    super.initState();
+
+    debugPrint('========== RECEIVED DETAILS DATA ==========');
+    debugPrint('Type              : ${widget.type}');
+    debugPrint('Name              : ${widget.data.name}');
+    debugPrint('User ID           : ${widget.data.userId}');
+    debugPrint('Description       : ${widget.data.description}');
+    debugPrint('Phone             : ${widget.data.phoneNumber}');
+    debugPrint('Match Percentage  : ${widget.data.matchPercentage}');
+    debugPrint('============================================');
+  }
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(

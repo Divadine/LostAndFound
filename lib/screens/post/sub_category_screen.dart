@@ -68,7 +68,11 @@ class _SubCategoryScreenState
   // STATE
   // ===========================================================================
 
-  int? selectedIndex;
+  // ✅ Track the selected sub-category by its stable id instead of its
+  // position in the list. Searching re-fetches and rebuilds `subCategories`,
+  // so an index-based selection would point at a different item (or nothing)
+  // once the list changes shape after a search.
+  int? selectedSubCategoryId;
 
   bool isLoading = false;
 
@@ -166,10 +170,10 @@ class _SubCategoryScreenState
   void searchCategory(String value) {
     if (!mounted) return;
 
-    setState(() {
-      selectedIndex = null;
-    });
-
+    // ✅ No longer clearing selectedSubCategoryId here.
+    // The previously selected sub-category should remain selected while
+    // the user is typing a search query; it only changes if they tap a
+    // different tile.
     _debounce?.cancel();
 
     _debounce = Timer(
@@ -223,7 +227,11 @@ class _SubCategoryScreenState
 
     setState(() {
       isLoading = true;
-      selectedIndex = null;
+      // ✅ Removed `selectedSubCategoryId = null;` here — keep the prior
+      // pick across a fetch triggered by search. If the selected item is
+      // no longer present in the new results, the radio/dot for it simply
+      // won't render as selected on any visible tile, and the bottom "Next"
+      // button check further down still works off the id.
     });
 
     try {
@@ -278,7 +286,7 @@ class _SubCategoryScreenState
 
       setState(() {
         isLoading = false;
-        selectedIndex = null;
+        // ✅ selectedSubCategoryId intentionally left untouched here too.
       });
     } catch (e, stackTrace) {
       debugPrint(
@@ -299,7 +307,7 @@ class _SubCategoryScreenState
 
       setState(() {
         isLoading = false;
-        selectedIndex = null;
+        // ✅ selectedSubCategoryId intentionally left untouched here too.
       });
     }
   }
@@ -370,6 +378,7 @@ class _SubCategoryScreenState
                     ),
                     hintText:
                     'Search sub-categories',
+                    hintStyle: TextStyle(color: AppColors.searchColor),
                     border:
                     InputBorder.none,
                     prefixIcon:
@@ -386,20 +395,20 @@ class _SubCategoryScreenState
               const SizedBox(height: 15),
 
 
-            Expanded(
-              child: _isOffline
-                  ? const NoInternetWidget()
-                  : StreamBuilder<List<SubCategoryModel>>(
-                stream: subCategoryStream.stream,
-                initialData: subCategories,
-                builder: (context, snapshot) {
-                  final subCat = snapshot.data ?? [];
+              Expanded(
+                child: _isOffline
+                    ? const NoInternetWidget()
+                    : StreamBuilder<List<SubCategoryModel>>(
+                  stream: subCategoryStream.stream,
+                  initialData: subCategories,
+                  builder: (context, snapshot) {
+                    final subCat = snapshot.data ?? [];
 
-                  if (isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
+                    if (isLoading) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
 
                     // if (subCat.isEmpty) {
                     //   return CategoryNotFound(
@@ -431,24 +440,15 @@ class _SubCategoryScreenState
                           subCategory
                               .subCategoryImg ??
                               '',
+                          // ✅ Selection is determined by matching ids,
+                          // not by matching the tile's index in the list.
                           isSelected:
-                          selectedIndex ==
-                              index,
-                          value: index,
+                          selectedSubCategoryId != null &&
+                              selectedSubCategoryId == subCategory.id,
+                          subCategoryId: subCategory.id,
                           onTap: () {
                             _selectSubCategory(
-                              index,
-                            );
-                          },
-                          onChange:
-                              (value) {
-                            if (value ==
-                                null) {
-                              return;
-                            }
-
-                            _selectSubCategory(
-                              value,
+                              subCategory.id,
                             );
                           },
                         );
@@ -463,7 +463,7 @@ class _SubCategoryScreenState
 
         bottomNavigationBar:
         SafeArea(
-          child: (selectedIndex != null && !_isOffline)
+          child: (selectedSubCategoryId != null && !_isOffline)
               ? AppButton(
             title: 'Next',
             icon: AssetImages.arrow_forward,
@@ -480,19 +480,13 @@ class _SubCategoryScreenState
   // ===========================================================================
 
   void _selectSubCategory(
-      int index,
+      int? subCategoryId,
       ) {
     if (!mounted) return;
 
-    if (index < 0 ||
-        index >= subCategories.length) {
-      return;
-    }
-
     setState(() {
-      selectedIndex = index;
+      selectedSubCategoryId = subCategoryId;
     });
-
   }
 
   // ===========================================================================
@@ -500,19 +494,21 @@ class _SubCategoryScreenState
   // ===========================================================================
 
   void _onNext() {
-    if (selectedIndex == null) {
+    if (selectedSubCategoryId == null) {
       return;
     }
 
-    if (selectedIndex! < 0 ||
-        selectedIndex! >=
-            subCategories.length) {
-      return;
+    // ✅ Look the sub-category up by id rather than indexing into
+    // `subCategories`, since selectedSubCategoryId no longer corresponds
+    // to a fixed position after a search re-fetch.
+    SubCategoryModel? selectedSubCategory;
+    for (final s in subCategories) {
+      if (s.id == selectedSubCategoryId) {
+        selectedSubCategory = s;
+        break;
+      }
     }
-
-    final selectedSubCategory =
-    subCategories[selectedIndex!];
-
+    selectedSubCategory ??= othersSubCategory;
 
     if (!mounted) return;
 
@@ -535,9 +531,8 @@ class _SubCategoryScreenState
     required String categoryName,
     required String img,
     required bool isSelected,
-    required int value,
+    required int? subCategoryId,
     required VoidCallback onTap,
-    required ValueChanged<int?> onChange,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -560,21 +555,44 @@ class _SubCategoryScreenState
               ),
             ),
 
-            Radio<int>(
-              value: value,
-              groupValue:
-              selectedIndex,
-              activeColor:
-              AppColors.primaryColor,
-              hoverColor:
-              AppColors.primaryColor,
-              fillColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return AppColors.primaryColor;
-                }
-                return AppColors.primaryColor;
-              }),
-              onChanged: onChange,
+            // ===================================================================
+            // SELECTION INDICATOR
+            // -------------------------------------------------------------------
+            // Same fix as the category screen: a plain Radio<int> relies on
+            // its own `value == groupValue` check internally, and if that
+            // silently fails (nullable id, type mismatch, timing), Radio
+            // still draws the outer ring but never the inner filled dot.
+            //
+            // This custom indicator is driven directly off the `isSelected`
+            // boolean computed above from
+            // `selectedSubCategoryId == subCategory.id`, so the dot always
+            // matches what's actually selected.
+            // ===================================================================
+            GestureDetector(
+              onTap: onTap,
+              child: Container(
+                height: 22,
+                width: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.primaryColor,
+                    width: 2,
+                  ),
+                ),
+                child: isSelected
+                    ? Center(
+                  child: Container(
+                    height: 12,
+                    width: 12,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryColor,
+                    ),
+                  ),
+                )
+                    : null,
+              ),
             ),
           ],
         ).pad(5),

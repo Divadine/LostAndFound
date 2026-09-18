@@ -37,7 +37,7 @@ class ApiEndPoints {
   static const String createPostStep1 = 'PostForm/createPostStep1';
   static const String completePostStep2 = 'PostForm/completePostStep2';
   static const String getPost  = 'PostForm/getPost';
-  static const String getReasonsDeletePost  = 'PostForm/getReasonsDeletePost';
+  //static const String getReasonsDeletePost  = 'PostForm/getReasonsDeletePost';
   static const String deletePost  = 'PostForm/deletePost';
   static const String filterPost  = 'PostForm/filterPost';
 

@@ -183,9 +183,9 @@ class AuthControllers {
     return await authRepository.getPosts(userId: userId, postType: postType,limit: limit,page: page);
   }
 
-  Future<ResponseModel<List<DeletePostReasons>>> getDeleteReasons() async {
-      return await authRepository.getDeleteReasons();
-  }
+  // Future<ResponseModel<List<DeletePostReasons>>> getDeleteReasons() async {
+  //     return await authRepository.getDeleteReasons();
+  // }
 
   Future<ResponseModel> deletePost({required int postId, required String reason}) async {
     return await authRepository.deletePost(postId: postId, reason: reason);

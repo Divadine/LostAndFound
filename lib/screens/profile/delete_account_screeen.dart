@@ -21,27 +21,70 @@ class DeleteAccountScreen extends StatefulWidget {
 
 class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   final authController = AuthControllers(
-    authRepository: AuthRepository(apiClient: ApiClient()),
+    authRepository: AuthRepository(
+      apiClient: ApiClient(),
+    ),
   );
 
-  List<DeletePostReasons> reasons = [];
-  bool isLoading = true;
-  String? errorMessage;
+  // Local delete account reasons
+  final List<DeletePostReasons> reasons = [
+    DeletePostReasons(
+      id: 1,
+      text: 'I no longer need Findora',
+    ),
+    DeletePostReasons(
+      id: 2,
+      text: 'I found another service',
+    ),
+    DeletePostReasons(
+      id: 3,
+      text: "I couldn't find my lost item",
+    ),
+    DeletePostReasons(
+      id: 4,
+      text: "I couldn't find the right item",
+    ),
+    DeletePostReasons(
+      id: 5,
+      text: 'I had difficulty using the app',
+    ),
+    DeletePostReasons(
+      id: 6,
+      text: 'Privacy concerns',
+    ),
+    DeletePostReasons(
+      id: 7,
+      text: 'Limited features',
+    ),
+    DeletePostReasons(
+      id: 8,
+      text: 'Too many notifications',
+    ),
+    DeletePostReasons(
+      id: 9,
+      text: 'App crashes or technical issues',
+    ),
+    DeletePostReasons(
+      id: 10,
+      text: 'I was dissatisfied with the experience',
+    ),
+    DeletePostReasons(
+      id: -1,
+      text: 'Other',
+    ),
+  ];
 
   DeletePostReasons? selectedReason;
+
   bool isChecked = false;
-  final TextEditingController reasonController = TextEditingController();
 
-  // API list may or may not include an "Others" option — this stays
-  // as a local-only sentinel so free-text entry always works.
+  final TextEditingController reasonController =
+  TextEditingController();
+
   static const _othersId = -1;
-  static final DeletePostReasons _othersOption = DeletePostReasons(id: _othersId, text: 'Others');
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchReasons();
-  }
+  bool get _isOthersSelected =>
+      selectedReason?.id == _othersId;
 
   @override
   void dispose() {
@@ -49,39 +92,12 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     super.dispose();
   }
 
-  Future<void> _fetchReasons() async {
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
-
-    final response = await authController.getDeleteAccountReasons();
-
-    if (!mounted) return;
-
-    if (response.isSuccess && response.data != null) {
-      final fetched = response.data!;
-      final hasOthers = fetched.any((r) => r.text.toLowerCase() == 'others');
-      setState(() {
-        reasons = hasOthers ? fetched : [...fetched, _othersOption];
-        isLoading = false;
-      });
-    } else {
-      setState(() {
-        errorMessage = response.message.isNotEmpty ? response.message : 'Failed to load reasons';
-        isLoading = false;
-      });
-    }
-  }
-
-  bool get _isOthersSelected => selectedReason?.id == _othersId || selectedReason?.text.toLowerCase() == 'others';
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: CustomAppBar(
-        title: "Delete Account",
+        title: "Account Deletion Notice",
         centerTitle: true,
         leadingSvg: AssetImages.backArrow,
       ),
@@ -94,38 +110,36 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
             children: [
               const AppText(
                 text:
-                "Please be aware that your account will remain active for 15 days before deleted. During this time, you have the ability to retrieve or reinstate your account. Once 15 days have passes, your account will be erased permanently.",
+                'Please be aware that your Findora account '
+                    'will remain active for 30 days after you '
+                    'request deletion. During this period, you can choose'
+                    ' to recover or reactivate your account. After 30 days,'
+                    ' your account and associated data will be permanently '
+                    'deleted and cannot be recovered.',
                 fontWeight: FontWeight.w400,
                 fontSize: 12,
               ),
+
               const AppText(
-                text: "Why are you deleting your account ?",
+                text:
+                "Why are you deleting your Findora account?",
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
 
-              if (isLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Column(
-                    children: [
-                      AppText(text: errorMessage!, textAlign: TextAlign.center),
-                      const SizedBox(height: 8),
-                      AppButton(title: 'Retry', onTap: _fetchReasons),
-                    ],
-                  ),
-                )
-              else
-                ...reasons.map((item) {
+              // Delete account reasons
+              ...reasons.map(
+                    (item) {
                   return GestureDetector(
                     onTap: () {
                       setState(() {
                         selectedReason = item;
+
+                        // Clear custom reason when selecting
+                        // any predefined reason.
+                        if (item.id != _othersId) {
+                          reasonController.clear();
+                        }
                       });
                     },
                     child: Row(
@@ -140,12 +154,16 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                               hoverColor: AppColors.black,
                               activeColor: AppColors.black,
                               groupValue: selectedReason,
+                              value: item,
                               onChanged: (value) {
                                 setState(() {
                                   selectedReason = value;
+
+                                  if (value?.id != _othersId) {
+                                    reasonController.clear();
+                                  }
                                 });
                               },
-                              value: item,
                             ),
                           ),
                         ),
@@ -160,8 +178,10 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                       ],
                     ).padBottom(),
                   );
-                }),
+                },
+              ),
 
+              // Show text field only when Other is selected
               if (_isOthersSelected) ...[
                 AppTextField(
                   hintText: 'Write a reason',
@@ -180,7 +200,8 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     value: isChecked,
                     onChanged: (e) {
                       setState(() {
-                        isChecked = e!;
+                        isChecked = e ?? false;
+
                         if (isChecked) {
                           AppSnackBar.show(
                             context: context,
@@ -191,13 +212,20 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     },
                     hoverColor: AppColors.grey,
                     focusColor: AppColors.fieldGrey,
-                    fillColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return AppColors.primaryColor;
-                      }
-                      return AppColors.white;
-                    }),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    fillColor:
+                    WidgetStateProperty.resolveWith(
+                          (states) {
+                        if (states.contains(
+                          WidgetState.selected,
+                        )) {
+                          return AppColors.primaryColor;
+                        }
+
+                        return AppColors.white;
+                      },
+                    ),
+                    materialTapTargetSize:
+                    MaterialTapTargetSize.shrinkWrap,
                     visualDensity: const VisualDensity(
                       horizontal: -4,
                       vertical: -4,
@@ -205,12 +233,17 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    side: BorderSide(color: AppColors.fieldGrey, width: 2),
+                    side: BorderSide(
+                      color: AppColors.fieldGrey,
+                      width: 2,
+                    ),
                   ),
                   const Flexible(
                     child: AppText(
                       text:
-                      "I confirm that I want to delete my account and understand this action is permanent and cannot be undone.",
+                      "I confirm that I want to delete my Findora account."
+                          " I understand that my account will be permanently "
+                          "deleted after 30 days and cannot be recovered after that period.",
                       fontWeight: FontWeight.w400,
                       textAlign: TextAlign.start,
                       fontSize: 14,
@@ -222,7 +255,9 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               AppButton(
                 title: "Delete Account",
                 onTap: () {
-                  if (!isChecked || selectedReason == null) {
+
+                  // First check reason
+                  if (selectedReason == null) {
                     AppSnackBar.show(
                       context: context,
                       message: "Please choose a reason",
@@ -230,18 +265,44 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     return;
                   }
 
+                  // Then check confirmation checkbox
+                  if (!isChecked) {
+                    AppSnackBar.show(
+                      context: context,
+                      message: "Please confirm for deletion",
+                    );
+                    return;
+                  }
+
+                  // Check checkbox and reason
+                  // if (!isChecked || selectedReason == null) {
+                  //   AppSnackBar.show(
+                  //     context: context,
+                  //     message: "Please confirm for deletion",
+                  //   );
+                  //   return;
+                  // }
+
+                  // Get selected reason
                   final finalReason = _isOthersSelected
                       ? reasonController.text.trim()
                       : selectedReason!.text;
 
+                  // Other reason cannot be empty
                   if (finalReason.isEmpty) {
-                    AppSnackBar.show(context: context, message: "Please write a reason");
+                    AppSnackBar.show(
+                      context: context,
+                      message: "Please write a reason",
+                    );
                     return;
                   }
 
+                  // Show confirmation popup
                   AppDialogue.showPopup(
                     context: context,
-                    content: DeletePopUp(reason: finalReason),
+                    content: DeletePopUp(
+                      reason: finalReason,
+                    ),
                   );
                 },
                 fontSize: 15,

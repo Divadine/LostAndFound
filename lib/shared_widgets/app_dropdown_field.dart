@@ -12,9 +12,9 @@ import 'package:lost_and_found/utils/app_images.dart';
 class _NoEditTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
     return oldValue;
   }
 }
@@ -51,7 +51,9 @@ class AppDropdownField<T> extends StatefulWidget {
   final EdgeInsetsGeometry? contentPadding;
 
   final Widget? selectedSuffixIcon;
+
   final bool hideSuffixIcon;
+
   const AppDropdownField({
     super.key,
     required this.value,
@@ -67,7 +69,8 @@ class AppDropdownField<T> extends StatefulWidget {
     this.suffixIcon,
     this.selectedSuffixIcon,
     this.height,
-    this.contentPadding, this.hideSuffixIcon=false,
+    this.contentPadding,
+    this.hideSuffixIcon = false,
   });
 
   @override
@@ -94,15 +97,10 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
     super.initState();
 
     controller = TextEditingController(
-      text: widget.value == null ? '' : widget.itemLabel(widget.value as T),
+      text: widget.value == null
+          ? ''
+          : widget.itemLabel(widget.value as T),
     );
-
-    // -------------------------------------------------------------------------
-    // Rotation animation
-    //
-    // 0.0 = closed
-    // 0.5 = 180 degrees
-    // -------------------------------------------------------------------------
 
     rotationController = AnimationController(
       vsync: this,
@@ -186,31 +184,44 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
       return const SizedBox.shrink();
     }
 
-    return Container(
+    return SizedBox(
       height: 30,
       width: 30,
       child: Center(
         child: isOpen
-            ? AppIconWidget(assetPath: AssetImages.dropUp)
-            : AppIconWidget(assetPath: AssetImages.dropDown),
+            ? AppIconWidget(
+          assetPath: AssetImages.dropUp,
+        )
+            : AppIconWidget(
+          assetPath: AssetImages.dropDown,
+        ),
       ),
     );
   }
-  // Widget _buildSuffixIcon() {
-  //   final Widget closedIcon =
-  //       widget.suffixIcon ?? AppIconWidget(assetPath: AssetImages.dropDown);
-  //
-  //   final Widget openIcon =
-  //       widget.selectedSuffixIcon ??
-  //       widget.suffixIcon ??
-  //       AppIconWidget(assetPath: AssetImages.dropUp);
-  //
-  //   return Container(
-  //     height: 30,
-  //     width: 30,
-  //     child: Center(child: isOpen ? AppIconWidget(assetPath: AssetImages.dropUp) : AppIconWidget(assetPath: AssetImages.dropDown))
-  //   );
-  // }
+
+  // =============================================================================
+  // DISPLAY TEXT
+  // =============================================================================
+
+  Widget _buildDisplayText() {
+    final bool hasValue = widget.value != null;
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        hasValue
+            ? widget.itemLabel(widget.value as T)
+            : widget.hintText,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: appTextStyle(
+          color: hasValue
+              ? AppColors.black
+              : Colors.grey,
+        ),
+      ),
+    );
+  }
 
   // =============================================================================
   // BUILD
@@ -220,12 +231,13 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return MenuAnchor(
+        Widget dropdownField = MenuAnchor(
           controller: menuController,
 
           // -------------------------------------------------------------------
-          // Detect when menu opens/closes.
+          // MENU OPEN
           // -------------------------------------------------------------------
+
           onOpen: () {
             if (!mounted) return;
 
@@ -235,6 +247,10 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
 
             rotationController.forward();
           },
+
+          // -------------------------------------------------------------------
+          // MENU CLOSE
+          // -------------------------------------------------------------------
 
           onClose: () {
             if (!mounted) return;
@@ -249,66 +265,82 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
           // -------------------------------------------------------------------
           // MENU STYLE
           // -------------------------------------------------------------------
+
           style: MenuStyle(
             maximumSize: WidgetStateProperty.all(
-              Size(constraints.maxWidth, widget.menuHeight ?? 300),
+              Size(
+                constraints.maxWidth,
+                widget.menuHeight ?? 300,
+              ),
             ),
 
             elevation: WidgetStateProperty.all(2),
 
-            backgroundColor: WidgetStateProperty.all(Colors.white),
+            backgroundColor:
+            WidgetStateProperty.all(Colors.white),
 
             shape: WidgetStateProperty.all(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
             ),
           ),
 
           // -------------------------------------------------------------------
           // MENU ITEMS
           // -------------------------------------------------------------------
+
           menuChildren: widget.items.map((item) {
             final bool selected = item == widget.value;
 
             return MenuItemButton(
               style: ButtonStyle(
                 padding: WidgetStateProperty.all(
-                  const EdgeInsets.symmetric(horizontal: 20),
+                  const EdgeInsets.symmetric(
+                    horizontal: 20,
+                  ),
                 ),
 
-                backgroundColor: WidgetStateProperty.resolveWith((states) {
+                backgroundColor:
+                WidgetStateProperty.resolveWith((states) {
                   if (selected) {
-                    return widget.selectedItemColor ?? AppColors.idCardColor;
+                    return widget.selectedItemColor ??
+                        AppColors.idCardColor;
                   }
 
                   return Colors.white;
                 }),
 
-                foregroundColor: WidgetStateProperty.resolveWith((states) {
+                foregroundColor:
+                WidgetStateProperty.resolveWith((states) {
                   if (selected) {
-                    return widget.selectedItemTextColor ?? AppColors.black;
+                    return widget.selectedItemTextColor ??
+                        AppColors.black;
                   }
 
                   return Colors.black;
                 }),
 
-                textStyle: WidgetStateProperty.all(appTextStyle()),
+                textStyle: WidgetStateProperty.all(
+                  appTextStyle(),
+                ),
               ),
 
               onPressed: () {
                 // -------------------------------------------------------------
-                // Update text.
+                // Update internal text
                 // -------------------------------------------------------------
 
                 controller.text = widget.itemLabel(item);
 
                 // -------------------------------------------------------------
-                // Notify parent.
+                // Notify parent
                 // -------------------------------------------------------------
 
                 widget.onChanged?.call(item);
 
                 // -------------------------------------------------------------
-                // Close menu.
+                // Close menu
                 // -------------------------------------------------------------
 
                 _closeMenu();
@@ -316,7 +348,10 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
 
               child: SizedBox(
                 width: constraints.maxWidth - 40,
-                child: Text(widget.itemLabel(item), style: appTextStyle()),
+                child: Text(
+                  widget.itemLabel(item),
+                  style: appTextStyle(),
+                ),
               ),
             );
           }).toList(),
@@ -324,11 +359,18 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
           // -------------------------------------------------------------------
           // DROPDOWN FIELD
           // -------------------------------------------------------------------
-          builder: (BuildContext context, MenuController controller, Widget? child) {
-            return GestureDetector(
+
+          builder: (
+              BuildContext context,
+              MenuController controller,
+              Widget? child,
+              ) {
+            Widget field = GestureDetector(
               behavior: HitTestBehavior.opaque,
 
-              onTap: _toggleMenu,
+              onTap: widget.onChanged == null
+                  ? null
+                  : _toggleMenu,
 
               child: AbsorbPointer(
                 absorbing: true,
@@ -336,29 +378,20 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
                 child: InputDecorator(
                   decoration: InputDecoration(
                     // =========================================================
-                    // HINT
+                    // NO hintText HERE
+                    //
+                    // We display hint manually using _buildDisplayText().
                     // =========================================================
-                    hintText: widget.value == null ? widget.hintText : null,
 
-                    hintStyle: appTextStyle(color: Colors.grey),
-
-                    // =========================================================
-                    // BACKGROUND
-                    // =========================================================
                     filled: true,
 
-                    fillColor: widget.backgroundColor ?? Colors.white,
+                    fillColor:
+                    widget.backgroundColor ?? Colors.white,
 
-                    // =========================================================
-                    // DENSITY
-                    // =========================================================
                     isDense: true,
 
-                    // =========================================================
-                    // PADDING
-                    // =========================================================
                     contentPadding:
-                        widget.contentPadding ??
+                    widget.contentPadding ??
                         const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 10,
@@ -367,12 +400,12 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
                     // =========================================================
                     // BORDER
                     // =========================================================
+
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
 
                       borderSide: BorderSide(
-                        color:
-                            widget.borderColor ??
+                        color: widget.borderColor ??
                             AppColors.fieldGrey.withAlpha(20),
                       ),
                     ),
@@ -381,8 +414,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
                       borderRadius: BorderRadius.circular(6),
 
                       borderSide: BorderSide(
-                        color:
-                            widget.borderColor ??
+                        color: widget.borderColor ??
                             AppColors.fieldGrey.withAlpha(20),
                       ),
                     ),
@@ -391,45 +423,50 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
                       borderRadius: BorderRadius.circular(6),
 
                       borderSide: BorderSide(
-                        color:
-                            widget.borderColor ??
+                        color: widget.borderColor ??
                             AppColors.fieldGrey.withAlpha(20),
                       ),
                     ),
 
                     // =========================================================
-                    // CUSTOM ROTATING SUFFIX
+                    // SUFFIX ICON
                     // =========================================================
-                    // suffixIcon: Padding(
-                    //   padding: const EdgeInsets.only(right: 12),
-                    //   child: _buildSuffixIcon(),
-                    // ),
 
                     suffixIcon: widget.hideSuffixIcon
                         ? null
                         : Padding(
-                      padding: const EdgeInsets.only(right: 12),
+                      padding: const EdgeInsets.only(
+                        right: 12,
+                      ),
                       child: _buildSuffixIcon(),
                     ),
                   ),
 
                   // ===========================================================
-                  // SELECTED VALUE / HINT
+                  // HINT / SELECTED VALUE
                   // ===========================================================
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      widget.value == null
-                          ? ''
-                          : widget.itemLabel(widget.value as T),
-                      style: appTextStyle(color: AppColors.black),
-                    ),
-                  ),
+
+                  child: _buildDisplayText(),
                 ),
               ),
             );
+
+            // ================================================================
+            // OPTIONAL HEIGHT
+            // ================================================================
+
+            if (widget.height != null) {
+              return SizedBox(
+                height: widget.height,
+                child: field,
+              );
+            }
+
+            return field;
           },
         );
+
+        return dropdownField;
       },
     );
   }

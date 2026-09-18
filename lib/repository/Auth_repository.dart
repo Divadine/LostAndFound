@@ -524,22 +524,22 @@ class AuthRepository {
   }
 
 
-  Future<ResponseModel<List<DeletePostReasons>>> getDeleteReasons() async {
-    final response = await apiClient.get(ApiEndPoints.getReasonsDeletePost,);
-    if(!response.isSuccess){
-      return response.asFailure<List<DeletePostReasons>>();
-    }
-
-    final list = response.data as List;
-    
-    return ResponseModel<List<DeletePostReasons>>(
-        status: response.status,
-        message: response.message,
-      currentState: response.currentState,
-      data: list.map((e) => DeletePostReasons.fromJson(e as Map<String, dynamic> )).toList(),
-    );
-
-  }
+  // Future<ResponseModel<List<DeletePostReasons>>> getDeleteReasons() async {
+  //   final response = await apiClient.get(ApiEndPoints.getReasonsDeletePost,);
+  //   if(!response.isSuccess){
+  //     return response.asFailure<List<DeletePostReasons>>();
+  //   }
+  //
+  //   final list = response.data as List;
+  //
+  //   return ResponseModel<List<DeletePostReasons>>(
+  //       status: response.status,
+  //       message: response.message,
+  //     currentState: response.currentState,
+  //     data: list.map((e) => DeletePostReasons.fromJson(e as Map<String, dynamic> )).toList(),
+  //   );
+  //
+  // }
 
   Future<ResponseModel> deletePost({required int postId, required String reason}) async {
    return  await  apiClient.delete(ApiEndPoints.deletePost,

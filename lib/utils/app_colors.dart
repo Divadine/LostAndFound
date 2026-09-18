@@ -40,6 +40,8 @@ class AppColors {
   static const Color closedColor = Color(0xffEDFFF0);
   static const Color disclaimerGrey = Color(0xff747781);
   static const Color viewAll = Color(0xffD7E1FF);
+  static const Color searchColor = Color(0xffB9B9B9);
+
 
 
 

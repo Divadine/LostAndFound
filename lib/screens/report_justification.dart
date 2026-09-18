@@ -65,20 +65,21 @@ class _ReportJustificationState extends State<ReportJustification> {
             children: [
               Center(child: AppIconWidget(assetPath: AssetImages.reportJustification)),
               AppText(
-                text: 'Your Account has been Suspended',
+                text: 'Your Findora Account Has Been Suspended ',
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 textAlign: TextAlign.start,
               ),
               AppText(
                 text:
-                    " Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since  Lorem Ipsum is simply ",
+                    " Your Findora account has been temporarily suspended because we identified activity that may violate our Community Guidelines or Terms & Conditions. \n If you believe this suspension was made in error, you can submit an appeal for our team to review your account. ",
+
                 fontWeight: FontWeight.w400,
                 fontSize: 12,
               ).padHorizontal(16),
               AppText(
                 text:
-                    'Please fill out the form below if you would like to try your account again.',
+                    'Please complete the form below with accurate information and explain why you believe your account should be reinstated',
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 textAlign: TextAlign.center,

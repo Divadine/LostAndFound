@@ -244,7 +244,7 @@ class _DeletePopUpState extends State<DeletePopUp> {
         const SizedBox(height: 7),
         const AppText(
           text:
-          'This will erase your account and all data permanently. you can’t undo this. But you can still reactivate it if you log in within 15 days.',
+              'Your account and associated data will be permanently deleted after 30 days. You can reactivate your account during this period by simply logging in. Once the 30-day period has passed, the deletion cannot be reversed. ',
           fontSize: 12,
           fontWeight: FontWeight.w400,
           textAlign: TextAlign.center,
@@ -308,7 +308,7 @@ class ProfileReportPopUp extends StatelessWidget {
             SizedBox(height: 7),
             AppText(
               text:
-                  'You’ve reached the maximum number of reports allowed for row. As a precaution has been temporally restricted. If you believe is a mistake. Please submit a request for review.',
+                  'You’ve reached the maximum number of profile reports allowed within a limited period. As a safety precaution, reporting has been temporarily restricted on your account. \n If you believe this restriction was applied by mistake, you can submit a review request.',
               fontSize: 12,
               fontWeight: FontWeight.w400,
               textAlign: .center,
@@ -376,7 +376,7 @@ class SubmissionReceivedPopUp extends StatelessWidget {
             SizedBox(height: 7),
             AppText(
               text:
-                  'We’ve received your request and it is under review by our team.  \n We’ll Contact you via email/phone once a verification process is completed.',
+                  "Thank you. We’ve received your request and it is now under review by the Findora team.   \n Once the review is complete, we’ll contact you through your registered email address or phone number with an update. \n Please allow some time for the review process to be completed.",
               fontSize: 12,
               fontWeight: FontWeight.w400,
               textAlign: .center,
@@ -493,7 +493,7 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
           AppText(text: 'Disclaimer', fontWeight: FontWeight.w500, fontSize: 18),
           AppText(
             text:
-                'The information provided in this Lost & Found application is intended to help users report, search, and recover lost or found items. While we strive to keep the information accurate and up to date, we do not guarantee the authenticity ownership, or availability of any item listed. This pp is a platform that connects users and does not involve in the exchange or return of items. Users are advised to take necessary precautions  while sharing personal information or meeting others. Lost & Found is not responsible for any loss, damage, disputes, or consequences resulting from the use of this application.',
+                'Findora helps people reconnect with their lost and found belongings. Please verify ownership and relevant details carefully before handing over or claiming any item. Findora does not take responsibility for disputes, losses, damages, or transactions between users.',
             fontSize: 14,
             fontWeight: FontWeight.w400,
             textAlign: .center,
@@ -544,7 +544,7 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
                 ),
                 Flexible(
                   child: AuthChangeText(
-                    text1: "I have read and agree to the ",
+                    text1: "By using Findora, you agree to our ",
                     tappableText: 'terms & conditions ',
                     text2: "and",
                     tappableText2: 'Privacy Policy.',
@@ -1642,7 +1642,12 @@ class PostLive extends StatelessWidget {
 class DeletePostReasonsDialog extends StatefulWidget {
   final int postId;
   final void Function(int)? onDeleted;
-  const DeletePostReasonsDialog({super.key, required this.postId, this.onDeleted});
+
+  const DeletePostReasonsDialog({
+    super.key,
+    required this.postId,
+    this.onDeleted,
+  });
 
   @override
   State<DeletePostReasonsDialog> createState() =>
@@ -1650,167 +1655,118 @@ class DeletePostReasonsDialog extends StatefulWidget {
 }
 
 class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
+  final TextEditingController reasonController = TextEditingController();
 
-  final authController = AuthControllers(
-    authRepository: AuthRepository(apiClient: ApiClient()),
-  );
-
-  int presentIndex = 0;
-
-  TextEditingController reasonController = TextEditingController();
-  List<DeletePostReasons> reasons = [];
   DeletePostReasons? selectedReason;
 
-  bool isLoading = true;
-  String? errorMessage;
+  static const int _othersId = -1;
 
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
-  bool _isOffline = false;
+  static final DeletePostReasons _othersOption = DeletePostReasons(
+    id: _othersId,
+    text: 'Others',
+  );
 
-  static const _othersId = -1;
-  static final DeletePostReasons _othersOption = DeletePostReasons(id: _othersId, text: 'Others');
-
-  @override
-  void initState() {
-    super.initState();
-    _initConnectivityListener();
-    fetchReasons();
-  }
+  late final List<DeletePostReasons> reasons = [
+    ...deletePostReasons,
+    _othersOption,
+  ];
 
   @override
   void dispose() {
-    _connectivitySub?.cancel();
     reasonController.dispose();
     super.dispose();
   }
 
-  void _initConnectivityListener() async {
-    final results = await Connectivity().checkConnectivity();
-    _updateOfflineStatus(results);
-    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+  bool get _isOthersSelected {
+    return selectedReason?.id == _othersId;
   }
 
-  void _updateOfflineStatus(List<ConnectivityResult> results) {
-    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
-    if (!mounted) return;
-    setState(() {
-      _isOffline = offline;
-    });
-
-    if (!offline && reasons.isEmpty && !isLoading) {
-      fetchReasons();
-    }
-  }
-
-  Future<void> fetchReasons() async {
-    if (_isOffline) {
-      setState(() {
-        isLoading = false;
-      });
-      return;
-    }
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
-
-    final response = await authController.getDeleteReasons();
-    if (!mounted) return;
-
-    if(response.isSuccess && response.data != null){
-      final fetched = response.data!;
-      final hasOthers = fetched.any((r) => r.text.toLowerCase() == 'others');
-      setState(() {
-        reasons = hasOthers ? fetched : [...fetched, _othersOption];
-        isLoading = false;
-      });
-    }else{
-      setState(() {
-        errorMessage = response.message.isNotEmpty ? response.message : 'Failed to load reasons';
-        isLoading = false;
-      });
-    }
-
-
-  }
-  bool get _isOthersSelected => selectedReason?.id == _othersId || selectedReason?.text.toLowerCase() == 'others';
   @override
   Widget build(BuildContext context) {
-    if (_isOffline) {
-      return const NoInternetWidget();
-    }
     return SingleChildScrollView(
       child: Column(
         spacing: 5,
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: .start,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          AppText(
-            text: 'Delete Post',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+          Center(
+            child: AppText(
+              text: 'Delete Post',
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              textAlign: TextAlign.center,
+            ),
           ),
-          SizedBox(height: 10),
+
+          const SizedBox(height: 10),
+
           AppText(
             text: 'Why are you deleting this post ?',
             fontWeight: FontWeight.w500,
             fontSize: 14,
           ),
 
-          if (isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                children: [
-                  AppText(text: errorMessage!, textAlign: TextAlign.center),
-                  const SizedBox(height: 8),
-                  AppButton(title: 'Retry', onTap: fetchReasons),
-                ],
-              ),
-            )
-          else
+          const SizedBox(height: 10),
+          // ================================================================
+          // DELETE REASONS
+          // ================================================================
 
-          ...reasons.map((item) {
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedReason = item;
-                  });
-                },
-                child: Row(
-                  spacing: 5,
-                  children: [
-                    SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: Radio<DeletePostReasons>(
-                        hoverColor: AppColors.primaryColor,
-                        groupValue: selectedReason,
-                        activeColor: AppColors.primaryColor,
-                        onChanged:(value) => setState(() => selectedReason = value),
-                        value: item,
+          ...reasons.map(
+                (item) {
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedReason = item;
+
+                      // Clear Others text when another reason is selected.
+                      if (item.id != _othersId) {
+                        reasonController.clear();
+                      }
+                    });
+                  },
+                  child: Row(
+                    spacing: 5,
+                    children: [
+                      SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: Radio<DeletePostReasons>(
+                          hoverColor: AppColors.primaryColor,
+                          groupValue: selectedReason,
+                          activeColor: AppColors.primaryColor,
+                          value: item,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedReason = value;
+
+                              if (value?.id != _othersId) {
+                                reasonController.clear();
+                              }
+                            });
+                          },
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: AppText(
-                        text: item.text,
-                        fontSize: 14,
-                        color: AppColors.black,
+
+                      Expanded(
+                        child: AppText(
+                          text: item.text,
+                          fontSize: 14,
+                          color: AppColors.black,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            },
+          ),
+
+          // ================================================================
+          // OTHERS TEXT FIELD
+          // ================================================================
 
           if (_isOthersSelected) ...[
             AppText(
@@ -1820,7 +1776,8 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
               textAlign: TextAlign.start,
             ),
 
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
+
             AppTextField(
               hintText: 'Write a reason',
               textController: reasonController,
@@ -1830,10 +1787,19 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
             ),
           ],
 
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
+
+          // ================================================================
+          // BUTTONS
+          // ================================================================
+
           Row(
             spacing: 10,
             children: [
+              // ------------------------------------------------------------
+              // CANCEL
+              // ------------------------------------------------------------
+
               Expanded(
                 child: AppButton(
                   title: 'cancel',
@@ -1841,27 +1807,63 @@ class _DeletePostReasonsDialogState extends State<DeletePostReasonsDialog> {
                     AppRoutes.pop();
                   },
                   bgColor: Colors.transparent,
-                  border: Border.all(color: AppColors.primaryColor),
+                  border: Border.all(
+                    color: AppColors.primaryColor,
+                  ),
                   textColor: AppColors.primaryColor,
                   radius: BorderRadius.circular(7),
                 ),
               ),
+
+              // ------------------------------------------------------------
+              // NEXT
+              // ------------------------------------------------------------
+
               Expanded(
                 child: AppButton(
                   title: 'Next',
                   onTap: () {
+                    // --------------------------------------------------------
+                    // No reason selected
+                    // --------------------------------------------------------
+
                     if (selectedReason == null) {
-                      AppSnackBar.show(context: context, message: 'Please select a reason');
+                      AppSnackBar.show(
+                        context: context,
+                        message: 'Please select a reason',
+                      );
                       return;
                     }
+
+                    // --------------------------------------------------------
+                    // Get final reason
+                    // --------------------------------------------------------
+
                     final finalReason = _isOthersSelected
                         ? reasonController.text.trim()
                         : selectedReason!.text;
+
+                    // --------------------------------------------------------
+                    // Others selected but empty
+                    // --------------------------------------------------------
+
                     if (finalReason.isEmpty) {
-                      AppSnackBar.show(context: context, message: 'Please enter a reason');
+                      AppSnackBar.show(
+                        context: context,
+                        message: 'Please enter a reason',
+                      );
                       return;
                     }
+
+                    // --------------------------------------------------------
+                    // Close reason dialog
+                    // --------------------------------------------------------
+
                     AppRoutes.pop();
+
+                    // --------------------------------------------------------
+                    // Open delete confirmation dialog
+                    // --------------------------------------------------------
 
                     AppDialogue.showPopup(
                       context: context,
@@ -2090,7 +2092,7 @@ class _AppLocationAccessState extends State<AppLocationAccess> with WidgetsBindi
         SizedBox(height: 7),
         AppText(
           text:
-              'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+              'Location access is turned off. Please enable it in your device settings to use location-based features.',
           fontSize: 14,
           fontWeight: FontWeight.w400,
           textAlign: .center,
@@ -2205,7 +2207,7 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> with Widget
         SizedBox(height: 7),
         AppText(
           text:
-              'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+              'Allow location access to help find lost and found items near you.',
           fontSize: 14,
           fontWeight: FontWeight.w400,
           textAlign: .center,
@@ -2217,7 +2219,7 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> with Widget
           children: [
             Expanded(
               child: AppButton(
-                title: 'Cancel',
+                title: 'Not now',
                 onTap: () {
                   Navigator.pop(context);
                 },
@@ -2230,7 +2232,7 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> with Widget
             ),
             Expanded(
               child: AppButton(
-                title: 'Enable',
+                title: 'Allow',
                 onTap: () async {
                   await Geolocator.openLocationSettings();
                 },
@@ -3115,7 +3117,8 @@ class _AppMicAccessState extends State<AppMicAccess> with WidgetsBindingObserver
         SizedBox(height: 7),
         AppText(
           text:
-          'Microphone access is required to record and send voice messages in chat.',
+          'Use your voice to describe your lost or found item with ease.',
+
           fontSize: 14,
           fontWeight: FontWeight.w400,
           textAlign: TextAlign.center,
@@ -3176,7 +3179,7 @@ class _ExitAppPopUpState extends State<ExitAppPopUp> with WidgetsBindingObserver
 
         SizedBox(height: 7),
         AppText(
-          text: 'Are you Sure you want to exit ? ',
+          text: 'Are you sure you want to exit the app?',
           fontWeight: FontWeight.w500,
           fontSize: 18,
           textAlign: TextAlign.center,
@@ -3185,7 +3188,7 @@ class _ExitAppPopUpState extends State<ExitAppPopUp> with WidgetsBindingObserver
         SizedBox(height: 7),
         AppText(
           text:
-          'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
+          'Are you sure you want to leave? You can always come back and continue your search.',
           fontSize: 14,
           fontWeight: FontWeight.w400,
           textAlign: TextAlign.center,

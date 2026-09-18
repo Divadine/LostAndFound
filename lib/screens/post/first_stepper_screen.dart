@@ -569,7 +569,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
             crossAxisCount: 2,
             crossAxisSpacing: 14,
             mainAxisSpacing: 14,
-            childAspectRatio: 1.50,
+            childAspectRatio: 1.25,//1.50,
           ),
           itemBuilder: (context, index) {
             if (index < selectedImages.length) {

@@ -63,7 +63,14 @@ class _CategoryRadiosListsScreenState
   // STATE
   // ===========================================================================
 
-  int? selectedIndex;
+  // ✅ Track the selected category by its stable id instead of its
+  // position in the list. Search re-fetches and rebuilds `categories`,
+  // so an index-based selection ("selectedIndex") would point at a
+  // completely different item (or nothing) once the list changes shape.
+  // Tracking the id means the previously chosen category stays visually
+  // selected across a search, as long as it's still present in the results.
+  int? selectedCategoryId;
+
   bool isLoading = false;
   bool isMoreLoading = false;
   int currentPage = 1;
@@ -170,7 +177,10 @@ class _CategoryRadiosListsScreenState
         isLoading = true;
         currentPage = 1;
         apiCategories.clear();
-        selectedIndex = null;
+        // ✅ NOT resetting selectedCategoryId here anymore.
+        // Previously this cleared selection on every search/refresh.
+        // The chosen category should remain selected across a search
+        // unless the user explicitly picks a different one.
       }
     });
 
@@ -230,10 +240,9 @@ class _CategoryRadiosListsScreenState
   void searchCategory(String value) {
     if (!mounted) return;
 
-    setState(() {
-      selectedIndex = null;
-    });
-
+    // ✅ No longer clearing selectedCategoryId here.
+    // The previously selected category should stay selected while typing
+    // a search query; it will only change if the user taps a different tile.
     _debounce?.cancel();
 
     _debounce = Timer(
@@ -311,6 +320,7 @@ class _CategoryRadiosListsScreenState
                     right: 12,
                   ),
                   hintText: 'Search categories',
+                  hintStyle: TextStyle(color: AppColors.searchColor),
                   border: InputBorder.none,
                   prefixIcon: AppIconWidget(
                     assetPath: AssetImages.searchIcon,
@@ -359,8 +369,8 @@ class _CategoryRadiosListsScreenState
                           child: _isOffline
                               ? const NoInternetWidget(size: 50)
                               : const Center(
-                                  child: CircularProgressIndicator(),
-                                ),
+                            child: CircularProgressIndicator(),
+                          ),
                         );
                       }
                       final category = catData[index];
@@ -368,8 +378,11 @@ class _CategoryRadiosListsScreenState
                       return _buildTile(
                         categoryName: category.name ?? '',
                         img: category.imageUrl ?? '',
-                        isSelected: selectedIndex == index,
-                        value: index,
+                        categoryId: category.id,
+                        // ✅ Selection is now determined by matching ids,
+                        // not by matching the tile's index in the list.
+                        isSelected: selectedCategoryId != null &&
+                            selectedCategoryId == category.id,
                       );
                     },
                   );
@@ -381,7 +394,7 @@ class _CategoryRadiosListsScreenState
       ),
 
       bottomNavigationBar: SafeArea(
-        child: (selectedIndex != null && !_isOffline)
+        child: (selectedCategoryId != null && !_isOffline)
             ? AppButton(
           title: 'Next',
           icon: AssetImages.arrow_forward,
@@ -397,15 +410,18 @@ class _CategoryRadiosListsScreenState
   // ===========================================================================
 
   void _onNext() {
-    if (selectedIndex == null) return;
+    if (selectedCategoryId == null) return;
 
-    if (selectedIndex! < 0 ||
-        selectedIndex! >= categories.length) {
-      return;
+    // ✅ Look the category up by id rather than indexing into `categories`,
+    // since selectedCategoryId no longer corresponds to a fixed position.
+    CategoryModel? selectedCategory;
+    for (final c in categories) {
+      if (c.id == selectedCategoryId) {
+        selectedCategory = c;
+        break;
+      }
     }
-
-    final selectedCategory =
-    categories[selectedIndex!];
+    selectedCategory ??= othersCategory;
 
     final categoryName =
     (selectedCategory.name ?? '')
@@ -447,16 +463,18 @@ class _CategoryRadiosListsScreenState
     required String categoryName,
     required String img,
     required bool isSelected,
-    required int value,
+    required int? categoryId,
   }) {
-    return GestureDetector(
-      onTap: () {
-        if (!mounted) return;
+    void selectThis() {
+      if (!mounted) return;
 
-        setState(() {
-          selectedIndex = value;
-        });
-      },
+      setState(() {
+        selectedCategoryId = categoryId;
+      });
+    }
+
+    return GestureDetector(
+      onTap: selectThis,
       child: AppContainer(
         widget: Row(
           children: [
@@ -499,29 +517,47 @@ class _CategoryRadiosListsScreenState
               ),
             ),
 
-            Radio<int>(
-              value: value,
-              groupValue: selectedIndex,
-              activeColor:
-              AppColors.primaryColor,
-              hoverColor:
-              AppColors.primaryColor,
-              fillColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return AppColors.primaryColor;   // filled dot when selected
-                }
-                return AppColors.primaryColor;     // outline color stays primary when unselected too
-              }),
-
-              onChanged: (val) {
-                if (!mounted || val == null) {
-                  return;
-                }
-
-                setState(() {
-                  selectedIndex = val;
-                });
-              },
+            // ===================================================================
+            // SELECTION INDICATOR
+            // -------------------------------------------------------------------
+            // Using a plain Radio<int> here was matching selectedCategoryId
+            // against category id with `value == groupValue`, and when that
+            // check silently failed (nullable/type mismatch upstream in the
+            // model, or timing with setState), Radio still paints its outer
+            // ring but never paints the inner filled dot — which is exactly
+            // the "border shows, dot doesn't" symptom.
+            //
+            // Instead, this custom indicator is driven directly off the
+            // `isSelected` boolean already computed above from
+            // `selectedCategoryId == category.id`. There's no separate
+            // internal state for it to disagree with: if the row is
+            // selected, the dot is always in the tree.
+            // ===================================================================
+            GestureDetector(
+              onTap: selectThis,
+              child: Container(
+                height: 22,
+                width: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.primaryColor,
+                    width: 2,
+                  ),
+                ),
+                child: isSelected
+                    ? Center(
+                  child: Container(
+                    height: 12,
+                    width: 12,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryColor,
+                    ),
+                  ),
+                )
+                    : null,
+              ),
             ),
           ],
         ).pad(5),

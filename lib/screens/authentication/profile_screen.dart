@@ -103,6 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   final AppLocationPermission _appPermissions = AppLocationPermission();
 
+
   @override
   void initState() {
     super.initState();
@@ -327,6 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             profileImageUrl.toLowerCase() != 'null' &&
                             profileImageUrl.toLowerCase() != 'undefined';
 
+                    final bool hasImage = selectedImage != null || hasNetworkImage;
                     return Stack(
                       children: [
                         CircleAvatar(
@@ -379,7 +381,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               FocusManager.instance.primaryFocus?.unfocus();
                               AppUiHelper.showBottomSheet(
                                 showHandle: false,
-                                maxHeightFactor: 0.25,
+                                maxHeightFactor: hasImage ? 0.25 : 0.15,
                                 context: context,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -421,30 +423,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         ],
                                       ),
                                     ),
-                                    Divider(),
-                                    GestureDetector(
-                                      onTap: () {
-                                        deleteProfilePicture();
-                                      },
-                                      child: Row(
-                                        crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                        mainAxisAlignment:
-                                        MainAxisAlignment.center,
-                                        spacing: 10,
-                                        children: [
-                                          AppIconWidget(
-                                            assetPath: AssetImages.delete,
-                                          ),
-                                          AppText(
-                                            text: 'Delete profile picture',
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: 14,
-                                            color: AppColors.red,
-                                          ),
-                                        ],
+
+                                    if(hasImage)...[
+                                      Divider(),
+                                      GestureDetector(
+                                        onTap: () {
+                                          deleteProfilePicture();
+                                        },
+                                        child: Row(
+                                          crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                          mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                          spacing: 10,
+                                          children: [
+                                            AppIconWidget(
+                                              assetPath: AssetImages.delete,
+                                            ),
+                                            AppText(
+                                              text: 'Delete profile picture',
+                                              fontWeight: FontWeight.w400,
+                                              fontSize: 14,
+                                              color: AppColors.red,
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
+                                    ]
+
                                   ],
                                 ),
                               );

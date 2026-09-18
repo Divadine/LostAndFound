@@ -31,7 +31,8 @@ class _FirstHomeScreenState extends State<FirstHomeScreen> {
             children: [
               AppIconWidget(assetPath: AssetImages.lostFoundImage),
               AppText(
-                text: 'What would you like to do ?',
+                text: 'How can Findora help you? ',
+
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -44,7 +45,7 @@ class _FirstHomeScreenState extends State<FirstHomeScreen> {
                 leftImg: AssetImages.bag,
                 title: 'I lost Something',
                 description:
-                'Post details about the item you lost and let others help you find it.',
+                ' Report the item you lost and let the Findora community help you locate it.',
                 rightImg: AssetImages.right_arrow,
                 onTap: () async {
                   AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 0); // lost
@@ -55,7 +56,7 @@ class _FirstHomeScreenState extends State<FirstHomeScreen> {
                 leftImg: AssetImages.box_image,
                 title: 'I Found Something',
                 description:
-                'Share details about the item. you found and help it reach its owner.',
+                ' Report the item you found and help return it to the person who lost it.',
                 rightImg: AssetImages.right_arrow,
                 onTap: () async {
                   AppRoutes.pushNamed(AppRoutes.categoryRadioScreen, arguments: 1); // found

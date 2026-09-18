@@ -35,23 +35,23 @@ class OnboardingScreenState extends State<OnboardingScreen> {
     OnBoardModel(
       image: AssetImages.onboard_1,
       title: 'Lost Something ?',
-      subTitle: 'Find it Fast ',
+      subTitle: 'Find it Faster ',
       description:
-          'Search lost items posted by  People nearby using map, categories and photos',
+          'Report your lost item with the details that matter and let others help you find it.',
     ),
     OnBoardModel(
       image: AssetImages.onboard_2,
       title: 'Found Something ?',
-      subTitle: 'Post it Now.',
+      subTitle: 'Help It Get Home.',
       description:
-          'Take a photo, add location and post the item. Help the rightful  owner get it back',
+          'Post the item, add its location and details, and help reconnect it with its rightful owner.',
     ),
     OnBoardModel(
       image: AssetImages.onboard_3,
-      title: 'Hand Over Safely',
-      subTitle: 'Police Station',
+      title: 'Return It Safely ',
+      subTitle: ' Verify Before You Hand Over. ',
       description:
-          'Can’t identify the rightful owner?  Hand over the found item to a nearby Police station ',
+          'Confirm ownership carefully and choose a safe place to return the item. ',
     ),
   ];
 

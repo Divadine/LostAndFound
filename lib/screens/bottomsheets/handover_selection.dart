@@ -40,7 +40,7 @@ class ReceiveHandoverSheet extends StatefulWidget {
 class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
   int selectedIndex = 0;
 
-  bool get isGold => widget.title.toLowerCase() == 'gold';
+  bool get isGold => widget.title.toLowerCase() == 'Jewellery & Valuables';
 
   @override
   void initState() {

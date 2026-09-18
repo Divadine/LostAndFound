@@ -1958,110 +1958,92 @@ class _LocationSelectionScreenState
         bool isPending = false,
       }) {
     return AppContainer(
-      height:55,
-
-      widget:
-       Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment:
-        CrossAxisAlignment
-            .center,
-
+      //  removed fixed height: 55 — let content (2-line address) define height
+      widget: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ===================================================================
-          // LOADING / MAP ICON
+          // TITLE
           // ===================================================================
+          // AppText(
+          //   text: "Selected location",
+          //   fontSize: 13,
+          //   fontWeight: FontWeight.w600,
+          //   color: Colors.black87,
+          // ),
 
-          // if (isLoading)
-          //   Padding(
-          //     padding:
-          //     const EdgeInsets.only(
-          //       top: 2,
-          //     ),
-          //
-          //     child: SizedBox(
-          //       height: 16,
-          //
-          //       width: 16,
-          //
-          //       child: _isOffline
-          //           ? const NoInternetWidget(size: 16, showText: false)
-          //           : const CircularProgressIndicator(
-          //         strokeWidth: 2,
-          //       ),
-          //     ),
-          //   )
-          // else
-            buildIconContainer(
-              context,
+          const SizedBox(height: 10),
 
-              size: 15,
+          // ===================================================================
+          // ICON + ADDRESS + DELETE ROW
+          // ===================================================================
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start, // top-align icon with wrapped text
+            children: [
+              // -----------------------------------------------------------------
+              // LOADING / MAP ICON
+              // -----------------------------------------------------------------
+              // if (isLoading)
+              //   Padding(
+              //     padding: const EdgeInsets.only(top: 2),
+              //     child: SizedBox(
+              //       height: 16,
+              //       width: 16,
+              //       child: _isOffline
+              //           ? const NoInternetWidget(size: 16, showText: false)
+              //           : const CircularProgressIndicator(strokeWidth: 2),
+              //     ),
+              //   )
+              // else
+              buildIconContainer(
+                context,
+                size: 15,
+                icon: AssetImages.mapIcon,
+                height: 28,
+                width: 28,
+              ),
 
-              icon:
-              AssetImages
-                  .mapIcon,
+              const SizedBox(width: 10),
 
-              height: 28,
+              // -----------------------------------------------------------------
+              // ADDRESS
+              // -----------------------------------------------------------------
+              Expanded(
+                child: isLoading
+                    ? const SizedBox(
+                  height: 14,
+                  width: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                    : AppText(
+                  text: location.address,
+                  fontSize: 13,
+                  maxLine: 2, //
+                  color: Colors.black87,
+                ),
+              ),
 
-              width: 28,
-            ),
-
-          const SizedBox(
-            width: 10,
+              Spacer(),
+              // -----------------------------------------------------------------
+              // DELETE
+              // -----------------------------------------------------------------
+              if (!isLoading)
+                GestureDetector(
+                  onTap: () {
+                    if (isPending) {
+                      _clearPendingPreview();
+                    } else {
+                      _removeLocation(location);
+                    }
+                  },
+                  child: AppIconWidget(
+                    assetPath: AssetImages.delete,
+                    color: AppColors.black,
+                    size: 20,
+                  ).pad(),
+                ),
+            ],
           ),
-
-          // ===================================================================
-          // ADDRESS
-          // ===================================================================
-
-          Expanded(
-            child: isLoading
-                ? const SizedBox(
-              height: 14,
-              width: 14,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-                : AppText(
-              text:
-              location.address,
-
-              fontSize:
-              13,
-
-              color:
-              Colors.black87,
-            ),
-          ),
-
-          // ===================================================================
-          // DELETE
-          // ===================================================================
-
-          Spacer(),
-          if (!isLoading)
-            GestureDetector(
-              onTap: () {
-                if (isPending) {
-                  _clearPendingPreview();
-                } else {
-                  _removeLocation(
-                    location,
-                  );
-                }
-              },
-
-              child:
-              AppIconWidget(
-                assetPath:
-                AssetImages
-                    .delete,
-
-                color:
-                AppColors.black,
-
-                size: 20,
-              ).pad(),
-            ),
         ],
       ).padHorizontal(),
     ).pad();
