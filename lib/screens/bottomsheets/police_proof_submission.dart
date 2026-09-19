@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
@@ -153,6 +154,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
             phoneNumber: widget.phoneNumber,
             description: textController.text.trim(),
             proofPhotos: imageResponse.data!.map((img) => img.imgPath).toList(),
+            handoverDate: DateFormat('d MMM yyyy').format(DateTime.now()),
           ),
         ),
       );

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
@@ -120,6 +121,7 @@ class _OthersHandoverState extends State<OthersHandover> {
             phoneNumber: numberController.text.trim(),
             description: descriptionController.text.trim(),
             proofPhotos: proofPhotoUrls,
+            handoverDate: DateFormat('d MMM yyyy').format(DateTime.now()),
           ),
         ),
       );

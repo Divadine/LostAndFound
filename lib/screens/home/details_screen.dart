@@ -372,6 +372,9 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
 
   Widget _buildDetails() {
     final post = postDetails!;
+    final isJewellery = post.categoryName.toLowerCase().contains('jewellery') ||
+        post.categoryName.toLowerCase().contains('valuable') ||
+        post.categoryId == 9;
 
     final brandField = post.values.firstWhere(
           (v) => v.fieldName?.toLowerCase() == 'brand',
@@ -700,15 +703,21 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
         if (post.status == 2)
           SafeArea(
             child: SucessCard(
-              name: post.handoverType == 2
-                  ? (post.stationName.isNotEmpty ? post.stationName : 'Police Station')
-                  : post.handoverType == 3
-                      ? (post.handoverName.isNotEmpty ? post.handoverName : 'Others')
-                      : (post.postType == 0 ? post.finderName : post.ownerName),
+              name: (post.handoverType == 2 || isJewellery)
+                  ? (post.stationName.isNotEmpty
+                      ? post.stationName
+                      : (post.handoverName.isNotEmpty && post.handoverName != 'Owner'
+                          ? post.handoverName
+                          : 'Police Station'))
+                  : (post.handoverName.isNotEmpty
+                      ? post.handoverName
+                      : (post.postType == 0
+                          ? (post.finderName.isNotEmpty ? post.finderName : 'Finder')
+                          : (post.ownerName.isNotEmpty ? post.ownerName : 'Owner'))),
               location: _formatDate(post.postDate),
               onTap: () {
                 TransferType type;
-                if (post.handoverType == 2) {
+                if (post.handoverType == 2 || isJewellery) {
                   type = post.postType == 0
                       ? TransferType.receiveToPolice
                       : TransferType.handOverToPolice;
@@ -732,21 +741,34 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                   child: ReceivedDetails(
                     type: type,
                     data: TransferData(
-                      name: post.handoverName.isNotEmpty
-                          ? post.handoverName
-                          : (post.postType == 0 ? post.finderName : post.ownerName),
-                      avatarUrl: _getMediaUrl(
-                        post.postType == 0 ? post.finderAvatar : post.ownerAvatar,
-                      ),
-                      userId: post.userId.toString(),
+                      name: (post.handoverType == 2 || isJewellery)
+                          ? (post.stationName.isNotEmpty
+                              ? post.stationName
+                              : (post.handoverName.isNotEmpty && post.handoverName != 'Owner'
+                                  ? post.handoverName
+                                  : 'Police Station'))
+                          : (post.handoverName.isNotEmpty
+                              ? post.handoverName
+                              : (post.postType == 0
+                                  ? (post.finderName.isNotEmpty ? post.finderName : 'Finder')
+                                  : (post.ownerName.isNotEmpty ? post.ownerName : 'Owner'))),
+                      avatarUrl: (post.handoverType == 2 || post.handoverType == 3 || isJewellery)
+                          ? ''
+                          : _getMediaUrl(
+                              post.postType == 0 ? post.finderAvatar : post.ownerAvatar,
+                            ),
+                      userId: post.handoverUserUid.isNotEmpty ? post.handoverUserUid : post.userId.toString(),
                       phoneNumber: post.handoverPhoneno,
                       description: post.handoverDescription,
-                      policeStationName: post.stationName,
+                      policeStationName: post.stationName.isNotEmpty
+                          ? post.stationName
+                          : (isJewellery && post.handoverName.isNotEmpty && post.handoverName != 'Owner' ? post.handoverName : 'Police Station'),
                       policeStationAddress: post.stationAddress,
                       proofPhotos: post.handoverImg
                           .map((img) => _getMediaUrl(img))
                           .toList(),
-                      matchPercentage: widget.percentageMatch,
+                      matchPercentage: post.handoverMatchPercentage ?? widget.percentageMatch,
+                      handoverDate: post.handoverDate,
                     ),
                   ),
                 );

@@ -239,6 +239,9 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     final post = enquiryData?.post;
     final enquiries = enquiryData?.enquiries ?? [];
     final isClosed = post?.status == 2;
+    final isJewellery = (post?.categoryName.toLowerCase().contains('jewellery') ?? false) ||
+        (post?.categoryName.toLowerCase().contains('valuable') ?? false) ||
+        (post?.categoryId == 9);
 
     // Find winner enquirer (status == 2)
     EnquiryItem? winnerEnquiry;
@@ -267,18 +270,24 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
       bottomNavigationBar: isClosed
           ? SafeArea(
         child: SucessCard(
-          name: post?.handoverType == 2
-              ? (post?.stationName.isNotEmpty == true ? post!.stationName : 'Police Station')
-              : post?.handoverType == 3
-                  ? (post?.handoverName.isNotEmpty == true ? post!.handoverName : 'Others')
-                  : winnerEnquiry?.enquirerName ?? (widget.isFound ? 'Owner' : 'Finder'),
+          name: (post?.handoverType == 2 || (isJewellery && post?.handoverType != 1 && post?.handoverType != 3))
+              ? (post?.stationName.isNotEmpty == true
+                  ? post!.stationName
+                  : (post?.handoverName.isNotEmpty == true && post!.handoverName != 'Owner'
+                      ? post!.handoverName
+                      : 'Police Station'))
+              : (post?.handoverName.isNotEmpty == true
+                  ? post!.handoverName
+                  : (winnerEnquiry?.enquirerName.isNotEmpty == true
+                      ? winnerEnquiry!.enquirerName
+                      : (widget.isFound ? 'Owner' : 'Finder'))),
           location: post?.postDate != null
               ? DateFormat('d MMM yyyy').format(post!.postDate!)
               : '',
           isReceiver: !widget.isFound,
           onTap: () {
             TransferType type;
-            if (post?.handoverType == 2) {
+            if (post?.handoverType == 2 || (isJewellery && post?.handoverType != 1 && post?.handoverType != 3)) {
               type = widget.isFound ? TransferType.handOverToPolice : TransferType.receiveToPolice;
             } else if (post?.handoverType == 3) {
               type = widget.isFound ? TransferType.handOverToOthers : TransferType.receiveToOthers;
@@ -296,33 +305,49 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               child: ReceivedDetails(
                 type: type,
                 data: TransferData(
-                  name: post?.handoverType == 2
-                      ? (post?.stationName ?? 'Police Station')
-                      : post?.handoverType == 3
-                          ? (post?.handoverName ?? 'Others')
-                          : (winnerEnquiry?.enquirerName ?? (widget.isFound ? 'Owner' : 'Finder')),
-                  avatarUrl: post?.handoverType == 2 || post?.handoverType == 3
+                  name: (post?.handoverType == 2 || (isJewellery && post?.handoverType != 1 && post?.handoverType != 3))
+                      ? (post?.stationName.isNotEmpty == true
+                          ? post!.stationName
+                          : (post?.handoverName.isNotEmpty == true && post!.handoverName != 'Owner'
+                              ? post!.handoverName
+                              : 'Police Station'))
+                      : (post?.handoverName.isNotEmpty == true
+                          ? post!.handoverName
+                          : (winnerEnquiry?.enquirerName.isNotEmpty == true
+                              ? winnerEnquiry!.enquirerName
+                              : (widget.isFound ? 'Owner' : 'Finder'))),
+                  avatarUrl: (post?.handoverType == 2 || post?.handoverType == 3 || (isJewellery && post?.handoverType != 1 && post?.handoverType != 3))
                       ? ''
                       : (winnerEnquiry?.enquirerProfileImg ?? ''),
-                  userId: winnerEnquiry?.userUid,
-                  phoneNumber: post?.handoverPhoneno ?? winnerEnquiry?.phoneno ?? '',
+                  userId: post?.handoverUserUid.isNotEmpty == true
+                      ? post!.handoverUserUid
+                      : winnerEnquiry?.userUid,
+                  phoneNumber: post?.handoverPhoneno.isNotEmpty == true
+                      ? post!.handoverPhoneno
+                      : (winnerEnquiry?.phoneno ?? ''),
                   description: post?.handoverDescription.isNotEmpty == true
                       ? post!.handoverDescription
                       : '',
-                  policeStationName: post?.stationName ?? '',
-                  policeStationAddress: post?.stationAddress ?? '',
+                  policeStationName: post?.stationName.isNotEmpty == true
+                      ? post!.stationName
+                      : (isJewellery && post?.handoverName.isNotEmpty == true && post!.handoverName != 'Owner' ? post!.handoverName : 'Police Station'),
+                  policeStationAddress: post?.stationAddress.isNotEmpty == true
+                      ? post!.stationAddress
+                      : '',
                   proofPhotos: (post?.handoverImg.isNotEmpty == true
                       ? post!.handoverImg
                       : [])
                       .map((img) => _getMediaUrl(img))
                       .toList(),
-                  matchPercentage: winnerEnquiry?.matchPercentage,
+                  matchPercentage: post?.handoverMatchPercentage ?? winnerEnquiry?.matchPercentage,
+                  handoverDate: post?.handoverDate ?? '',
                 ),
               ),
             );
           },
         ).padHorizontal(16).padBottom(16),
       )
+
           : SafeArea(
         child: AppContainer(
           widget: Column(
@@ -378,7 +403,9 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     final post = enquiryData?.post;
     final enquiries = enquiryData?.enquiries ?? [];
     final isClosed = post?.status == 2;
-    final isJewellery = post?.categoryName.toLowerCase().contains('jewellery') ?? false;
+    final isJewellery = (post?.categoryName.toLowerCase().contains('jewellery') ?? false) ||
+        (post?.categoryName.toLowerCase().contains('valuable') ?? false) ||
+        (post?.categoryId == 9);
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,

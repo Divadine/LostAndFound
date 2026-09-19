@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:image_picker/image_picker.dart';
@@ -128,6 +129,7 @@ class HandoverProofDocuments extends StatefulWidget {
               phoneNumber: phoneno,
               description: description,
               proofPhotos: imageResponse.data!.map((img) => img.imgPath).toList(),
+              handoverDate: DateFormat('d MMM yyyy').format(DateTime.now()),
             ),
           ),
         );

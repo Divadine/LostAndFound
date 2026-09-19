@@ -42,7 +42,12 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
 
   // Jewellery & Valuables category ID.
   // This uses categoryId, NOT title/item name/post type.
-  bool get isJewellery => widget.categoryId == 9;
+  bool get isJewellery {
+    final titleLower = widget.title.toLowerCase();
+    return widget.categoryId == 9 ||
+        titleLower.contains('jewellery') ||
+        titleLower.contains('valuable');
+  }
 
   @override
   void initState() {

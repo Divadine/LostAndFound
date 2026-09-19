@@ -132,6 +132,20 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
                 fontSize: 12,
               ),
             ),
+
+          // ======================================================
+          // HANDOVER DATE
+          // ======================================================
+
+          if (widget.data.handoverDate.isNotEmpty)
+            buildProofDocuments(
+              title: 'Handover Date',
+              widget: AppText(
+                text: widget.data.handoverDate,
+                fontWeight: FontWeight.w400,
+                fontSize: 12,
+              ),
+            ).padBottom(10),
         ],
       ).pad(2),
     );

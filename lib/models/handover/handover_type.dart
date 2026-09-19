@@ -11,6 +11,7 @@ class TransferData {
   final String description;
 
   final List<String> proofPhotos;
+  final String handoverDate;
 
   const TransferData({
     this.name = '',
@@ -22,5 +23,6 @@ class TransferData {
     this.phoneNumber = '',
     this.description = '',
     this.proofPhotos = const [],
+    this.handoverDate = '',
   });
 }

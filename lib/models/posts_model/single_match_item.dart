@@ -31,6 +31,9 @@ class SingleMatchModel {
   final String handoverDescription;
   final String handoverPhoneno;
   final List<String> handoverImg;
+  final int? handoverMatchPercentage;
+  final String handoverUserUid;
+  final String handoverDate;
 
   SingleMatchModel({
     required this.id,
@@ -63,6 +66,9 @@ class SingleMatchModel {
     this.handoverDescription = '',
     this.handoverPhoneno = '',
     this.handoverImg = const [],
+    this.handoverMatchPercentage,
+    this.handoverUserUid = '',
+    this.handoverDate = '',
   });
 
   factory SingleMatchModel.fromJson(Map<String, dynamic> json) {
@@ -219,9 +225,31 @@ class SingleMatchModel {
 
     // --- Handover Data Parsing ---
     final handoverImages = <String>[];
-    final handoverObj = data['handover'] is Map ? data['handover'] as Map<String, dynamic> : null;
+    var handoverObj = data['handover'] is Map ? data['handover'] as Map<String, dynamic> : null;
 
-    final hi = data['handover_img'] ?? handoverObj?['handover_img'];
+    if (handoverObj == null && (data['handover'] is String) && (data['handover'] as String).isNotEmpty) {
+      try {
+        final decoded = jsonDecode(data['handover']);
+        if (decoded is Map) {
+          handoverObj = decoded as Map<String, dynamic>;
+        } else if (decoded is List && decoded.isNotEmpty && decoded[0] is Map) {
+          handoverObj = decoded[0] as Map<String, dynamic>;
+        }
+      } catch (_) {}
+    } else if (handoverObj == null && data['handover'] is List && (data['handover'] as List).isNotEmpty) {
+      if (data['handover'][0] is Map) {
+        handoverObj = data['handover'][0] as Map<String, dynamic>;
+      }
+    }
+
+    final hi = data['handover_img'] ??
+        data['handover_images'] ??
+        handoverObj?['handover_img'] ??
+        handoverObj?['images'] ??
+        handoverObj?['imgPath'] ??
+        handoverObj?['img_path'] ??
+        data['proof_img'];
+
     if (hi != null && hi.toString().isNotEmpty) {
       if (hi is String) {
         if (hi.contains(',')) {
@@ -230,9 +258,30 @@ class SingleMatchModel {
           handoverImages.add(hi.trim());
         }
       } else if (hi is List) {
-        handoverImages.addAll(hi.map((e) => e.toString()));
+        for (var e in hi) {
+          if (e is Map) {
+            final path = (e['img_path'] ?? e['image_path'] ?? e['path'] ?? e['url'] ?? '').toString();
+            if (path.isNotEmpty) handoverImages.add(path);
+          } else if (e != null) {
+            handoverImages.add(e.toString());
+          }
+        }
       }
     }
+
+    final stationName = (data['station_name'] ??
+            handoverObj?['station_name'] ??
+            data['handover_name'] ??
+            handoverObj?['handover_name'] ??
+            handoverObj?['name'] ??
+            '')
+        .toString();
+
+    final stationAddress = (data['station_address'] ??
+            handoverObj?['station_address'] ??
+            handoverObj?['address'] ??
+            '')
+        .toString();
 
     return SingleMatchModel(
       id: data['id'] as int? ?? 0,
@@ -263,18 +312,38 @@ class SingleMatchModel {
       values: valuesList
           .map((e) => SingleMatchValue.fromJson(e as Map<String, dynamic>))
           .toList(),
-      handoverType: int.tryParse((data['handover_type'] ?? handoverObj?['handover_type'] ?? '').toString()) ?? 0,
-      handoverName: (data['handover_name'] ?? data['name'] ?? handoverObj?['handover_name'] ?? handoverObj?['name'] ?? '').toString(),
-      stationName: (data['station_name'] ?? handoverObj?['station_name'] ?? '').toString(),
-      stationAddress: (data['station_address'] ?? handoverObj?['station_address'] ?? '').toString(),
-      handoverDescription: (data['handover_description'] ??
-              data['handover_desc'] ??
-              handoverObj?['description'] ??
+      handoverType: int.tryParse((data['handover_type'] ?? handoverObj?['handover_type'] ?? handoverObj?['type'] ?? '').toString()) ?? 0,
+      handoverName: (data['handover_name'] ?? handoverObj?['handover_name'] ?? handoverObj?['name'] ?? '').toString(),
+      stationName: stationName,
+      stationAddress: stationAddress,
+      handoverDescription: (handoverObj?['description'] ??
               handoverObj?['handover_description'] ??
+              data['handover_description'] ??
+              data['handover_desc'] ??
               '')
           .toString(),
-      handoverPhoneno: (data['phoneno'] ?? handoverObj?['phoneno'] ?? '').toString(),
+      handoverPhoneno: (handoverObj?['phoneno'] ??
+              handoverObj?['handover_phoneno'] ??
+              data['handover_phoneno'] ??
+              data['phoneno'] ??
+              '')
+          .toString(),
       handoverImg: handoverImages,
+      handoverMatchPercentage: int.tryParse((handoverObj?['match_percentage'] ??
+              handoverObj?['matchPercentage'] ??
+              data['handover_match_percentage'] ??
+              '')
+          .toString()),
+      handoverUserUid: (handoverObj?['user_uid'] ??
+              handoverObj?['userUid'] ??
+              data['handover_user_uid'] ??
+              '')
+          .toString(),
+      handoverDate: (handoverObj?['created_at'] ??
+              handoverObj?['date'] ??
+              data['handover_date'] ??
+              '')
+          .toString(),
     );
   }
 
