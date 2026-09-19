@@ -39,6 +39,7 @@ class LostItemsDetailsScreen extends StatefulWidget {
   final int originalPostId;
   final bool isLostPost;
   final bool hideEnquiryButton;
+  final bool isUserPost;
 
   const LostItemsDetailsScreen({
     super.key,
@@ -50,6 +51,7 @@ class LostItemsDetailsScreen extends StatefulWidget {
     this.originalPostId = 0,
     this.isLostPost = false,
     this.hideEnquiryButton = false,
+    this.isUserPost = false,
   });
 
   @override
@@ -698,11 +700,29 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
         if (post.status == 2)
           SafeArea(
             child: SucessCard(
-              name: post.postType == 0 ? post.finderName : post.ownerName,
+              name: post.handoverType == 2
+                  ? (post.stationName.isNotEmpty ? post.stationName : 'Police Station')
+                  : post.handoverType == 3
+                      ? (post.handoverName.isNotEmpty ? post.handoverName : 'Others')
+                      : (post.postType == 0 ? post.finderName : post.ownerName),
               location: _formatDate(post.postDate),
               onTap: () {
+                TransferType type;
+                if (post.handoverType == 2) {
+                  type = post.postType == 0
+                      ? TransferType.receiveToPolice
+                      : TransferType.handOverToPolice;
+                } else if (post.handoverType == 3) {
+                  type = post.postType == 0
+                      ? TransferType.receiveToOthers
+                      : TransferType.handOverToOthers;
+                } else {
+                  type = post.postType == 0
+                      ? TransferType.receiveToOwner
+                      : TransferType.handOverToOwner;
+                }
+
                 AppUiHelper.showBottomSheet(
-                  //radius: BorderRadius.circular(10),
                   context: context,
                   showHandle: false,
                   showCloseIcon: true,
@@ -710,40 +730,59 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                     AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
                   },
                   child: ReceivedDetails(
-                    type: post.postType == 0
-                        ? TransferType.receiveToOwner
-                        : TransferType.handOverToOwner,
+                    type: type,
                     data: TransferData(
-                      name: post.postType == 0 ? post.finderName : post.ownerName,
+                      name: post.handoverName.isNotEmpty
+                          ? post.handoverName
+                          : (post.postType == 0 ? post.finderName : post.ownerName),
                       avatarUrl: _getMediaUrl(
                         post.postType == 0 ? post.finderAvatar : post.ownerAvatar,
                       ),
                       userId: post.userId.toString(),
-                      phoneNumber: '',
-                      description: post.description,
-                      proofPhotos: _itemImageUrl.isNotEmpty
-                          ? [_itemImageUrl]
-                          : [],
-                      matchPercentage:
-                      widget.percentageMatch,
+                      phoneNumber: post.handoverPhoneno,
+                      description: post.handoverDescription,
+                      policeStationName: post.stationName,
+                      policeStationAddress: post.stationAddress,
+                      proofPhotos: post.handoverImg
+                          .map((img) => _getMediaUrl(img))
+                          .toList(),
+                      matchPercentage: widget.percentageMatch,
                     ),
                   ),
                 );
               },
               isReceiver: post.postType == 0,
-            )
-                .padHorizontal(16)
-                .padBottom(16),
+            ).padHorizontal(16).padBottom(16),
           )
 
         // ========================================================
-        // SEND ENQUIRY
+        // SEND ENQUIRY / HAND OVER
         // ========================================================
 
         else if (!widget.hideEnquiryButton)
           AppButton(
-            title: 'Send Enquiry',
+            title: widget.isUserPost ? 'Hand Over' : 'Send Enquiry',
             onTap: () {
+              if (widget.isUserPost) {
+                debugPrint('[Handover] Opening ReceiveHandoverSheet from DetailsScreen');
+                debugPrint('[Handover] postId: ${post.id}');
+                debugPrint('[Handover] categoryId passed: ${post.categoryId}');
+                debugPrint('[Handover] itemName: ${post.itemName}');
+
+                AppUiHelper.showBottomSheet(
+                  context: context,
+                  child: ReceiveHandoverSheet(
+                    title: post.categoryName.isNotEmpty
+                        ? post.categoryName
+                        : (widget.isLostPost ? 'Lost' : 'Found'),
+                    isReceiver: post.postType == 0, // 0: Lost, 1: Found. If Lost, I am Receiver? Wait.
+                    postId: post.id,
+                    categoryId: post.categoryId,
+                  ),
+                );
+                return;
+              }
+
               // ==================================================
               // EXISTING ENQUIRY
               // ==================================================

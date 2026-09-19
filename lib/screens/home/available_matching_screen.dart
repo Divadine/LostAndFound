@@ -36,6 +36,7 @@ class AvailableMatchingScreen extends StatefulWidget {
   final bool isReceived;
   final int? status;
   final bool isFound;
+  final int? categoryId;
 
   const AvailableMatchingScreen({
     super.key,
@@ -49,6 +50,7 @@ class AvailableMatchingScreen extends StatefulWidget {
     this.isReceived = false,
     this.status,
     this.isFound = false,
+    this.categoryId,
   });
 
   @override
@@ -391,12 +393,17 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                             AppButton(
                               title: widget.isFound ? 'Hand Over' : 'Receive',
                               onTap: () {
+                                debugPrint('[Handover] Opening ReceiveHandoverSheet from AvailableMatching');
+                                debugPrint('[Handover] postId: ${widget.postId}');
+                                debugPrint('[Handover] categoryId passed: ${widget.categoryId}');
+
                                 AppUiHelper.showBottomSheet(
                                   context: context,
                                   child: ReceiveHandoverSheet(
                                     title: widget.title,
                                     isReceiver: !widget.isFound,
                                     postId: widget.postId,
+                                    categoryId: widget.categoryId,
                                   ),
                                 );
                               },

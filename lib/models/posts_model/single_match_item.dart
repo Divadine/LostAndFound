@@ -22,7 +22,15 @@ class SingleMatchModel {
   final String ownerName;
   final String finderAvatar;
   final String ownerAvatar;
+  final String categoryName;
   final List<SingleMatchValue> values;
+  final int handoverType;
+  final String handoverName;
+  final String stationName;
+  final String stationAddress;
+  final String handoverDescription;
+  final String handoverPhoneno;
+  final List<String> handoverImg;
 
   SingleMatchModel({
     required this.id,
@@ -46,7 +54,15 @@ class SingleMatchModel {
     this.ownerName = '',
     this.finderAvatar = '',
     this.ownerAvatar = '',
+    this.categoryName = '',
     required this.values,
+    this.handoverType = 0,
+    this.handoverName = '',
+    this.stationName = '',
+    this.stationAddress = '',
+    this.handoverDescription = '',
+    this.handoverPhoneno = '',
+    this.handoverImg = const [],
   });
 
   factory SingleMatchModel.fromJson(Map<String, dynamic> json) {
@@ -201,12 +217,29 @@ class SingleMatchModel {
           user['avatar']?.toString();
     }
 
+    // --- Handover Data Parsing ---
+    final handoverImages = <String>[];
+    final handoverObj = data['handover'] is Map ? data['handover'] as Map<String, dynamic> : null;
+
+    final hi = data['handover_img'] ?? handoverObj?['handover_img'];
+    if (hi != null && hi.toString().isNotEmpty) {
+      if (hi is String) {
+        if (hi.contains(',')) {
+          handoverImages.addAll(hi.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+        } else {
+          handoverImages.add(hi.trim());
+        }
+      } else if (hi is List) {
+        handoverImages.addAll(hi.map((e) => e.toString()));
+      }
+    }
+
     return SingleMatchModel(
       id: data['id'] as int? ?? 0,
       postUid: data['post_uid']?.toString() ?? '',
       userId: data['user_id'] as int? ?? 0,
       postType: data['post_type'] as int? ?? 0,
-      categoryId: data['category_id'] as int? ?? 0,
+      categoryId: int.tryParse((data['category_id'] ?? handoverObj?['category_id'] ?? '').toString()) ?? 0,
       subcategoryId: data['subcategory_id'] as int? ?? 0,
       itemName: data['item_name']?.toString() ?? '',
       color: data['color']?.toString() ?? '',
@@ -223,9 +256,25 @@ class SingleMatchModel {
       ownerName: data['owner_name']?.toString() ?? '',
       finderAvatar: data['finder_avatar']?.toString() ?? '',
       ownerAvatar: data['owner_avatar']?.toString() ?? '',
+      categoryName: data['category_name']?.toString() ??
+          (data['post'] is Map ? (data['post'] as Map)['category_name']?.toString() : null) ??
+          data['category']?.toString() ??
+          '',
       values: valuesList
           .map((e) => SingleMatchValue.fromJson(e as Map<String, dynamic>))
           .toList(),
+      handoverType: int.tryParse((data['handover_type'] ?? handoverObj?['handover_type'] ?? '').toString()) ?? 0,
+      handoverName: (data['handover_name'] ?? data['name'] ?? handoverObj?['handover_name'] ?? handoverObj?['name'] ?? '').toString(),
+      stationName: (data['station_name'] ?? handoverObj?['station_name'] ?? '').toString(),
+      stationAddress: (data['station_address'] ?? handoverObj?['station_address'] ?? '').toString(),
+      handoverDescription: (data['handover_description'] ??
+              data['handover_desc'] ??
+              handoverObj?['description'] ??
+              handoverObj?['handover_description'] ??
+              '')
+          .toString(),
+      handoverPhoneno: (data['phoneno'] ?? handoverObj?['phoneno'] ?? '').toString(),
+      handoverImg: handoverImages,
     );
   }
 

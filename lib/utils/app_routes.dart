@@ -199,6 +199,7 @@ class AppRoutes {
             foundCount: data['foundCount'] as int?,
             isReceived: data['isReceived'] as bool? ?? false,
             status: data['status'] as int?,
+            categoryId: data['categoryId'] as int?,
           );
         },
       ),
@@ -223,6 +224,7 @@ class AppRoutes {
             originalPostId: data?['originalPostId'] as int? ?? 0,
             isLostPost: data?['isLostPost'] as bool? ?? false,
             hideEnquiryButton: data?['hideEnquiryButton'] as bool? ?? false,
+            isUserPost: data?['isUserPost'] as bool? ?? false,
           );
         },
       ),

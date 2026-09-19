@@ -100,64 +100,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
         }
       }
 
-      // SUPPLEMENT: Also check chat rooms for enquiries where the current user is a participant.
-      final currentUserId = AppPreferences.getUserId()?.toString();
-      if (currentUserId != null) {
-        try {
-          final chatSnap = await FirebaseFirestore.instance
-              .collection('chatRooms')
-              .where('users', arrayContains: currentUserId)
-              .get();
-
-          for (final doc in chatSnap.docs) {
-            final data = doc.data();
-            final roomPostId = data['postId']?.toString() ?? '';
-            final roomMatchedPostId = data['matchedPostId']?.toString() ?? '';
-
-            // Filter rooms related to the current post (either as primary post or matched post)
-            if (roomPostId != widget.postId.toString() && roomMatchedPostId != widget.postId.toString()) {
-              continue;
-            }
-
-            final users = List<String>.from(data['users'] ?? []);
-            final otherUserIdStr = users.firstWhere((id) => id != currentUserId, orElse: () => '');
-            if (otherUserIdStr.isEmpty) continue;
-
-            final otherUserId = int.tryParse(otherUserIdStr) ?? 0;
-            
-            // Skip if already added from viewEnquiry
-            if (userMap.containsKey(otherUserId)) continue;
-
-            final enquiryIdStr = data['enquiryId']?.toString() ?? '';
-            final enquiryId = int.tryParse(enquiryIdStr) ?? 0;
-            // If there's no enquiryId in the chat room, we can't proceed with the handover flow
-            if (enquiryId == 0) continue;
-
-            final participants = data['participants'] as Map<String, dynamic>? ?? {};
-            final otherPart = participants[otherUserIdStr] as Map<String, dynamic>? ?? {};
-
-            // The "other" post ID is the one that isn't the current widget.postId
-            final otherPostIdStr = (roomPostId == widget.postId.toString()) ? roomMatchedPostId : roomPostId;
-            final otherPostId = int.tryParse(otherPostIdStr) ?? 0;
-
-            newOwners.add(HandoverOwnerModel(
-              postId: otherPostId,
-              userId: otherUserId,
-              userUid: otherUserIdStr,
-              name: otherPart['name']?.toString() ?? 'User $otherUserId',
-              phoneno: otherPart['phone']?.toString() ?? '',
-              profileImageUrl: otherPart['avatar']?.toString(),
-              matchPercentage: matchPercentages[otherUserId] ?? 0,
-            ));
-
-            postMap[otherPostId] = enquiryId;
-            userMap[otherUserId] = enquiryId;
-            uidMap[otherUserIdStr] = enquiryId;
-          }
-        } catch (e) {
-          debugPrint('Error fetching chat rooms for handover: $e');
-        }
-      }
+      // REMOVED Firestore chat rooms supplement to ensure only users who actually enquired for this post via the backend are displayed.
 
       if (!mounted) return;
 

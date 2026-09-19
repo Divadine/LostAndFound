@@ -2018,12 +2018,10 @@ class _LocationSelectionScreenState
                     : AppText(
                   text: location.address,
                   fontSize: 13,
-                  maxLine: 2, //
                   color: Colors.black87,
                 ),
               ),
 
-              Spacer(),
               // -----------------------------------------------------------------
               // DELETE
               // -----------------------------------------------------------------

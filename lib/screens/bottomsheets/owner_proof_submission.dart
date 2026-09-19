@@ -87,6 +87,21 @@ class HandoverProofDocuments extends StatefulWidget {
         return;
       }
 
+      debugPrint('[Handover] OWNER createHandover body:');
+      debugPrint({
+        "enquiry_id": enquiryId,
+        "type": isReceiver ? 2 : 1,
+        "user_id": currentUserId,
+        "post_id": postId,
+        "receiver_id": selectedOwner.userId,
+        "receiver_postid": selectedOwner.postId,
+        "handover_img": imageIds,
+        "description": description,
+        "phoneno": phoneno,
+        "name": selectedOwner.name,
+        "handover_type": 1,
+      }.toString());
+
       final handoverResponse = await authController.createHandover(
         type: isReceiver ? 2 : 1,
         userId: currentUserId,
@@ -97,6 +112,7 @@ class HandoverProofDocuments extends StatefulWidget {
         handoverImg: imageIds,
         description: description,
         phoneno: phoneno,
+        name: selectedOwner.name,
         handoverType: 1,
       );
 

@@ -23,6 +23,7 @@ class AppContainer extends StatelessWidget {
     return Container(
       height: height,
       width: width ?? double.infinity,
+      //clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         border: Border.all(color: color ?? Colors.transparent),
         borderRadius: BorderRadius.circular(14),

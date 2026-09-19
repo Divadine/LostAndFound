@@ -98,23 +98,27 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
 
     final uploadedImageRef = imageResponse.data!.first.id.toString();
 
-    debugPrint('========== CREATE HANDOVER REQUEST ==========');
+    debugPrint('[Handover] Police handover proof:');
+    debugPrint('imageId: $uploadedImageRef');
+    debugPrint('description: ${textController.text.trim()}');
 
-    debugPrint('enquiryId      : ${widget.enquiryId ?? 0}');
-    debugPrint('type           : ${widget.isReceiver ? 2 : 1}');
-    debugPrint('userId         : ${widget.userId}');
-    debugPrint('postId         : ${widget.postId}');
-    debugPrint('receiverId     : ${widget.receiverId ?? 0}');
-    debugPrint('receiverPostId : ${widget.receiverPostId ?? 0}');
-    debugPrint('handoverImg    : $uploadedImageRef');
-    debugPrint('stationName    : ${widget.stationName}');
-    debugPrint('stationAddress : ${widget.stationAddress}');
-    debugPrint('name           : ${widget.stationName}');
-    debugPrint('description    : ${textController.text.trim()}');
-    debugPrint('phoneno        : ${widget.phoneNumber}');
-    debugPrint('handoverType   : ${widget.handoverType}');
-
-    debugPrint('=============================================');
+    debugPrint('[Handover] POLICE createHandover body:');
+    final requestBody = {
+      "enquiry_id": widget.enquiryId ?? 0,
+      "type": widget.isReceiver ? 2 : 1,
+      "user_id": widget.userId,
+      "post_id": widget.postId,
+      "receiver_id": widget.receiverId ?? 0,
+      "receiver_postid": widget.receiverPostId ?? 0,
+      "handover_img": uploadedImageRef,
+      "station_name": widget.stationName,
+      "station_address": widget.stationAddress,
+      "name": widget.stationName,
+      "description": textController.text.trim(),
+      "phoneno": widget.phoneNumber,
+      "handover_type": widget.handoverType,
+    };
+    debugPrint(requestBody.toString());
 
     final response = await authController.createHandover(
       enquiryId: widget.enquiryId ?? 0,

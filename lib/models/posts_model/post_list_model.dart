@@ -28,6 +28,8 @@ class PostModel{
   final int status;
   final int enquiriesCount;
   final List<EnquirerAvatarModel> enquirerAvatars;
+  final String categoryName;
+  final int categoryId;
 
   PostModel({
     required this.id,
@@ -41,6 +43,8 @@ class PostModel{
     required this.status,
     required this.enquiriesCount,
     required this.enquirerAvatars,
+    this.categoryName = '',
+    this.categoryId = 0,
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
@@ -67,6 +71,8 @@ class PostModel{
               [])
           .map((e) => EnquirerAvatarModel.fromJson(e as Map<String, dynamic>))
           .toList(),
+      categoryName: json['category_name']?.toString() ?? '',
+      categoryId: int.tryParse(json['category_id']?.toString() ?? '') ?? 0,
     );
   }
 }

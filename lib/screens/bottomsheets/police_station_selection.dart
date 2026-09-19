@@ -201,7 +201,20 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
         AppButton(
           title: 'Submit',
           onTap: () {
-            if (textController.text.trim().isEmpty) {
+            final stationName = mapTextController.text.trim();
+            final stationAddress = textController.text.trim();
+
+            if (stationName.isEmpty) {
+              AppDialogue.showPopup(
+                context: context,
+                content: const AppText(
+                  text: 'Please enter the police station name',
+                ),
+              );
+              return;
+            }
+
+            if (stationAddress.isEmpty) {
               AppDialogue.showPopup(
                 context: context,
                 content: const AppText(
@@ -210,6 +223,11 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
               );
               return;
             }
+
+            debugPrint('[Handover] Selected police station:');
+            debugPrint('name: $stationName');
+            debugPrint('address: $stationAddress');
+            debugPrint('lat: $latitude, lon: $longitude');
 
             AppRoutes.pop();
             AppUiHelper.showBottomSheet(
@@ -223,8 +241,8 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
                 receiverId: widget.receiverId,
                 receiverPostId: widget.receiverPostId,
                 handoverType: widget.handoverType,
-                stationName: mapTextController.text.trim(),
-                stationAddress: textController.text.trim(),
+                stationName: stationName,
+                stationAddress: stationAddress,
                 latitude: latitude,
                 longitude: longitude,
                 isReceiver: widget.isReceiver,

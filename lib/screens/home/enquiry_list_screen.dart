@@ -167,6 +167,10 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     setState(() {
       isLoading = true;
       errorMessage = null;
+      // ============================================================
+      // CHANGED: Explicitly clear old/stale enquiry data before loading
+      // ============================================================
+      enquiryData = null;
     });
 
     debugPrint('================ ENQUIRY LIST ================');
@@ -263,13 +267,24 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
       bottomNavigationBar: isClosed
           ? SafeArea(
         child: SucessCard(
-          name: winnerEnquiry?.enquirerName ?? (widget.isFound ? 'Owner' : 'Finder'),
+          name: post?.handoverType == 2
+              ? (post?.stationName.isNotEmpty == true ? post!.stationName : 'Police Station')
+              : post?.handoverType == 3
+                  ? (post?.handoverName.isNotEmpty == true ? post!.handoverName : 'Others')
+                  : winnerEnquiry?.enquirerName ?? (widget.isFound ? 'Owner' : 'Finder'),
           location: post?.postDate != null
               ? DateFormat('d MMM yyyy').format(post!.postDate!)
               : '',
           isReceiver: !widget.isFound,
           onTap: () {
-            if (winnerEnquiry == null) return;
+            TransferType type;
+            if (post?.handoverType == 2) {
+              type = widget.isFound ? TransferType.handOverToPolice : TransferType.receiveToPolice;
+            } else if (post?.handoverType == 3) {
+              type = widget.isFound ? TransferType.handOverToOthers : TransferType.receiveToOthers;
+            } else {
+              type = widget.isFound ? TransferType.handOverToOwner : TransferType.receiveToOwner;
+            }
 
             AppUiHelper.showBottomSheet(
               context: context,
@@ -279,19 +294,29 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                 AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
               },
               child: ReceivedDetails(
-                type: TransferType.handOverToOwner,
+                type: type,
                 data: TransferData(
-                  name: winnerEnquiry.enquirerName.isNotEmpty
-                      ? winnerEnquiry.enquirerName
-                      : (widget.isFound ? 'Owner' : 'Finder'),
-                  avatarUrl: winnerEnquiry.enquirerProfileImg,
-                  userId: winnerEnquiry.userUid,
-                  phoneNumber: winnerEnquiry.phoneno,
-                  description: winnerEnquiry.description,
-                  proofPhotos: (post?.images ?? [])
+                  name: post?.handoverType == 2
+                      ? (post?.stationName ?? 'Police Station')
+                      : post?.handoverType == 3
+                          ? (post?.handoverName ?? 'Others')
+                          : (winnerEnquiry?.enquirerName ?? (widget.isFound ? 'Owner' : 'Finder')),
+                  avatarUrl: post?.handoverType == 2 || post?.handoverType == 3
+                      ? ''
+                      : (winnerEnquiry?.enquirerProfileImg ?? ''),
+                  userId: winnerEnquiry?.userUid,
+                  phoneNumber: post?.handoverPhoneno ?? winnerEnquiry?.phoneno ?? '',
+                  description: post?.handoverDescription.isNotEmpty == true
+                      ? post!.handoverDescription
+                      : '',
+                  policeStationName: post?.stationName ?? '',
+                  policeStationAddress: post?.stationAddress ?? '',
+                  proofPhotos: (post?.handoverImg.isNotEmpty == true
+                      ? post!.handoverImg
+                      : [])
                       .map((img) => _getMediaUrl(img))
                       .toList(),
-                  matchPercentage: winnerEnquiry.matchPercentage,
+                  matchPercentage: winnerEnquiry?.matchPercentage,
                 ),
               ),
             );
@@ -316,15 +341,21 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               ),
               AppButton(
                 title: 'Hand Over',
-                onTap: () {
-                  AppUiHelper.showBottomSheet(
+                onTap: () async {
+                  debugPrint('[Handover] Opening ReceiveHandoverSheet from EnquiryList');
+                  debugPrint('[Handover] postId: ${widget.postId}');
+                  debugPrint('[Handover] categoryId passed: ${enquiryData?.post?.categoryId}');
+
+                  await AppUiHelper.showBottomSheet(
                     context: context,
                     child: ReceiveHandoverSheet(
-                      title: enquiryData?.post?.name ?? '',
+                      title: enquiryData?.post?.categoryName ?? '',
                       isReceiver: !widget.isFound, // If I found it, I am the giver (isReceiver=false). If I lost it, I am the receiver (isReceiver=true).
                       postId: widget.postId,
+                      categoryId: enquiryData?.post?.categoryId,
                     ),
                   );
+                  _fetchEnquiries();
                 },
                 radius: BorderRadius.circular(14),
               ),
@@ -347,6 +378,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     final post = enquiryData?.post;
     final enquiries = enquiryData?.enquiries ?? [];
     final isClosed = post?.status == 2;
+    final isJewellery = post?.categoryName.toLowerCase().contains('jewellery') ?? false;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
@@ -365,101 +397,86 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               : '',
           postId: post?.postUid ?? '',
           bg: AppColors.lightBlue_2,
-          // onTap: () {
-          //   if (post != null) {
-          //     AppRoutes.pushNamed(
-          //       AppRoutes.lostItemsDetailsScreen,
-          //       arguments: {
-          //         'postId': post.id,
-          //         'userId': post.userId,
-          //         'isLostPost': !widget.isFound,
-          //       },
-          //     );
-          //   }
-          // },
           showPostId: true,
           status: post?.status,
-          showClosedStamp: false, onTap: () {  },
+          showClosedStamp: false,
+          onTap: () {},
         ).pad(7),
 
-        Row(
-          spacing: 10,
-          children: [
-            const AppText(
-              text: 'Enquires Received',
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.black,
-            ),
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: AppColors.primaryColor,
-                shape: BoxShape.circle,
+        if (!isJewellery && enquiries.isNotEmpty) ...[
+          Row(
+            spacing: 10,
+            children: [
+              const AppText(
+                text: 'Enquires Received',
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.black,
               ),
-              child: AppText(
-                text: '${enquiryData?.enquiriesCount ?? 0}',
-                color: AppColors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryColor,
+                  shape: BoxShape.circle,
+                ),
+                child: AppText(
+                  text: '${enquiryData?.enquiriesCount ?? 0}',
+                  color: AppColors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
-        ).pad(5),
+            ],
+          ).pad(5),
 
-        Expanded(
-          child: enquiries.isEmpty
-              ? const Center(child: AppText(text: 'No enquiries yet'))
-              : RefreshIndicator(
-            onRefresh: _fetchEnquiries,
-            child: ListView.builder(
-              itemCount: enquiries.length,
-              itemBuilder: (context, index) {
-                final e = enquiries[index];
-                final isWinner = isClosed && e.status == 2;
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetchEnquiries,
+              child: ListView.builder(
+                itemCount: enquiries.length,
+                itemBuilder: (context, index) {
+                  final e = enquiries[index];
+                  final isWinner = isClosed && e.status == 2;
 
+                  return buildEnquiryCard(
+                    context: context,
+                    bgColor: isWinner ? AppColors.closedColor : AppColors.white,
+                    borderColor: isWinner ? AppColors.green : null,
+                    profileImage: e.enquirerProfileImg,
+                    name: e.enquirerName,
+                    userId: e.userUid,
+                    time: _timeAgo(e.createdAt),
+                    matchPercentage: '${e.matchPercentage}%',
+                    description: e.description,
+                    messageOnTap: () async {
+                      await _openChat(e, post);
+                    },
+                    detailOnTap: () async {
+                      final otherPostId = (e.matchedPostId != widget.postId && e.matchedPostId != 0)
+                          ? e.matchedPostId
+                          : e.postId;
 
-
-
-                return buildEnquiryCard(
-                  context: context,
-                  bgColor: isWinner ? AppColors.closedColor : AppColors.white,
-                  borderColor: isWinner ? AppColors.green : null,
-                  profileImage: e.enquirerProfileImg,
-                  name: e.enquirerName,
-                  userId: e.userUid,
-                  time: _timeAgo(e.createdAt),
-                  matchPercentage: '${e.matchPercentage}%',
-                  description: e.description,
-                  messageOnTap: () async {
-                    await _openChat(e, post);
-                  },
-                  detailOnTap: () async {
-                    // Fix: Use the correct matched post ID by identifying the "other" post in the enquiry
-                    final otherPostId = (e.matchedPostId != widget.postId && e.matchedPostId != 0)
-                        ? e.matchedPostId
-                        : e.postId;
-
-                    await AppRoutes.pushNamed(
-                      AppRoutes.lostItemsDetailsScreen,
-                      arguments: {
-                        'postId': otherPostId,
-                        'userId': e.enquirerUserId,
-                        'percentageMatch': e.matchPercentage,
-                        'posterName': e.enquirerName,
-                        'posterAvatar': e.enquirerProfileImg,
-                        'originalPostId': widget.postId,
-                        'hideEnquiryButton': true,
-                        'isLostPost': widget.isFound,
-                      },
-                    );
-                    _fetchEnquiries();
-                  },
-                ).padVertical(7);
-              },
+                      await AppRoutes.pushNamed(
+                        AppRoutes.lostItemsDetailsScreen,
+                        arguments: {
+                          'postId': otherPostId,
+                          'userId': e.enquirerUserId,
+                          'percentageMatch': e.matchPercentage,
+                          'posterName': e.enquirerName,
+                          'posterAvatar': e.enquirerProfileImg,
+                          'originalPostId': widget.postId,
+                          'hideEnquiryButton': true,
+                          'isLostPost': widget.isFound,
+                        },
+                      );
+                      _fetchEnquiries();
+                    },
+                  ).padVertical(7);
+                },
+              ),
             ),
           ),
-        ),
+        ],
       ],
     ).pad();
   }

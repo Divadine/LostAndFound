@@ -36,6 +36,7 @@ class ItemCard extends StatelessWidget {
   final bool isTopAvailabilityCard;
   final double? imageWidth;
   final int? postIntId; // NEW — numeric id for API calls
+  final String? categoryName; // NEW
   final void Function(int)? onDeleted; // NEW — refresh trigger after successful delete
   final VoidCallback? onViewAll;
   final int? status;
@@ -68,6 +69,7 @@ class ItemCard extends StatelessWidget {
     this.isTopAvailabilityCard = false,
     this.imageWidth,
     this.postIntId,
+    this.categoryName, // NEW
     this.onDeleted,
     this.onViewAll,
     this.status,
@@ -79,6 +81,16 @@ class ItemCard extends StatelessWidget {
     final isClosed = status == 2;
     final cardBg = bg ?? AppColors.white;
     final borderColor = Colors.transparent;
+
+    final isJewellery = categoryName?.toLowerCase() == 'jewellery & valuables';
+
+    // ============================================================
+    // FIX: Enquires card visibility must be based ONLY on the
+    // actual enquiries count for this post — never on matching
+    // count, newMessageCount, or enquiredProfile alone.
+    // Also ensuring it only shows for Found posts.
+    // ============================================================
+    final hasEnquiry = isFound && enquiriesCount != null && enquiriesCount! > 0;
 
     return GestureDetector(
       onTap: onTap,
@@ -114,7 +126,7 @@ class ItemCard extends StatelessWidget {
                   children: [
                     if (profileUrl != null && profileUrl!.trim().isNotEmpty)
                       Container(
-                        width: 40,
+                        width: 30,
                         height: 40,
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
@@ -128,16 +140,20 @@ class ItemCard extends StatelessWidget {
                         ),
                       ).padVertical(5),
                     if (profileName != null && profileName!.trim().isNotEmpty)
-                      AppText(
-                        text: profileName!,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        color: AppColors.primaryColor,
+                      Flexible(
+                        child: AppText(
+                          text: profileName!,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          color: AppColors.primaryColor,
+                          maxLine: 1,
+                          textOverflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     if (profileId != null && profileId!.trim().isNotEmpty)
                       Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: 10,
+                          horizontal: 6,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
@@ -157,7 +173,7 @@ class ItemCard extends StatelessWidget {
                     if (percentageMatch != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
+                          horizontal: 2,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
@@ -169,7 +185,7 @@ class ItemCard extends StatelessWidget {
                         child: AppText(
                           text: '$percentageMatch% match',
                           fontWeight: FontWeight.w500,
-                          fontSize: 10,
+                          fontSize: 8,
                           color: AppUtils.getMatchColor(percentageMatch!),
                         ),
                       ),
@@ -314,7 +330,11 @@ class ItemCard extends StatelessWidget {
                 ],
               ),
             SizedBox(height: 10),
-            if (foundCount != null && status != 2 && !isFound)
+            // ============================================================
+            // "Available Matching" card — unchanged logic, still driven
+            // by foundCount, not affected by this fix.
+            // ============================================================
+            if (foundCount != null && status != 2 && !isFound && !isJewellery)
               GestureDetector(
                 onTap: onViewAll,
                 child: Container(
@@ -334,7 +354,7 @@ class ItemCard extends StatelessWidget {
                         Flexible(
                           child: AppText(
                             text:
-                                'Available Matching item - $foundCount founded',
+                            'Available Matching item - $foundCount founded',
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -356,10 +376,11 @@ class ItemCard extends StatelessWidget {
                   ),
                 ).pad(),
               ),
-            if (((newMessageCount != null && newMessageCount != '0') ||
-                (enquiriesCount != null && enquiriesCount! > 0) ||
-                (enquiredProfile != null && enquiredProfile!.isNotEmpty)) &&
-                status != 2)
+            // ============================================================
+            // FIX: "Enquires" card — visibility now driven ONLY by
+            // hasEnquiry (isFound && enquiriesCount > 0).
+            // ============================================================
+            if (hasEnquiry && status != 2 && !isJewellery)
               Container(
                 height: 35,
                 width: double.infinity,
@@ -371,7 +392,7 @@ class ItemCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     AppText(
-                      text: 'Enquires ',
+                      text: 'Enquirers ',
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: AppColors.secondaryBlack,
@@ -408,7 +429,7 @@ class ItemCard extends StatelessWidget {
                               ),
                             ),
                           ],
-                          AppIconWidget(assetPath: AssetImages.iosForward),
+                          AppIconWidget(assetPath: AssetImages.iosForward,color: AppColors.primaryColor,),
                         ],
                       ),
                     ),

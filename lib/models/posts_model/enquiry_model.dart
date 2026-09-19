@@ -9,6 +9,15 @@ class EnquiryPostModel {
   final DateTime? postDate;
   final int status;
   final int postType;
+  final int categoryId;
+  final String categoryName;
+  final int handoverType;
+  final String handoverName;
+  final String stationName;
+  final String stationAddress;
+  final String handoverDescription;
+  final String handoverPhoneno;
+  final List<String> handoverImg;
 
   EnquiryPostModel({
     required this.id,
@@ -21,9 +30,34 @@ class EnquiryPostModel {
     this.postDate,
     this.status = 0,
     this.postType = 0,
+    this.categoryId = 0,
+    this.categoryName = '',
+    this.handoverType = 0,
+    this.handoverName = '',
+    this.stationName = '',
+    this.stationAddress = '',
+    this.handoverDescription = '',
+    this.handoverPhoneno = '',
+    this.handoverImg = const [],
   });
 
   factory EnquiryPostModel.fromJson(Map<String, dynamic> json) {
+    final handoverImages = <String>[];
+    final handoverObj = json['handover'] is Map ? json['handover'] as Map<String, dynamic> : null;
+
+    final hi = json['handover_img'] ?? handoverObj?['handover_img'];
+    if (hi != null && hi.toString().isNotEmpty) {
+      if (hi is String) {
+        if (hi.contains(',')) {
+          handoverImages.addAll(hi.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+        } else {
+          handoverImages.add(hi.trim());
+        }
+      } else if (hi is List) {
+        handoverImages.addAll(hi.map((e) => e.toString()));
+      }
+    }
+
     return EnquiryPostModel(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       userId: int.tryParse(json['user_id']?.toString() ?? '') ??
@@ -40,6 +74,20 @@ class EnquiryPostModel {
           int.tryParse(json['status']?.toString() ?? '') ??
           0,
       postType: int.tryParse(json['post_type']?.toString() ?? '') ?? 0,
+      categoryId: int.tryParse((json['category_id'] ?? handoverObj?['category_id'] ?? '').toString()) ?? 0,
+      categoryName: (json['category_name'] ?? handoverObj?['category_name'] ?? '').toString(),
+      handoverType: int.tryParse((json['handover_type'] ?? handoverObj?['handover_type'] ?? '').toString()) ?? 0,
+      handoverName: (json['handover_name'] ?? json['name'] ?? handoverObj?['handover_name'] ?? handoverObj?['name'] ?? '').toString(),
+      stationName: (json['station_name'] ?? handoverObj?['station_name'] ?? '').toString(),
+      stationAddress: (json['station_address'] ?? handoverObj?['station_address'] ?? '').toString(),
+      handoverDescription: (json['handover_description'] ??
+              json['handover_desc'] ??
+              handoverObj?['description'] ??
+              handoverObj?['handover_description'] ??
+              '')
+          .toString(),
+      handoverPhoneno: (json['phoneno'] ?? handoverObj?['phoneno'] ?? '').toString(),
+      handoverImg: handoverImages,
     );
   }
 }

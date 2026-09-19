@@ -215,6 +215,7 @@ class _HomeScreenState extends State<HomeScreen>
         'isReceived': false,
         'status': post.status,
         'isFound': _tabController.index == 1,
+        'categoryId': post.categoryId,
       },
     );
   }
@@ -1044,6 +1045,7 @@ class _HomeScreenState extends State<HomeScreen>
                   postId: post.postUid,
                   foundCount: matchingCounts[post.id],
                   postIntId: post.id,
+                  categoryName: post.categoryName,
                   onDeleted: (id) {
                     setState(() {
                       lostPosts.removeWhere((p) => p.id == id);
@@ -1053,21 +1055,38 @@ class _HomeScreenState extends State<HomeScreen>
                   onViewAll: () => _openAvailableMatching(post),
                   status: post.status,
                   onTap: () {
-                    AppRoutes.pushNamed(
-                      AppRoutes.availableMatchingScreen,
-                      arguments: {
-                        'postId': post.id,
-                        'imgUrl': post.images.isNotEmpty ? post.images.first : '',
-                        'title': post.name,
-                        'location': post.location,
-                        'date': _formatDate(post.postDate),
-                        'postUid': post.postUid,
-                        'foundCount': matchingCounts[post.id] ?? post.enquiriesCount,
-                        'isReceived': false,
-                        'status': post.status,
-                        'isFound': false,
-                      },
-                    );
+                    final isJewellery =
+                        post.categoryName.toLowerCase() == 'jewellery & valuables';
+
+                    if (isJewellery) {
+                      AppRoutes.pushNamed(
+                        AppRoutes.lostItemsDetailsScreen,
+                        arguments: {
+                          'postId': post.id,
+                          'userId': AppPreferences.getUserId(),
+                          'isLostPost': true,
+                          'isUserPost': true,
+                        },
+                      );
+                    } else {
+                      AppRoutes.pushNamed(
+                        AppRoutes.availableMatchingScreen,
+                        arguments: {
+                          'postId': post.id,
+                          'imgUrl':
+                              post.images.isNotEmpty ? post.images.first : '',
+                          'title': post.name,
+                          'location': post.location,
+                          'date': _formatDate(post.postDate),
+                          'postUid': post.postUid,
+                          'foundCount':
+                              matchingCounts[post.id] ?? post.enquiriesCount,
+                          'isReceived': false,
+                          'status': post.status,
+                          'isFound': false,
+                        },
+                      );
+                    }
                   },
                   showPostId: true,
                 ).pad();
@@ -1217,16 +1236,20 @@ class _HomeScreenState extends State<HomeScreen>
                   postId: post.postUid,
                   postIntId: post.id,
                   foundCount: matchingCounts[post.id],
+                  categoryName: post.categoryName,
                   onDeleted: (id) {
                     setState(() {
                       foundPosts.removeWhere((p) => p.id == id);
                     });
                     _fetchFoundPosts();
                   },
-                  newMessageCount: effectiveEnquiries > 0
+                  // ============================================================
+                  // CHANGED: Driven by actual post.enquiriesCount for the Found tab
+                  // ============================================================
+                  newMessageCount: post.enquiriesCount > 0 && effectiveEnquiries > 0
                       ? effectiveEnquiries.toString()
                       : null,
-                  enquiriesCount: finalTotalCount,
+                  enquiriesCount: post.enquiriesCount,
                   enquiredProfile: post.enquirerAvatars.isNotEmpty
                       ? post.enquirerAvatars
                       .map((e) => e.imageUrl)
@@ -1245,13 +1268,28 @@ class _HomeScreenState extends State<HomeScreen>
                   onViewAll: () => _openAvailableMatching(post),
                   status: post.status,
                   onTap: () {
-                    AppRoutes.pushNamed(
-                      AppRoutes.enquiryListScreen,
-                      arguments: {
-                        'postId': post.id,
-                        'isFound': true,
-                      },
-                    );
+                    final isJewellery =
+                        post.categoryName.toLowerCase() == 'jewellery & valuables';
+
+                    if (isJewellery) {
+                      AppRoutes.pushNamed(
+                        AppRoutes.lostItemsDetailsScreen,
+                        arguments: {
+                          'postId': post.id,
+                          'userId': AppPreferences.getUserId(),
+                          'isLostPost': false,
+                          'isUserPost': true,
+                        },
+                      );
+                    } else {
+                      AppRoutes.pushNamed(
+                        AppRoutes.enquiryListScreen,
+                        arguments: {
+                          'postId': post.id,
+                          'isFound': true,
+                        },
+                      );
+                    }
                   },
                   showPostId: true,
                 ).pad();

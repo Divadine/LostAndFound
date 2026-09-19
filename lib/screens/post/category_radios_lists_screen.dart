@@ -360,7 +360,7 @@ class _CategoryRadiosListsScreenState
                   return ListView.builder(
                     padding: const EdgeInsets.only(top: 4),
                     controller: _scrollController,
-
+                    clipBehavior: Clip.none,
                     itemCount: catData.length + (isMoreLoading ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == catData.length) {
@@ -560,7 +560,7 @@ class _CategoryRadiosListsScreenState
               ),
             ),
           ],
-        ).pad(5),
+        ).pad(4),
       ).padBottom(12),
     );
   }

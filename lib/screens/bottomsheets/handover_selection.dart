@@ -13,8 +13,6 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 import '../../shared_widgets/app_button.dart';
 
-// Handover method enum — CONFIRM these exact integer values with the
-// backend team (Swagger doc for /handover/createHandover -> handover_type).
 class HandoverType {
   static const int owner = 1;
   static const int police = 2;
@@ -25,12 +23,14 @@ class ReceiveHandoverSheet extends StatefulWidget {
   final String title;
   final bool isReceiver;
   final int postId;
+  final int? categoryId;
 
   const ReceiveHandoverSheet({
     super.key,
     required this.title,
     required this.isReceiver,
     required this.postId,
+    this.categoryId,
   });
 
   @override
@@ -40,13 +40,33 @@ class ReceiveHandoverSheet extends StatefulWidget {
 class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
   int selectedIndex = 0;
 
-  bool get isGold => widget.title.toLowerCase() == 'Jewellery & Valuables';
+  // Jewellery & Valuables category ID.
+  // This uses categoryId, NOT title/item name/post type.
+  bool get isJewellery => widget.categoryId == 9;
 
   @override
   void initState() {
     super.initState();
-    if (isGold) {
+
+    debugPrint('========== HANDOVER SHEET ==========');
+    debugPrint('[Handover] title: "${widget.title}"');
+    debugPrint('[Handover] categoryId: ${widget.categoryId}');
+    debugPrint('[Handover] isJewellery: $isJewellery');
+
+    if (isJewellery) {
+      // Police is the only option for Jewellery.
       selectedIndex = 2;
+
+      debugPrint(
+        '[Handover] Jewellery detected -> Police Station only',
+      );
+    } else {
+      // Preserve original non-Jewellery flow.
+      selectedIndex = 0;
+
+      debugPrint(
+        '[Handover] Non-Jewellery -> Owner / Police / Others',
+      );
     }
   }
 
@@ -63,14 +83,42 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
-          SizedBox(height: 10),
+
+          const SizedBox(height: 10),
+
           AppText(
             text: 'Choose one option to continue',
             fontSize: 12,
             fontWeight: FontWeight.w400,
           ),
 
-          if (!isGold)
+          // ==========================================================
+          // JEWELLERY
+          // ONLY POLICE STATION
+          // ==========================================================
+          if (isJewellery) ...[
+            BottomSheetHandOver(
+              title: widget.isReceiver
+                  ? 'Receive from Police Station'
+                  : 'Hand Over to Police Station',
+              subtitle: widget.isReceiver
+                  ? 'Receive the item from the police station.'
+                  : 'Provide the Police station details.',
+              image: AssetImages.police,
+              isSelected: selectedIndex == 2,
+              onTap: () {
+                setState(() {
+                  selectedIndex = 2;
+                });
+              },
+            ),
+          ]
+
+          // ==========================================================
+          // NON-JEWELLERY
+          // ORIGINAL 3 OPTIONS
+          // ==========================================================
+          else ...[
             BottomSheetHandOver(
               title: widget.isReceiver
                   ? 'Receive from found Person'
@@ -80,38 +128,66 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                   : 'Select the owner from the suggested Profiles.',
               image: AssetImages.userIcon,
               isSelected: selectedIndex == 1,
-              onTap: () => setState(() => selectedIndex = 1),
+              onTap: () {
+                setState(() {
+                  selectedIndex = 1;
+                });
+              },
             ),
-          BottomSheetHandOver(
-            title: widget.isReceiver
-                ? 'Receive from Police Station'
-                : 'Hand Over to Police Station',
-            subtitle: widget.isReceiver
-                ? 'Receive the item from the police station.'
-                : 'Provide the Police station details.',
-            image: AssetImages.police,
-            isSelected: selectedIndex == 2,
-            onTap: () => setState(() => selectedIndex = 2),
-          ),
-          if (!isGold)
+
             BottomSheetHandOver(
-              title: widget.isReceiver ? 'Received to others' : 'Hand Over to others',
+              title: widget.isReceiver
+                  ? 'Receive from Police Station'
+                  : 'Hand Over to Police Station',
+              subtitle: widget.isReceiver
+                  ? 'Receive the item from the police station.'
+                  : 'Provide the Police station details.',
+              image: AssetImages.police,
+              isSelected: selectedIndex == 2,
+              onTap: () {
+                setState(() {
+                  selectedIndex = 2;
+                });
+              },
+            ),
+
+            BottomSheetHandOver(
+              title: widget.isReceiver
+                  ? 'Received to others'
+                  : 'Hand Over to others',
               subtitle: 'Provide the others details.',
               image: AssetImages.threeDotsHorizontal,
               isSelected: selectedIndex == 3,
-              onTap: () => setState(() => selectedIndex = 3),
+              onTap: () {
+                setState(() {
+                  selectedIndex = 3;
+                });
+              },
             ),
-          SizedBox(height: 5),
+          ],
+
+          const SizedBox(height: 5),
+
+          // ==========================================================
+          // CONTINUE
+          // ==========================================================
           AppButton(
             title: 'Continue',
             onTap: () async {
-              if (selectedIndex == 0) return;
+              if (selectedIndex == 0) {
+                return;
+              }
+
               AppRoutes.pop();
 
               final phoneNumber = AppPreferences.getPhone() ?? '';
               final userId = AppPreferences.getUserId() ?? 0;
 
-              if (selectedIndex == 1) {
+              // ========================================================
+              // OWNER
+              // Non-Jewellery only
+              // ========================================================
+              if (!isJewellery && selectedIndex == 1) {
                 AppUiHelper.showBottomSheet(
                   showHandle: false,
                   context: context,
@@ -120,8 +196,13 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                     isReceiver: widget.isReceiver,
                   ),
                 );
+                return;
               }
 
+              // ========================================================
+              // POLICE
+              // Jewellery + Non-Jewellery
+              // ========================================================
               if (selectedIndex == 2) {
                 AppUiHelper.showBottomSheet(
                   showHandle: false,
@@ -134,9 +215,14 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                     isReceiver: widget.isReceiver,
                   ),
                 );
+                return;
               }
 
-              if (selectedIndex == 3) {
+              // ========================================================
+              // OTHERS
+              // Non-Jewellery only
+              // ========================================================
+              if (!isJewellery && selectedIndex == 3) {
                 AppUiHelper.showBottomSheet(
                   showHandle: false,
                   context: context,
@@ -152,7 +238,9 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
             bgColor: selectedIndex == 0
                 ? AppColors.idCardColor
                 : AppColors.primaryColor,
-            textColor: selectedIndex == 0 ? AppColors.black : AppColors.white,
+            textColor: selectedIndex == 0
+                ? AppColors.black
+                : AppColors.white,
             radius: BorderRadius.circular(7),
           ),
         ],
@@ -160,6 +248,10 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
     );
   }
 }
+
+// ==========================================================================
+// HANDOVER OPTION WIDGET
+// ==========================================================================
 
 Widget BottomSheetHandOver({
   required String title,
@@ -171,22 +263,31 @@ Widget BottomSheetHandOver({
   return GestureDetector(
     onTap: onTap,
     child: AppContainer(
-      color: isSelected ? AppColors.primaryColor : Colors.transparent,
+      color: isSelected
+          ? AppColors.primaryColor
+          : Colors.transparent,
       widget: Row(
         spacing: 10,
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           CircleAvatar(
             radius: 30,
-            child: AppIconWidget(assetPath: image),
+            child: AppIconWidget(
+              assetPath: image,
+            ),
           ).pad(),
+
           Flexible(
             child: Column(
               spacing: 10,
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppText(text: title, fontWeight: FontWeight.w600, fontSize: 16),
+                AppText(
+                  text: title,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
                 AppText(
                   text: subtitle,
                   fontWeight: FontWeight.w500,
