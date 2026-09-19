@@ -28,6 +28,7 @@ class PostModel{
   final int status;
   final int enquiriesCount;
   final List<EnquirerAvatarModel> enquirerAvatars;
+
   PostModel({
     required this.id,
     required this.postUid,
