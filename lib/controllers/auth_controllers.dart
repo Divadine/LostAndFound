@@ -238,6 +238,7 @@ class AuthControllers {
 
   Future<ResponseModel> createHandover({
     int? enquiryId = 0,
+    String? codeId,
     required int type,
     required int userId,
     required int postId,
@@ -253,6 +254,7 @@ class AuthControllers {
   }) async {
     return await authRepository.createHandover(
       enquiryId: enquiryId ?? 0,
+      codeId: codeId,
       type: type,
       userId: userId,
       postId: postId,

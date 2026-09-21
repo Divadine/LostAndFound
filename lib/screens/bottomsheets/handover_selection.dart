@@ -218,6 +218,7 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                     phoneNumber: phoneNumber,
                     handoverType: HandoverType.police,
                     isReceiver: widget.isReceiver,
+                    isJewellery: isJewellery,
                   ),
                 );
                 return;

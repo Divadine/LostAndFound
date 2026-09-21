@@ -670,6 +670,7 @@ class AuthRepository {
 
   Future<ResponseModel> createHandover({
     int? enquiryId,
+    String? codeId,
     required int type,
     required int userId,
     required int postId,
@@ -685,6 +686,7 @@ class AuthRepository {
   }) async {
     final body = {
       'enquiry_id': (handoverType == 2 || handoverType == 3) ? 0 : (enquiryId ?? 0),
+      'code_id': codeId ?? "",
       'type': type,
       'user_id': userId,
       'post_id': postId,

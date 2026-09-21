@@ -25,6 +25,7 @@ class PoliceStationHandOver extends StatefulWidget {
   final int? receiverPostId;
   final int handoverType; // owner=1 / police=2 / others=3 — see HandoverType
   final bool isReceiver;
+  final bool isJewellery;
 
   const PoliceStationHandOver({
     super.key,
@@ -36,6 +37,7 @@ class PoliceStationHandOver extends StatefulWidget {
     this.receiverPostId,
     required this.handoverType,
     this.isReceiver = false,
+    this.isJewellery = false,
   });
 
   @override
@@ -246,6 +248,7 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
                 latitude: latitude,
                 longitude: longitude,
                 isReceiver: widget.isReceiver,
+                isJewellery: widget.isJewellery,
               ),
             );
           },
