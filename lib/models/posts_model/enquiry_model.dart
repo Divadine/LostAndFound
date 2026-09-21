@@ -23,6 +23,8 @@ class EnquiryPostModel {
   final int? handoverMatchPercentage;
   final String handoverUserUid;
   final String handoverDate;
+  final String posterName;
+  final String posterAvatar;
 
   EnquiryPostModel({
     required this.id,
@@ -35,7 +37,7 @@ class EnquiryPostModel {
     this.postDate,
     this.status = 0,
     this.postType = 0,
-    this.categoryId = 0,
+    required this.categoryId,
     this.categoryName = '',
     this.handoverType = 0,
     this.handoverName = '',
@@ -47,6 +49,8 @@ class EnquiryPostModel {
     this.handoverMatchPercentage,
     this.handoverUserUid = '',
     this.handoverDate = '',
+    this.posterName = '',
+    this.posterAvatar = '',
   });
 
   factory EnquiryPostModel.fromJson(Map<String, dynamic> json) {
@@ -111,6 +115,30 @@ class EnquiryPostModel {
             '')
         .toString();
 
+    String? foundName = json['poster_name']?.toString() ??
+        json['user_name']?.toString() ??
+        json['full_name']?.toString() ??
+        json['display_name']?.toString();
+
+    if (foundName == null && json['user'] is Map) {
+      final user = json['user'] as Map<String, dynamic>;
+      foundName = user['name']?.toString() ??
+          user['user_name']?.toString() ??
+          user['full_name']?.toString() ??
+          user['display_name']?.toString();
+    }
+
+    String? foundAvatar = json['poster_avatar']?.toString() ??
+        json['user_avatar']?.toString() ??
+        json['image_url']?.toString();
+
+    if (foundAvatar == null && json['user'] is Map) {
+      final user = json['user'] as Map<String, dynamic>;
+      foundAvatar = user['profile_image']?.toString() ??
+          user['image_url']?.toString() ??
+          user['avatar']?.toString();
+    }
+
     return EnquiryPostModel(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       userId: int.tryParse(json['user_id']?.toString() ?? '') ??
@@ -163,6 +191,8 @@ class EnquiryPostModel {
               json['handover_date'] ??
               '')
           .toString(),
+      posterName: foundName ?? '',
+      posterAvatar: foundAvatar ?? '',
     );
   }
 }

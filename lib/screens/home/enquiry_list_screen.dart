@@ -327,18 +327,20 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                       : (winnerEnquiry?.phoneno ?? ''),
                   description: post?.handoverDescription.isNotEmpty == true
                       ? post!.handoverDescription
-                      : '',
+                      : (winnerEnquiry?.description.isNotEmpty == true
+                          ? winnerEnquiry!.description
+                          : ''),
                   policeStationName: post?.stationName.isNotEmpty == true
                       ? post!.stationName
                       : (isJewellery && post?.handoverName.isNotEmpty == true && post!.handoverName != 'Owner' ? post!.handoverName : 'Police Station'),
                   policeStationAddress: post?.stationAddress.isNotEmpty == true
                       ? post!.stationAddress
-                      : '',
-                  proofPhotos: (post?.handoverImg.isNotEmpty == true
-                      ? post!.handoverImg
-                      : [])
-                      .map((img) => _getMediaUrl(img))
-                      .toList(),
+                      : (post?.location ?? 'Address not available'),
+                  proofPhotos: post?.handoverImg.isNotEmpty == true
+                      ? post!.handoverImg.map((img) => _getMediaUrl(img)).toList()
+                      : (post?.images != null && post!.images.isNotEmpty
+                          ? post!.images.map((img) => _getMediaUrl(img)).toList()
+                          : []),
                   matchPercentage: post?.handoverMatchPercentage ?? winnerEnquiry?.matchPercentage,
                   handoverDate: post?.handoverDate ?? '',
                 ),
@@ -375,7 +377,9 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                     context: context,
                     child: ReceiveHandoverSheet(
                       title: enquiryData?.post?.categoryName ?? '',
-                      isReceiver: !widget.isFound, // If I found it, I am the giver (isReceiver=false). If I lost it, I am the receiver (isReceiver=true).
+                      isReceiver: widget.isFound
+                          ? (enquiryData?.post?.userId != AppPreferences.getUserId())
+                          : (enquiryData?.post?.userId == AppPreferences.getUserId()),
                       postId: widget.postId,
                       categoryId: enquiryData?.post?.categoryId,
                     ),

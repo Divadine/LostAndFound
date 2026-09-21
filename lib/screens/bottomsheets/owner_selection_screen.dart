@@ -79,28 +79,70 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
       final Map<int, int> userMap = {};
       final Map<String, int> uidMap = {};
       final List<HandoverOwnerModel> newOwners = [];
+      final currentUserId = AppPreferences.getUserId();
 
       if (enquiryResponse.isSuccess && enquiryResponse.data != null) {
-        for (final e in enquiryResponse.data!.enquiries) {
-          // Map to HandoverOwnerModel for display
-          newOwners.add(HandoverOwnerModel(
-            postId: e.matchedPostId,
-            userId: e.enquirerUserId,
-            userUid: e.userUid,
-            name: e.enquirerName,
-            phoneno: e.phoneno,
-            profileImageUrl: e.enquirerProfileImg,
-            matchPercentage: e.matchPercentage,
-          ));
+        final post = enquiryResponse.data!.post;
 
-          // Populate lookup maps
-          postMap[e.matchedPostId] = e.enquiryId;
-          userMap[e.enquirerUserId] = e.enquiryId;
-          uidMap[e.userUid] = e.enquiryId;
+        for (final e in enquiryResponse.data!.enquiries) {
+          // If we are in the receiver flow and the enquirer is the current user,
+          // it means the current user enquired to this post.
+          // In this case, we want to show the POST OWNER (Founder) to the receiver.
+          if (widget.isReceiver && e.enquirerUserId == currentUserId && post != null) {
+            final ownerModel = HandoverOwnerModel(
+              postId: post.id,
+              userId: post.userId,
+              userUid: post.userUid,
+              name: post.posterName.isNotEmpty
+                  ? post.posterName
+                  : (post.handoverName.isNotEmpty && post.handoverName != 'Owner'
+                      ? post.handoverName
+                      : 'Founder'),
+              phoneno: post.handoverPhoneno,
+              profileImageUrl: post.images.isNotEmpty ? post.images.first : null,
+              matchPercentage: e.matchPercentage,
+            );
+            newOwners.add(ownerModel);
+
+            // Populate lookup maps using the post owner's info but the current enquiry ID
+            postMap[post.id] = e.enquiryId;
+            userMap[post.userId] = e.enquiryId;
+            uidMap[post.userUid] = e.enquiryId;
+          } else {
+            // Standard flow: show the enquirer (e.g. Founder looking at enquirers)
+            newOwners.add(HandoverOwnerModel(
+              postId: e.matchedPostId,
+              userId: e.enquirerUserId,
+              userUid: e.userUid,
+              name: e.enquirerName,
+              phoneno: e.phoneno,
+              profileImageUrl: e.enquirerProfileImg,
+              matchPercentage: e.matchPercentage,
+            ));
+
+            postMap[e.matchedPostId] = e.enquiryId;
+            userMap[e.enquirerUserId] = e.enquiryId;
+            uidMap[e.userUid] = e.enquiryId;
+          }
         }
       }
 
-      // REMOVED Firestore chat rooms supplement to ensure only users who actually enquired for this post via the backend are displayed.
+      // Supplement with matches if in receiver flow, as MatchItemModel contains the poster name.
+      if (widget.isReceiver && matchesResponse.isSuccess && matchesResponse.data != null) {
+        for (final m in matchesResponse.data!.matches) {
+          if (!newOwners.any((o) => o.userId == m.userId)) {
+            newOwners.add(HandoverOwnerModel(
+              postId: m.postId,
+              userId: m.userId,
+              userUid: m.userUid,
+              name: m.posterName,
+              phoneno: '', // Will be fetched via getProfile in the next screen if needed
+              profileImageUrl: m.posterAvatar,
+              matchPercentage: m.matchPercentage,
+            ));
+          }
+        }
+      }
 
       if (!mounted) return;
 
@@ -139,6 +181,26 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
     // Try lookup by User ID / UID from pre-fetched map
     enquiryId ??= enquiryIdByUserId[selectedOwner.userId];
     enquiryId ??= enquiryIdByUserUid[selectedOwner.userUid];
+
+    // FIX: If enquiryId is still null, it might be because the enquiry was sent TO the matched post
+    // (Receiver flow). Let's try to fetch it from the matched post's enquiry list.
+    if (enquiryId == null) {
+      try {
+        final resp = await authController.viewEnquiry(postId: selectedOwner.postId);
+        if (resp.isSuccess && resp.data != null) {
+          final currentUserId = AppPreferences.getUserId();
+          for (final e in resp.data!.enquiries) {
+            // Check if this enquiry links the two posts and involves the current user
+            if (e.matchedPostId == widget.postId && (e.enquirerUserId == currentUserId || currentUserId == null)) {
+              enquiryId = e.enquiryId;
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching enquiryId from match: $e');
+      }
+    }
 
     if (enquiryId == null) {
       AppDialogue.showPopup(

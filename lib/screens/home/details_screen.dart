@@ -759,14 +759,20 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                             ),
                       userId: post.handoverUserUid.isNotEmpty ? post.handoverUserUid : post.userId.toString(),
                       phoneNumber: post.handoverPhoneno,
-                      description: post.handoverDescription,
+                      description: post.handoverDescription.isNotEmpty
+                          ? post.handoverDescription
+                          : post.description,
                       policeStationName: post.stationName.isNotEmpty
                           ? post.stationName
                           : (isJewellery && post.handoverName.isNotEmpty && post.handoverName != 'Owner' ? post.handoverName : 'Police Station'),
-                      policeStationAddress: post.stationAddress,
-                      proofPhotos: post.handoverImg
-                          .map((img) => _getMediaUrl(img))
-                          .toList(),
+                      policeStationAddress: post.stationAddress.isNotEmpty
+                          ? post.stationAddress
+                          : post.location,
+                      proofPhotos: post.handoverImg.isNotEmpty
+                          ? post.handoverImg
+                              .map((img) => _getMediaUrl(img))
+                              .toList()
+                          : (_itemImageUrl.isNotEmpty ? [_itemImageUrl] : []),
                       matchPercentage: post.handoverMatchPercentage ?? widget.percentageMatch,
                       handoverDate: post.handoverDate,
                     ),
