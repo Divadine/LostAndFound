@@ -789,7 +789,9 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
 
         else if (!widget.hideEnquiryButton)
           AppButton(
-            title: widget.isUserPost ? 'Hand Over' : 'Send Enquiry',
+            title: widget.isUserPost
+                ? (widget.isLostPost ? 'Receive' : 'Hand Over')
+                : 'Send Enquiry',
             onTap: () {
               if (widget.isUserPost) {
                 debugPrint('[Handover] Opening ReceiveHandoverSheet from DetailsScreen');

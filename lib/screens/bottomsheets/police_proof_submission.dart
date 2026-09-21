@@ -61,12 +61,16 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
   );
 
   File? selectedImage;
+  final TextEditingController userIdController = TextEditingController();
   final TextEditingController textController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
   bool isSubmitting = false;
 
-  bool get _isFormValid => selectedImage != null && textController.text.trim().isNotEmpty;
+  bool get _isFormValid =>
+      userIdController.text.trim().isNotEmpty &&
+          selectedImage != null &&
+          textController.text.trim().isNotEmpty;
 
   Future<void> pickImage() async {
     final XFile? image = await _picker.pickImage(
@@ -98,8 +102,10 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
     }
 
     final uploadedImageRef = imageResponse.data!.first.id.toString();
+    final enteredUserId = userIdController.text.trim();
 
     debugPrint('[Handover] Police handover proof:');
+    debugPrint('enteredUserId: $enteredUserId');
     debugPrint('imageId: $uploadedImageRef');
     debugPrint('description: ${textController.text.trim()}');
 
@@ -108,6 +114,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
       "enquiry_id": widget.enquiryId ?? 0,
       "type": widget.isReceiver ? 2 : 1,
       "user_id": widget.userId,
+      "entered_user_id": enteredUserId,
       "post_id": widget.postId,
       "receiver_id": widget.receiverId ?? 0,
       "receiver_postid": widget.receiverPostId ?? 0,
@@ -135,6 +142,8 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
       description: textController.text.trim(),
       phoneno: widget.phoneNumber,
       handoverType: widget.handoverType,
+      // NOTE: pass enteredUserId through here once createHandover/the API
+      // accepts a parameter for it (see comment at bottom of this file).
     );
 
     print('222222222222222222222222222222222222222222222$response');
@@ -168,6 +177,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
 
   @override
   void dispose() {
+    userIdController.dispose();
     textController.dispose();
     super.dispose();
   }
@@ -216,7 +226,18 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
           ),
 
           buildProofDocuments(
-            title: '1. Upload Proof Photos',
+            title: '1. User ID',
+            //subTitle: '',
+            widget: AppTextField(
+              hintText: 'enter id',
+              onChange: (v) => setState(() {}),
+              onSubmit: (v) {},
+              textController: userIdController,
+            ),
+          ),
+
+          buildProofDocuments(
+            title: '2. Upload Proof Photos',
             subTitle: 'Upload clear photos as proof of handover.',
             widget: GestureDetector(
               onTap: pickImage,
@@ -229,7 +250,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
           ),
 
           buildProofDocuments(
-            title: '2. Description',
+            title: '3. Description',
             subTitle: 'Provide details about the handover.',
             widget: AppTextField(
               maxLines: 4,
@@ -256,3 +277,12 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
     );
   }
 }
+
+// NOTE ON WIRING THE ENTERED USER ID INTO THE API CALL:
+// I added `enteredUserId` to `requestBody` (for the debugPrint / documentation
+// of what should be sent) and left a comment where `createHandover(...)` is
+// called. `createHandover` currently has no parameter to carry this value —
+// you'll need to add one (e.g. `enteredUserId: enteredUserId`) to its
+// definition in `AuthControllers`/`AuthRepository`/`ApiClient` and to whatever
+// request-body builder it uses internally, matching whatever field name your
+// backend expects (I guessed "entered_user_id" — swap in the real key).
