@@ -536,6 +536,10 @@ class _HomeScreenState extends State<HomeScreen>
             toolbarHeight: 0,
             backgroundColor: AppColors.primaryColor,
           ),
+          floatingActionButton: FloatingActionButton(
+              onPressed: (){
+                throw Exception();
+              }),
           body: SafeArea(
             child: Stack(
               children: [

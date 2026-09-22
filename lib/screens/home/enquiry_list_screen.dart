@@ -382,6 +382,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                           : (enquiryData?.post?.userId == AppPreferences.getUserId()),
                       postId: widget.postId,
                       categoryId: enquiryData?.post?.categoryId,
+                      enquiryId: winnerEnquiry?.enquiryId,
                     ),
                   );
                   _fetchEnquiries();
@@ -498,6 +499,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                           'originalPostId': widget.postId,
                           'hideEnquiryButton': true,
                           'isLostPost': widget.isFound,
+                          'enquiryId': e.enquiryId,
                         },
                       );
                       _fetchEnquiries();

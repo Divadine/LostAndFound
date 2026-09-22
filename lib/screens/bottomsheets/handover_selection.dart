@@ -24,6 +24,7 @@ class ReceiveHandoverSheet extends StatefulWidget {
   final bool isReceiver;
   final int postId;
   final int? categoryId;
+  final int? enquiryId;
 
   const ReceiveHandoverSheet({
     super.key,
@@ -31,6 +32,7 @@ class ReceiveHandoverSheet extends StatefulWidget {
     required this.isReceiver,
     required this.postId,
     this.categoryId,
+    this.enquiryId,
   });
 
   @override
@@ -219,6 +221,7 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                     handoverType: HandoverType.police,
                     isReceiver: widget.isReceiver,
                     isJewellery: isJewellery,
+                    enquiryId: widget.enquiryId,
                   ),
                 );
                 return;
@@ -236,6 +239,7 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                     postId: widget.postId,
                     userId: userId,
                     isReceiver: widget.isReceiver,
+                    enquiryId: widget.enquiryId,
                   ),
                 );
               }

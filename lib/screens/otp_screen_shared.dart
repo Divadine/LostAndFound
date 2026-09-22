@@ -148,6 +148,8 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
       if (widget.shouldPop) {
         Navigator.of(context).pop(true);
       }
+    } else if (error == 'No internet connection. Please check your network.') {
+      AppSnackBar.show(context: context, message: error);
     } else {
       setState(() {
         errorText = error;

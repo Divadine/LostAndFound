@@ -700,12 +700,19 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 Widget buildTextFieldWithHeading({
   required String title,
   required Widget fieldWidget,
+  bool isRequired = false,
 }) {
   return Column(
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      AppText(text: title, fontSize: 14, fontWeight: AppUtils.isTab ?FontWeight.w400 : FontWeight.w600),
+      Row(
+        children: [
+          AppText(text: title, fontSize: 14, fontWeight: AppUtils.isTab ?FontWeight.w400 : FontWeight.w600),
+          if (isRequired)
+          AppText(text: ' *',color: AppColors.red,fontSize: 15,),
+        ],
+      ),
       const SizedBox(height: 10),
       fieldWidget,
     ],

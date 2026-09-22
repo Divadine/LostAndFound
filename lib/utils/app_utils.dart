@@ -7,7 +7,7 @@ import 'package:lost_and_found/utils/app_colors.dart';
 class AppUtils {
   static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   static bool isTab = false;
-
+  static const String appName = "Findora";
   static int? lastSubmittedPostType;
   static final ValueNotifier<int> postRefreshNotifier = ValueNotifier<int>(0);
 

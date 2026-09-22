@@ -28,6 +28,7 @@ class DeviceInfoHelper {
   static Future<String> getDeviceToken() async {
     try {
       final token = await FirebaseMessaging.instance.getToken();
+      print("====> token $token");
       return token ?? "no_token_available";
     } catch (e) {
       return "no_token_available";
@@ -36,6 +37,6 @@ class DeviceInfoHelper {
 
   static Future<String> getAppVersion() async {
     final packageInfo = await PackageInfo.fromPlatform();
-    return packageInfo.version; // e.g. "1.0.0"
+    return packageInfo.version;
   }
 }

@@ -112,14 +112,14 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
     debugPrint('imageId: $uploadedImageRef');
     debugPrint('description: ${textController.text.trim()}');
 
-    debugPrint('[Handover] POLICE createHandover body:');
+    debugPrint('[Handover] POLICE createHandover body (mapped):');
     final requestBody = {
-      "enquiry_id": widget.enquiryId ?? 0,
+      "enquiry_id": widget.enquiryId,
       "type": widget.isReceiver ? 2 : 1,
       "user_id": widget.userId,
       "post_id": widget.postId,
-      "receiver_id": widget.receiverId ?? 0,
-      "receiver_postid": widget.receiverPostId ?? 0,
+      "receiver_id": widget.receiverId,
+      "receiver_postid": widget.receiverPostId,
       "handover_img": uploadedImageRef,
       "station_name": widget.stationName,
       "station_address": widget.stationAddress,
@@ -132,13 +132,13 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
     debugPrint(requestBody.toString());
 
     final response = await authController.createHandover(
-      enquiryId: widget.enquiryId ?? 0,
+      enquiryId: widget.enquiryId,
       codeId: codeController.text.trim(),
       type: widget.isReceiver ? 2 : 1,
       userId: widget.userId,
       postId: widget.postId,
-      receiverId: widget.receiverId ?? 0,
-      receiverPostId: widget.receiverPostId ?? 0,
+      receiverId: widget.receiverId,
+      receiverPostId: widget.receiverPostId,
       handoverImg: uploadedImageRef,
       stationName: widget.stationName,
       stationAddress: widget.stationAddress,

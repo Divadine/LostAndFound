@@ -404,6 +404,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                                     isReceiver: !widget.isFound,
                                     postId: widget.postId,
                                     categoryId: widget.categoryId,
+                                    enquiryId: null, // No enquiry yet from match list
                                   ),
                                 );
                               },

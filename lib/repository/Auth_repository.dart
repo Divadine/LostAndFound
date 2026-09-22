@@ -293,7 +293,7 @@ class AuthRepository {
   // }
 
   Future<ResponseModel<List<DynamicFieldsModel>>> getDynamicFields({required int subCategoryId,}) async {
-    final response = await apiClient.get(ApiEndPoints.getDynamicFields,queryParams: {
+    final response = await apiClient.get(ApiEndPoints.getSubCategory,queryParams: {
       'subcategory_id': subCategoryId,
     },
     addToken: false
@@ -685,17 +685,17 @@ class AuthRepository {
     required int handoverType,
   }) async {
     final body = {
-      'enquiry_id': (handoverType == 2 || handoverType == 3) ? 0 : (enquiryId ?? 0),
-      'code_id': codeId ?? "",
+      'enquiry_id': (handoverType == 2 || handoverType == 3) ? null : enquiryId,
+      'code_id': codeId,
       'type': type,
       'user_id': userId,
       'post_id': postId,
-      'receiver_id': (handoverType == 2 || handoverType == 3) ? 0 : (receiverId ?? 0),
-      'receiver_postid': (handoverType == 2 || handoverType == 3) ? 0 : (receiverPostId ?? 0),
-      'handover_img': handoverImg ?? "",
-      'station_name': stationName ?? "",
-      'station_address': stationAddress ?? "",
-      'name': name ?? "",
+      'receiver_id': (handoverType == 2 || handoverType == 3) ? null : receiverId,
+      'receiver_postid': (handoverType == 2 || handoverType == 3) ? null : receiverPostId,
+      'handover_img': handoverImg,
+      'station_name': stationName,
+      'station_address': stationAddress,
+      'name': name,
       'description': description,
       'phoneno': phoneno,
       'handover_type': handoverType,
@@ -905,4 +905,3 @@ class AuthRepository {
     return response;
   }
 }
-

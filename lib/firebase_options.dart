@@ -53,10 +53,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDcx7pINIGbTlT4AnwOnkn6ZS19koZaqI8',
-    appId: '1:166371965806:android:0b6c4bf38c4551ec91df7f',
-    messagingSenderId: '166371965806',
-    projectId: 'lostandfound-b0fdb',
-    storageBucket: 'lostandfound-b0fdb.firebasestorage.app',
+    apiKey: 'AIzaSyC9r3TOM80LZMQtJ1ERdOqerKCdzGpwUI8',
+    appId: '1:291874512696:android:929c53d48df2f84db2abcd',
+    messagingSenderId: '291874512696',
+    projectId: 'findora-59197',
+    storageBucket: 'findora-59197.firebasestorage.app',
   );
 }

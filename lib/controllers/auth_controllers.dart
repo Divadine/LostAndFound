@@ -22,7 +22,6 @@ import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/models/posts_model/post_match_item.dart';
 import 'package:lost_and_found/models/posts_model/single_match_item.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
-import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/device_info_helper.dart';
 
 class AuthControllers {
@@ -237,13 +236,13 @@ class AuthControllers {
   }
 
   Future<ResponseModel> createHandover({
-    int? enquiryId = 0,
+    int? enquiryId,
     String? codeId,
     required int type,
     required int userId,
     required int postId,
-    int? receiverId = 0,
-    int? receiverPostId = 0,
+    int? receiverId,
+    int? receiverPostId,
     String? handoverImg,
     String? stationName,
     String? stationAddress,
@@ -253,13 +252,13 @@ class AuthControllers {
     required int handoverType,
   }) async {
     return await authRepository.createHandover(
-      enquiryId: enquiryId ?? 0,
+      enquiryId: enquiryId,
       codeId: codeId,
       type: type,
       userId: userId,
       postId: postId,
-      receiverId: receiverId ?? 0,
-      receiverPostId: receiverPostId ?? 0,
+      receiverId: receiverId,
+      receiverPostId: receiverPostId,
       handoverImg: handoverImg,
       stationName: stationName,
       stationAddress: stationAddress,

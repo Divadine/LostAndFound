@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
+import 'package:lost_and_found/utils/app_images.dart';
 
 class AppCachedNetworkImage extends StatefulWidget {
   final String imageUrl;
@@ -96,13 +97,23 @@ class EnquiredPersonsAvatar extends StatelessWidget {
               child: CircleAvatar(
                 radius: 10,
                 backgroundColor: Colors.transparent,
-                child: AppCachedNetworkImage(
-                  imageUrl: images[i],
-                  borderRadius: BorderRadius.circular(40),
-                  height: 20,
-                  width: 20,
-                  fit: BoxFit.cover,
-                ),
+                child: (images[i].trim().isEmpty)
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(40),
+                        child: Image.asset(
+                          AssetImages.profilePic,
+                          height: 20,
+                          width: 20,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : AppCachedNetworkImage(
+                        imageUrl: images[i],
+                        borderRadius: BorderRadius.circular(40),
+                        height: 20,
+                        width: 20,
+                        fit: BoxFit.cover,
+                      ),
               ),
             ),
 

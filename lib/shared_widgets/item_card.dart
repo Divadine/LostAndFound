@@ -124,21 +124,26 @@ class ItemCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    if (profileUrl != null && profileUrl!.trim().isNotEmpty)
-                      Container(
-                        width: 30,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.white,
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: AppCachedNetworkImage(
-                          imageUrl: profileUrl!,
-                          fit: BoxFit.cover,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ).padVertical(5),
+                    Container(
+                      width: 30,
+                      height: 40,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.white,
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: (profileUrl != null && profileUrl!.trim().isNotEmpty)
+                          ? AppCachedNetworkImage(
+                              imageUrl: profileUrl!,
+                              fit: BoxFit.cover,
+                              borderRadius: BorderRadius.circular(20),
+                            )
+                          :Icon(Icons.person,size: 30,)
+                      // Image.asset(
+                      //         AssetImages.profilePic,
+                      //         fit: BoxFit.cover,
+                      //       ),
+                    ).padVertical(5),
                     if (profileName != null && profileName!.trim().isNotEmpty)
                       Flexible(
                         child: AppText(
@@ -165,7 +170,7 @@ class ItemCard extends StatelessWidget {
                         child: AppText(
                           text: 'ID : ${profileId ?? '-'}',
                           fontWeight: FontWeight.w500,
-                          fontSize: 10,
+                          fontSize: 11,
                           color: AppColors.primaryColor,
                         ),
                       ),
@@ -173,7 +178,7 @@ class ItemCard extends StatelessWidget {
                     if (percentageMatch != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 2,
+                          horizontal: 6,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
@@ -185,7 +190,7 @@ class ItemCard extends StatelessWidget {
                         child: AppText(
                           text: '$percentageMatch% match',
                           fontWeight: FontWeight.w500,
-                          fontSize: 8,
+                          fontSize: 10,
                           color: AppUtils.getMatchColor(percentageMatch!),
                         ),
                       ),
@@ -200,13 +205,30 @@ class ItemCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    AppCachedNetworkImage(
-                      imageUrl: imgUrl,
-                      height: 100,
-                      width: imageWidth ?? 140,
-                      fit: BoxFit.cover,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    if (imgUrl.trim().isEmpty)
+                      Container(
+                        height: 100,
+                        width: imageWidth ?? 140,
+                        decoration: BoxDecoration(
+                          color: AppColors.grey.withAlpha(20),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.asset(
+                            AssetImages.box_image,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      )
+                    else
+                      AppCachedNetworkImage(
+                        imageUrl: imgUrl,
+                        height: 100,
+                        width: imageWidth ?? 140,
+                        fit: BoxFit.cover,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     SizedBox(width: 12),
                     Expanded(
                       child: Column(

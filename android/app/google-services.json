@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "404375922415",
-    "project_id": "lostandfound-de15f",
-    "storage_bucket": "lostandfound-de15f.firebasestorage.app"
+    "project_number": "291874512696",
+    "project_id": "findora-59197",
+    "storage_bucket": "findora-59197.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:404375922415:android:a0102f9efbd959111f9d1a",
+        "mobilesdk_app_id": "1:291874512696:android:929c53d48df2f84db2abcd",
         "android_client_info": {
-          "package_name": "com.example.lost_and_found"
+          "package_name": "com.findora.lostandfound"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBIkg-SwPHijA-hwe49-9hHWBgrLNW0BME"
+          "current_key": "AIzaSyC9r3TOM80LZMQtJ1ERdOqerKCdzGpwUI8"
         }
       ],
       "services": {

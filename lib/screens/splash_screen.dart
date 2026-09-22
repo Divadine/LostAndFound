@@ -4,6 +4,8 @@ import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/posts_model/post_list_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
+import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
+import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 
@@ -140,7 +142,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
-        child: CircularProgressIndicator(),
+        child:  AppIconWidget(assetPath: AssetImages.logo1, height: 150)//CircularProgressIndicator(),
       ),
     );
   }

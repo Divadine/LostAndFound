@@ -684,7 +684,8 @@ class _SendEnquiryState extends State<SendEnquiry> {
         // ========================================================
 
         buildTextFieldWithHeading(
-          title: 'Name*',
+          isRequired: true,
+          title: 'Name',
           fieldWidget: AppTextField(
             hintText: '',
             textController:
@@ -700,7 +701,8 @@ class _SendEnquiryState extends State<SendEnquiry> {
         // ========================================================
 
         buildTextFieldWithHeading(
-          title: 'Description*',
+          isRequired: true,
+          title: 'Description',
           fieldWidget: AppTextField(
             hintText: '',
             textController:

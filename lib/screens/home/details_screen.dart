@@ -40,6 +40,7 @@ class LostItemsDetailsScreen extends StatefulWidget {
   final bool isLostPost;
   final bool hideEnquiryButton;
   final bool isUserPost;
+  final int? enquiryId;
 
   const LostItemsDetailsScreen({
     super.key,
@@ -52,6 +53,7 @@ class LostItemsDetailsScreen extends StatefulWidget {
     this.isLostPost = false,
     this.hideEnquiryButton = false,
     this.isUserPost = false,
+    this.enquiryId,
   });
 
   @override
@@ -805,9 +807,10 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                     title: post.categoryName.isNotEmpty
                         ? post.categoryName
                         : (widget.isLostPost ? 'Lost' : 'Found'),
-                    isReceiver: post.postType == 0, // 0: Lost, 1: Found. If Lost, I am Receiver? Wait.
+                    isReceiver: post.postType == 0, // 0: Lost, 1: Found.
                     postId: post.id,
                     categoryId: post.categoryId,
+                    enquiryId: widget.enquiryId,
                   ),
                 );
                 return;

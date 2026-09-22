@@ -26,12 +26,14 @@ class OthersHandover extends StatefulWidget {
   final int postId;
   final int userId;
   final bool isReceiver;
+  final int? enquiryId;
 
   const OthersHandover({
     super.key,
     required this.postId,
     required this.userId,
     this.isReceiver = false,
+    this.enquiryId,
   });
 
   @override
@@ -97,10 +99,8 @@ class _OthersHandoverState extends State<OthersHandover> {
       type: widget.isReceiver ? 2 : 1,
       userId: widget.userId,
       postId: widget.postId,
-      receiverId: 0,
-      receiverPostId: 0,
-      enquiryId: 0,
       handoverImg: uploadedImageRef,
+      enquiryId: widget.enquiryId,
       name: nameController.text.trim(),
       description: descriptionController.text.trim(),
       phoneno: numberController.text.trim(),
