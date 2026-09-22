@@ -150,6 +150,8 @@ class AssetImages {
   static const String micNoInternet = "assets/images/micNotification.svg";
   static const String noInternet = "assets/images/noInternet.svg";
   static const String notificationDot = "assets/images/notificationDot.svg";
+  static const String chatEmpty = "assets/images/chatEmpty.svg";
+
 
 
 

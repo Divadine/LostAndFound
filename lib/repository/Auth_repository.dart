@@ -293,7 +293,7 @@ class AuthRepository {
   // }
 
   Future<ResponseModel<List<DynamicFieldsModel>>> getDynamicFields({required int subCategoryId,}) async {
-    final response = await apiClient.get(ApiEndPoints.getSubCategory,queryParams: {
+    final response = await apiClient.get(ApiEndPoints.getDynamicFields,queryParams: {
       'subcategory_id': subCategoryId,
     },
     addToken: false

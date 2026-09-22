@@ -150,6 +150,7 @@ class _IndividualChatScreenState
     _otherUserPhone =
         widget.otherUserPhone.trim();
 
+    _loadSafetyCardStatus();
     _initConnectivityListener();
     _loadPhoneAndInitialize();
 
@@ -163,6 +164,16 @@ class _IndividualChatScreenState
     _lastRecorderState = AppRecorderService.instance.state;
     AppRecorderService.instance.addListener(_onRecorderChanged);
     AppRecorderService.instance.deleteRecording();
+  }
+
+  Future<void> _loadSafetyCardStatus() async {
+    final dismissed = AppPreferences.getSafetyCardDismissed();
+
+    if (!mounted) return;
+
+    setState(() {
+      _showSafetyCard = !dismissed;
+    });
   }
 
   void _initStreams() {
@@ -878,15 +889,15 @@ class _IndividualChatScreenState
             decoration:
             BoxDecoration(
               color:
-              AppColors.white,
+              AppColors.requestColor,
               borderRadius:
               BorderRadius.circular(
                 20,
               ),
-              border: Border.all(
-                color:
-                AppColors.requestColor,
-              ),
+              // border: Border.all(
+              //   color:
+              //   AppColors.requestColor,
+              // ),
             ),
             child: Row(
               mainAxisSize:
@@ -898,9 +909,9 @@ class _IndividualChatScreenState
                   fontSize: 11,
                   fontWeight:
                   FontWeight.w600,
-                  color:
-                  AppColors
-                      .requestColor,
+                  color:Color(0xff96550E)
+                  // AppColors
+                  //     .requestColor,
                 ),
                 const SizedBox(width: 5),
                 AppIconWidget(
@@ -908,6 +919,7 @@ class _IndividualChatScreenState
                   AssetImages
                       .requestSent,
                   size: 13,
+                    color:Color(0xff96550E)
                 ),
               ],
             ),
@@ -1314,10 +1326,12 @@ class _IndividualChatScreenState
           const SizedBox(width: 8),
 
           InkWell(
-            onTap: () {
+            onTap: () async {
               setState(() {
                 _showSafetyCard = false;
               });
+
+              await AppPreferences.setSafetyCardDismissed(true);
             },
             child: AppIconWidget(
               assetPath:
@@ -1376,9 +1390,18 @@ class _IndividualChatScreenState
         if (docs.isEmpty) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: AppText(
-                text: 'Say hello',
+              padding: EdgeInsets.symmetric(vertical: 100),
+              child: Column(
+                children: [
+                  AppIconWidget(assetPath: AssetImages.chatEmpty),
+                  AppText(
+                    text: 'Chat looks fresh!',fontSize: 16,fontWeight: FontWeight.w600,
+                  ),
+
+                  AppText(
+                    text: 'start a new conversation anytime!',fontSize: 12,fontWeight: FontWeight.w500,color: AppColors.fieldGrey,
+                  ),
+                ],
               ),
             ),
           );
@@ -2452,12 +2475,7 @@ class _IndividualChatScreenState
         final isBlocked = snapshot.data ?? false;
 
         if (isBlocked) {
-          return Padding(
-            padding: const EdgeInsets.all(
-              16,
-            ),
-            child: _buildBlockedContainer(),
-          );
+          return _buildBlockedInlineCard();
         }
 
         if (isRecording) {
@@ -2793,65 +2811,115 @@ class _IndividualChatScreenState
     );
   }
 
-  Widget _buildBlockedContainer() {
-    return InkWell(
-      onTap:
-      _showBlockedPopup,
 
-      child: Container(
-        width: double.infinity,
 
-        padding:
-        const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+  Widget _buildBlockedInlineCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
         ),
-
-        decoration:
-        BoxDecoration(
-          color:
-          AppColors.fieldGrey
-              .withAlpha(40),
-
-          borderRadius:
-          BorderRadius.circular(
-            12,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(15),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
           ),
-
-          border: Border.all(
-            color:
-            AppColors.fieldGrey,
-          ),
-        ),
-
-        child: Row(
-          children: [
-            AppIconWidget(
-              assetPath:
-              AssetImages
-                  .blockChatBorder,
-              size: 25,
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor.withAlpha(20),
+              borderRadius: BorderRadius.circular(18),
             ),
-
-            const SizedBox(width: 10),
-
-            const Expanded(
-              child: AppText(
-                text:
-                'This chat has been blocked',
-                fontSize: 13,
-                fontWeight:
-                FontWeight.w500,
+            child: Center(
+              child: AppIconWidget(
+                assetPath: AssetImages.blockChat,
+                size: 34,
+                color: AppColors.primaryColor,
               ),
             ),
-
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 15,
-              color: AppColors.grey,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          const AppText(
+            text: 'This chat has been blocked',
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          AppText(
+            text: 'You can no longer send or receive messages in this chat.',
+            fontSize: 13,
+            fontWeight: FontWeight.w400,
+            color: AppColors.grey,
+            textAlign: TextAlign.center,
+            maxLine: 3,
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: const BorderSide(color: AppColors.fieldGrey),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () async {
+                    if (_isOffline) {
+                      _showNoInternetSnackbar();
+                      return;
+                    }
+                    await _clearChat();
+                  },
+                  child: const AppText(
+                    text: 'Delete chat',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () async {
+                    if (_isOffline) {
+                      _showNoInternetSnackbar();
+                      return;
+                    }
+                    await _unblockChat();
+                  },
+                  child: const AppText(
+                    text: 'Unblock chat',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -3014,9 +3082,6 @@ class _IndividualChatScreenState
                 case 'block':
                   await _blockChat();
 
-                  if (!mounted) return;
-
-                  _showBlockedPopup();
                   break;
 
                 case 'report':
@@ -3058,10 +3123,10 @@ class _IndividualChatScreenState
                     true,
 
                     color: AppColors
-                        .primaryColor,
+                        .white,
 
                     iconColor:
-                    AppColors.white,
+                    AppColors.black,
                   );
 
                   break;

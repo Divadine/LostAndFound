@@ -35,34 +35,70 @@ Future<void> firebaseMessagingBackgroundHandler(
   print('======================================');
 }
 
-void main() async {
+// void main() async {
+//
+//   WidgetsFlutterBinding.ensureInitialized();
+//   await Firebase.initializeApp(
+//     options: DefaultFirebaseOptions.currentPlatform,
+//   );
+//
+//   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+//   PlatformDispatcher.instance.onError = (error, stack) {
+//     return true;
+//   };
+//   FirebaseMessaging.onBackgroundMessage(
+//     firebaseMessagingBackgroundHandler,
+//   );  // try {
+//   //   if (Firebase.apps.isEmpty) {
+//   //     await Firebase.initializeApp(
+//   //       options: DefaultFirebaseOptions.currentPlatform,
+//   //     );
+//   //   }
+//   // } on FirebaseException catch (e) {
+//   //   if (e.code != 'duplicate-app') {
+//   //     rethrow;
+//   //   }
+//   // } catch (e) {
+//   //   rethrow;
+//   // }
+//   await AppPreferences.init();
+//   await AppPermissions.init();
+//   await AppNotificationService().init();
+//   runApp(MyApp());
+// }
 
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
 
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  FlutterError.onError =
+      FirebaseCrashlytics.instance.recordFlutterFatalError;
+
   PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(
+      error,
+      stack,
+      fatal: true,
+    );
     return true;
   };
+
   FirebaseMessaging.onBackgroundMessage(
     firebaseMessagingBackgroundHandler,
-  );  // try {
-  //   if (Firebase.apps.isEmpty) {
-  //     await Firebase.initializeApp(
-  //       options: DefaultFirebaseOptions.currentPlatform,
-  //     );
-  //   }
-  // } on FirebaseException catch (e) {
-  //   if (e.code != 'duplicate-app') {
-  //     rethrow;
-  //   }
-  // } catch (e) {
-  //   rethrow;
-  // }
+  );
+
   await AppPreferences.init();
-  await AppPermissions.init();
-  await AppNotificationService().init();
-  runApp(MyApp());
+
+  runApp(const MyApp());
+
+  Future.microtask(() async {
+    await AppPermissions.init();
+    await AppNotificationService().init();
+  });
 }
 
 class MyApp extends StatefulWidget {

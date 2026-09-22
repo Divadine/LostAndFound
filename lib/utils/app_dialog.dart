@@ -2796,8 +2796,9 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
           ],
         ),
 
+        SizedBox(height: 15,),
         Row(
-          spacing: 10,
+          spacing: 15,
           children: [
             Expanded(
               child: AppButton(

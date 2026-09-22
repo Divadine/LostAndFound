@@ -134,11 +134,13 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   void _updateOfflineStatus(List<ConnectivityResult> results) {
     final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
     if (!mounted) return;
+
+    final wasOffline = _isOffline;
     setState(() {
       _isOffline = offline;
     });
 
-    if (!offline && (dynamicFields.isEmpty && !_isGenericMode)) {
+    if (wasOffline && !offline && (dynamicFields.isEmpty && !_isGenericMode)) {
       _fetchDynamicFields();
     }
   }

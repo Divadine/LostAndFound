@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 // models/match_model/post_matches_model.dart
 class PostMatchesModel {
   final MatchedPostSummary post;
@@ -7,8 +9,15 @@ class PostMatchesModel {
   PostMatchesModel({required this.post, required this.matchingCount, required this.matches});
 
   factory PostMatchesModel.fromJson(Map<String, dynamic> json) {
+    final postData = json['post'] != null ? Map<String, dynamic>.from(json['post'] as Map) : null;
+    if (postData != null && json['handover_info'] != null) {
+      postData['handover_info'] = json['handover_info'];
+    }
+
     return PostMatchesModel(
-      post: MatchedPostSummary.fromJson(json['post'] as Map<String, dynamic>),
+      post: postData != null 
+          ? MatchedPostSummary.fromJson(postData)
+          : MatchedPostSummary.fromJson({}),
       matchingCount: json['matching_count'] as int? ?? 0,
       matches: (json['matches'] as List? ?? [])
           .map((e) => MatchItemModel.fromJson(e as Map<String, dynamic>))
@@ -27,6 +36,19 @@ class MatchedPostSummary {
   final DateTime? createdAt;
   final List<String> images;
 
+  // Handover Info Fields
+  final int handoverType;
+  final String handoverName;
+  final String stationName;
+  final String stationAddress;
+  final String handoverDescription;
+  final String handoverPhoneno;
+  final List<String> handoverImg;
+  final int? handoverMatchPercentage;
+  final String handoverUserUid;
+  final String handoverDate;
+  final String handoverAvatar;
+
   MatchedPostSummary({
     required this.id,
     required this.postUid,
@@ -36,9 +58,83 @@ class MatchedPostSummary {
     this.postDate,
     this.createdAt,
     required this.images,
+    this.handoverType = 0,
+    this.handoverName = '',
+    this.stationName = '',
+    this.stationAddress = '',
+    this.handoverDescription = '',
+    this.handoverPhoneno = '',
+    this.handoverImg = const [],
+    this.handoverMatchPercentage,
+    this.handoverUserUid = '',
+    this.handoverDate = '',
+    this.handoverAvatar = '',
   });
 
   factory MatchedPostSummary.fromJson(Map<String, dynamic> json) {
+    final handoverImages = <String>[];
+    var handoverObj = json['handover'] is Map ? json['handover'] as Map<String, dynamic> : null;
+
+    if (handoverObj == null && json['handover_info'] is List && (json['handover_info'] as List).isNotEmpty) {
+      if (json['handover_info'][0] is Map) {
+        handoverObj = json['handover_info'][0] as Map<String, dynamic>;
+      }
+    }
+
+    final hi = json['handover_img'] ??
+        json['handover_images'] ??
+        handoverObj?['handover_images'] ??
+        handoverObj?['handover_img'] ??
+        handoverObj?['images'] ??
+        handoverObj?['imgPath'] ??
+        handoverObj?['img_path'] ??
+        json['proof_img'] ??
+        handoverObj?['proof_img'];
+
+    if (hi != null && hi.toString().isNotEmpty) {
+      if (hi is String) {
+        if (hi.contains(',')) {
+          handoverImages.addAll(hi.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+        } else {
+          handoverImages.add(hi.trim());
+        }
+      } else if (hi is List) {
+        for (var e in hi) {
+          if (e is Map) {
+            final path = (e['img_path'] ?? e['image_path'] ?? e['path'] ?? e['url'] ?? '').toString();
+            if (path.isNotEmpty) handoverImages.add(path);
+          } else if (e != null) {
+            handoverImages.add(e.toString());
+          }
+        }
+      }
+    }
+
+    final stationName = (json['station_name'] ??
+            handoverObj?['station_name'] ??
+            json['handover_name'] ??
+            handoverObj?['handover_name'] ??
+            handoverObj?['name'] ??
+            handoverObj?['stationName'] ??
+            '')
+        .toString();
+
+    final stationAddress = (json['station_address'] ??
+            handoverObj?['station_address'] ??
+            handoverObj?['address'] ??
+            handoverObj?['stationAddress'] ??
+            '')
+        .toString();
+
+    final handoverName = (json['handover_name'] ??
+            handoverObj?['handover_name'] ??
+            handoverObj?['name'] ??
+            handoverObj?['receiver_name'] ??
+            handoverObj?['received_by'] ??
+            handoverObj?['user_name'] ??
+            '')
+        .toString();
+
     return MatchedPostSummary(
       id: json['id'] as int? ?? 0,
       postUid: json['post_uid']?.toString() ?? '',
@@ -52,6 +148,48 @@ class MatchedPostSummary {
           ? DateTime.tryParse(json['created_at'].toString())
           : null,
       images: _parseImages(json['images']),
+      handoverType: int.tryParse((json['handover_type'] ?? handoverObj?['handover_type'] ?? handoverObj?['type'] ?? '').toString()) ?? 0,
+      handoverName: handoverName,
+      stationName: stationName,
+      stationAddress: stationAddress,
+      handoverDescription: (handoverObj?['handover_desc'] ??
+              handoverObj?['description'] ??
+              handoverObj?['handover_description'] ??
+              json['handover_desc'] ??
+              json['handover_description'] ??
+              '')
+          .toString(),
+      handoverPhoneno: (handoverObj?['phoneno'] ??
+              handoverObj?['handover_phoneno'] ??
+              handoverObj?['handover_phone'] ??
+              json['handover_phoneno'] ??
+              json['phoneno'] ??
+              '')
+          .toString(),
+      handoverImg: handoverImages,
+      handoverMatchPercentage: int.tryParse((handoverObj?['match_percentage'] ??
+              handoverObj?['matchPercentage'] ??
+              json['handover_match_percentage'] ??
+              json['matchPercentage'] ??
+              '')
+          .toString()),
+      handoverUserUid: (handoverObj?['user_uid'] ??
+              handoverObj?['userUid'] ??
+              handoverObj?['user_id']?.toString() ??
+              json['handover_user_uid'] ??
+              '')
+          .toString(),
+      handoverDate: (handoverObj?['created_at'] ??
+              handoverObj?['date'] ??
+              handoverObj?['handover_date'] ??
+              json['handover_date'] ??
+              '')
+          .toString(),
+      handoverAvatar: (handoverObj?['profile_image'] ??
+              handoverObj?['avatar'] ??
+              handoverObj?['image'] ??
+              '')
+          .toString(),
     );
   }
 

@@ -280,7 +280,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                   ? post!.handoverName
                   : (winnerEnquiry?.enquirerName.isNotEmpty == true
                       ? winnerEnquiry!.enquirerName
-                      : (widget.isFound ? 'Owner' : 'Finder'))),
+                      : (widget.isFound ? 'Owner' : (post?.posterName.isNotEmpty == true ? post!.posterName : 'Owner')))),
           location: post?.postDate != null
               ? DateFormat('d MMM yyyy').format(post!.postDate!)
               : '',
@@ -295,6 +295,61 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               type = widget.isFound ? TransferType.handOverToOwner : TransferType.receiveToOwner;
             }
 
+            final isOwnerType = !(post?.handoverType == 2 || (isJewellery && post?.handoverType != 1 && post?.handoverType != 3)) && post?.handoverType != 3;
+
+            // Name Priority: 
+            // 1. Handover Name (from record)
+            // 2. Winner Enquirer Name (if owner type)
+            // 3. Poster Name (last resort)
+            final String finalName = isOwnerType
+                ? (post?.handoverName.isNotEmpty == true 
+                    ? post!.handoverName 
+                    : (winnerEnquiry?.enquirerName.isNotEmpty == true 
+                        ? winnerEnquiry!.enquirerName 
+                        : 'Winner'))
+                : ((post?.handoverType == 2 || (isJewellery && post?.handoverType != 1 && post?.handoverType != 3))
+                    ? (post?.stationName.isNotEmpty == true ? post!.stationName : (post?.handoverName.isNotEmpty == true && post!.handoverName != 'Owner' ? post!.handoverName : 'Police Station'))
+                    : (post?.handoverName.isNotEmpty == true ? post!.handoverName : 'Others'));
+
+            // User ID Priority:
+            // 1. Handover User UID
+            // 2. Winner Enquirer UID
+            final String finalUserId = isOwnerType
+                ? (post?.handoverUserUid.isNotEmpty == true ? post!.handoverUserUid : (winnerEnquiry?.userUid ?? ''))
+                : (post?.handoverUserUid.isNotEmpty == true ? post!.handoverUserUid : (winnerEnquiry?.userUid ?? ''));
+
+            final String finalDesc = isOwnerType
+                ? (post?.handoverDescription.isNotEmpty == true ? post!.handoverDescription : 'Item successfully closed')
+                : (post?.handoverDescription.isNotEmpty == true ? post!.handoverDescription : (winnerEnquiry?.description ?? ''));
+
+            final List<String> finalPhotos = isOwnerType
+                ? (post?.handoverImg.map((img) => _getMediaUrl(img)).toList() ?? [])
+                : (post?.handoverImg.isNotEmpty == true
+                    ? post!.handoverImg.map((img) => _getMediaUrl(img)).toList()
+                    : (post?.images != null && post!.images.isNotEmpty ? post!.images.map((img) => _getMediaUrl(img)).toList() : []));
+
+            if (isOwnerType) {
+              debugPrint('========== HANDOVER ACTOR (EnquiryList) ==========');
+              debugPrint('userId: ${post?.userId}');
+              debugPrint('userUid: $finalUserId');
+              debugPrint('name: $finalName');
+              debugPrint('==================================================');
+
+              debugPrint('========== HANDOVER DATA ============');
+              debugPrint('description: $finalDesc');
+              debugPrint('images: $finalPhotos');
+              debugPrint('date: ${post?.handoverDate}');
+              debugPrint('handoverType: ${post?.handoverType}');
+              debugPrint('=====================================');
+
+              debugPrint('========== MATCH DATA ===============');
+              debugPrint('winnerEnquiry.matchedPostId: ${winnerEnquiry?.matchedPostId}');
+              debugPrint('winnerEnquiry.userUid: ${winnerEnquiry?.userUid}');
+              debugPrint('post.handoverUserUid: ${post?.handoverUserUid}');
+              debugPrint('matchPercentage: ${post?.handoverMatchPercentage ?? winnerEnquiry?.matchPercentage}');
+              debugPrint('=====================================');
+            }
+
             AppUiHelper.showBottomSheet(
               context: context,
               showHandle: false,
@@ -305,42 +360,24 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               child: ReceivedDetails(
                 type: type,
                 data: TransferData(
-                  name: (post?.handoverType == 2 || (isJewellery && post?.handoverType != 1 && post?.handoverType != 3))
-                      ? (post?.stationName.isNotEmpty == true
-                          ? post!.stationName
-                          : (post?.handoverName.isNotEmpty == true && post!.handoverName != 'Owner'
-                              ? post!.handoverName
-                              : 'Police Station'))
-                      : (post?.handoverName.isNotEmpty == true
-                          ? post!.handoverName
-                          : (winnerEnquiry?.enquirerName.isNotEmpty == true
-                              ? winnerEnquiry!.enquirerName
-                              : (widget.isFound ? 'Owner' : 'Finder'))),
+                  name: finalName,
                   avatarUrl: (post?.handoverType == 2 || post?.handoverType == 3 || (isJewellery && post?.handoverType != 1 && post?.handoverType != 3))
                       ? ''
-                      : (winnerEnquiry?.enquirerProfileImg ?? ''),
-                  userId: post?.handoverUserUid.isNotEmpty == true
-                      ? post!.handoverUserUid
-                      : winnerEnquiry?.userUid,
+                      : (post?.handoverAvatar.isNotEmpty == true 
+                          ? _getMediaUrl(post!.handoverAvatar)
+                          : (widget.isFound ? (winnerEnquiry?.enquirerProfileImg ?? '') : (post?.posterAvatar ?? ''))),
+                  userId: finalUserId,
                   phoneNumber: post?.handoverPhoneno.isNotEmpty == true
                       ? post!.handoverPhoneno
                       : (winnerEnquiry?.phoneno ?? ''),
-                  description: post?.handoverDescription.isNotEmpty == true
-                      ? post!.handoverDescription
-                      : (winnerEnquiry?.description.isNotEmpty == true
-                          ? winnerEnquiry!.description
-                          : ''),
+                  description: finalDesc,
                   policeStationName: post?.stationName.isNotEmpty == true
                       ? post!.stationName
                       : (isJewellery && post?.handoverName.isNotEmpty == true && post!.handoverName != 'Owner' ? post!.handoverName : 'Police Station'),
                   policeStationAddress: post?.stationAddress.isNotEmpty == true
                       ? post!.stationAddress
                       : (post?.location ?? 'Address not available'),
-                  proofPhotos: post?.handoverImg.isNotEmpty == true
-                      ? post!.handoverImg.map((img) => _getMediaUrl(img)).toList()
-                      : (post?.images != null && post!.images.isNotEmpty
-                          ? post!.images.map((img) => _getMediaUrl(img)).toList()
-                          : []),
+                  proofPhotos: finalPhotos,
                   matchPercentage: post?.handoverMatchPercentage ?? winnerEnquiry?.matchPercentage,
                   handoverDate: post?.handoverDate ?? '',
                 ),

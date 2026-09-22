@@ -185,4 +185,17 @@ class AppPreferences {
   static bool getIsItemPosted() {
     return _prefs.getBool(_isItemPosted) ?? false;
   }
-}
+
+
+
+  static const String safetyCardDismissed = 'safetyCardDismissed';
+
+  static Future<bool> setSafetyCardDismissed(bool dismissed) async {
+    return _prefs.setBool(safetyCardDismissed, dismissed);
+  }
+
+  static bool  getSafetyCardDismissed()  {
+    return _prefs.getBool(safetyCardDismissed) ?? false;
+  }
+
+  }

@@ -34,6 +34,7 @@ class SingleMatchModel {
   final int? handoverMatchPercentage;
   final String handoverUserUid;
   final String handoverDate;
+  final String handoverAvatar;
 
   SingleMatchModel({
     required this.id,
@@ -69,6 +70,7 @@ class SingleMatchModel {
     this.handoverMatchPercentage,
     this.handoverUserUid = '',
     this.handoverDate = '',
+    this.handoverAvatar = '',
   });
 
   factory SingleMatchModel.fromJson(Map<String, dynamic> json) {
@@ -227,6 +229,13 @@ class SingleMatchModel {
     final handoverImages = <String>[];
     var handoverObj = data['handover'] is Map ? data['handover'] as Map<String, dynamic> : null;
 
+    if (handoverObj == null) {
+      final hInfo = data['handover_info'] ?? data['handoverInfo'];
+      if (hInfo is List && hInfo.isNotEmpty && hInfo[0] is Map) {
+        handoverObj = hInfo[0] as Map<String, dynamic>;
+      }
+    }
+
     if (handoverObj == null && (data['handover'] is String) && (data['handover'] as String).isNotEmpty) {
       try {
         final decoded = jsonDecode(data['handover']);
@@ -244,6 +253,7 @@ class SingleMatchModel {
 
     final hi = data['handover_img'] ??
         data['handover_images'] ??
+        handoverObj?['handover_images'] ??
         handoverObj?['handover_img'] ??
         handoverObj?['images'] ??
         handoverObj?['imgPath'] ??
@@ -274,12 +284,23 @@ class SingleMatchModel {
             data['handover_name'] ??
             handoverObj?['handover_name'] ??
             handoverObj?['name'] ??
+            handoverObj?['stationName'] ??
             '')
         .toString();
 
     final stationAddress = (data['station_address'] ??
             handoverObj?['station_address'] ??
             handoverObj?['address'] ??
+            handoverObj?['stationAddress'] ??
+            '')
+        .toString();
+
+    final handoverName = (data['handover_name'] ??
+            handoverObj?['handover_name'] ??
+            handoverObj?['name'] ??
+            handoverObj?['receiver_name'] ??
+            handoverObj?['received_by'] ??
+            handoverObj?['user_name'] ??
             '')
         .toString();
 
@@ -313,11 +334,12 @@ class SingleMatchModel {
           .map((e) => SingleMatchValue.fromJson(e as Map<String, dynamic>))
           .toList(),
       handoverType: int.tryParse((data['handover_type'] ?? handoverObj?['handover_type'] ?? handoverObj?['type'] ?? '').toString()) ?? 0,
-      handoverName: (data['handover_name'] ?? handoverObj?['handover_name'] ?? handoverObj?['name'] ?? '').toString(),
+      handoverName: handoverName,
       stationName: stationName,
       stationAddress: stationAddress,
       handoverDescription: (handoverObj?['description'] ??
               handoverObj?['handover_description'] ??
+              handoverObj?['handover_desc'] ??
               data['handover_description'] ??
               data['handover_desc'] ??
               '')
@@ -336,12 +358,19 @@ class SingleMatchModel {
           .toString()),
       handoverUserUid: (handoverObj?['user_uid'] ??
               handoverObj?['userUid'] ??
+              handoverObj?['user_id']?.toString() ??
               data['handover_user_uid'] ??
               '')
           .toString(),
       handoverDate: (handoverObj?['created_at'] ??
               handoverObj?['date'] ??
+              handoverObj?['handover_date'] ??
               data['handover_date'] ??
+              '')
+          .toString(),
+      handoverAvatar: (handoverObj?['profile_image'] ??
+              handoverObj?['avatar'] ??
+              handoverObj?['image'] ??
               '')
           .toString(),
     );

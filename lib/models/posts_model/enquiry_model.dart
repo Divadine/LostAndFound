@@ -23,6 +23,7 @@ class EnquiryPostModel {
   final int? handoverMatchPercentage;
   final String handoverUserUid;
   final String handoverDate;
+  final String handoverAvatar;
   final String posterName;
   final String posterAvatar;
 
@@ -49,6 +50,7 @@ class EnquiryPostModel {
     this.handoverMatchPercentage,
     this.handoverUserUid = '',
     this.handoverDate = '',
+    this.handoverAvatar = '',
     this.posterName = '',
     this.posterAvatar = '',
   });
@@ -70,17 +72,21 @@ class EnquiryPostModel {
       if (json['handover'][0] is Map) {
         handoverObj = json['handover'][0] as Map<String, dynamic>;
       }
+    } else if (handoverObj == null && json['handover_info'] is List && (json['handover_info'] as List).isNotEmpty) {
+      if (json['handover_info'][0] is Map) {
+        handoverObj = json['handover_info'][0] as Map<String, dynamic>;
+      }
     }
 
     final hi = json['handover_img'] ??
         json['handover_images'] ??
+        handoverObj?['handover_images'] ??
         handoverObj?['handover_img'] ??
         handoverObj?['images'] ??
         handoverObj?['imgPath'] ??
         handoverObj?['img_path'] ??
         json['proof_img'] ??
-        handoverObj?['proof_img'] ??
-        handoverObj?['handover_images'];
+        handoverObj?['proof_img'];
 
     if (hi != null && hi.toString().isNotEmpty) {
       if (hi is String) {
@@ -106,12 +112,23 @@ class EnquiryPostModel {
             json['handover_name'] ??
             handoverObj?['handover_name'] ??
             handoverObj?['name'] ??
+            handoverObj?['stationName'] ??
             '')
         .toString();
 
     final stationAddress = (json['station_address'] ??
             handoverObj?['station_address'] ??
             handoverObj?['address'] ??
+            handoverObj?['stationAddress'] ??
+            '')
+        .toString();
+
+    final handoverName = (json['handover_name'] ??
+            handoverObj?['handover_name'] ??
+            handoverObj?['name'] ??
+            handoverObj?['receiver_name'] ??
+            handoverObj?['received_by'] ??
+            handoverObj?['user_name'] ??
             '')
         .toString();
 
@@ -158,17 +175,19 @@ class EnquiryPostModel {
       categoryId: int.tryParse((json['category_id'] ?? handoverObj?['category_id'] ?? '').toString()) ?? 0,
       categoryName: (json['category_name'] ?? handoverObj?['category_name'] ?? '').toString(),
       handoverType: int.tryParse((json['handover_type'] ?? handoverObj?['handover_type'] ?? handoverObj?['type'] ?? '').toString()) ?? 0,
-      handoverName: (json['handover_name'] ?? handoverObj?['handover_name'] ?? handoverObj?['name'] ?? '').toString(),
+      handoverName: handoverName,
       stationName: stationName,
       stationAddress: stationAddress,
-      handoverDescription: (handoverObj?['description'] ??
+      handoverDescription: (handoverObj?['handover_desc'] ??
+              handoverObj?['description'] ??
               handoverObj?['handover_description'] ??
-              json['handover_description'] ??
               json['handover_desc'] ??
+              json['handover_description'] ??
               '')
           .toString(),
       handoverPhoneno: (handoverObj?['phoneno'] ??
               handoverObj?['handover_phoneno'] ??
+              handoverObj?['handover_phone'] ??
               json['handover_phoneno'] ??
               json['phoneno'] ??
               '')
@@ -182,13 +201,19 @@ class EnquiryPostModel {
           .toString()),
       handoverUserUid: (handoverObj?['user_uid'] ??
               handoverObj?['userUid'] ??
+              handoverObj?['user_id']?.toString() ??
               json['handover_user_uid'] ??
-              json['user_uid'] ??
               '')
           .toString(),
       handoverDate: (handoverObj?['created_at'] ??
               handoverObj?['date'] ??
+              handoverObj?['handover_date'] ??
               json['handover_date'] ??
+              '')
+          .toString(),
+      handoverAvatar: (handoverObj?['profile_image'] ??
+              handoverObj?['avatar'] ??
+              handoverObj?['image'] ??
               '')
           .toString(),
       posterName: foundName ?? '',
@@ -209,9 +234,14 @@ class PostEnquiriesModel {
   });
 
   factory PostEnquiriesModel.fromJson(Map<String, dynamic> json) {
+    final postData = json['post'] != null ? Map<String, dynamic>.from(json['post'] as Map) : null;
+    if (postData != null && json['handover_info'] != null) {
+      postData['handover_info'] = json['handover_info'];
+    }
+
     return PostEnquiriesModel(
-      post: json['post'] != null
-          ? EnquiryPostModel.fromJson(json['post'] as Map<String, dynamic>)
+      post: postData != null
+          ? EnquiryPostModel.fromJson(postData)
           : null,
       enquiriesCount: json['enquiries_count'] as int? ?? 0,
       enquiries: (json['enquiries'] as List? ?? [])

@@ -66,6 +66,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
   int matchingCount = 0;
   bool isLoadingMatches = true;
   String? matchesErrorMessage;
+  MatchedPostSummary? postSummary;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
@@ -145,17 +146,53 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
       setState(() {
         matches = response.data!.matches;
         matchingCount = response.data!.matchingCount;
+        postSummary = response.data!.post;
         isLoadingMatches = false;
       });
-    }
-    // if (response.isSuccess && response.data != null) {
-    //   setState(() {
-    //     matches = response.data!.matches;
-    //     matchingCount = response.data!.matchingCount;
-    //     isLoadingMatches = false;
-    //   });
-    // }
-    else {
+
+      // ============================================================
+      // FALLBACK FOR CLOSED POSTS:
+      // If handover_info is missing from Match API, try viewEnquiry API.
+      // Both sides must read the SAME completed handover record.
+      // ============================================================
+      if (widget.status == 2 || widget.isReceived) {
+        if (postSummary != null && postSummary!.handoverType == 0) {
+          debugPrint('[HandoverFallback] handover_info missing in Match API for postId=${widget.postId}. Trying viewEnquiry...');
+          final enqResp = await authController.viewEnquiry(postId: widget.postId);
+          if (enqResp.isSuccess && enqResp.data != null) {
+            final enqPost = enqResp.data!.post;
+            if (enqPost != null && enqPost.handoverType != 0) {
+              debugPrint('[HandoverFallback] Found handover info in viewEnquiry API!');
+              if (mounted) {
+                setState(() {
+                  postSummary = MatchedPostSummary(
+                    id: postSummary!.id,
+                    postUid: postSummary!.postUid,
+                    name: postSummary!.name,
+                    userId: postSummary!.userId,
+                    location: postSummary!.location,
+                    postDate: postSummary!.postDate,
+                    createdAt: postSummary!.createdAt,
+                    images: postSummary!.images,
+                    handoverType: enqPost.handoverType,
+                    handoverName: enqPost.handoverName,
+                    stationName: enqPost.stationName,
+                    stationAddress: enqPost.stationAddress,
+                    handoverDescription: enqPost.handoverDescription,
+                    handoverPhoneno: enqPost.handoverPhoneno,
+                    handoverImg: enqPost.handoverImg,
+                    handoverMatchPercentage: enqPost.handoverMatchPercentage,
+                    handoverUserUid: enqPost.handoverUserUid,
+                    handoverDate: enqPost.handoverDate,
+                    handoverAvatar: enqPost.handoverAvatar,
+                  );
+                });
+              }
+            }
+          }
+        }
+      }
+    } else {
       setState(() {
         matchesErrorMessage = response.message.isNotEmpty ? response.message : 'Failed to fetch matches';
         isLoadingMatches = false;
@@ -209,9 +246,11 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
           'matches=${matches.length} winnerMatch=${winnerMatch?.posterName ?? "NULL"}');
     }
 
-    final winnerName = (winnerMatch != null && winnerMatch.posterName.isNotEmpty)
-        ? winnerMatch.posterName
-        : (widget.isFound ? 'Owner' : 'Finder');
+    final winnerName = (postSummary != null && postSummary!.handoverName.isNotEmpty)
+        ? postSummary!.handoverName
+        : ((winnerMatch != null && winnerMatch.posterName.isNotEmpty)
+            ? winnerMatch.posterName
+            : (widget.isFound ? 'Owner' : 'Finder'));
 
     return Scaffold(
       backgroundColor: isClosed ? AppColors.closedColor : AppColors.white,
@@ -309,20 +348,62 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                 location: widget.date,
                 isReceiver: !widget.isFound,
                 onTap: () {
+                  TransferType type;
+                  final hType = postSummary?.handoverType ?? 0;
+                  final isJewellery = (postSummary?.name.toLowerCase().contains('jewellery') ?? false) ||
+                      (postSummary?.name.toLowerCase().contains('valuable') ?? false) ||
+                      (widget.categoryId == 9);
 
-                  debugPrint('========== TRANSFER DATA DEBUG ==========');
-                  debugPrint('widget.isFound        : ${widget.isFound}');
-                  debugPrint('widget.status         : ${widget.status}');
-                  debugPrint('matches.length        : ${matches.length}');
-                  debugPrint('winnerMatch == null   : ${winnerMatch == null}');
-                  debugPrint('winnerMatch.posterName: ${winnerMatch?.posterName}');
-                  debugPrint('winnerMatch.userUid   : ${winnerMatch?.userUid}');
-                  debugPrint('winnerMatch.postImages: ${winnerMatch?.postImages}');
-                  debugPrint('winnerMatch.description: ${winnerMatch?.description}');
-                  debugPrint('winnerName (computed) : $winnerName');
-                  debugPrint('widget.imgUrl         : ${widget.imgUrl}');
-                  debugPrint('widget.postUid        : ${widget.postUid}');
-                  debugPrint('==========================================');
+                  if (hType == 2 || isJewellery) {
+                    type = widget.isFound ? TransferType.handOverToPolice : TransferType.receiveToPolice;
+                  } else if (hType == 3) {
+                    type = widget.isFound ? TransferType.handOverToOthers : TransferType.receiveToOthers;
+                  } else {
+                    type = widget.isFound ? TransferType.handOverToOwner : TransferType.receiveToOwner;
+                  }
+
+                  // Data source prioritization: 
+                  // Name and userUid from Handover record (postSummary)
+                  // Fallback to Match item (winnerMatch)
+                  final actorName = postSummary?.handoverName.isNotEmpty == true 
+                      ? postSummary!.handoverName 
+                      : (winnerMatch?.posterName ?? (widget.isFound ? 'Owner' : 'Finder'));
+                  
+                  final actorUid = postSummary?.handoverUserUid.isNotEmpty == true
+                      ? postSummary!.handoverUserUid
+                      : (winnerMatch?.userUid ?? '');
+
+                  final actorAvatar = postSummary?.handoverAvatar.isNotEmpty == true
+                      ? postSummary!.handoverAvatar
+                      : (winnerMatch?.posterAvatar ?? '');
+
+                  final handoverDesc = postSummary?.handoverDescription.isNotEmpty == true
+                      ? postSummary!.handoverDescription
+                      : 'Item successfully closed';
+
+                  final handoverImgs = postSummary?.handoverImg ?? [];
+
+                  final matchPercentage = winnerMatch?.matchPercentage ?? postSummary?.handoverMatchPercentage;
+
+                  debugPrint('========== HANDOVER ACTOR ==========');
+                  debugPrint('userUid: $actorUid');
+                  debugPrint('name: $actorName');
+                  debugPrint('avatar: $actorAvatar');
+                  debugPrint('=====================================');
+
+                  debugPrint('========== HANDOVER DATA ============');
+                  debugPrint('description: $handoverDesc');
+                  debugPrint('images: $handoverImgs');
+                  debugPrint('date: ${postSummary?.handoverDate}');
+                  debugPrint('handoverType: $hType');
+                  debugPrint('=====================================');
+
+                  debugPrint('========== MATCH DATA ===============');
+                  debugPrint('winnerMatch.matchPercentage: ${winnerMatch?.matchPercentage}');
+                  debugPrint('postSummary.handoverMatchPercentage: ${postSummary?.handoverMatchPercentage}');
+                  debugPrint('matchPercentage resolved: $matchPercentage');
+                  debugPrint('=====================================');
+
                   AppUiHelper.showBottomSheet(
                     showHandle: false,
                     showCloseIcon: true,
@@ -331,19 +412,18 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                     },
                     context: context,
                     child: ReceivedDetails(
-                      type: widget.isFound
-                          ? TransferType.handOverToOwner
-                          : TransferType.receiveToOwner,
+                      type: type,
                       data: TransferData(
-                        name: winnerName,
-                        avatarUrl: winnerMatch?.posterAvatar ?? widget.imgUrl,
-                        userId: winnerMatch?.userUid ?? widget.postUid,
-                        phoneNumber: '',
-                        description: winnerMatch?.description ?? "Item successfully closed",
-                        proofPhotos: winnerMatch != null && winnerMatch.postImages.isNotEmpty
-                            ? [winnerMatch.postImages]
-                            : [widget.imgUrl],
-                        matchPercentage: winnerMatch?.matchPercentage,
+                        name: actorName,
+                        avatarUrl: actorAvatar,
+                        userId: actorUid,
+                        phoneNumber: postSummary?.handoverPhoneno ?? '',
+                        description: handoverDesc,
+                        proofPhotos: handoverImgs,
+                        matchPercentage: matchPercentage,
+                        handoverDate: postSummary?.handoverDate ?? '',
+                        policeStationName: postSummary?.stationName ?? '',
+                        policeStationAddress: postSummary?.stationAddress ?? '',
                       ),
                     ),
                   );
@@ -356,6 +436,29 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                     name: winnerName,
                     location: widget.date,
                     onTap: () {
+                      final actorName = postSummary?.handoverName.isNotEmpty == true 
+                          ? postSummary!.handoverName 
+                          : (winnerMatch?.posterName ?? (widget.isFound ? 'Owner' : 'Finder'));
+                      
+                      final actorUid = postSummary?.handoverUserUid.isNotEmpty == true
+                          ? postSummary!.handoverUserUid
+                          : (winnerMatch?.userUid ?? '');
+
+                      final actorAvatar = postSummary?.handoverAvatar.isNotEmpty == true
+                          ? postSummary!.handoverAvatar
+                          : (winnerMatch?.posterAvatar ?? '');
+
+                      final handoverDesc = postSummary?.handoverDescription.isNotEmpty == true
+                          ? postSummary!.handoverDescription
+                          : 'Successfully processed';
+
+                      final matchPercentage = winnerMatch?.matchPercentage ?? postSummary?.handoverMatchPercentage;
+
+                      debugPrint('========== HANDOVER ACTOR (isReceived) ==========');
+                      debugPrint('userUid: $actorUid');
+                      debugPrint('name: $actorName');
+                      debugPrint('avatar: $actorAvatar');
+                      debugPrint('=================================================');
 
                       AppUiHelper.showBottomSheet(
                         showHandle: false,
@@ -367,15 +470,14 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                         child: ReceivedDetails(
                           type: TransferType.receiveToOwner,
                           data: TransferData(
-                            name: winnerName,
-                            avatarUrl: winnerMatch?.posterAvatar ?? widget.imgUrl,
-                            userId: winnerMatch?.userUid ?? widget.postUid,
-                            phoneNumber: '',
-                            description: winnerMatch?.description ?? "Successfully processed",
-                            proofPhotos: winnerMatch != null && winnerMatch.postImages.isNotEmpty
-                                ? [winnerMatch.postImages]
-                                : [widget.imgUrl],
-                            matchPercentage: winnerMatch?.matchPercentage,
+                            name: actorName,
+                            avatarUrl: actorAvatar,
+                            userId: actorUid,
+                            phoneNumber: postSummary?.handoverPhoneno ?? '',
+                            description: handoverDesc,
+                            proofPhotos: postSummary?.handoverImg ?? [],
+                            matchPercentage: matchPercentage,
+                            handoverDate: postSummary?.handoverDate ?? '',
                           ),
                         ),
                       );

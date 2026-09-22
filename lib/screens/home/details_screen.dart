@@ -714,7 +714,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                   : (post.handoverName.isNotEmpty
                       ? post.handoverName
                       : (post.postType == 0
-                          ? (post.finderName.isNotEmpty ? post.finderName : 'Finder')
+                          ? (post.ownerName.isNotEmpty ? post.ownerName : (post.posterName.isNotEmpty ? post.posterName : 'Owner'))
                           : (post.ownerName.isNotEmpty ? post.ownerName : 'Owner'))),
               location: _formatDate(post.postDate),
               onTap: () {
@@ -733,6 +733,69 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                       : TransferType.handOverToOwner;
                 }
 
+                final isOwnerType = !(post.handoverType == 2 || isJewellery) && post.handoverType != 3;
+
+                // For owner types, the name must be the actor (Bolu), not the receiver (Dolu).
+                // posterName in SingleMatchModel contains the matched person's name.
+                final String finalName = isOwnerType
+                    ? (post.handoverName.isNotEmpty 
+                        ? post.handoverName 
+                        : (post.posterName.isNotEmpty 
+                            ? post.posterName 
+                            : 'Winner'))
+                    : ((post.handoverType == 2 || isJewellery)
+                        ? (post.stationName.isNotEmpty ? post.stationName : (post.handoverName.isNotEmpty && post.handoverName != 'Owner' ? post.handoverName : 'Police Station'))
+                        : (post.handoverName.isNotEmpty ? post.handoverName : 'Others'));
+
+                final String finalUserId = isOwnerType
+                    ? (post.handoverUserUid.isNotEmpty ? post.handoverUserUid : post.postUid)
+                    : (post.handoverUserUid.isNotEmpty ? post.handoverUserUid : post.userId.toString());
+
+                // For owner types, NO fallback to original post description/image is allowed.
+                final String finalDesc = isOwnerType
+                    ? post.handoverDescription
+                    : (post.handoverDescription.isNotEmpty ? post.handoverDescription : post.description);
+
+                final List<String> finalPhotos = isOwnerType
+                    ? post.handoverImg.map((img) => _getMediaUrl(img)).toList()
+                    : (post.handoverImg.isNotEmpty
+                        ? post.handoverImg.map((img) => _getMediaUrl(img)).toList()
+                        : (_itemImageUrl.isNotEmpty ? [_itemImageUrl] : []));
+
+                if (isOwnerType) {
+                  debugPrint('========== HANDOVER ACTOR ==========');
+                  debugPrint('userId: ${post.userId}');
+                  debugPrint('userUid: $finalUserId');
+                  debugPrint('name: $finalName');
+                  debugPrint('=====================================');
+
+                  debugPrint('========== HANDOVER DATA ============');
+                  debugPrint('description: $finalDesc');
+                  debugPrint('images: $finalPhotos');
+                  debugPrint('date: ${post.handoverDate}');
+                  debugPrint('handoverType: ${post.handoverType}');
+                  debugPrint('=====================================');
+
+                  debugPrint('========== MATCH DATA ===============');
+                  debugPrint('matchedPostId: ${post.id}');
+                  debugPrint('matchedUserId: ${post.userId}');
+                  debugPrint('posterName: ${post.posterName}');
+                  debugPrint('posterUserUid: ${post.handoverUserUid}');
+                  debugPrint('matchPercentage: ${post.handoverMatchPercentage ?? widget.percentageMatch}');
+                  debugPrint('=====================================');
+
+                  debugPrint('========== RECEIVED DETAILS =========');
+                  debugPrint('type: $type');
+                  debugPrint('name: $finalName');
+                  debugPrint('userId: $finalUserId');
+                  debugPrint('description: $finalDesc');
+                  debugPrint('images: $finalPhotos');
+                  debugPrint('date: ${post.handoverDate}');
+                  debugPrint('matchPercentage: ${post.handoverMatchPercentage ?? widget.percentageMatch}');
+                  debugPrint('=====================================');
+                  debugPrint('SOURCE: actor name and UID resolved from posterName/postUid. Handover description, images, and date from Handover record.');
+                }
+
                 AppUiHelper.showBottomSheet(
                   context: context,
                   showHandle: false,
@@ -743,38 +806,22 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                   child: ReceivedDetails(
                     type: type,
                     data: TransferData(
-                      name: (post.handoverType == 2 || isJewellery)
-                          ? (post.stationName.isNotEmpty
-                              ? post.stationName
-                              : (post.handoverName.isNotEmpty && post.handoverName != 'Owner'
-                                  ? post.handoverName
-                                  : 'Police Station'))
-                          : (post.handoverName.isNotEmpty
-                              ? post.handoverName
-                              : (post.postType == 0
-                                  ? (post.finderName.isNotEmpty ? post.finderName : 'Finder')
-                                  : (post.ownerName.isNotEmpty ? post.ownerName : 'Owner'))),
+                      name: finalName,
                       avatarUrl: (post.handoverType == 2 || post.handoverType == 3 || isJewellery)
                           ? ''
-                          : _getMediaUrl(
-                              post.postType == 0 ? post.finderAvatar : post.ownerAvatar,
-                            ),
-                      userId: post.handoverUserUid.isNotEmpty ? post.handoverUserUid : post.userId.toString(),
+                          : (post.handoverAvatar.isNotEmpty 
+                              ? _getMediaUrl(post.handoverAvatar)
+                              : _getMediaUrl(post.postType == 0 ? post.posterAvatar : post.ownerAvatar)),
+                      userId: finalUserId,
                       phoneNumber: post.handoverPhoneno,
-                      description: post.handoverDescription.isNotEmpty
-                          ? post.handoverDescription
-                          : post.description,
+                      description: finalDesc,
                       policeStationName: post.stationName.isNotEmpty
                           ? post.stationName
                           : (isJewellery && post.handoverName.isNotEmpty && post.handoverName != 'Owner' ? post.handoverName : 'Police Station'),
                       policeStationAddress: post.stationAddress.isNotEmpty
                           ? post.stationAddress
                           : post.location,
-                      proofPhotos: post.handoverImg.isNotEmpty
-                          ? post.handoverImg
-                              .map((img) => _getMediaUrl(img))
-                              .toList()
-                          : (_itemImageUrl.isNotEmpty ? [_itemImageUrl] : []),
+                      proofPhotos: finalPhotos,
                       matchPercentage: post.handoverMatchPercentage ?? widget.percentageMatch,
                       handoverDate: post.handoverDate,
                     ),
