@@ -8,6 +8,7 @@ import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/enums/handover_type.dart';
 import 'package:lost_and_found/models/handover/handover_type.dart';
+import 'package:lost_and_found/models/posts_model/post_match_item.dart';
 import 'package:lost_and_found/models/posts_model/single_match_item.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/bottomsheets/handover_selection.dart';
@@ -217,8 +218,73 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
       if (!mounted) return;
 
       if (response.isSuccess && response.data != null) {
+        var fetchedPost = response.data!;
+
+        final isJewelleryCategory = fetchedPost.categoryName.toLowerCase().contains('jewellery') ||
+            fetchedPost.categoryName.toLowerCase().contains('valuable') ||
+            fetchedPost.categoryId == 9;
+
+        // /Match/viewSingleMatch endpoint does NOT return handover_info or matches/matchPercentage.
+        // For Jewellery & Valuables or closed posts, we fetch /Match/post/{postId} (PostMatchesModel)
+        // to populate handover_info and match details.
+        if (isJewelleryCategory || fetchedPost.status == 2 || fetchedPost.handoverType != 0) {
+          debugPrint('[DetailsScreen] Fetching PostMatches for Jewellery/Closed post ID: ${widget.postId}');
+          final postMatchesResp = await authController.getPostMatches(postId: widget.postId);
+          if (postMatchesResp.isSuccess && postMatchesResp.data != null) {
+            final summary = postMatchesResp.data!.post;
+            final matchesList = postMatchesResp.data!.matches;
+
+            int? updatedMatchPercentage = summary.handoverMatchPercentage;
+            if (updatedMatchPercentage == null && matchesList.isNotEmpty) {
+              MatchItemModel? winningMatch;
+              for (final m in matchesList) {
+                if (m.status == 2) {
+                  winningMatch = m;
+                  break;
+                }
+              }
+              winningMatch ??= matchesList.first;
+              updatedMatchPercentage = winningMatch.matchPercentage;
+            }
+
+            final hName = summary.handoverName.isNotEmpty
+                ? summary.handoverName
+                : (summary.stationName.isNotEmpty ? summary.stationName : fetchedPost.handoverName);
+            final sName = summary.stationName.isNotEmpty
+                ? summary.stationName
+                : (summary.handoverName.isNotEmpty ? summary.handoverName : fetchedPost.stationName);
+
+            fetchedPost = fetchedPost.copyWith(
+              status: (summary.id != 0 && summary.handoverType != 0) ? 2 : fetchedPost.status,
+              handoverType: summary.handoverType != 0 ? summary.handoverType : fetchedPost.handoverType,
+              handoverName: hName,
+              stationName: sName,
+              stationAddress: summary.stationAddress.isNotEmpty ? summary.stationAddress : fetchedPost.stationAddress,
+              handoverDescription: summary.handoverDescription.isNotEmpty ? summary.handoverDescription : fetchedPost.handoverDescription,
+              handoverPhoneno: summary.handoverPhoneno.isNotEmpty ? summary.handoverPhoneno : fetchedPost.handoverPhoneno,
+              handoverImg: summary.handoverImg.isNotEmpty ? summary.handoverImg : fetchedPost.handoverImg,
+              handoverMatchPercentage: updatedMatchPercentage ?? fetchedPost.handoverMatchPercentage,
+              handoverUserUid: summary.handoverUserUid.isNotEmpty ? summary.handoverUserUid : fetchedPost.handoverUserUid,
+              handoverDate: summary.handoverDate.isNotEmpty ? summary.handoverDate : fetchedPost.handoverDate,
+              handoverAvatar: summary.handoverAvatar.isNotEmpty ? summary.handoverAvatar : fetchedPost.handoverAvatar,
+            );
+
+            debugPrint('========== MERGED JEWELLERY/HANDOVER DATA ==========');
+            debugPrint('postId            : ${widget.postId}');
+            debugPrint('handoverType      : ${fetchedPost.handoverType}');
+            debugPrint('handoverName      : ${fetchedPost.handoverName}');
+            debugPrint('stationName       : ${fetchedPost.stationName}');
+            debugPrint('stationAddress    : ${fetchedPost.stationAddress}');
+            debugPrint('handoverDesc      : ${fetchedPost.handoverDescription}');
+            debugPrint('handoverImg       : ${fetchedPost.handoverImg}');
+            debugPrint('handoverDate      : ${fetchedPost.handoverDate}');
+            debugPrint('matchPercentage   : ${fetchedPost.handoverMatchPercentage}');
+            debugPrint('====================================================');
+          }
+        }
+
         setState(() {
-          postDetails = response.data;
+          postDetails = fetchedPost;
           isLoading = false;
         });
 
@@ -749,7 +815,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
 
                 final String finalUserId = isOwnerType
                     ? (post.handoverUserUid.isNotEmpty ? post.handoverUserUid : post.postUid)
-                    : (post.handoverUserUid.isNotEmpty ? post.handoverUserUid : post.userId.toString());
+                    : (post.handoverUserUid.isNotEmpty ? post.handoverUserUid : '');
 
                 // For owner types, NO fallback to original post description/image is allowed.
                 final String finalDesc = isOwnerType
