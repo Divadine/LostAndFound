@@ -28,14 +28,14 @@ import 'package:lost_and_found/utils/app_utils.dart';
 class HandoverProofDocuments extends StatefulWidget {
   final HandoverOwnerModel selectedOwner;
   final int postId;
-  final int enquiryId;
+  final int? enquiryId;
   final bool isReceiver;
 
   const HandoverProofDocuments({
     super.key,
     required this.selectedOwner,
     required this.postId,
-    required this.enquiryId,
+    this.enquiryId,
     this.isReceiver = false,
   });
 
@@ -57,7 +57,7 @@ class HandoverProofDocuments extends StatefulWidget {
     required String description,
     required String phoneno,
     required int postId,
-    required int enquiryId,
+    int? enquiryId,
     required bool isReceiver,
     required HandoverOwnerModel selectedOwner,
     required Function(bool) onLoading,
@@ -80,11 +80,6 @@ class HandoverProofDocuments extends StatefulWidget {
       final currentUserId = AppPreferences.getUserId();
       if (currentUserId == null) {
         _staticShowError(context, 'User ID not found. Please login again.');
-        return;
-      }
-
-      if (enquiryId == 0) {
-        _staticShowError(context, 'Missing enquiry reference. Please try again.');
         return;
       }
 

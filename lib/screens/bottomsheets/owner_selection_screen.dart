@@ -62,97 +62,62 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
     });
 
     try {
-      final enquiryResponse = await authController.viewEnquiry(postId: widget.postId);
-
-      // Fetch matches to get match percentages for those who might not be in the enquiry list
+      debugPrint('[Handover] Fetching matches for postId: ${widget.postId}');
       final matchesResponse = await authController.getPostMatches(postId: widget.postId);
-      final Map<int, int> matchPercentages = {};
-      if (matchesResponse.isSuccess && matchesResponse.data != null) {
-        for (final m in matchesResponse.data!.matches) {
-          matchPercentages[m.userId] = m.matchPercentage;
-        }
-      }
-
-      if (!mounted) return;
 
       final Map<int, int> postMap = {};
       final Map<int, int> userMap = {};
       final Map<String, int> uidMap = {};
-      final List<HandoverOwnerModel> newOwners = [];
-      final currentUserId = AppPreferences.getUserId();
 
-      if (enquiryResponse.isSuccess && enquiryResponse.data != null) {
-        final post = enquiryResponse.data!.post;
-
-        for (final e in enquiryResponse.data!.enquiries) {
-          // If we are in the receiver flow and the enquirer is the current user,
-          // it means the current user enquired to this post.
-          // In this case, we want to show the POST OWNER (Founder) to the receiver.
-          if (widget.isReceiver && e.enquirerUserId == currentUserId && post != null) {
-            final ownerModel = HandoverOwnerModel(
-              postId: post.id,
-              userId: post.userId,
-              userUid: post.userUid,
-              name: post.posterName.isNotEmpty
-                  ? post.posterName
-                  : (post.handoverName.isNotEmpty && post.handoverName != 'Owner'
-                      ? post.handoverName
-                      : 'Founder'),
-              phoneno: post.handoverPhoneno,
-              profileImageUrl: post.images.isNotEmpty ? post.images.first : null,
-              matchPercentage: e.matchPercentage,
-            );
-            newOwners.add(ownerModel);
-
-            // Populate lookup maps using the post owner's info but the current enquiry ID
-            postMap[post.id] = e.enquiryId;
-            userMap[post.userId] = e.enquiryId;
-            uidMap[post.userUid] = e.enquiryId;
-          } else {
-            // Standard flow: show the enquirer (e.g. Founder looking at enquirers)
-            newOwners.add(HandoverOwnerModel(
-              postId: e.matchedPostId,
-              userId: e.enquirerUserId,
-              userUid: e.userUid,
-              name: e.enquirerName,
-              phoneno: e.phoneno,
-              profileImageUrl: e.enquirerProfileImg,
-              matchPercentage: e.matchPercentage,
-            ));
-
+      // Optional enquiryId map lookup for matches that happen to have an enquiry
+      try {
+        final enquiryResponse = await authController.viewEnquiry(postId: widget.postId);
+        if (enquiryResponse.isSuccess && enquiryResponse.data != null) {
+          for (final e in enquiryResponse.data!.enquiries) {
             postMap[e.matchedPostId] = e.enquiryId;
             userMap[e.enquirerUserId] = e.enquiryId;
             uidMap[e.userUid] = e.enquiryId;
           }
         }
-      }
-
-      // Supplement with matches if in receiver flow, as MatchItemModel contains the poster name.
-      if (widget.isReceiver && matchesResponse.isSuccess && matchesResponse.data != null) {
-        for (final m in matchesResponse.data!.matches) {
-          if (!newOwners.any((o) => o.userId == m.userId)) {
-            newOwners.add(HandoverOwnerModel(
-              postId: m.postId,
-              userId: m.userId,
-              userUid: m.userUid,
-              name: m.posterName,
-              phoneno: '', // Will be fetched via getProfile in the next screen if needed
-              profileImageUrl: m.posterAvatar,
-              matchPercentage: m.matchPercentage,
-            ));
-          }
-        }
+      } catch (e) {
+        debugPrint('[Handover] Optional viewEnquiry lookup error (non-fatal): $e');
       }
 
       if (!mounted) return;
 
-      if (newOwners.isEmpty && !enquiryResponse.isSuccess) {
+      if (!matchesResponse.isSuccess || matchesResponse.data == null) {
         setState(() {
-          errorMessage = enquiryResponse.message.isNotEmpty ? enquiryResponse.message : 'Failed to fetch enquiries';
+          errorMessage = matchesResponse.message.isNotEmpty
+              ? matchesResponse.message
+              : 'Failed to fetch matched users';
           isLoading = false;
         });
         return;
       }
+
+      final matches = matchesResponse.data!.matches;
+      debugPrint('[Handover] Number of matches returned for postId ${widget.postId}: ${matches.length}');
+
+      final List<HandoverOwnerModel> newOwners = [];
+      for (final m in matches) {
+        final displayName = m.posterName.isNotEmpty
+            ? m.posterName
+            : (m.name.isNotEmpty ? m.name : 'Matched User');
+
+        debugPrint('[Handover] Match -> postId: ${m.postId}, userId: ${m.userId}, name: $displayName, matchPercentage: ${m.matchPercentage}%');
+
+        newOwners.add(HandoverOwnerModel(
+          postId: m.postId,
+          userId: m.userId,
+          userUid: m.userUid,
+          name: displayName,
+          phoneno: '', // Will be fetched via getProfile in proof submission screen if needed
+          profileImageUrl: m.posterAvatar,
+          matchPercentage: m.matchPercentage,
+        ));
+      }
+
+      if (!mounted) return;
 
       setState(() {
         owners = newOwners;
@@ -162,7 +127,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
         isLoading = false;
       });
     } catch (e, st) {
-      debugPrint('Error fetching enquiries: $e\n$st');
+      debugPrint('[Handover] Error fetching matches: $e\n$st');
       if (!mounted) return;
       setState(() {
         errorMessage = 'Something went wrong: $e';
@@ -175,22 +140,20 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
     if (selectedIndex == null) return;
     final selectedOwner = owners[selectedIndex!];
 
-    // Try lookup by Post ID from pre-fetched map
-    int? enquiryId = enquiryIdByMatchedPostId[selectedOwner.postId];
+    debugPrint('[Handover] Selected Match -> userId: ${selectedOwner.userId}, postId: ${selectedOwner.postId}, name: ${selectedOwner.name}');
 
-    // Try lookup by User ID / UID from pre-fetched map
+    // Optional lookup of enquiryId from pre-fetched map
+    int? enquiryId = enquiryIdByMatchedPostId[selectedOwner.postId];
     enquiryId ??= enquiryIdByUserId[selectedOwner.userId];
     enquiryId ??= enquiryIdByUserUid[selectedOwner.userUid];
 
-    // FIX: If enquiryId is still null, it might be because the enquiry was sent TO the matched post
-    // (Receiver flow). Let's try to fetch it from the matched post's enquiry list.
+    // Optional reverse lookup from matched post's enquiry list
     if (enquiryId == null) {
       try {
         final resp = await authController.viewEnquiry(postId: selectedOwner.postId);
         if (resp.isSuccess && resp.data != null) {
           final currentUserId = AppPreferences.getUserId();
           for (final e in resp.data!.enquiries) {
-            // Check if this enquiry links the two posts and involves the current user
             if (e.matchedPostId == widget.postId && (e.enquirerUserId == currentUserId || currentUserId == null)) {
               enquiryId = e.enquiryId;
               break;
@@ -198,20 +161,11 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
           }
         }
       } catch (e) {
-        debugPrint('Error fetching enquiryId from match: $e');
+        debugPrint('[Handover] Error in optional enquiry lookup: $e');
       }
     }
 
-    if (enquiryId == null) {
-      AppDialogue.showPopup(
-        context: context,
-        content: const AppText(
-          text: 'No enquiry details found for this match.',
-          textAlign: TextAlign.center,
-        ),
-      );
-      return;
-    }
+    debugPrint('[Handover] enquiryId: ${enquiryId ?? "NONE (Proceeding without enquiry)"}');
 
     final result = await AppUiHelper.showBottomSheet(
       maxHeightFactor: 0.7,
