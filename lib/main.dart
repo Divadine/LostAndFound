@@ -133,7 +133,7 @@ class _MyAppState extends State<MyApp> {
             )
           )
         ),
-        title: 'LostAndFound',
+        title: 'Findora',
         debugShowCheckedModeBanner: false,
       ),
     );

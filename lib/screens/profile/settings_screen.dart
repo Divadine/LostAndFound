@@ -553,13 +553,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required void Function() onTap,
   }) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
+        width: double.infinity,
         child: Row(
           children: [
-            AppIconWidget(assetPath: image, color: AppColors.black),
+            AppIconWidget(
+              assetPath: image,
+              color: AppColors.black,
+            ),
             SizedBox(width: 20),
-            AppText(text: title, fontSize: 15, fontWeight: FontWeight.w500),
+            AppText(
+              text: title,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
             Spacer(),
             trailingIcon,
           ],
@@ -567,4 +576,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+  // Widget buildSettingTile({
+  //   required String image,
+  //   required String title,
+  //   required Widget trailingIcon,
+  //   required void Function() onTap,
+  // }) {
+  //   return GestureDetector(
+  //     onTap: onTap,
+  //     child: Container(
+  //       child: Row(
+  //         children: [
+  //           AppIconWidget(assetPath: image, color: AppColors.black),
+  //           SizedBox(width: 20),
+  //           AppText(text: title, fontSize: 15, fontWeight: FontWeight.w500),
+  //           Spacer(),
+  //           trailingIcon,
+  //         ],
+  //       ).pad(),
+  //     ),
+  //   );
+  // }
 }
