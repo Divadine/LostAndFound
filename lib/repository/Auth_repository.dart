@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/api_providers/api_endpoints.dart';
+import 'package:lost_and_found/models/Notifications/notification_list_model.dart';
 import 'package:lost_and_found/models/api_model/response_model.dart';
 import 'package:lost_and_found/models/authmodels/login_model.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_response_model.dart';
@@ -904,4 +905,57 @@ class AuthRepository {
 
     return response;
   }
+
+
+  Future<ResponseModel<NotificationListModel>> getNotificationList({
+    required int userId,
+    int page = 1,
+    int pageSize = 10,
+  }) async {
+    final response = await apiClient.post(
+      ApiEndPoints.notification,
+      data: {
+        'user_id': userId,
+        'page': page,
+        'pageSize': pageSize,
+      },
+      addToken: false,
+    );
+
+    if (!response.isSuccess) {
+      return response.asFailure<NotificationListModel>();
+    }
+
+    return ResponseModel<NotificationListModel>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: NotificationListModel.fromJson(
+        response.data as Map<String, dynamic>,
+      ),
+    );
+  }
+
+
+  Future<ResponseModel> sendNotification({
+    required int userId,
+  }) async {
+    final response = await apiClient.post(
+      ApiEndPoints.sendNotification,
+      data: {
+        'user_id': userId,
+      },
+      addToken: false,
+    );
+
+    debugPrint(
+      '[Notification] send status=${response.status}, '
+          'message=${response.message}, '
+          'data=${response.data}',
+    );
+
+    return response;
+  }
 }
+
+

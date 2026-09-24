@@ -215,7 +215,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 15),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
@@ -229,7 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: AppColors.primaryColor,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 15),
                   AppButton(
                     width: AppUtils.isTab ? 200 : 150,
                     title: "Edit Profile",
@@ -266,7 +266,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     prefixIcon: AssetImages.pen,
                   ).padHorizontal(105),
 
-                  SizedBox(height: 10),
+                  SizedBox(height: 15),
 
                   AppContainer(
                     widget: Column(

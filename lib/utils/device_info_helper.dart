@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 class DeviceInfoHelper {
@@ -13,13 +14,33 @@ class DeviceInfoHelper {
     if (Platform.isIOS) return "iOS";
     return "Unknown";
   }
+  //
+  // static Future<String> getDeviceId() async {
+  //
+  //   String? deviceId;
+  //   deviceId = const Uuid().v4();
+  //   print("+++++++++++++++++++++++");
+  //   print(deviceId);
+  //   return deviceId;
+  // }
 
   static Future<String> getDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
 
-    String? deviceId;
-    deviceId = const Uuid().v4();
-    print("+++++++++++++++++++++++");
-    print(deviceId);
+    const key = 'device_id';
+
+    String? deviceId = prefs.getString(key);
+
+    if (deviceId == null || deviceId.isEmpty) {
+      deviceId = const Uuid().v4();
+
+      await prefs.setString(key, deviceId);
+
+      print("New device ID generated: $deviceId");
+    } else {
+      print("Existing device ID: $deviceId");
+    }
+
     return deviceId;
   }
 

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:lost_and_found/models/Notifications/notification_list_model.dart';
 import 'package:lost_and_found/models/api_model/response_model.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_response_model.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
@@ -351,5 +352,23 @@ class AuthControllers {
     );
   }
 
+
+  Future<ResponseModel<NotificationListModel>> getNotificationList( {required int userId,int page = 1, int pageSize = 10,}) async  {
+  return await authRepository.getNotificationList(
+  userId: userId,
+  page: page,
+  pageSize: pageSize,
+  );
+
+  }
+
+
+  Future<ResponseModel> sendNotification({
+    required int userId,
+  }) async {
+    return await authRepository.sendNotification(
+      userId: userId,
+    );
+  }
 
 }

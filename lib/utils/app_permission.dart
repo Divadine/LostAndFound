@@ -99,6 +99,7 @@ class AppPermissions {
       permission: Permission.notification,
       prefKey: _notificationKey,
       content: notificationPermissionContent,
+      customPopup: const NotificationPopUp(),
     );
   }
 

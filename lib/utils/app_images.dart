@@ -151,6 +151,9 @@ class AssetImages {
   static const String noInternet = "assets/images/noInternet.svg";
   static const String notificationDot = "assets/images/notificationDot.svg";
   static const String chatEmpty = "assets/images/chatEmpty.svg";
+  static const String notificationBackIcon = "assets/images/notificationBackIcon.svg";
+  static const String notificationBackIcon1 = "assets/images/notificationBackIcon.svg";
+
 
 
 

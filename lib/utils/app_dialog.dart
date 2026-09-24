@@ -3038,15 +3038,6 @@ class ChatSendRequest extends StatelessWidget {
   }
 }
 
-// class NotificationRequest extends StatelessWidget {
-//
-//   const NotificationRequest({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return
-//   }
-// }
 
 class AppMicAccess extends StatefulWidget {
   const AppMicAccess({super.key});
@@ -3223,6 +3214,85 @@ class _ExitAppPopUpState extends State<ExitAppPopUp> with WidgetsBindingObserver
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+
+
+class NotificationPopUp extends StatefulWidget {
+  const NotificationPopUp({super.key});
+
+  @override
+  State<NotificationPopUp> createState() => _NotificationPopUpState();
+}
+
+class _NotificationPopUpState extends State<NotificationPopUp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermission();
+    }
+  }
+
+  Future<void> _checkPermission() async {
+    if (await Permission.notification.isGranted && mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        //Image.asset(AssetImages.mapAccess), // swap for a notification-specific asset if you have one
+        SizedBox(
+          width: MediaQuery.of(context).size.width * 0.8,
+          child: Column(
+            spacing: 10,
+            children: [
+              const AppText(
+                text: "Turn on notifications",
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                textAlign: TextAlign.center,
+              ),
+              const AppText(
+                text: "Notifications are turned off. Enable them in your device settings to stay updated on matches and enquiries.",
+                fontWeight: FontWeight.w400,
+                fontSize: 16,
+                color: AppColors.grey,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(),
+              AppButton(
+                onTap: () async {
+                  if (await Permission.notification.isGranted) {
+                    if (mounted) Navigator.pop(context);
+                    return;
+                  }
+                  await openAppSettings();
+                },
+                title: 'Enable notifications',
+              ),
+              const SizedBox(),
+            ],
+          ),
         ),
       ],
     );

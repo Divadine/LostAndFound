@@ -19,6 +19,7 @@ import 'package:lost_and_found/screens/bottomsheets/submission_detail.dart';
 import 'package:lost_and_found/screens/bottomsheets/handover_selection.dart';
 
 import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
+import 'package:lost_and_found/screens/notification_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
@@ -71,6 +72,41 @@ class _HomeScreenState extends State<HomeScreen>
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
+
+  //notifications
+
+  bool _hasUnreadNotification = false;
+
+
+  Future<void> _checkNotifications() async {
+    try {
+      final userId = AppPreferences.getUserId();
+
+      if (userId == null) {
+        return;
+      }
+
+      final response = await authController.getNotificationList(
+        userId: userId,
+        page: 1,
+        pageSize: 10,
+      );
+
+      if (!mounted) return;
+
+      if (response.isSuccess && response.data != null) {
+        final hasUnread = response.data!.notifications.any(
+              (notification) => notification.status == 1,
+        );
+
+        setState(() {
+          _hasUnreadNotification = hasUnread;
+        });
+      }
+    } catch (e) {
+      debugPrint('Notification check error: $e');
+    }
+  }
 
   // ============================================================
   // LOST POSTS
@@ -454,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen>
     _initConnectivityListener();
 
     AppUtils.postRefreshNotifier.addListener(_refreshPosts);
-
+    _checkNotifications();
     _fetchLostPosts();
     _fetchFoundPosts();
   }
@@ -536,10 +572,10 @@ class _HomeScreenState extends State<HomeScreen>
             toolbarHeight: 0,
             backgroundColor: AppColors.primaryColor,
           ),
-          floatingActionButton: FloatingActionButton(
-              onPressed: (){
-                throw Exception();
-              }),
+          // floatingActionButton: FloatingActionButton(
+          //     onPressed: (){
+          //       throw Exception();
+          //     }),
           body: SafeArea(
             child: Stack(
               children: [
@@ -818,18 +854,32 @@ class _HomeScreenState extends State<HomeScreen>
                           // ========================================
 
                           GestureDetector(
-                            onTap: (){},
+                            onTap: () async {
+                              setState(() {
+                                _hasUnreadNotification = false;
+                              });
+
+                              await AppRoutes.pushNamed(
+                                AppRoutes.notificationScreen,
+                              );
+
+                              _checkNotifications();
+                            },
                             child: Stack(
                               children: [
                                 AppIconWidget(
-                                  assetPath:
-                                  AssetImages.notification,
+                                  assetPath: AssetImages.notification,
                                 ),
-                                Positioned(
-                                  top: -1,right: 0,
-                                    child: AppIconWidget(assetPath: AssetImages.notificationDot))
-                              ]
 
+                                if (_hasUnreadNotification)
+                                  Positioned(
+                                    top: -1,
+                                    right: 0,
+                                    child: AppIconWidget(
+                                      assetPath: AssetImages.notificationDot,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ],

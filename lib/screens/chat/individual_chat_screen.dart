@@ -420,6 +420,43 @@ class _IndividualChatScreenState
     );
   }
 
+  // ============================================================
+  // NOTIFY OTHER USER
+  // ============================================================
+  //
+  // Centralized helper so every message type (text, image, location,
+  // address, voice) reliably triggers a push notification to the
+  // receiver. Previously this was only called for the 'address'
+  // attachment type, which is why plain text / image / location /
+  // voice messages were never notifying the other user.
+  // ============================================================
+
+  Future<void> _notifyOtherUser({String? preview}) async {
+    final receiverId = int.tryParse(widget.otherUserId);
+
+    if (receiverId == null) {
+      debugPrint(
+        '[Chat Notification] Invalid receiver ID: ${widget.otherUserId}',
+      );
+      return;
+    }
+
+    try {
+      final notificationResponse = await _authController.sendNotification(
+        userId: receiverId,
+      );
+
+      print(
+        '[Chat Notification] receiver=${widget.otherUserId}, '
+            'sender=${widget.currentUserId}, '
+            'preview=${preview ?? ''}, '
+            'response=${notificationResponse.message}',
+      );
+    } catch (e) {
+      print('[Chat Notification] ERROR: $e');
+    }
+  }
+
   Future<void> _send() async {
     if (_isOffline) {
       _showNoInternetSnackbar();
@@ -439,6 +476,8 @@ class _IndividualChatScreenState
             senderId: widget.currentUserId,
             imageUrl: _pendingAttachment!['url'],
           );
+
+          await _notifyOtherUser(preview: 'Photo');
         } else if (type == 'location') {
           await ChatService.sendLocationMessage(
             roomId: widget.roomId,
@@ -447,11 +486,17 @@ class _IndividualChatScreenState
             longitude: _pendingAttachment!['longitude'],
             address: _pendingAttachment!['address'],
           );
+
+          await _notifyOtherUser(preview: 'Location');
         } else if (type == 'address') {
           await ChatService.sendMessage(
             roomId: widget.roomId,
             senderId: widget.currentUserId,
             message: _pendingAttachment!['address'],
+          );
+
+          await _notifyOtherUser(
+            preview: _pendingAttachment!['address']?.toString(),
           );
         }
         setState(() {
@@ -461,12 +506,14 @@ class _IndividualChatScreenState
 
       if (text.isNotEmpty) {
         textController.clear();
-        
+
         await ChatService.sendMessage(
           roomId: widget.roomId,
           senderId: widget.currentUserId,
           message: text,
         );
+
+        await _notifyOtherUser(preview: text);
       }
     } catch (e) {
       if (!mounted) return;
@@ -475,29 +522,29 @@ class _IndividualChatScreenState
         SnackBar(
           content: Text(
             e.toString().replaceFirst(
-                  'Exception: ',
-                  '',
-                ),
+              'Exception: ',
+              '',
+            ),
           ),
         ),
       );
     }
   }
 
-  Future<void> _handleMicPress() async {
-    final granted = await AppPermissions().requestMicrophonePermission(context);
-    if (granted) {
-      await AppRecorderService.instance.startRecording();
-    }
-  }
-
-  void _startVoiceRecording() async {
-    try {
-      await AppRecorderService.instance.startRecording();
-    } catch (e) {
-      debugPrint("Error starting voice recording: $e");
-    }
-  }
+  // Future<void> _handleMicPress() async {
+  //   final granted = await AppPermissions().requestMicrophonePermission(context);
+  //   if (granted) {
+  //     await AppRecorderService.instance.startRecording();
+  //   }
+  // }
+  //
+  // void _startVoiceRecording() async {
+  //   try {
+  //     await AppRecorderService.instance.startRecording();
+  //   } catch (e) {
+  //     debugPrint("Error starting voice recording: $e");
+  //   }
+  // }
 
   Future<void> _stopAndSendVoiceRecording() async {
     if (_isOffline) {
@@ -525,6 +572,8 @@ class _IndividualChatScreenState
           audioUrl: audioUrl,
           duration: duration,
         );
+
+        await _notifyOtherUser(preview: 'Voice message');
       } else {
         throw Exception(response.message.isNotEmpty ? response.message : 'Failed to upload audio');
       }
@@ -678,22 +727,22 @@ class _IndividualChatScreenState
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  controller: _scrollController,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      children: [
-                        _buildPhoneRow(),
-                    const SizedBox(height: 8),
-                    _buildTopItemCard(),
-                    const SizedBox(height: 8),
-                    _buildSafetyCard(),
-                    const SizedBox(height: 5),
-                    _buildMessagesList(),
+                    controller: _scrollController,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                          children: [
+                            _buildPhoneRow(),
+                            const SizedBox(height: 8),
+                            _buildTopItemCard(),
+                            const SizedBox(height: 8),
+                            _buildSafetyCard(),
+                            const SizedBox(height: 5),
+                            _buildMessagesList(),
 
-                      ]
-                    ),
-                  )
+                          ]
+                      ),
+                    )
 
 
                 ),
@@ -904,21 +953,21 @@ class _IndividualChatScreenState
               MainAxisSize.min,
               children: [
                 AppText(
-                  text:
-                  'Request Sent',
-                  fontSize: 11,
-                  fontWeight:
-                  FontWeight.w600,
-                  color:Color(0xff96550E)
+                    text:
+                    'Request Sent',
+                    fontSize: 11,
+                    fontWeight:
+                    FontWeight.w600,
+                    color:Color(0xff96550E)
                   // AppColors
                   //     .requestColor,
                 ),
                 const SizedBox(width: 5),
                 AppIconWidget(
-                  assetPath:
-                  AssetImages
-                      .requestSent,
-                  size: 13,
+                    assetPath:
+                    AssetImages
+                        .requestSent,
+                    size: 13,
                     color:Color(0xff96550E)
                 ),
               ],
@@ -953,8 +1002,8 @@ class _IndividualChatScreenState
               child: _isOffline
                   ? const NoInternetWidget(size: 16, showText: false)
                   : const CircularProgressIndicator(
-                      strokeWidth: 2,
-                    ),
+                strokeWidth: 2,
+              ),
             ),
           ],
         ).pad(8),
@@ -1351,15 +1400,15 @@ class _IndividualChatScreenState
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: _messagesStream,
       builder: (
-        context,
-        snapshot,
-      ) {
+          context,
+          snapshot,
+          ) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _isOffline
               ? const NoInternetWidget()
               : const Center(
-                  child: CircularProgressIndicator(),
-                );
+            child: CircularProgressIndicator(),
+          );
         }
 
         if (snapshot.hasError) {
@@ -1376,7 +1425,7 @@ class _IndividualChatScreenState
         }
 
         final docs = snapshot.data!.docs.where(
-          (doc) {
+              (doc) {
             final data = doc.data();
             final deletedFor = List<String>.from(
               data['deletedFor'] ?? [],
@@ -2469,9 +2518,9 @@ class _IndividualChatScreenState
     return StreamBuilder<bool>(
       stream: _blockedStream,
       builder: (
-        context,
-        snapshot,
-      ) {
+          context,
+          snapshot,
+          ) {
         final isBlocked = snapshot.data ?? false;
 
         if (isBlocked) {
@@ -2539,7 +2588,7 @@ class _IndividualChatScreenState
                         borderRadius: BorderRadius.circular(14),
                         borderColor: Colors.transparent,
                         hintStyle: TextStyle(
-                          color: AppColors.black
+                            color: AppColors.black
                         ),
                         hintText: 'Write your message..',
                         textController: textController,

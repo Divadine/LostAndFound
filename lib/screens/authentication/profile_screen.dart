@@ -524,6 +524,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onSubmit: (v) {},
                           textInputType: TextInputType.phone,
                           validator: (v) => AppUtils.validateMobileNumber(v),
+                          suffixIcon: widget.profileModel.isFromEdit
+                              ?   AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad()
+                              : null,
                         ),
                       ),
                     ],

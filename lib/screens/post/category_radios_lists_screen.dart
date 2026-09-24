@@ -63,7 +63,7 @@ class _CategoryRadiosListsScreenState
   // STATE
   // ===========================================================================
 
-  // ✅ Track the selected category by its stable id instead of its
+  //  Track the selected category by its stable id instead of its
   // position in the list. Search re-fetches and rebuilds `categories`,
   // so an index-based selection ("selectedIndex") would point at a
   // completely different item (or nothing) once the list changes shape.
@@ -177,7 +177,7 @@ class _CategoryRadiosListsScreenState
         isLoading = true;
         currentPage = 1;
         apiCategories.clear();
-        // ✅ NOT resetting selectedCategoryId here anymore.
+        //  NOT resetting selectedCategoryId here anymore.
         // Previously this cleared selection on every search/refresh.
         // The chosen category should remain selected across a search
         // unless the user explicitly picks a different one.
@@ -240,7 +240,7 @@ class _CategoryRadiosListsScreenState
   void searchCategory(String value) {
     if (!mounted) return;
 
-    // ✅ No longer clearing selectedCategoryId here.
+    //  No longer clearing selectedCategoryId here.
     // The previously selected category should stay selected while typing
     // a search query; it will only change if the user taps a different tile.
     _debounce?.cancel();
@@ -335,58 +335,61 @@ class _CategoryRadiosListsScreenState
             // IMPORTANT:
             // Expanded is directly inside Column.
             Expanded(
-              child: _isOffline
-                  ? const NoInternetWidget()
-                  : StreamBuilder<List<CategoryModel>>(
-                stream: mainApiCategoryStream.stream,
-                initialData: categories,
-                builder: (context, snapshot) {
-                  final catData = snapshot.data ?? [];
-
-                  if (isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-
-                  if (catData.isEmpty) {
-                    return CategoryNotFound(
-                      key: const ValueKey('category_not_found'),
-                      isFromCategory: true,
-                      onRetry: _retryCategories,
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.only(top: 4),
-                    controller: _scrollController,
-                    clipBehavior: Clip.none,
-                    itemCount: catData.length + (isMoreLoading ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == catData.length) {
-                        return Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: _isOffline
-                              ? const NoInternetWidget(size: 50)
-                              : const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-                      final category = catData[index];
-
-                      return _buildTile(
-                        categoryName: category.name ?? '',
-                        img: category.imageUrl ?? '',
-                        categoryId: category.id,
-                        // ✅ Selection is now determined by matching ids,
-                        // not by matching the tile's index in the list.
-                        isSelected: selectedCategoryId != null &&
-                            selectedCategoryId == category.id,
+              child: ClipRect(
+                child: _isOffline
+                    ? const NoInternetWidget()
+                    : StreamBuilder<List<CategoryModel>>(
+                  stream: mainApiCategoryStream.stream,
+                  initialData: categories,
+                  builder: (context, snapshot) {
+                    final catData = snapshot.data ?? [];
+                
+                    if (isLoading) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
                       );
-                    },
-                  );
-                },
+                    }
+                
+                    if (catData.isEmpty) {
+                      return CategoryNotFound(
+                        key: const ValueKey('category_not_found'),
+                        isFromCategory: true,
+                        onRetry: _retryCategories,
+                      );
+                    }
+                
+                    return ListView.builder(
+                      padding: const EdgeInsets.only(top: 4),
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      clipBehavior: Clip.none,
+                      itemCount: catData.length + (isMoreLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == catData.length) {
+                          return Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: _isOffline
+                                ? const NoInternetWidget(size: 50)
+                                : const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+                        final category = catData[index];
+                
+                        return _buildTile(
+                          categoryName: category.name ?? '',
+                          img: category.imageUrl ?? '',
+                          categoryId: category.id,
+                          // ✅ Selection is now determined by matching ids,
+                          // not by matching the tile's index in the list.
+                          isSelected: selectedCategoryId != null &&
+                              selectedCategoryId == category.id,
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             ),
           ],
