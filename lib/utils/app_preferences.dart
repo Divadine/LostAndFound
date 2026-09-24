@@ -86,6 +86,7 @@ class AppPreferences {
     await _prefs.remove(_userAvatarKey);
     await _prefs.remove(_phoneKey);
     await _prefs.remove(_isItemPosted);
+    await _prefs.remove(_lastSeenNotificationId);
     await _prefs.setInt(_profileStatus, 0);
 
     await _prefs.setBool(
@@ -162,6 +163,7 @@ class AppPreferences {
     await _prefs.remove(_userNameKey);
     await _prefs.remove(_userAvatarKey);
     await _prefs.remove(_phoneKey);
+    await _prefs.remove(_lastSeenNotificationId);
     await _prefs.setBool(_isLoggedIn, false);
     // await _prefs.clear();
   }
@@ -198,4 +200,23 @@ class AppPreferences {
     return _prefs.getBool(safetyCardDismissed) ?? false;
   }
 
+  static const String _userNotificationSetting = 'user_notification_setting';
+
+  static Future<bool> setUserNotificationSetting(bool enabled) async {
+    return _prefs.setBool(_userNotificationSetting, enabled);
   }
+
+  static bool getUserNotificationSetting() {
+    return _prefs.getBool(_userNotificationSetting) ?? true;
+  }
+
+  static const String _lastSeenNotificationId = 'last_seen_notification_id';
+
+  static Future<bool> setLastSeenNotificationId(int id) async {
+    return _prefs.setInt(_lastSeenNotificationId, id);
+  }
+
+  static int getLastSeenNotificationId() {
+    return _prefs.getInt(_lastSeenNotificationId) ?? 0;
+  }
+}

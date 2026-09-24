@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'app_preferences.dart';
 import 'app_utils.dart';
 
 /// Handles local notification tap when the app is in background.
@@ -26,32 +27,67 @@ class AppNotificationService {
 
   /// Main notification initialization
   Future<void> init() async {
-    // Request notification permission
-    await requestPermission();
-
     // Initialize local notifications
     await initializePlatformNotifications();
 
     // Listen for foreground notifications
     listenForegroundMessages();
 
-    // Get FCM token
-    final String? fcmToken = await messaging.getToken();
+    // Check launch notification from terminated state
+    await checkInitialMessage();
 
-    print('======================================');
-    print('FCM TOKEN:');
-    print(fcmToken);
-    print('======================================');
+    // Setup and register FCM token
+    await setupFcmToken();
+  }
 
-    // iOS APNS token
-    if (Platform.isIOS) {
-      final String? apnsToken =
-      await messaging.getAPNSToken();
+  /// Setup FCM token logging and refresh listener
+  Future<void> setupFcmToken() async {
+    try {
+      final String? fcmToken = await messaging.getToken();
+      final int? userId = AppPreferences.getUserId();
 
       print('======================================');
-      print('APNS TOKEN:');
-      print(apnsToken);
+      print('[FCM] Current user ID: ${userId ?? "Not logged in"}');
+      print('[FCM] Current token: ${fcmToken ?? "no_token_available"}');
+      print('[FCM] Token registered for user: ${userId ?? "None"}');
       print('======================================');
+
+      if (Platform.isIOS) {
+        final String? apnsToken = await messaging.getAPNSToken();
+        print('[FCM] APNS TOKEN: $apnsToken');
+      }
+
+      // Listen for FCM token refresh
+      messaging.onTokenRefresh.listen((String newToken) async {
+        final int? currentUserId = AppPreferences.getUserId();
+        print('======================================');
+        print('[FCM] Token refreshed: $newToken');
+        print('[FCM] Current user ID: ${currentUserId ?? "Not logged in"}');
+        print('[FCM] Token registered for user: ${currentUserId ?? "None"}');
+        print('======================================');
+      });
+    } catch (e) {
+      print('[FCM] Error setting up FCM token: $e');
+    }
+  }
+
+  /// Check if app was launched from a terminated state via a notification tap
+  Future<void> checkInitialMessage() async {
+    try {
+      final RemoteMessage? initialMessage =
+          await messaging.getInitialMessage();
+
+      if (initialMessage != null) {
+        print('======================================');
+        print('[FCM] APP LAUNCHED FROM TERMINATED STATE VIA NOTIFICATION');
+        print('Message ID: ${initialMessage.messageId}');
+        print('Title: ${initialMessage.notification?.title}');
+        print('Body: ${initialMessage.notification?.body}');
+        print('Data: ${initialMessage.data}');
+        print('======================================');
+      }
+    } catch (e) {
+      print('[FCM] Error checking initial message: $e');
     }
   }
 
@@ -123,9 +159,9 @@ class AppNotificationService {
     const DarwinInitializationSettings
     initializationSettingsIOS =
     DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
     const InitializationSettings initializationSettings =
@@ -172,18 +208,16 @@ class AppNotificationService {
         .resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
-
-    /// Android 13+
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
   }
 
   /// Show local notification
   Future<void> showNotification({
     required RemoteMessage message,
   }) async {
+    if (!AppPreferences.getUserNotificationSetting()) {
+      return;
+    }
+
     final String title =
         message.notification?.title ??
             message.data['title']?.toString() ??
@@ -192,6 +226,8 @@ class AppNotificationService {
     final String body =
         message.notification?.body ??
             message.data['body']?.toString() ??
+            message.data['message']?.toString() ??
+            message.data['description']?.toString() ??
             '';
 
     const AndroidNotificationDetails

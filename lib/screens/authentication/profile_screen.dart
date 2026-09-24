@@ -181,6 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       extra: MapScreenModel(
         needSingleLocation: true,
         selectedLocation: existingLocations,
+        fetchPincode: true,
       ),
     );
 
@@ -190,6 +191,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
         addressController.text = locations.address;
         latitude = locations.latitude.toString();
         longitude = locations.longitude.toString();
+      });
+      _checkFormValidity();
+
+      if (locations.pincode != null && locations.pincode!.isNotEmpty) {
+        await _applyPincodeFromMap(locations.pincode!);
+      }
+    }
+  }
+
+  Future<void> _applyPincodeFromMap(String pincode) async {
+    final savedLat = latitude;
+    final savedLng = longitude;
+
+    final error = AppUtils.validatePincode(pincode);
+    setState(() {
+      pinController.text = pincode;
+      isPinCodeValid = pincode.length == 6 && error == null;
+    });
+    pinStream.add(error);
+    _checkFormValidity();
+
+    if (!isPinCodeValid) return;
+
+    final result = await addressControllers.getAddressByPincode(pincode);
+    if (!mounted) return;
+
+    if (result != null) {
+      setState(() {
+        countryController.text = result.country;
+        stateController.text = result.state;
+        cityOptions = result.areas;
+        selectedCityName =
+            cityOptions.isNotEmpty ? cityOptions.first.name : null;
+        cityController.text = selectedCityName ?? '';
+        _isCityFetched = cityOptions.isNotEmpty;
+
+        // Keep exact lat/lng from map pin rather than pincode centroid
+        latitude = savedLat;
+        longitude = savedLng;
       });
       _checkFormValidity();
     }

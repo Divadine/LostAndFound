@@ -198,7 +198,7 @@ class _BottomScreenState extends State<BottomScreen> {
       // },
       child: Scaffold(
         appBar: AppBar(toolbarHeight: 0,backgroundColor: AppColors.primaryColor,),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.white,
         body: SafeArea(
           child: Stack(
             children: [

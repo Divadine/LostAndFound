@@ -15,6 +15,14 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyC5S9f4bqHOjf0DP3yeL1C32t0S609fUQM"/>
 
+        <!-- FCM Default Notification Channel & Icon -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="lost_and_found_channel" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

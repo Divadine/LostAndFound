@@ -436,10 +436,14 @@ class _IndividualChatScreenState
 
     if (receiverId == null) {
       debugPrint(
-        '[Chat Notification] Invalid receiver ID: ${widget.otherUserId}',
+        '[FCM] Notification receiver: Invalid receiver ID: ${widget.otherUserId}',
       );
       return;
     }
+
+    debugPrint(
+      '[FCM] Notification receiver: $receiverId | sender: ${widget.currentUserId} | preview: ${preview ?? ''}',
+    );
 
     try {
       final notificationResponse = await _authController.sendNotification(

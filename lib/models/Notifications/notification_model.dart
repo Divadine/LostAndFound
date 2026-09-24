@@ -24,16 +24,34 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    int parseId(dynamic val) {
+      if (val is int) return val;
+      if (val != null) return int.tryParse(val.toString()) ?? 0;
+      return 0;
+    }
+
+    int parsedSenderId = parseId(json['sender_id']);
+    if (parsedSenderId == 0) {
+      parsedSenderId = parseId(
+        json['enquiry_sender_id'] ??
+            json['from_user_id'] ??
+            json['enquirer_id'] ??
+            json['senderId'],
+      );
+    }
+
     return NotificationModel(
-      id: json['id'] as int,
-      userId: json['user_id'] as int,
-      senderId: json['sender_id'] as int? ?? 0,
-      postId: json['post_id'] as int,
+      id: parseId(json['id']),
+      userId: parseId(json['user_id']),
+      senderId: parsedSenderId,
+      postId: parseId(json['post_id']),
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       createdAt: json['created_at']?.toString(),
-      status: json['status'] ?? 0,
-      postImageUrl: (json['postImageUrl']as List? ?? []).map((e) => NotificationImageModel.fromJson(e as Map<String, dynamic>,)).toList(),
+      status: parseId(json['status']),
+      postImageUrl: (json['postImageUrl'] as List? ?? [])
+          .map((e) => NotificationImageModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

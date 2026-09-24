@@ -26,6 +26,7 @@ import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
+import 'package:lost_and_found/utils/app_permission.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_urls.dart';
@@ -1076,511 +1077,6 @@ class TransferCompleted extends StatelessWidget {
     );
   }
 }
-
-// class HandOverToOwner extends StatelessWidget {
-//   final String name;
-//   final String avatarUrl;
-//   final int matchPercentage;
-//
-//   const HandOverToOwner({
-//     super.key,
-//     required this.name,
-//     required this.avatarUrl,
-//     required this.matchPercentage,
-//   });
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       spacing: 5,
-//       mainAxisSize: MainAxisSize.min,
-//       children: [
-//         AppIconWidget(assetPath: AssetImages.handoverToOwner),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'Hand Over Completed!',
-//           fontWeight: FontWeight.w600,
-//           fontSize: 14,
-//         ),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'You have successfully handed over the item to',
-//           fontSize: 12,
-//           fontWeight: FontWeight.w400,
-//           textAlign: .center,
-//           color: AppColors.grey,
-//         ).padHorizontal(20),
-//
-//         AppContainer(
-//           widget: Row(
-//             crossAxisAlignment: CrossAxisAlignment.center,
-//             children: [
-//               CircleAvatar(
-//                 radius: 26,
-//                 child: avatarUrl.isNotEmpty
-//                     ? AppCachedNetworkImage(
-//                   imageUrl: avatarUrl,
-//                   fit: BoxFit.cover,
-//                   borderRadius: BorderRadius.circular(30),
-//                 )
-//                     : Icon(Icons.person, color: AppColors.primaryColor),
-//               ),
-//               const SizedBox(width: 15),
-//               AppText(
-//                 text: name,
-//                 fontSize: 13,
-//                 color: AppColors.primaryColor,
-//                 fontWeight: FontWeight.w600,
-//               ),
-//               Spacer(),
-//               Container(
-//                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-//                 decoration: BoxDecoration(
-//                   color: AppUtils.getMatchColor(matchPercentage).withAlpha(70),
-//                   borderRadius: BorderRadius.circular(20),
-//                 ),
-//                 child: AppText(
-//                   text: '$matchPercentage% match',
-//                   fontWeight: FontWeight.w500,
-//                   fontSize: 10,
-//                   color: AppUtils.getMatchColor(matchPercentage),
-//                 ),
-//               ),
-//             ],
-//           ).pad(),
-//         ),
-//
-//         SizedBox(height: 10),
-//         AppButton(
-//           title: 'Done',
-//           fontSize: 14,
-//           onTap: () {
-//             AppRoutes.pop();
-//             AppUiHelper.showBottomSheet(
-//               showHandle: false,
-//               showCloseIcon: true,
-//               context: context,
-//               child: ReceivedDetails(
-//                 isReceivedFromPolice: false,
-//                 isReceivedFromFounder: true,
-//                 isReceivedFromOthers: false,
-//               ),
-//             );
-//           },
-//           bgColor: AppColors.primaryColor,
-//           radius: BorderRadius.circular(7),
-//         ),
-//       ],
-//     );
-//   }
-// }
-//
-// class HandOverToPolice extends StatelessWidget {
-//   const HandOverToPolice({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       spacing: 7,
-//       mainAxisSize: MainAxisSize.min,
-//       children: [
-//         AppIconWidget(assetPath: AssetImages.handoverToOwner),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'Hand Over Completed!',
-//           fontWeight: FontWeight.w600,
-//           fontSize: 14,
-//         ),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'You have successfully handed over the item to',
-//           fontSize: 12,
-//           fontWeight: FontWeight.w400,
-//           textAlign: .center,
-//           color: AppColors.grey,
-//         ).padHorizontal(),
-//
-//         AppContainer(
-//           widget: Row(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             mainAxisAlignment: MainAxisAlignment.start,
-//             children: [
-//               AppIconWidget(assetPath: AssetImages.policeStation),
-//
-//               SizedBox(width: 10),
-//
-//               Expanded(
-//                 child: Column(
-//                   spacing: 5,
-//                   mainAxisAlignment: MainAxisAlignment.start,
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     AppText(
-//                       text: "Peelamedu Police Station",
-//                       fontSize: 14,
-//                       color: AppColors.primaryColor,
-//                       fontWeight: FontWeight.w600,
-//                     ),
-//                     AppText(
-//                       text:
-//                           'Fci road second street, Gandhimanagar, Coimbatore, Tamil Nadu - 641001',
-//                       fontSize: 12,
-//                       fontWeight: FontWeight.w400,
-//                       color: AppColors.fieldGrey,
-//                       textOverflow: TextOverflow.ellipsis,
-//                       maxLine: 3,
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ],
-//           ).pad(),
-//         ),
-//
-//         SizedBox(height: 10),
-//         AppButton(
-//           title: 'Done',
-//           fontSize: 14,
-//           onTap: () {
-//             AppRoutes.pop();
-//             AppUiHelper.showBottomSheet(
-//               showHandle: false,
-//               showCloseIcon: true,
-//               context: context,
-//               child: ReceivedDetails(
-//                 isReceivedFromPolice: true,
-//                 isReceivedFromFounder: false,
-//                 isReceivedFromOthers: false,
-//               ),
-//             );
-//           },
-//           bgColor: AppColors.primaryColor,
-//           radius: BorderRadius.circular(7),
-//         ),
-//       ],
-//     );
-//   }
-// }
-//
-// class HandOverToOthers extends StatelessWidget {
-//   const HandOverToOthers({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       spacing: 5,
-//       mainAxisSize: MainAxisSize.min,
-//       children: [
-//         AppIconWidget(assetPath: AssetImages.handoverToOwner),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'Hand Over Completed!',
-//           fontWeight: FontWeight.w600,
-//           fontSize: 14,
-//         ),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'You have successfully handed over the item to',
-//           fontSize: 12,
-//           fontWeight: FontWeight.w400,
-//           textAlign: .center,
-//           color: AppColors.grey,
-//         ).padHorizontal(20),
-//
-//         AppContainer(
-//           widget: Row(
-//             spacing: 7,
-//             crossAxisAlignment: CrossAxisAlignment.center,
-//             children: [
-//               CircleAvatar(
-//                 radius: 26,
-//                 child: AppIconWidget(
-//                   assetPath: AssetImages.threeDotsHorizontal,
-//                 ),
-//               ),
-//
-//               const SizedBox(width: 15),
-//
-//               AppText(
-//                 text: "Hand over to others",
-//                 fontSize: 14,
-//                 color: AppColors.primaryColor,
-//                 fontWeight: FontWeight.w600,
-//               ),
-//             ],
-//           ).pad(),
-//         ),
-//
-//         SizedBox(height: 10),
-//         AppButton(
-//           title: 'Done',
-//           fontSize: 14,
-//           onTap: () {
-//             AppRoutes.pop();
-//           },
-//           bgColor: AppColors.primaryColor,
-//
-//           radius: BorderRadius.circular(7),
-//         ),
-//       ],
-//     );
-//   }
-// }
-//
-// class ReceiveToOwner extends StatelessWidget {
-//   const ReceiveToOwner({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       spacing: 5,
-//       mainAxisSize: MainAxisSize.min,
-//       children: [
-//         AppIconWidget(assetPath: AssetImages.handoverToOwner),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'Item received successfully!',
-//           fontWeight: FontWeight.w600,
-//           fontSize: 14,
-//         ),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'You have successfully received the item from',
-//           fontSize: 12,
-//           fontWeight: FontWeight.w400,
-//           textAlign: .center,
-//           color: AppColors.grey,
-//         ).padHorizontal(20),
-//
-//         AppContainer(
-//           widget: Row(
-//             crossAxisAlignment: CrossAxisAlignment.center,
-//             children: [
-//               CircleAvatar(
-//                 radius: 26,
-//                 child: AppCachedNetworkImage(
-//                   imageUrl: "https://i.pravatar.cc/150?img=1",
-//                   fit: BoxFit.cover,
-//                   borderRadius: BorderRadius.circular(30),
-//                 ),
-//               ),
-//
-//               const SizedBox(width: 15),
-//
-//               AppText(
-//                 text: "Rahul Sharma",
-//                 fontSize: 13,
-//                 color: AppColors.primaryColor,
-//                 fontWeight: FontWeight.w600,
-//               ),
-//               Spacer(),
-//
-//               Container(
-//                 padding: const EdgeInsets.symmetric(
-//                   horizontal: 10,
-//                   vertical: 4,
-//                 ),
-//                 decoration: BoxDecoration(
-//                   color: AppUtils.getMatchColor(98).withAlpha(70),
-//                   borderRadius: BorderRadius.circular(20),
-//                 ),
-//                 child: AppText(
-//                   text: '${98}% match',
-//                   fontWeight: FontWeight.w500,
-//                   fontSize: 10,
-//                   color: AppUtils.getMatchColor(98),
-//                 ),
-//               ),
-//             ],
-//           ).pad(),
-//         ),
-//
-//         SizedBox(height: 10),
-//         AppButton(
-//           title: 'Done',
-//           fontSize: 14,
-//           onTap: () {
-//             AppRoutes.pop();
-//             AppUiHelper.showBottomSheet(
-//               showHandle: false,
-//               showCloseIcon: true,
-//               context: context,
-//               child: ReceivedDetails(
-//                 isReceivedFromPolice: false,
-//                 isReceivedFromFounder: true,
-//                 isReceivedFromOthers: false,
-//               ),
-//             );
-//           },
-//           bgColor: AppColors.primaryColor,
-//           radius: BorderRadius.circular(7),
-//         ),
-//       ],
-//     );
-//   }
-// }
-//
-// class ReceiveToPolice extends StatelessWidget {
-//   const ReceiveToPolice({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       spacing: 7,
-//       mainAxisSize: MainAxisSize.min,
-//       children: [
-//         AppIconWidget(assetPath: AssetImages.handoverToOwner),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'Item received successfully!',
-//           fontWeight: FontWeight.w600,
-//           fontSize: 14,
-//         ),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'You have successfully handed over the item to',
-//           fontSize: 12,
-//           fontWeight: FontWeight.w400,
-//           textAlign: .center,
-//           color: AppColors.grey,
-//         ).padHorizontal(),
-//
-//         AppContainer(
-//           widget: Row(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             mainAxisAlignment: MainAxisAlignment.start,
-//             children: [
-//               AppIconWidget(assetPath: AssetImages.policeStation),
-//
-//               SizedBox(width: 10),
-//
-//               Expanded(
-//                 child: Column(
-//                   spacing: 5,
-//                   mainAxisAlignment: MainAxisAlignment.start,
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     AppText(
-//                       text: "Peelamedu Police Station",
-//                       fontSize: 14,
-//                       color: AppColors.primaryColor,
-//                       fontWeight: FontWeight.w600,
-//                     ),
-//                     AppText(
-//                       text:
-//                       'Fci road second street, Gandhimanagar, Coimbatore, Tamil Nadu - 641001',
-//                       fontSize: 12,
-//                       fontWeight: FontWeight.w400,
-//                       color: AppColors.fieldGrey,
-//                       textOverflow: TextOverflow.ellipsis,
-//                       maxLine: 3,
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ],
-//           ).pad(),
-//         ),
-//
-//         SizedBox(height: 10),
-//         AppButton(
-//           title: 'Done',
-//           fontSize: 14,
-//           onTap: () {
-//             AppRoutes.pop();
-//             AppUiHelper.showBottomSheet(
-//               showHandle: false,
-//               showCloseIcon: true,
-//               context: context,
-//               child: ReceivedDetails(
-//                 isReceivedFromPolice: true,
-//                 isReceivedFromFounder: false,
-//                 isReceivedFromOthers: false,
-//               ),
-//             );
-//           },
-//           bgColor: AppColors.primaryColor,
-//           radius: BorderRadius.circular(7),
-//         ),
-//       ],
-//     );
-//   }
-// }
-//
-// class ReceiveToOthers extends StatelessWidget {
-//   const ReceiveToOthers({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       spacing: 5,
-//       mainAxisSize: MainAxisSize.min,
-//       children: [
-//         AppIconWidget(assetPath: AssetImages.handoverToOwner),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'Received Completed!',
-//           fontWeight: FontWeight.w600,
-//           fontSize: 14,
-//         ),
-//         SizedBox(height: 7),
-//         AppText(
-//           text: 'You have successfully handed over the item to',
-//           fontSize: 12,
-//           fontWeight: FontWeight.w400,
-//           textAlign: .center,
-//           color: AppColors.grey,
-//         ).padHorizontal(20),
-//
-//         AppContainer(
-//           widget: Row(
-//             spacing: 7,
-//             crossAxisAlignment: CrossAxisAlignment.center,
-//             children: [
-//               CircleAvatar(
-//                 radius: 26,
-//                 child: AppIconWidget(
-//                   assetPath: AssetImages.threeDotsHorizontal,
-//                 ),
-//               ),
-//
-//               const SizedBox(width: 15),
-//
-//               AppText(
-//                 text: "Received to others",
-//                 fontSize: 14,
-//                 color: AppColors.primaryColor,
-//                 fontWeight: FontWeight.w600,
-//               ),
-//             ],
-//           ).pad(),
-//         ),
-//
-//         SizedBox(height: 10),
-//         AppButton(
-//           title: 'Done',
-//           fontSize: 14,
-//           onTap: () {
-//             AppRoutes.pop();
-//             AppUiHelper.showBottomSheet(
-//               showHandle: false,
-//               showCloseIcon: true,
-//               context: context,
-//               child: ReceivedDetails(
-//                 isReceivedFromPolice: false,
-//                 isReceivedFromFounder: false,
-//                 isReceivedFromOthers: true,
-//               ),
-//             );
-//           },
-//           bgColor: AppColors.primaryColor,
-//
-//           radius: BorderRadius.circular(7),
-//         ),
-//       ],
-//     );
-//   }
-// }
 
 class PostLive extends StatelessWidget {
   final int postType;
@@ -2826,15 +2322,6 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
   }
 }
 
-
-
-/// Dialog content used when another user asks to share their phone number.
-///
-/// The actual Firestore update is intentionally handled by the parent chat
-/// screen through [onAccept] and [onDecline]. This widget only displays the
-/// dialog UI.
-
-
 class ChatSendRequest extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onAccept;
@@ -3222,77 +2709,108 @@ class _ExitAppPopUpState extends State<ExitAppPopUp> with WidgetsBindingObserver
 
 
 
-class NotificationPopUp extends StatefulWidget {
+class NotificationPopUp extends StatelessWidget {
   const NotificationPopUp({super.key});
 
   @override
-  State<NotificationPopUp> createState() => _NotificationPopUpState();
+  Widget build(BuildContext context) {
+    return const NotificationPermissionPopup();
+  }
 }
 
-class _NotificationPopUpState extends State<NotificationPopUp> with WidgetsBindingObserver {
+
+class RecoverDeletePopUp extends StatefulWidget {
+
+
+  const RecoverDeletePopUp({super.key, });
+
+  @override
+  State<RecoverDeletePopUp> createState() => _RecoverDeletePopUpState();
+}
+
+class _RecoverDeletePopUpState extends State<RecoverDeletePopUp> {
+  final authController = AuthControllers(
+    authRepository: AuthRepository(apiClient: ApiClient()),
+  );
+
+  bool isDeleting = false;
+
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isOffline = false;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    _initConnectivityListener();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    _connectivitySub?.cancel();
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _checkPermission();
-    }
+  void _initConnectivityListener() async {
+    final results = await Connectivity().checkConnectivity();
+    _updateOfflineStatus(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
   }
 
-  Future<void> _checkPermission() async {
-    if (await Permission.notification.isGranted && mounted) {
-      Navigator.pop(context);
-    }
+  void _updateOfflineStatus(List<ConnectivityResult> results) {
+    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    if (!mounted) return;
+    setState(() {
+      _isOffline = offline;
+    });
   }
+
+
 
   @override
   Widget build(BuildContext context) {
+    if (_isOffline) {
+      return const NoInternetWidget();
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        //Image.asset(AssetImages.mapAccess), // swap for a notification-specific asset if you have one
-        SizedBox(
-          width: MediaQuery.of(context).size.width * 0.8,
-          child: Column(
-            spacing: 10,
-            children: [
-              const AppText(
-                text: "Turn on notifications",
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                textAlign: TextAlign.center,
+        AppIconWidget(assetPath: AssetImages.information),
+        const SizedBox(height: 7),
+
+        const SizedBox(height: 7),
+        const AppText(
+          text:
+'Your account and data will be permanently deleted. You can’t reverse this, but reactivation is possible within 15 days by logging in.' ,
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          textAlign: TextAlign.center,
+        ).padHorizontal(20),
+        const SizedBox(height: 15),
+        Row(
+          spacing: 10,
+          children: [
+            Expanded(
+              child: AppButton(
+                title: 'No, Cancel',
+                onTap:  () => AppRoutes.pop(),
+                fontSize: 14,
+                bgColor: Colors.transparent,
+                border: Border.all(color: AppColors.grey),
+                textColor: AppColors.grey,
+                radius: BorderRadius.circular(7),
               ),
-              const AppText(
-                text: "Notifications are turned off. Enable them in your device settings to stay updated on matches and enquiries.",
-                fontWeight: FontWeight.w400,
-                fontSize: 16,
-                color: AppColors.grey,
-                textAlign: TextAlign.center,
+            ),
+            Expanded(
+              child: AppButton(
+                title:  'Continue',
+                onTap: (){},
+                fontSize: 14,
+                bgColor: AppColors.primaryColor,
+                textColor: AppColors.white,
+                radius: BorderRadius.circular(7),
               ),
-              const SizedBox(),
-              AppButton(
-                onTap: () async {
-                  if (await Permission.notification.isGranted) {
-                    if (mounted) Navigator.pop(context);
-                    return;
-                  }
-                  await openAppSettings();
-                },
-                title: 'Enable notifications',
-              ),
-              const SizedBox(),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     );

@@ -97,6 +97,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
         final newNotifications = response.data!.notifications;
         _totalPages = response.data!.totalPages;
 
+        if (newNotifications.isNotEmpty && _currentPage == 1) {
+          int maxId = 0;
+          for (final n in newNotifications) {
+            if (n.id > maxId) {
+              maxId = n.id;
+            }
+          }
+          if (maxId > 0) {
+            await AppPreferences.setLastSeenNotificationId(maxId);
+          }
+        }
+
         debugPrint('=== NOTIFICATIONS FETCHED ===');
         debugPrint('Queried with userId: $userId');
         debugPrint('Count returned: ${newNotifications.length}');
@@ -153,6 +165,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _openNotificationChat(NotificationModel notification) async {
     final currentUserId = AppPreferences.getUserId();
     if (currentUserId == null) return;
+
+    if (notification.senderId <= 0) {
+      debugPrint('[Notification] Cannot open chat: Invalid senderId (${notification.senderId})');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid sender info in notification')),
+        );
+      }
+      return;
+    }
 
     final currentUserIdStr = currentUserId.toString();
     final otherUserIdStr = notification.senderId.toString();
@@ -223,7 +245,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         elevation: 0,
         centerTitle: true,
         leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
+          onTap: () => AppRoutes.pop(),
           child: Center(
             child: AppIconWidget(
               assetPath: AssetImages.notificationBackIcon,

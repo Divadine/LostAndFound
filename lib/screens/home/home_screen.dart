@@ -31,6 +31,7 @@ import 'package:lost_and_found/shared_widgets/sucess_card.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_permission.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
@@ -45,7 +46,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final authController = AuthControllers(
     authRepository: AuthRepository(
       apiClient: ApiClient(),
@@ -77,7 +78,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   bool _hasUnreadNotification = false;
 
-
   Future<void> _checkNotifications() async {
     try {
       final userId = AppPreferences.getUserId();
@@ -95,16 +95,62 @@ class _HomeScreenState extends State<HomeScreen>
       if (!mounted) return;
 
       if (response.isSuccess && response.data != null) {
-        final hasUnread = response.data!.notifications.any(
-              (notification) => notification.status == 1,
-        );
+        final notifications = response.data!.notifications;
+        int maxId = 0;
+        for (final notification in notifications) {
+          if (notification.id > maxId) {
+            maxId = notification.id;
+          }
+        }
+        final lastSeenId = AppPreferences.getLastSeenNotificationId();
 
         setState(() {
-          _hasUnreadNotification = hasUnread;
+          _hasUnreadNotification = notifications.isNotEmpty && maxId > lastSeenId;
         });
       }
     } catch (e) {
       debugPrint('Notification check error: $e');
+    }
+  }
+
+  Future<void> _markNotificationsAsSeen() async {
+    try {
+      final userId = AppPreferences.getUserId();
+
+      if (userId == null) {
+        return;
+      }
+
+      final response = await authController.getNotificationList(
+        userId: userId,
+        page: 1,
+        pageSize: 10,
+      );
+
+      if (!mounted) return;
+
+      if (response.isSuccess && response.data != null) {
+        final notifications = response.data!.notifications;
+        int maxId = 0;
+        for (final notification in notifications) {
+          if (notification.id > maxId) {
+            maxId = notification.id;
+          }
+        }
+        if (maxId > 0) {
+          await AppPreferences.setLastSeenNotificationId(maxId);
+        }
+      }
+      setState(() {
+        _hasUnreadNotification = false;
+      });
+    } catch (e) {
+      debugPrint('Error marking notifications as seen: $e');
+      if (mounted) {
+        setState(() {
+          _hasUnreadNotification = false;
+        });
+      }
     }
   }
 
@@ -453,7 +499,13 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        await AppPermissions().requestNotificationPermission(context);
+      }
+    });
     _tabController = TabController(
       length: 2,
       vsync: this,
@@ -539,7 +591,15 @@ class _HomeScreenState extends State<HomeScreen>
   // ============================================================
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkNotifications();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     AppUtils.postRefreshNotifier.removeListener(_refreshPosts);
     _connectivitySub?.cancel();
     _tabController.dispose();
@@ -863,7 +923,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 AppRoutes.notificationScreen,
                               );
 
-                              _checkNotifications();
+                              await _markNotificationsAsSeen();
                             },
                             child: Stack(
                               children: [

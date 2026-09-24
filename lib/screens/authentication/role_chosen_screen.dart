@@ -7,6 +7,8 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 
+import 'package:lost_and_found/utils/app_permission.dart';
+
 class FirstHomeScreen extends StatefulWidget {
   const FirstHomeScreen({super.key});
 
@@ -15,6 +17,11 @@ class FirstHomeScreen extends StatefulWidget {
 }
 
 class _FirstHomeScreenState extends State<FirstHomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(

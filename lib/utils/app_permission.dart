@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_colors.dart';
 import 'app_images.dart';
+import 'app_preferences.dart';
 
 
 class AppPermissions {
@@ -93,14 +94,31 @@ class AppPermissions {
   static bool? getNotificationPref() => _prefs.getBool(_notificationKey);
   static Future<void> setNotificationPref(bool val) => _prefs.setBool(_notificationKey, val);
 
+  static bool _isNotificationRequestInProgress = false;
+
   Future<bool> requestNotificationPermission(BuildContext context) async {
-    return _handlePermission(
-      context: context,
-      permission: Permission.notification,
-      prefKey: _notificationKey,
-      content: notificationPermissionContent,
-      customPopup: const NotificationPopUp(),
-    );
+    final askedBefore = getNotificationPref() ?? false;
+    if (askedBefore || _isNotificationRequestInProgress) {
+      return await Permission.notification.isGranted;
+    }
+
+    _isNotificationRequestInProgress = true;
+    try {
+      final status = await Permission.notification.status;
+      bool isGranted = status.isGranted;
+      if (!isGranted) {
+        final newStatus = await Permission.notification.request();
+        isGranted = newStatus.isGranted;
+      }
+      await setNotificationPref(true);
+      await AppPreferences.setUserNotificationSetting(isGranted);
+    } catch (e) {
+      debugPrint('Error requesting notification permission: $e');
+    } finally {
+      _isNotificationRequestInProgress = false;
+    }
+
+    return await Permission.notification.isGranted;
   }
 
   // -------- Location --------
@@ -346,6 +364,82 @@ class _LocationPermissionPopupState extends State<LocationPermissionPopup> with 
                   await openAppSettings();
                 },
                 title: 'Enable location',
+              ),
+              const SizedBox(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class NotificationPermissionPopup extends StatefulWidget {
+  const NotificationPermissionPopup({super.key});
+
+  @override
+  State<NotificationPermissionPopup> createState() => _NotificationPermissionPopupState();
+}
+
+class _NotificationPermissionPopupState extends State<NotificationPermissionPopup> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermission();
+    }
+  }
+
+  Future<void> _checkPermission() async {
+    if (await Permission.notification.isGranted && mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: MediaQuery.of(context).size.width * 0.8,
+          child: Column(
+            spacing: 10,
+            children: [
+              const AppText(
+                text: "Turn on notifications",
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                textAlign: TextAlign.center,
+              ),
+              const AppText(
+                text: "Notifications are turned off. Enable them in your device settings to stay updated on matches and enquiries.",
+                fontWeight: FontWeight.w400,
+                fontSize: 16,
+                color: AppColors.grey,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(),
+              AppButton(
+                onTap: () async {
+                  if (await Permission.notification.isGranted) {
+                    if (mounted) Navigator.pop(context, true);
+                    return;
+                  }
+                  await openAppSettings();
+                },
+                title: 'Enable notifications',
               ),
               const SizedBox(),
             ],

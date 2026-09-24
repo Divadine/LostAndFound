@@ -126,13 +126,13 @@ class _MyAppState extends State<MyApp> {
         routerConfig: AppRoutes.router,
 
 
-        theme: ThemeData(
-          appBarTheme: AppBarTheme(
-            systemOverlayStyle:SystemUiOverlayStyle(
-              statusBarColor: AppColors.primaryColor
-            )
-          )
-        ),
+        // theme: ThemeData(
+        //   // appBarTheme: AppBarTheme(
+        //   //   systemOverlayStyle:SystemUiOverlayStyle(
+        //   //     statusBarColor: AppColors.primaryColor
+        //   //   )
+        //   // )
+        // ),
         title: 'Findora',
         debugShowCheckedModeBanner: false,
       ),

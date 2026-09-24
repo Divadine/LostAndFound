@@ -875,8 +875,31 @@ class _LocationSelectionScreenState
     // =========================================================================
 
     String address = temporaryAddress;
+    String? pincode;
 
-    if (knownAddress == null) {
+    if (widget.mapScreenModel.fetchPincode) {
+      try {
+        final geocodeResult = await PlacesService.reverseGeocodeWithPincode(
+          latLng.latitude,
+          latLng.longitude,
+        );
+        address = knownAddress ??
+            geocodeResult?.address ??
+            'Dropped pin '
+                '(${latLng.latitude.toStringAsFixed(5)}, '
+                '${latLng.longitude.toStringAsFixed(5)})';
+        pincode = geocodeResult?.pincode;
+      } catch (e) {
+        debugPrint(
+          '[Location] Reverse geocode error: $e',
+        );
+
+        address = knownAddress ??
+            'Dropped pin '
+                '(${latLng.latitude.toStringAsFixed(5)}, '
+                '${latLng.longitude.toStringAsFixed(5)})';
+      }
+    } else if (knownAddress == null) {
       try {
         address =
             await PlacesService.reverseGeocode(
@@ -920,6 +943,7 @@ class _LocationSelectionScreenState
       address: address,
       latitude: latLng.latitude,
       longitude: latLng.longitude,
+      pincode: pincode,
     );
 
     // =========================================================================
@@ -2169,12 +2193,14 @@ class MapScreenModel {
 
   final bool showPoliceStations;
   final bool isNearby;
+  final bool fetchPincode;
 
   MapScreenModel({
     required this.needSingleLocation,
     this.selectedLocation,
     this.showPoliceStations = false,
     this.isNearby = false,
+    this.fetchPincode = false,
   });
 }
 

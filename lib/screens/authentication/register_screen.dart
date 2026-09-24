@@ -80,8 +80,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _onRegisterTap() async {
-    // Validate both fields explicitly on submit, not just on change,
-    // so an empty/never-touched field can't slip through.
     final nameError = AppUtils.validateName(textController.text);
     final phoneError = AppUtils.validateMobileNumber(phoneController.text);
 
@@ -94,11 +92,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (nameError != null || phoneError != null) return;
 
-    final sendOtpResponse = await authController.sendOtp(phoneController.text, type: 1);
+    // Capture immutable copies — closures below use these, not the live controllers.
+    final String phoneToVerify = phoneController.text;
+    final String nameToVerify = textController.text;
+
+    final sendOtpResponse = await authController.sendOtp(phoneToVerify, type: 1);
     if (!mounted) return;
 
     if (!sendOtpResponse.isSuccess) {
-      // e.g. this number is already registered, no internet, server error, etc.
       if (sendOtpResponse.currentState == CurrentState.noInternet) {
         AppSnackBar.show(
           context: context,
@@ -106,7 +107,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
         return;
       }
-
       final message = sendOtpResponse.message.isNotEmpty
           ? sendOtpResponse.message
           : 'This number is already registered.';
@@ -117,27 +117,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    AppDialogue.showPopup(
+    await AppDialogue.showPopup(
       context: context,
       content: OtpSharedScreen(
         autoSend: false,
         isAlternateNumber: false,
-        mobileNumber: phoneController.text,
+        mobileNumber: phoneToVerify,
         shouldPop: false,
         onVerifyOtp: (otp) async {
           final response = await authController.verifyOtp(
-            phone: phoneController.text,
+            phone: phoneToVerify,   // captured value — never becomes empty
             otp: otp,
             type: 1,
-            name: textController.text,
+            name: nameToVerify,
           );
           if (response.status == 1) {
             AppRoutes.pushAndRemoveUntil(
               AppRoutes.profileScreen,
               arguments: ProfileScreenModel(
                 isFromEdit: false,
-                name: response.data?.name ?? textController.text.trim(),
-                mobile: response.data?.phoneno ?? phoneController.text.trim(),
+                name: response.data?.name ?? nameToVerify.trim(),
+                mobile: response.data?.phoneno ?? phoneToVerify.trim(),
                 userId: response.data?.userId,
                 altMobileVerified: false,
               ),
@@ -147,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           return response.message;
         },
         onSendOtp: () async {
-          final response = await authController.sendOtp(phoneController.text, type: 1);
+          final response = await authController.sendOtp(phoneToVerify, type: 1);
           if (response.isSuccess) return null;
           if (response.currentState == CurrentState.noInternet) {
             return 'No internet connection. Please check your network.';
@@ -156,6 +156,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
         },
       ),
     );
+
+    if (!mounted) return;
+
+    setState(() {
+      textController.clear();
+      phoneController.clear();
+      errorText = null;
+      nameErrorText = null;
+    });
+
+    nameStream.add(null);
+    numberStream.add(null);
   }
 
   @override

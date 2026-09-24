@@ -21,6 +21,7 @@ import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
+import 'package:lost_and_found/utils/app_permission.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_urls.dart';
@@ -35,7 +36,7 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
 
   final authController = AuthControllers(
     authRepository: AuthRepository(
@@ -78,16 +79,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   @override
-  void initState()  {
+  void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initConnectivityListener();
     _loadProfile();
+    _checkNotificationPermission();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivitySub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkNotificationPermission();
+    }
   }
 
   void _initConnectivityListener() async {
@@ -117,41 +128,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Check current permission status and sync the switch on screen load
   Future<void> _checkNotificationPermission() async {
     final status = await Permission.notification.status;
+    final osGranted = status.isGranted;
+    final storedPref = AppPreferences.getUserNotificationSetting();
+
+    // If OS permission was revoked outside the app, force the stored preference to off
+    if (!osGranted && storedPref) {
+      await AppPreferences.setUserNotificationSetting(false);
+    }
+
+    final finalSetting = osGranted && AppPreferences.getUserNotificationSetting();
     if (!mounted) return;
     setState(() {
-      isEnable = status.isGranted;
+      isEnable = finalSetting;
     });
   }
 
   // Called when user taps the switch
   Future<void> _onNotificationToggle(bool value) async {
     if (value) {
-      // User is trying to turn ON -> must ask permission first
-      final status = await Permission.notification.request();
-
+      final status = await Permission.notification.status;
       if (!mounted) return;
 
       if (status.isGranted) {
+        await AppPreferences.setUserNotificationSetting(true);
         setState(() => isEnable = true);
-      } else if (status.isPermanentlyDenied) {
-        // User denied permanently (e.g. "Don't ask again") -> send to settings
-        setState(() => isEnable = false);
-        AppDialogue.showPopup(
-          context: context,
-          content: AppText(
-            text:
-            'Notification permission is disabled. Please enable it from app settings.',
-          ),
-        );
-        await openAppSettings();
       } else {
-        // Denied (but can ask again later)
-        setState(() => isEnable = false);
+        await AppDialogue.showPopup(
+          context: context,
+          content: const NotificationPermissionPopup(),
+        );
+        final newStatus = await Permission.notification.status;
+        if (!mounted) return;
+        if (newStatus.isGranted) {
+          await AppPreferences.setUserNotificationSetting(true);
+          setState(() => isEnable = true);
+        } else {
+          await AppPreferences.setUserNotificationSetting(false);
+          setState(() => isEnable = false);
+        }
       }
     } else {
-      // User is turning OFF -> no permission prompt needed
+      await AppPreferences.setUserNotificationSetting(false);
       setState(() => isEnable = false);
-      // Optionally: call your API/local logic to disable notifications here
     }
   }
 
@@ -335,6 +353,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 link: AppUrls.feedBackURL,
                                 isGenerateUrl: true,
+                                webViewType: WebViewType.feedback,
                               ),
                             );
                           },
@@ -408,6 +427,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onTap: () {
                             int rating = 5;
                             AppDialogue.showPopup(
+                              showCloseIcon: true,
                               context: context,
                               content: StatefulBuilder(
                                 builder: (context, setDialogState) {

@@ -57,6 +57,16 @@ class PlaceDetails {
   });
 }
 
+class GeocodeResult {
+  final String? address;
+  final String? pincode;
+
+  GeocodeResult({
+    this.address,
+    this.pincode,
+  });
+}
+
 class PlacesService {
   static const String _apiKey = 'AIzaSyC5S9f4bqHOjf0DP3yeL1C32t0S609fUQM';
 
@@ -136,6 +146,50 @@ class PlacesService {
       final results = data['results'] as List<dynamic>? ?? [];
       if (results.isEmpty) return null;
       return results.first['formatted_address'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Reverse geocode a lat/lng returning both formatted address and pincode.
+  static Future<GeocodeResult?> reverseGeocodeWithPincode(
+    double lat,
+    double lng,
+  ) async {
+    final uri = Uri.https('maps.googleapis.com', '/maps/api/geocode/json', {
+      'latlng': '$lat,$lng',
+      'key': _apiKey,
+    });
+
+    try {
+      final res = await http.get(uri);
+      if (res.statusCode != 200) return null;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final results = data['results'] as List<dynamic>? ?? [];
+      if (results.isEmpty) return null;
+
+      final formattedAddress = results.first['formatted_address'] as String?;
+      String? pincode;
+
+      for (final result in results) {
+        final addressComponents =
+            (result as Map<String, dynamic>)['address_components']
+                as List<dynamic>? ??
+                [];
+        for (final component in addressComponents) {
+          final types = (component['types'] as List<dynamic>? ?? [])
+              .map((e) => e.toString())
+              .toList();
+          if (types.contains('postal_code')) {
+            pincode = component['long_name'] as String? ??
+                component['short_name'] as String?;
+            break;
+          }
+        }
+        if (pincode != null && pincode.isNotEmpty) break;
+      }
+
+      return GeocodeResult(address: formattedAddress, pincode: pincode);
     } catch (_) {
       return null;
     }
