@@ -165,38 +165,67 @@ class _LoginScreenState extends State<LoginScreen> {
                         radius: BorderRadius.circular(8),
                         title: "Login",
                         onTap: () async {
-                          errorText = AppUtils.validateMobileNumber(
-                            phoneController.text,
-                          );
-
+                          errorText = AppUtils.validateMobileNumber(phoneController.text);
                           numberStream.add(errorText);
-                          if (errorText == null &&
-                              phoneController.text.isNotEmpty) {
-                            print('________________________________________________');
-                            print(phoneController.text);
-                            //AppUiHelper.showLoadingDialog(context);
-                            final response = await authController.sendOtp(phoneController.text, type: 2,);
-                            if (!mounted) return;
 
-                            if(response.isSuccess){
-                              AppRoutes.pushNamed(AppRoutes.otpScreen, arguments: {
-                                'mobileNo': phoneController.text,
-                                'autoSend': false,
-                              });
-                            }else if (response.currentState == CurrentState.noInternet) {
-                              AppSnackBar.show(
-                                context: context,
-                                message: 'No internet connection. Please check your network.',
-                              );
-                            }
+                          if (errorText != null || phoneController.text.isEmpty) return;
 
-                            else{
-                              AppSnackBar.show(context: context, message: response.message.isNotEmpty ? response.message  : 'OTP generation failed');
-                            }
+                          final phone = phoneController.text;
+
+                          // Step 1: check if this number belongs to a deleted account
+                          final checkResponse = await authController.checkUser(phone);
+                          if (!mounted) return;
+
+                          if (checkResponse.currentState == CurrentState.noInternet) {
+                            AppSnackBar.show(
+                              context: context,
+                              message: 'No internet connection. Please check your network.',
+                            );
+                            return;
                           }
 
+                          if (!checkResponse.isSuccess) {
+                            AppSnackBar.show(
+                              context: context,
+                              message: checkResponse.message.isNotEmpty
+                                  ? checkResponse.message
+                                  : 'Unable to verify account. Please try again.',
+                            );
+                            return;
+                          }
 
+                          final isDeleted = checkResponse.data?.isDeletedAccount ?? false;
 
+                          if (isDeleted) {
+                            final shouldContinue = await AppDialogue.showValuePopup<bool>(
+                              context: context,
+                              content: const RecoverDeletePopUp(),
+                            );
+
+                            if (shouldContinue != true) return;
+                            if (!mounted) return;
+                          }
+
+                          // Step 2: proceed to OTP exactly as before
+                          final response = await authController.sendOtp(phone, type: 2);
+                          if (!mounted) return;
+
+                          if (response.isSuccess) {
+                            AppRoutes.pushNamed(AppRoutes.otpScreen, arguments: {
+                              'mobileNo': phone,
+                              'autoSend': false,
+                            });
+                          } else if (response.currentState == CurrentState.noInternet) {
+                            AppSnackBar.show(
+                              context: context,
+                              message: 'No internet connection. Please check your network.',
+                            );
+                          } else {
+                            AppSnackBar.show(
+                              context: context,
+                              message: response.message.isNotEmpty ? response.message : 'OTP generation failed',
+                            );
+                          }
                         },
                       ).padHorizontal(30),
                       SizedBox(height: 15),

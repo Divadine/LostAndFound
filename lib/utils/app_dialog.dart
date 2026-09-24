@@ -2792,7 +2792,7 @@ class _RecoverDeletePopUpState extends State<RecoverDeletePopUp> {
             Expanded(
               child: AppButton(
                 title: 'No, Cancel',
-                onTap:  () => AppRoutes.pop(),
+                onTap:  () => AppRoutes.pop(false),
                 fontSize: 14,
                 bgColor: Colors.transparent,
                 border: Border.all(color: AppColors.grey),
@@ -2803,7 +2803,7 @@ class _RecoverDeletePopUpState extends State<RecoverDeletePopUp> {
             Expanded(
               child: AppButton(
                 title:  'Continue',
-                onTap: (){},
+                onTap: () =>  AppRoutes.pop(true),
                 fontSize: 14,
                 bgColor: AppColors.primaryColor,
                 textColor: AppColors.white,

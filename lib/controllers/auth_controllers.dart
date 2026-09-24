@@ -8,6 +8,7 @@ import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/categories_model/color_model.dart';
 import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
+import 'package:lost_and_found/models/delete_post/deleteaccount_check.dart';
 import 'package:lost_and_found/models/handover/handover_owner.dart';
 import 'package:lost_and_found/models/handover/location_suggestion.dart';
 import 'package:lost_and_found/models/handover/police_station.dart';
@@ -36,6 +37,9 @@ class AuthControllers {
 
   }
 
+  Future<ResponseModel<UserCheckModel>> checkUser(String phone) async {
+    return await authRepository.checkUser(phone: phone);
+  }
 
   Future<ResponseModel<LoginOtpResponseModel>> verifyOtp({ required String phone,required String otp,required int type, String? name,}) async {
     final deviceId = await DeviceInfoHelper.getDeviceId();

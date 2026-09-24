@@ -16,6 +16,7 @@ import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/categories_model/color_model.dart';
 import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
+import 'package:lost_and_found/models/delete_post/deleteaccount_check.dart';
 import 'package:lost_and_found/models/handover/handover_owner.dart';
 import 'package:lost_and_found/models/handover/location_suggestion.dart';
 import 'package:lost_and_found/models/handover/police_station.dart';
@@ -38,6 +39,27 @@ class AuthRepository {
   Future<ResponseModel> generateOtp({required String phone, required int type}) async {
     return await apiClient.post(ApiEndPoints.generateOtp,data: LoginModel(phoneno: phone, type: type).toJson(),addToken: false);
 
+  }
+
+  Future<ResponseModel<UserCheckModel>> checkUser({required String phone}) async {
+    final response = await apiClient.post(
+      ApiEndPoints.checkUser,
+      data: {"phoneno": phone},
+      addToken: false,
+    );
+
+    if (!response.isSuccess) {
+      return response.asFailure<UserCheckModel>();
+    }
+
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! => ${response.data}");
+    final responseJson = {'status' : response.status,'message' : response.message};
+    return ResponseModel<UserCheckModel>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: UserCheckModel.fromJson(responseJson),
+    );
   }
 
 

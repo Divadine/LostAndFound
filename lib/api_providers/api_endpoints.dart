@@ -16,6 +16,7 @@ class ApiEndPoints {
   static const String getReasonsDeleteAccount = '/user/getReasonsDeleteAccount';
   static const String deleteAccount = '/user/deleteAccount';
   static const String deleteProfileImage = '/user/deleteProfileImage';
+  static const String checkUser = '/user/usercheck';
 
   //category
   static const String getCategory = 'categories/getCategory';
