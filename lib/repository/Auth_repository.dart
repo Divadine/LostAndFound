@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/api_providers/api_endpoints.dart';
+import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/models/Notifications/notification_list_model.dart';
 import 'package:lost_and_found/models/api_model/response_model.dart';
 import 'package:lost_and_found/models/authmodels/login_model.dart';
@@ -47,8 +48,8 @@ class AuthRepository {
       data: {"phoneno": phone},
       addToken: false,
     );
-
-    if (!response.isSuccess) {
+    // Only a genuine connectivity failure should be treated as an error here.
+    if (response.currentState == CurrentState.noInternet) {
       return response.asFailure<UserCheckModel>();
     }
 

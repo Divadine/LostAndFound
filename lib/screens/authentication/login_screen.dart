@@ -184,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             return;
                           }
 
-                          if (!checkResponse.isSuccess) {
+                          if (checkResponse.data == null) {
                             AppSnackBar.show(
                               context: context,
                               message: checkResponse.message.isNotEmpty
@@ -194,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             return;
                           }
 
-                          final isDeleted = checkResponse.data?.isDeletedAccount ?? false;
+                          final isDeleted = checkResponse.data!.isDeletedAccount;
 
                           if (isDeleted) {
                             final shouldContinue = await AppDialogue.showValuePopup<bool>(
