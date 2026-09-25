@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
@@ -163,6 +164,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (!mounted) return;
 
+    // Check if GPS/location service is actually turned on
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      final enabled = await AppDialogue.showValuePopup<bool>(
+        context: context,
+        content: const DeviceLocationAccess(),
+      );
+
+      if (!mounted) return;
+
+      // User didn't enable it (tapped "Not now" or dismissed) — don't open map
+      if (enabled != true) return;
+    }
+
     List<SelectedLocationModel>? existingLocations;
     if (latitude != null &&
         longitude != null &&
@@ -199,6 +214,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
+
+  // Future<void> _openMapForAddress() async {
+  //   final granted = await _appPermissions.requestLocationPermission(context);
+  //   if (!granted) return;
+  //
+  //   if (!mounted) return;
+  //
+  //   List<SelectedLocationModel>? existingLocations;
+  //   if (latitude != null &&
+  //       longitude != null &&
+  //       addressController.text.isNotEmpty) {
+  //     existingLocations = [
+  //       SelectedLocationModel(
+  //         address: addressController.text,
+  //         latitude: double.tryParse(latitude!) ?? 0.0,
+  //         longitude: double.tryParse(longitude!) ?? 0.0,
+  //       )
+  //     ];
+  //   }
+  //
+  //   final singleLocation = await context.pushNamed(
+  //     AppRoutes.mapScreen,
+  //     extra: MapScreenModel(
+  //       needSingleLocation: true,
+  //       selectedLocation: existingLocations,
+  //       fetchPincode: true,
+  //     ),
+  //   );
+  //
+  //   if (singleLocation != null) {
+  //     final locations = singleLocation as SelectedLocationModel;
+  //     setState(() {
+  //       addressController.text = locations.address;
+  //       latitude = locations.latitude.toString();
+  //       longitude = locations.longitude.toString();
+  //     });
+  //     _checkFormValidity();
+  //
+  //     if (locations.pincode != null && locations.pincode!.isNotEmpty) {
+  //       await _applyPincodeFromMap(locations.pincode!);
+  //     }
+  //   }
+  // }
 
   Future<void> _applyPincodeFromMap(String pincode) async {
     final savedLat = latitude;

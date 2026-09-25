@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:just_audio/just_audio.dart';
@@ -355,6 +356,21 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
     if (!granted) return;
 
     if (!mounted) return;
+
+
+    // Check if GPS/location service is actually turned on
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      final enabled = await AppDialogue.showValuePopup<bool>(
+        context: context,
+        content: const DeviceLocationAccess(),
+      );
+
+      if (!mounted) return;
+
+      // User didn't enable it (tapped "Not now" or dismissed) — don't open map
+      if (enabled != true) return;
+    }
     final result = await context.pushNamed(
       AppRoutes.mapScreen,
       extra: MapScreenModel(
