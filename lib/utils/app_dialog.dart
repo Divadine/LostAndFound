@@ -745,7 +745,6 @@ class _LogoutPopUpState extends State<LogoutPopUp> {
     );
   }
 }
-
 class TransferCompleted extends StatelessWidget {
   final TransferType type;
   final TransferData data;
@@ -811,7 +810,8 @@ class TransferCompleted extends StatelessWidget {
       stream: Connectivity().onConnectivityChanged,
       builder: (context, snapshot) {
         final results = snapshot.data ?? [];
-        final isOffline = results.contains(ConnectivityResult.none) || (snapshot.hasData && results.isEmpty);
+        final isOffline = results.contains(ConnectivityResult.none) ||
+            (snapshot.hasData && results.isEmpty);
 
         if (isOffline) {
           return const NoInternetWidget();
@@ -879,7 +879,7 @@ class TransferCompleted extends StatelessWidget {
             ],
           ),
         );
-      }
+      },
     );
   }
 
@@ -910,20 +910,20 @@ class TransferCompleted extends StatelessWidget {
         children: [
           data.avatarUrl.isNotEmpty
               ? AppCachedNetworkImage(
-                  imageUrl: data.avatarUrl,
-                  fit: BoxFit.cover,
-                  width: 52,
-                  height: 52,
-                  borderRadius: BorderRadius.circular(26),
-                )
+            imageUrl: data.avatarUrl,
+            fit: BoxFit.cover,
+            width: 52,
+            height: 52,
+            borderRadius: BorderRadius.circular(26),
+          )
               : CircleAvatar(
-                  radius: 26,
-                  backgroundColor: AppColors.fieldGrey,
-                  child: Icon(
-                    Icons.person,
-                    color: AppColors.primaryColor,
-                  ),
-                ),
+            radius: 26,
+            backgroundColor: AppColors.fieldGrey,
+            child: Icon(
+              Icons.person,
+              color: AppColors.primaryColor,
+            ),
+          ),
 
           const SizedBox(width: 15),
 
@@ -947,57 +947,29 @@ class TransferCompleted extends StatelessWidget {
 
   // ============================================================
   // OTHERS CARD
+  // No photo/avatar is shown — Others never provides a proof photo.
+  // Just the name and phone number as plain text.
   // ============================================================
 
   Widget _buildOthersCard() {
     return AppContainer(
-      widget: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      widget: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 5,
         children: [
-          data.avatarUrl.isNotEmpty
-              ? AppCachedNetworkImage(
-                  imageUrl: data.avatarUrl,
-                  fit: BoxFit.cover,
-                  width: 52,
-                  height: 52,
-                  borderRadius: BorderRadius.circular(26),
-                )
-              : CircleAvatar(
-                  radius: 26,
-                  backgroundColor: AppColors.fieldGrey,
-                  child: AppIconWidget(
-                    assetPath: AssetImages.threeDotsHorizontal,
-                  ),
-                ),
-
-          const SizedBox(width: 15),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppText(
-                  text: data.name.isNotEmpty
-                      ? data.name
-                      : 'Others',
-                  fontSize: 14,
-                  color: AppColors.primaryColor,
-                  fontWeight: FontWeight.w600,
-                ),
-
-                if (data.phoneNumber.isNotEmpty && !isPolice) ...[
-                  const SizedBox(height: 4),
-
-                  AppText(
-                    text: data.phoneNumber,
-                    fontSize: 11,
-                    color: AppColors.fieldGrey,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ],
-              ],
-            ),
+          AppText(
+            text: data.name.isNotEmpty ? data.name : 'Others',
+            fontSize: 14,
+            color: AppColors.primaryColor,
+            fontWeight: FontWeight.w600,
           ),
+          if (data.phoneNumber.isNotEmpty)
+            AppText(
+              text: data.phoneNumber,
+              fontSize: 11,
+              color: AppColors.fieldGrey,
+              fontWeight: FontWeight.w400,
+            ),
         ],
       ).pad(),
     );
@@ -1077,6 +1049,337 @@ class TransferCompleted extends StatelessWidget {
     );
   }
 }
+// class TransferCompleted extends StatelessWidget {
+//   final TransferType type;
+//   final TransferData data;
+//
+//   const TransferCompleted({
+//     super.key,
+//     required this.type,
+//     required this.data,
+//   });
+//
+//   // ============================================================
+//   // TYPE CHECKS
+//   // ============================================================
+//
+//   bool get isReceive {
+//     return type == TransferType.receiveToOthers ||
+//         type == TransferType.receiveToPolice ||
+//         type == TransferType.receiveToOwner;
+//   }
+//
+//   bool get isPolice {
+//     return type == TransferType.receiveToPolice ||
+//         type == TransferType.handOverToPolice;
+//   }
+//
+//   bool get isOthers {
+//     return type == TransferType.receiveToOthers ||
+//         type == TransferType.handOverToOthers;
+//   }
+//
+//   bool get isOwner {
+//     return type == TransferType.receiveToOwner ||
+//         type == TransferType.handOverToOwner;
+//   }
+//
+//   // ============================================================
+//   // TITLE
+//   // ============================================================
+//
+//   String get completedTitle {
+//     if (isReceive) {
+//       return 'Item received successfully!';
+//     }
+//
+//     return 'Hand Over Completed!';
+//   }
+//
+//   // ============================================================
+//   // DESCRIPTION
+//   // ============================================================
+//
+//   String get completedDescription {
+//     if (isReceive) {
+//       return 'Received To';
+//     }
+//
+//     return 'Handovered To';
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return StreamBuilder<List<ConnectivityResult>>(
+//       stream: Connectivity().onConnectivityChanged,
+//       builder: (context, snapshot) {
+//         final results = snapshot.data ?? [];
+//         final isOffline = results.contains(ConnectivityResult.none) || (snapshot.hasData && results.isEmpty);
+//
+//         if (isOffline) {
+//           return const NoInternetWidget();
+//         }
+//         return SingleChildScrollView(
+//           child: Column(
+//             spacing: 7,
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               // ======================================================
+//               // SUCCESS ICON
+//               // ======================================================
+//
+//               AppIconWidget(
+//                 assetPath: AssetImages.handoverToOwner,
+//               ),
+//
+//               const SizedBox(height: 7),
+//
+//               // ======================================================
+//               // TITLE
+//               // ======================================================
+//
+//               AppText(
+//                 text: completedTitle,
+//                 fontWeight: FontWeight.w600,
+//                 fontSize: 14,
+//               ),
+//
+//               const SizedBox(height: 7),
+//
+//               // ======================================================
+//               // DESCRIPTION
+//               // ======================================================
+//
+//               AppText(
+//                 text: completedDescription,
+//                 fontSize: 12,
+//                 fontWeight: FontWeight.w400,
+//                 textAlign: TextAlign.center,
+//                 color: AppColors.grey,
+//               ).padHorizontal(20),
+//
+//               // ======================================================
+//               // USER / POLICE / OTHERS CARD
+//               // ======================================================
+//
+//               _buildPersonCard(),
+//
+//               const SizedBox(height: 10),
+//
+//               // ======================================================
+//               // DONE
+//               // ======================================================
+//
+//               AppButton(
+//                 title: 'Done',
+//                 fontSize: 14,
+//                 onTap: () {
+//                   AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+//                 },
+//                 bgColor: AppColors.primaryColor,
+//                 radius: BorderRadius.circular(7),
+//               ),
+//             ],
+//           ),
+//         );
+//       }
+//     );
+//   }
+//
+//   // ============================================================
+//   // CARD
+//   // ============================================================
+//
+//   Widget _buildPersonCard() {
+//     if (isPolice) {
+//       return _buildPoliceCard();
+//     }
+//
+//     if (isOthers) {
+//       return _buildOthersCard();
+//     }
+//
+//     return _buildOwnerCard();
+//   }
+//
+//   // ============================================================
+//   // OWNER CARD
+//   // ============================================================
+//
+//   Widget _buildOwnerCard() {
+//     return AppContainer(
+//       widget: Row(
+//         crossAxisAlignment: CrossAxisAlignment.center,
+//         children: [
+//           data.avatarUrl.isNotEmpty
+//               ? AppCachedNetworkImage(
+//                   imageUrl: data.avatarUrl,
+//                   fit: BoxFit.cover,
+//                   width: 52,
+//                   height: 52,
+//                   borderRadius: BorderRadius.circular(26),
+//                 )
+//               : CircleAvatar(
+//                   radius: 26,
+//                   backgroundColor: AppColors.fieldGrey,
+//                   child: Icon(
+//                     Icons.person,
+//                     color: AppColors.primaryColor,
+//                   ),
+//                 ),
+//
+//           const SizedBox(width: 15),
+//
+//           Expanded(
+//             child: AppText(
+//               text: data.name.isNotEmpty ? data.name : 'Unknown User',
+//               fontSize: 13,
+//               color: AppColors.primaryColor,
+//               fontWeight: FontWeight.w600,
+//             ),
+//           ),
+//
+//           if (data.matchPercentage != null)
+//             _buildMatchPercentage(
+//               data.matchPercentage!,
+//             ),
+//         ],
+//       ).pad(),
+//     );
+//   }
+//
+//   // ============================================================
+//   // OTHERS CARD
+//   // ============================================================
+//
+//   Widget _buildOthersCard() {
+//     return AppContainer(
+//       widget: Row(
+//         crossAxisAlignment: CrossAxisAlignment.center,
+//         children: [
+//           data.avatarUrl.isNotEmpty
+//               ? AppCachedNetworkImage(
+//                   imageUrl: data.avatarUrl,
+//                   fit: BoxFit.cover,
+//                   width: 52,
+//                   height: 52,
+//                   borderRadius: BorderRadius.circular(26),
+//                 )
+//               : CircleAvatar(
+//                   radius: 26,
+//                   backgroundColor: AppColors.fieldGrey,
+//                   child: AppIconWidget(
+//                     assetPath: AssetImages.threeDotsHorizontal,
+//                   ),
+//                 ),
+//
+//           const SizedBox(width: 15),
+//
+//           Expanded(
+//             child: Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 AppText(
+//                   text: data.name.isNotEmpty
+//                       ? data.name
+//                       : 'Others',
+//                   fontSize: 14,
+//                   color: AppColors.primaryColor,
+//                   fontWeight: FontWeight.w600,
+//                 ),
+//
+//                 if (data.phoneNumber.isNotEmpty && !isPolice) ...[
+//                   const SizedBox(height: 4),
+//
+//                   AppText(
+//                     text: data.phoneNumber,
+//                     fontSize: 11,
+//                     color: AppColors.fieldGrey,
+//                     fontWeight: FontWeight.w400,
+//                   ),
+//                 ],
+//               ],
+//             ),
+//           ),
+//         ],
+//       ).pad(),
+//     );
+//   }
+//
+//   // ============================================================
+//   // POLICE CARD
+//   // ============================================================
+//
+//   Widget _buildPoliceCard() {
+//     return AppContainer(
+//       widget: Row(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           AppIconWidget(
+//             assetPath: AssetImages.policeStation,
+//           ),
+//
+//           const SizedBox(width: 10),
+//
+//           Expanded(
+//             child: Column(
+//               spacing: 5,
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 AppText(
+//                   text: data.policeStationName.isNotEmpty
+//                       ? data.policeStationName
+//                       : 'Police Station',
+//                   fontSize: 14,
+//                   color: AppColors.primaryColor,
+//                   fontWeight: FontWeight.w600,
+//                 ),
+//
+//                 AppText(
+//                   text: data.policeStationAddress.isNotEmpty
+//                       ? data.policeStationAddress
+//                       : 'Address not available',
+//                   fontSize: 12,
+//                   fontWeight: FontWeight.w400,
+//                   color: AppColors.fieldGrey,
+//                   textOverflow: TextOverflow.ellipsis,
+//                   maxLine: 3,
+//                 ),
+//               ],
+//             ),
+//           ),
+//         ],
+//       ).pad(),
+//     );
+//   }
+//
+//   // ============================================================
+//   // MATCH PERCENTAGE
+//   // ============================================================
+//
+//   Widget _buildMatchPercentage(int percentage) {
+//     return Container(
+//       padding: const EdgeInsets.symmetric(
+//         horizontal: 10,
+//         vertical: 4,
+//       ),
+//       decoration: BoxDecoration(
+//         color: AppUtils
+//             .getMatchColor(percentage)
+//             .withAlpha(70),
+//         borderRadius: BorderRadius.circular(20),
+//       ),
+//       child: AppText(
+//         text: '$percentage% match',
+//         fontWeight: FontWeight.w500,
+//         fontSize: 10,
+//         color: AppUtils.getMatchColor(
+//           percentage,
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 class PostLive extends StatelessWidget {
   final int postType;
