@@ -797,6 +797,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 countryController.clear();
                                 stateController.clear();
                                 cityController.clear();
+                                addressController.clear();
                                 cityOptions = [];
                                 selectedCityName = null;
                                 latitude = null;
