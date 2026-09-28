@@ -96,6 +96,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
 
   bool isSubmitting = false;
   bool isLoadingSource = true;
+  bool isEnquirySent = false;
 
   // ============================================================
   // INIT
@@ -127,6 +128,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
     );
 
     _fetchSourcePostDetails();
+    _checkIfAlreadyEnquired();
 
     print('[SendEnquiry] INIT');
     print('[SendEnquiry] currentUserName (sender/lost person): "$currentUserName"');
@@ -135,6 +137,31 @@ class _SendEnquiryState extends State<SendEnquiry> {
     print('[SendEnquiry] otherUserPhone: "${widget.otherUserPhone}"');
     print('[SendEnquiry] matchedPostId: ${widget.matchedPostId}');
     print('[SendEnquiry] PostId: ${widget.postId}');
+  }
+
+  Future<void> _checkIfAlreadyEnquired() async {
+    try {
+      final currentUserId = AppPreferences.getUserId()?.toString().trim();
+      final otherUserId = widget.otherUserId.toString().trim();
+      if (currentUserId != null &&
+          currentUserId.isNotEmpty &&
+          otherUserId.isNotEmpty &&
+          widget.postId != 0) {
+        final roomIdCheck = ChatService.generateRoomId(
+          userId1: currentUserId,
+          userId2: otherUserId,
+          postId: widget.postId.toString(),
+        );
+        final existingRoom = await ChatService.getRoom(roomIdCheck);
+        if (existingRoom != null && mounted) {
+          setState(() {
+            isEnquirySent = true;
+          });
+        }
+      }
+    } catch (e) {
+      print('[SendEnquiry] Error checking existing room: $e');
+    }
   }
 
   Future<void> _fetchSourcePostDetails() async {
@@ -236,7 +263,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
     // PREVENT DOUBLE SUBMIT
     // ============================================================
 
-    if (isSubmitting) {
+    if (isSubmitting || isEnquirySent) {
       return;
     }
 
@@ -312,7 +339,10 @@ class _SendEnquiryState extends State<SendEnquiry> {
 
       if (existingRoom != null) {
         if (!mounted) return;
-        setState(() => isSubmitting = false);
+        setState(() {
+          isSubmitting = false;
+          isEnquirySent = true;
+        });
 
         AppSnackBar.show(
           context: context,
@@ -320,7 +350,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
         );
 
         // Optionally, close sheet and go to chat directly
-        AppRoutes.pop();
+        AppRoutes.pop(true);
         AppRoutes.pushNamed(
           AppRoutes.individualChatScreen,
           arguments: {
@@ -407,6 +437,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
       if (!response.isSuccess) {
         setState(() {
           isSubmitting = false;
+          isEnquirySent = false;
         });
 
         final msg =
@@ -429,6 +460,13 @@ class _SendEnquiryState extends State<SendEnquiry> {
       print(
         '[SendEnquiry] Enquiry API SUCCESS',
       );
+
+      if (mounted) {
+        setState(() {
+          isEnquirySent = true;
+          isSubmitting = false;
+        });
+      }
 
       // ==========================================================
       // STEP 2
@@ -550,7 +588,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
       // CLOSE SEND ENQUIRY
       // ==========================================================
 
-      AppRoutes.pop();
+      AppRoutes.pop(true);
 
       // ==========================================================
       // STEP 5
@@ -627,6 +665,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
 
       setState(() {
         isSubmitting = false;
+        isEnquirySent = false;
       });
 
       AppDialogue.showPopup(
@@ -722,9 +761,10 @@ class _SendEnquiryState extends State<SendEnquiry> {
         AppButton(
           title: (isSubmitting || isLoadingSource)
               ? 'Please wait...'
-              : 'Send Enquiry',
-          onTap: (isSubmitting || isLoadingSource)
-              ? () {}
+              : (isEnquirySent ? 'Enquiry Sent' : 'Send Enquiry'),
+          bgColor: isEnquirySent ? AppColors.idCardColor: null,
+          onTap: (isSubmitting || isLoadingSource || isEnquirySent)
+              ? null
               : _onSubmit,
         ),
       ],

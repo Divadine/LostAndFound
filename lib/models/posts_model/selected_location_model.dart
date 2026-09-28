@@ -3,12 +3,14 @@ class SelectedLocationModel {
   final double latitude;
   final double longitude;
   final String? pincode;
+  final String? name;
 
   const SelectedLocationModel({
     required this.address,
     required this.latitude,
     required this.longitude,
     this.pincode,
+    this.name,
   });
 
   Map<String, dynamic> toJson() => {
@@ -16,6 +18,7 @@ class SelectedLocationModel {
     'latitude': latitude,
     'longitude': longitude,
     if (pincode != null) 'pincode': pincode,
+    if (name != null) 'name': name,
   };
 
   factory SelectedLocationModel.fromJson(Map<String, dynamic> json) =>
@@ -24,6 +27,7 @@ class SelectedLocationModel {
         latitude: (json['latitude'] as num).toDouble(),
         longitude: (json['longitude'] as num).toDouble(),
         pincode: json['pincode'] as String?,
+        name: json['name'] as String?,
       );
 
   @override

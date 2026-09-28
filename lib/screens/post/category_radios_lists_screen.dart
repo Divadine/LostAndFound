@@ -359,7 +359,8 @@ class _CategoryRadiosListsScreenState
                     }
                 
                     return ListView.builder(
-                      padding: const EdgeInsets.only(top: 4),
+                      // padding: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
                       controller: _scrollController,
                       physics: const AlwaysScrollableScrollPhysics(),
                       clipBehavior: Clip.none,
@@ -381,7 +382,7 @@ class _CategoryRadiosListsScreenState
                           categoryName: category.name ?? '',
                           img: category.imageUrl ?? '',
                           categoryId: category.id,
-                          // ✅ Selection is now determined by matching ids,
+                          // Selection is now determined by matching ids,
                           // not by matching the tile's index in the list.
                           isSelected: selectedCategoryId != null &&
                               selectedCategoryId == category.id,

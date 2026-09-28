@@ -804,82 +804,93 @@ class TransferCompleted extends StatelessWidget {
     return 'Handovered To';
   }
 
+  void _goHome() {
+    AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<ConnectivityResult>>(
-      stream: Connectivity().onConnectivityChanged,
-      builder: (context, snapshot) {
-        final results = snapshot.data ?? [];
-        final isOffline = results.contains(ConnectivityResult.none) ||
-            (snapshot.hasData && results.isEmpty);
-
-        if (isOffline) {
-          return const NoInternetWidget();
-        }
-        return SingleChildScrollView(
-          child: Column(
-            spacing: 7,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ======================================================
-              // SUCCESS ICON
-              // ======================================================
-
-              AppIconWidget(
-                assetPath: AssetImages.handoverToOwner,
-              ),
-
-              const SizedBox(height: 7),
-
-              // ======================================================
-              // TITLE
-              // ======================================================
-
-              AppText(
-                text: completedTitle,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-
-              const SizedBox(height: 7),
-
-              // ======================================================
-              // DESCRIPTION
-              // ======================================================
-
-              AppText(
-                text: completedDescription,
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                textAlign: TextAlign.center,
-                color: AppColors.grey,
-              ).padHorizontal(20),
-
-              // ======================================================
-              // USER / POLICE / OTHERS CARD
-              // ======================================================
-
-              _buildPersonCard(),
-
-              const SizedBox(height: 10),
-
-              // ======================================================
-              // DONE
-              // ======================================================
-
-              AppButton(
-                title: 'Done',
-                fontSize: 14,
-                onTap: () {
-                  AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
-                },
-                bgColor: AppColors.primaryColor,
-                radius: BorderRadius.circular(7),
-              ),
-            ],
-          ),
-        );
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _goHome(); // back button behaves like "Done"
       },
+      child: StreamBuilder<List<ConnectivityResult>>(
+        stream: Connectivity().onConnectivityChanged,
+        builder: (context, snapshot) {
+          final results = snapshot.data ?? [];
+          final isOffline = results.contains(ConnectivityResult.none) ||
+              (snapshot.hasData && results.isEmpty);
+
+          if (isOffline) {
+            return const NoInternetWidget();
+          }
+          return SingleChildScrollView(
+            child: Column(
+              spacing: 7,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ======================================================
+                // SUCCESS ICON
+                // ======================================================
+
+                AppIconWidget(
+                  assetPath: AssetImages.handoverToOwner,
+                ),
+
+                const SizedBox(height: 7),
+
+                // ======================================================
+                // TITLE
+                // ======================================================
+
+                AppText(
+                  text: completedTitle,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+
+                const SizedBox(height: 7),
+
+                // ======================================================
+                // DESCRIPTION
+                // ======================================================
+
+                AppText(
+                  text: completedDescription,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  textAlign: TextAlign.center,
+                  color: AppColors.grey,
+                ).padHorizontal(20),
+
+                // ======================================================
+                // USER / POLICE / OTHERS CARD
+                // ======================================================
+
+                _buildPersonCard(),
+
+                const SizedBox(height: 10),
+
+                // ======================================================
+                // DONE
+                // ======================================================
+
+                AppButton(
+                  title: 'Done',
+                  fontSize: 14,
+                  onTap: () {
+                    AppRoutes.pushAndRemoveUntil(AppRoutes.bottomScreen);
+                  },
+                  bgColor: AppColors.primaryColor,
+                  radius: BorderRadius.circular(7),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 

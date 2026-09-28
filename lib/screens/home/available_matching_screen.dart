@@ -208,12 +208,20 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
   Future<void> _onMatchTap(MatchItemModel match) async {
     if (!mounted) return;
 
+    final isMainPostClosed = widget.status == 2 || widget.isReceived;
+    final isMatchClosed = match.status == 2;
+    final shouldHideEnquiry = isMainPostClosed || isMatchClosed;
+
     debugPrint('========== MATCH TAP DEBUG ==========');
     debugPrint('match.postId       : ${match.postId}');
     debugPrint('match.userId       : ${match.userId}');
     debugPrint('match.posterName   : ${match.posterName}');
     debugPrint('widget.postId (original) : ${widget.postId}');
+    debugPrint('isMainPostClosed   : $isMainPostClosed');
+    debugPrint('isMatchClosed      : $isMatchClosed');
+    debugPrint('shouldHideEnquiry  : $shouldHideEnquiry');
     debugPrint('=====================================');
+
     AppRoutes.pushNamed(
       AppRoutes.lostItemsDetailsScreen,
       arguments: {
@@ -224,6 +232,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
         'posterAvatar': match.posterAvatar,
         'originalPostId': widget.postId,
         'isLostPost': widget.isFound, // If the main post is Found (true), the match is Lost (true). If main is Lost (false), match is Found (false).
+        'hideEnquiryButton': shouldHideEnquiry,
       },
     );
   }

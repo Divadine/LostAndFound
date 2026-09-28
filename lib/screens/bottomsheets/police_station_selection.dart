@@ -67,6 +67,7 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
           address: textController.text,
           latitude: double.tryParse(latitude!) ?? 0.0,
           longitude: double.tryParse(longitude!) ?? 0.0,
+          name: mapTextController.text.isNotEmpty ? mapTextController.text : null,
         )
       ];
     }
@@ -75,6 +76,7 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
       AppRoutes.mapScreen,
       extra: MapScreenModel(
         needSingleLocation: true,
+        showPoliceStations: true,
         selectedLocation: existingLocations,
       ),
     );
@@ -82,6 +84,11 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
     if (singleLocation != null) {
       final location = singleLocation as SelectedLocationModel;
       setState(() {
+        if (location.name != null && location.name!.isNotEmpty) {
+          mapTextController.text = location.name!;
+        } else if (mapTextController.text.trim().isEmpty) {
+          mapTextController.text = location.address;
+        }
         textController.text = location.address;
         latitude = location.latitude.toString();
         longitude = location.longitude.toString();
@@ -200,6 +207,7 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
           ),
         ),
 
+        SizedBox(height: 20,),
         AppButton(
           title: 'Submit',
           onTap: () {

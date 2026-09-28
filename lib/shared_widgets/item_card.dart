@@ -84,6 +84,11 @@ class ItemCard extends StatelessWidget {
 
     final isJewellery = categoryName?.toLowerCase() == 'jewellery & valuables';
 
+    // Image frame settings (white ring around the photo)
+    const double framePadding = 4;
+    final double frameWidth = imageWidth ?? 140;
+    const double frameHeight = 100;
+
     // ============================================================
     // FIX: Enquires card visibility must be based ONLY on the
     // actual enquiries count for this post — never on matching
@@ -134,11 +139,11 @@ class ItemCard extends StatelessWidget {
                       clipBehavior: Clip.antiAlias,
                       child: (profileUrl != null && profileUrl!.trim().isNotEmpty)
                           ? AppCachedNetworkImage(
-                              imageUrl: profileUrl!,
-                              fit: BoxFit.cover,
-                              borderRadius: BorderRadius.circular(20),
-                            )
-                          :Icon(Icons.person,size: 30,)
+                        imageUrl: profileUrl!,
+                        fit: BoxFit.cover,
+                        borderRadius: BorderRadius.circular(20),
+                      )
+                          : Icon(Icons.person, size: 30),
                       // Image.asset(
                       //         AssetImages.profilePic,
                       //         fit: BoxFit.cover,
@@ -205,30 +210,43 @@ class ItemCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (imgUrl.trim().isEmpty)
-                      Container(
-                        height: 100,
-                        width: imageWidth ?? 140,
-                        decoration: BoxDecoration(
+                    // ---- Image inside a white framed container ----
+                    Container(
+                      height: frameHeight,
+                      width: frameWidth,
+                      padding: const EdgeInsets.all(framePadding),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(30),
+                            blurRadius: 0,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: imgUrl.trim().isEmpty
+                            ? Container(
                           color: AppColors.grey.withAlpha(20),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
                           child: Image.asset(
                             AssetImages.box_image,
+                            width: frameWidth - (framePadding * 2),
+                            height: frameHeight - (framePadding * 2),
                             fit: BoxFit.cover,
                           ),
+                        )
+                            : AppCachedNetworkImage(
+                          imageUrl: imgUrl,
+                          width: frameWidth - (framePadding * 2),
+                          height: frameHeight - (framePadding * 2),
+                          fit: BoxFit.cover,
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                      )
-                    else
-                      AppCachedNetworkImage(
-                        imageUrl: imgUrl,
-                        height: 100,
-                        width: imageWidth ?? 140,
-                        fit: BoxFit.cover,
-                        borderRadius: BorderRadius.circular(10),
                       ),
+                    ),
                     SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -390,7 +408,10 @@ class ItemCard extends StatelessWidget {
                               fontWeight: FontWeight.w500,
                               color: AppColors.primaryColor,
                             ),
-                            AppIconWidget(assetPath: AssetImages.iosForward,color: AppColors.primaryColor,),
+                            AppIconWidget(
+                              assetPath: AssetImages.iosForward,
+                              color: AppColors.primaryColor,
+                            ),
                           ],
                         ),
                       ],
@@ -451,7 +472,10 @@ class ItemCard extends StatelessWidget {
                               ),
                             ),
                           ],
-                          AppIconWidget(assetPath: AssetImages.iosForward,color: AppColors.primaryColor,),
+                          AppIconWidget(
+                            assetPath: AssetImages.iosForward,
+                            color: AppColors.primaryColor,
+                          ),
                         ],
                       ),
                     ),

@@ -189,6 +189,23 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
         hasEnquired = true;
         existingRoomId = roomId;
       });
+    } else {
+      try {
+        final enquiryResponse = await authController.viewEnquiry(postId: widget.postId);
+        if (enquiryResponse.isSuccess && enquiryResponse.data != null) {
+          final enquiries = enquiryResponse.data!.enquiries;
+          final alreadyEnquired = enquiries.any((e) => e.enquirerUserId == userId);
+          if (alreadyEnquired) {
+            if (!mounted) return;
+            setState(() {
+              hasEnquired = true;
+              existingRoomId = roomId;
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('[EnquiryCheck] viewEnquiry check failed: $e');
+      }
     }
   }
 
@@ -906,8 +923,13 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
           AppButton(
             title: widget.isUserPost
                 ? (widget.isLostPost ? 'Receive' : 'Hand Over')
-                : 'Send Enquiry',
-            onTap: () {
+                : (hasEnquired ? 'Enquiry Sent' : 'Send Enquiry'),
+            bgColor: (!widget.isUserPost && hasEnquired)
+                ?  AppColors.navyBlue
+                : AppColors.primaryColor,
+            onTap: (!widget.isUserPost && hasEnquired)
+                ? null
+                : () async {
               if (widget.isUserPost) {
                 debugPrint('[Handover] Opening ReceiveHandoverSheet from DetailsScreen');
                 debugPrint('[Handover] postId: ${post.id}');
@@ -926,47 +948,6 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                     enquiryId: widget.enquiryId,
                   ),
                 );
-                return;
-              }
-
-              // ==================================================
-              // EXISTING ENQUIRY
-              // ==================================================
-
-              if (hasEnquired) {
-                AppSnackBar.show(
-                  context: context,
-                  message: 'Enquiry already sent',
-                );
-
-                final userId = AppPreferences.getUserId();
-
-                AppRoutes.pushNamed(
-                  AppRoutes.individualChatScreen,
-                  arguments: {
-                    'roomId': existingRoomId,
-                    'currentUserId': userId.toString(),
-                    'otherUserId': widget.userId.toString(),
-                    'otherUserName': _posterName,
-                    'otherUserAvatar': _posterAvatarUrl,
-                    'otherUserPhone':
-                    postDetails?.posterName ?? '',
-                    'itemName':
-                    postDetails?.itemName ?? '',
-                    'itemImage': _itemImageUrl,
-                    'itemLocation':
-                    postDetails?.location ?? '',
-                    'itemPostDate':
-                    _formatDate(postDetails?.postDate),
-                    'itemPostId':
-                    postDetails?.id.toString(),
-                    'matchedPostId':
-                    widget.originalPostId.toString(),
-                    'enquirySenderId':
-                    userId.toString(),
-                  },
-                );
-
                 return;
               }
 
@@ -1077,7 +1058,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
               // SEND ENQUIRY BOTTOM SHEET
               // ==================================================
 
-              AppUiHelper.showBottomSheet(
+              final result = await AppUiHelper.showBottomSheet(
                 showHandle: false,
                 showCloseIcon: false,
                 context: context,
@@ -1102,6 +1083,15 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                   isLostPost: widget.isLostPost,
                 ),
               );
+
+              if (result == true) {
+                if (context.mounted) {
+                  setState(() {
+                    hasEnquired = true;
+                  });
+                }
+              }
+              await _checkEnquiryStatus();
             },
             fontSize: 14,
             radius: BorderRadius.circular(10),

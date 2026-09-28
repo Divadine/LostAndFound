@@ -1180,6 +1180,7 @@ class _HomeScreenState extends State<HomeScreen>
                           'userId': AppPreferences.getUserId(),
                           'isLostPost': true,
                           'isUserPost': true,
+                          'hideEnquiryButton': post.status == 2,
                         },
                       );
                     } else {
@@ -1393,6 +1394,7 @@ class _HomeScreenState extends State<HomeScreen>
                           'userId': AppPreferences.getUserId(),
                           'isLostPost': false,
                           'isUserPost': true,
+                          'hideEnquiryButton': post.status == 2,
                         },
                       );
                     } else {
