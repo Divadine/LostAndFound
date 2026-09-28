@@ -243,6 +243,21 @@ class _SendEnquiryState extends State<SendEnquiry> {
     }
 
     // ============================================================
+// VALIDATE DESCRIPTION
+// ============================================================
+
+    if (descriptionController.text.trim().isEmpty) {
+      AppDialogue.showPopup(
+        context: context,
+        content: const AppText(
+          text: 'Description is required',
+        ),
+      );
+
+      return;
+    }
+
+    // ============================================================
     // VALIDATE POST IDS
     // ============================================================
 

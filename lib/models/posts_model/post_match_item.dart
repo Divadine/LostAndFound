@@ -48,6 +48,7 @@ class MatchedPostSummary {
   final String handoverUserUid;
   final String handoverDate;
   final String handoverAvatar;
+  final String handoverCodeId;
 
   MatchedPostSummary({
     required this.id,
@@ -69,6 +70,7 @@ class MatchedPostSummary {
     this.handoverUserUid = '',
     this.handoverDate = '',
     this.handoverAvatar = '',
+    this.handoverCodeId = '',
   });
 
   factory MatchedPostSummary.fromJson(Map<String, dynamic> json) {
@@ -188,6 +190,12 @@ class MatchedPostSummary {
       handoverAvatar: (handoverObj?['profile_image'] ??
               handoverObj?['avatar'] ??
               handoverObj?['image'] ??
+              '')
+          .toString(),
+      handoverCodeId: (handoverObj?['code_id'] ??
+              handoverObj?['codeId'] ??
+              json['code_id'] ??
+              json['handover_code_id'] ??
               '')
           .toString(),
     );

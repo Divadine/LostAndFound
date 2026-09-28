@@ -71,6 +71,10 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
         widget.type == TransferType.receiveToOwner;
   }
 
+  String get _userId => (widget.data.userId ?? '').trim();
+
+// Show the User ID only when receiving from a police station
+  bool get _showPoliceUserId => isPolice && isReceive && _userId.isNotEmpty;
   @override
   void initState() {
     super.initState();
@@ -87,15 +91,13 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
 
   @override
   Widget build(BuildContext context) {
+    int step = 1; // running section number
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: 10,
         children: [
-          // ======================================================
-          // TITLE
-          // ======================================================
-
           Center(
             child: AppText(
               text: isReceive ? 'Received Details' : 'Handover Details',
@@ -104,46 +106,40 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
             ),
           ),
 
-          // ======================================================
-          // USER / POLICE / OTHERS
-          // ======================================================
-
           _buildSourceCard(),
 
-          // ======================================================
-          // NAME (Others only — shown as its own numbered section
-          // since the source card above no longer shows details)
-          // ======================================================
-
-          if (isOthers)
+          // USER ID (police receive only)
+          if (_showPoliceUserId)
             buildProofDocuments(
-              title: '1. Name',
+              title: '${step++}. User Id',
               widget: AppText(
-                text: widget.data.name.isNotEmpty
-                    ? widget.data.name
-                    : 'Unknown',
+                text:'     $_userId',
                 fontWeight: FontWeight.w400,
                 fontSize: 12,
               ),
             ),
 
-          // ======================================================
-          // PROOF PHOTOS
-          // Skipped for Others — no photo is ever collected from them.
-          // ======================================================
+          // NAME (Others only)
+          if (isOthers)
+            buildProofDocuments(
+              title: '${step++}. Name',
+              widget: AppText(
+                text: widget.data.name.isNotEmpty ? widget.data.name : 'Unknown',
+                fontWeight: FontWeight.w400,
+                fontSize: 12,
+              ),
+            ),
 
+          // PROOF PHOTOS (not for Others)
           if (!isOthers)
             buildProofDocuments(
-              title: '1. Proof Photos',
+              title: '${step++}. Proof Photos',
               widget: _buildProofPhotos(),
             ),
 
-          // ======================================================
           // DESCRIPTION
-          // ======================================================
-
           buildProofDocuments(
-            title: '2. Description',
+            title: '${step++}. Description',
             widget: AppText(
               text: widget.data.description.isNotEmpty
                   ? widget.data.description
@@ -153,13 +149,10 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
             ),
           ).padBottom(10),
 
-          // ======================================================
-          // PHONE
-          // ======================================================
-
+          // PHONE (Others only)
           if (widget.data.phoneNumber.isNotEmpty && isOthers)
             buildProofDocuments(
-              title: '3. Phone Number',
+              title: '${step++}. Phone Number',
               widget: AppText(
                 text: widget.data.phoneNumber,
                 fontWeight: FontWeight.w400,
@@ -167,10 +160,7 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
               ),
             ),
 
-          // ======================================================
           // HANDOVER DATE
-          // ======================================================
-
           if (widget.data.handoverDate.isNotEmpty)
             buildProofDocuments(
               title: 'Handover Date',
