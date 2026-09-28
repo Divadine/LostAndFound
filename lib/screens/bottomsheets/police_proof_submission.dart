@@ -71,7 +71,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
 
   bool get _isFormValid {
     final basicValid = selectedImage != null && textController.text.trim().isNotEmpty;
-    if (widget.isJewellery && widget.isReceiver) {
+    if (widget.isReceiver) {
       return basicValid && codeController.text.trim().isNotEmpty;
     }
     return basicValid;
@@ -227,7 +227,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
             ).pad(),
           ),
 
-          if (widget.isJewellery && widget.isReceiver)
+          if (widget.isReceiver)
             buildProofDocuments(
               title: '1. User ID',
               widget: AppTextField(
@@ -239,7 +239,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
             ),
 
           buildProofDocuments(
-            title: '${(widget.isJewellery && widget.isReceiver) ? 2 : 1}. Upload Proof Photos',
+            title: '${widget.isReceiver ? 2 : 1}. Upload Proof Photos',
             subTitle: 'Upload clear photos as proof of handover.',
             widget: GestureDetector(
               onTap: pickImage,
@@ -252,7 +252,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
           ),
 
           buildProofDocuments(
-            title: '${(widget.isJewellery && widget.isReceiver) ? 3 : 2}. Description',
+            title: '${widget.isReceiver ? 3 : 2}. Description',
             subTitle: 'Provide details about the handover.',
             widget: AppTextField(
               maxLines: 4,
