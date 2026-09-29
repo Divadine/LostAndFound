@@ -142,7 +142,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
-        child:  AppIconWidget(assetPath: AssetImages.logo1, height: 150)//CircularProgressIndicator(),
+        child:  AppIconWidget(assetPath: AssetImages.logo2, height: 150)//CircularProgressIndicator(),
       ),
     );
   }

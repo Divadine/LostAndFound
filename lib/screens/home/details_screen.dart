@@ -897,6 +897,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                               : _getMediaUrl(post.postType == 0 ? post.posterAvatar : post.ownerAvatar)),
                       userId: finalUserId,
                       phoneNumber: post.handoverPhoneno,
+                      codeId: post.handoverCodeId,
                       description: finalDesc,
                       policeStationName: post.stationName.isNotEmpty
                           ? post.stationName

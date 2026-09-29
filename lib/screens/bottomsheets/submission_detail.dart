@@ -71,6 +71,10 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
         widget.type == TransferType.receiveToOwner;
   }
 
+  String get _codeId => widget.data.codeId.trim();
+
+// Show Code ID only when receiving from a police station
+  bool get _showPoliceCodeId => isPolice && isReceive && _codeId.isNotEmpty;
   String get _userId => (widget.data.userId ?? '').trim();
 
 // Show the User ID only when receiving from a police station
@@ -109,11 +113,11 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
           _buildSourceCard(),
 
           // USER ID (police receive only)
-          if (_showPoliceUserId)
+          if (_showPoliceCodeId)
             buildProofDocuments(
               title: '${step++}. User Id',
               widget: AppText(
-                text:'     $_userId',
+                text: '    $_codeId',
                 fontWeight: FontWeight.w400,
                 fontSize: 12,
               ),
@@ -154,7 +158,7 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
             buildProofDocuments(
               title: '${step++}. Phone Number',
               widget: AppText(
-                text: widget.data.phoneNumber,
+                text: ' ${widget.data.phoneNumber}',
                 fontWeight: FontWeight.w400,
                 fontSize: 12,
               ),

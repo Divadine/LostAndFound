@@ -370,6 +370,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                   phoneNumber: post?.handoverPhoneno.isNotEmpty == true
                       ? post!.handoverPhoneno
                       : (winnerEnquiry?.phoneno ?? ''),
+                  codeId: post?.handoverCodeId ?? '',
                   description: finalDesc,
                   policeStationName: post?.stationName.isNotEmpty == true
                       ? post!.stationName

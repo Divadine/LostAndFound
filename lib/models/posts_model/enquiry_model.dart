@@ -19,6 +19,7 @@ class EnquiryPostModel {
   final String stationAddress;
   final String handoverDescription;
   final String handoverPhoneno;
+  final String handoverCodeId;
   final List<String> handoverImg;
   final int? handoverMatchPercentage;
   final String handoverUserUid;
@@ -46,6 +47,7 @@ class EnquiryPostModel {
     this.stationAddress = '',
     this.handoverDescription = '',
     this.handoverPhoneno = '',
+    this.handoverCodeId = '',
     this.handoverImg = const [],
     this.handoverMatchPercentage,
     this.handoverUserUid = '',
@@ -185,11 +187,19 @@ class EnquiryPostModel {
               json['handover_description'] ??
               '')
           .toString(),
-      handoverPhoneno: (handoverObj?['phoneno'] ??
+      handoverPhoneno: (handoverObj?['handover_number'] ??
+              handoverObj?['phoneno'] ??
               handoverObj?['handover_phoneno'] ??
               handoverObj?['handover_phone'] ??
+              json['handover_number'] ??
               json['handover_phoneno'] ??
               json['phoneno'] ??
+              '')
+          .toString(),
+      handoverCodeId: (handoverObj?['code_id'] ??
+              handoverObj?['codeId'] ??
+              json['code_id'] ??
+              json['handover_code_id'] ??
               '')
           .toString(),
       handoverImg: handoverImages,

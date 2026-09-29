@@ -161,9 +161,11 @@ class MatchedPostSummary {
               json['handover_description'] ??
               '')
           .toString(),
-      handoverPhoneno: (handoverObj?['phoneno'] ??
+      handoverPhoneno: (handoverObj?['handover_number'] ??
+              handoverObj?['phoneno'] ??
               handoverObj?['handover_phoneno'] ??
               handoverObj?['handover_phone'] ??
+              json['handover_number'] ??
               json['handover_phoneno'] ??
               json['phoneno'] ??
               '')

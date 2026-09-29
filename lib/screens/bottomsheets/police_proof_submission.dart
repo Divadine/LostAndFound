@@ -162,10 +162,15 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
           data: TransferData(
             policeStationName: widget.stationName,
             policeStationAddress: widget.stationAddress,
+            userId: widget.isReceiver
+                ? codeController.text.trim()
+                : null,
+            codeId: widget.isReceiver ? codeController.text.trim() : '',
             phoneNumber: widget.phoneNumber,
             description: textController.text.trim(),
             proofPhotos: imageResponse.data!.map((img) => img.imgPath).toList(),
             handoverDate: DateFormat('d MMM yyyy').format(DateTime.now()),
+
           ),
         ),
       );

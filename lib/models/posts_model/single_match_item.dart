@@ -30,6 +30,7 @@ class SingleMatchModel {
   final String stationAddress;
   final String handoverDescription;
   final String handoverPhoneno;
+  final String handoverCodeId;
   final List<String> handoverImg;
   final int? handoverMatchPercentage;
   final String handoverUserUid;
@@ -66,6 +67,7 @@ class SingleMatchModel {
     this.stationAddress = '',
     this.handoverDescription = '',
     this.handoverPhoneno = '',
+    this.handoverCodeId = '',
     this.handoverImg = const [],
     this.handoverMatchPercentage,
     this.handoverUserUid = '',
@@ -344,10 +346,18 @@ class SingleMatchModel {
               data['handover_desc'] ??
               '')
           .toString(),
-      handoverPhoneno: (handoverObj?['phoneno'] ??
+      handoverPhoneno: (handoverObj?['handover_number'] ??
+              handoverObj?['phoneno'] ??
               handoverObj?['handover_phoneno'] ??
+              data['handover_number'] ??
               data['handover_phoneno'] ??
               data['phoneno'] ??
+              '')
+          .toString(),
+      handoverCodeId: (handoverObj?['code_id'] ??
+              handoverObj?['codeId'] ??
+              data['code_id'] ??
+              data['handover_code_id'] ??
               '')
           .toString(),
       handoverImg: handoverImages,
@@ -406,6 +416,7 @@ class SingleMatchModel {
     String? stationAddress,
     String? handoverDescription,
     String? handoverPhoneno,
+    String? handoverCodeId,
     List<String>? handoverImg,
     int? handoverMatchPercentage,
     String? handoverUserUid,
@@ -442,6 +453,7 @@ class SingleMatchModel {
       stationAddress: stationAddress ?? this.stationAddress,
       handoverDescription: handoverDescription ?? this.handoverDescription,
       handoverPhoneno: handoverPhoneno ?? this.handoverPhoneno,
+      handoverCodeId: handoverCodeId ?? this.handoverCodeId,
       handoverImg: handoverImg ?? this.handoverImg,
       handoverMatchPercentage: handoverMatchPercentage ?? this.handoverMatchPercentage,
       handoverUserUid: handoverUserUid ?? this.handoverUserUid,
