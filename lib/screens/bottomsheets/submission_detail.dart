@@ -108,6 +108,8 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
+
+
           ),
 
           _buildSourceCard(),
