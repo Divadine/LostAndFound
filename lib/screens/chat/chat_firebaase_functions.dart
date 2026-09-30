@@ -1,13 +1,10 @@
-import 'dart:io';
-import 'dart:typed_data';
+import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
 class ChatService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static final FirebaseStorage _storage = FirebaseStorage.instance;
 
   static CollectionReference<Map<String, dynamic>> get _rooms =>
       _firestore.collection('chatRooms');
@@ -165,7 +162,7 @@ class ChatService {
 
         // Merge participants
         final participants =
-            Map<String, dynamic>.from(existingData['participants'] ?? {});
+        Map<String, dynamic>.from(existingData['participants'] ?? {});
 
         void updateParticipant(
             String uid, String? name, String? avatar, String? phone) {
@@ -243,9 +240,9 @@ class ChatService {
 
       final roomData = snapshot.data()!;
       final participants =
-          Map<String, dynamic>.from(roomData['participants'] ?? {});
+      Map<String, dynamic>.from(roomData['participants'] ?? {});
       final participant =
-          Map<String, dynamic>.from(participants[cleanUserId] ?? {});
+      Map<String, dynamic>.from(participants[cleanUserId] ?? {});
 
       if (name.trim().isNotEmpty) {
         participant['name'] = name.trim();
@@ -289,7 +286,7 @@ class ChatService {
     if (!snapshot.exists) return null;
 
     final participants =
-        Map<String, dynamic>.from(snapshot.data()?['participants'] ?? {});
+    Map<String, dynamic>.from(snapshot.data()?['participants'] ?? {});
     final participant = participants[userId.trim()];
     return participant != null ? Map<String, dynamic>.from(participant) : null;
   }
@@ -401,6 +398,14 @@ class ChatService {
     }, SetOptions(merge: true));
   }
 
+  /// Returns the list of user IDs who blocked this chat.
+  static Stream<List<String>> chatBlockedByStream({required String roomId}) {
+    return _rooms.doc(roomId).snapshots().map((s) {
+      if (!s.exists) return <String>[];
+      return List<String>.from(s.data()?['blockedBy'] ?? []);
+    });
+  }
+
   static Stream<bool> chatBlockedStream({required String roomId}) {
     return _rooms.doc(roomId).snapshots().map((s) {
       if (!s.exists) return false;
@@ -460,7 +465,105 @@ class ChatService {
   }
 
   // ============================================================
-  // MESSAGING
+  // SINGLE WRITE PATH FOR ALL MESSAGE TYPES
+  // ============================================================
+  //
+  // - blocked check + receiver lookup (uses cache when offline)
+  // - message starts as delivered:false. The RECEIVER's app flips it
+  //   to true (startDeliveryTracking / markRoomAsRead), which is what
+  //   turns the single tick into a double grey tick.
+  // - unreadCounts uses a NESTED map so set(merge:true) increments
+  //   unreadCounts.<receiverId> correctly (a dotted key inside set()
+  //   would create a literal field named "unreadCounts.123").
+  // - commit is NOT awaited: offline, commit() only completes when the
+  //   server acknowledges. The local write shows instantly with
+  //   metadata.hasPendingWrites == true (single tick).
+  // ============================================================
+
+  static Future<void> _sendToRoom({
+    required String roomId,
+    required String senderId,
+    required String messageType,
+    required String lastMessageText,
+    required Map<String, dynamic> extraData,
+  }) async {
+    final cleanRoomId = roomId.trim();
+    final cleanSenderId = senderId.trim();
+    if (cleanRoomId.isEmpty || cleanSenderId.isEmpty) return;
+
+    final roomRef = _rooms.doc(cleanRoomId);
+
+    String receiverId = '';
+
+    try {
+      final roomSnap = await roomRef.get();
+      if (!roomSnap.exists) throw Exception('Chat room does not exist');
+
+      final roomData = roomSnap.data()!;
+      final blockedBy = List<String>.from(roomData['blockedBy'] ?? []);
+      if (blockedBy.isNotEmpty) throw Exception('This chat is blocked.');
+
+      final users = List<String>.from(roomData['users'] ?? []);
+      receiverId = users.firstWhere(
+            (id) => id != cleanSenderId,
+        orElse: () => '',
+      );
+    } on FirebaseException catch (e) {
+      // Offline with nothing cached: fall back to parsing the room id.
+      debugPrint('[CHAT] room lookup failed: ${e.code}');
+    }
+
+    if (receiverId.isEmpty) {
+      final parts = cleanRoomId.split('_');
+      if (parts.length >= 2) {
+        receiverId = (parts[0] == cleanSenderId) ? parts[1] : parts[0];
+      }
+    }
+
+    final messageRef = roomRef.collection('messages').doc();
+    final batch = _firestore.batch();
+    final now = FieldValue.serverTimestamp();
+
+    batch.set(messageRef, {
+      'messageType': messageType,
+      'senderId': cleanSenderId,
+      'receiverId': receiverId,
+      'createdAt': now,
+      'isDeleted': false,
+      'isEdited': false,
+      'deletedFor': <String>[],
+      'delivered': false,
+      'read': false,
+      'readBy': <String>[],
+      ...extraData,
+    });
+
+    final roomUpdate = <String, dynamic>{
+      'lastMessage': lastMessageText,
+      'lastMessageTime': now,
+      'lastMessageSenderId': cleanSenderId,
+      'lastMessageRead': false,
+      'lastMessageDelivered': false,
+      'lastMessageDeleted': false,
+      'lastMessageId': messageRef.id,
+      'updatedAt': now,
+    };
+
+    if (receiverId.isNotEmpty) {
+      roomUpdate['unreadCounts'] = {
+        receiverId: FieldValue.increment(1),
+      };
+    }
+
+    batch.set(roomRef, roomUpdate, SetOptions(merge: true));
+
+    unawaited(batch.commit().catchError((e) {
+      debugPrint('[CHAT] send commit error: $e');
+    }));
+  }
+
+  // ============================================================
+  // MESSAGING APIs
   // ============================================================
 
   static Future<void> sendMessage({
@@ -468,49 +571,16 @@ class ChatService {
     required String senderId,
     required String message,
   }) async {
-    final cleanRoomId = roomId.trim();
-    final cleanSenderId = senderId.trim();
     final cleanMessage = message.trim();
     if (cleanMessage.isEmpty) return;
 
-    final roomRef = _rooms.doc(cleanRoomId);
-    final roomSnapshot = await roomRef.get();
-    if (!roomSnapshot.exists) throw Exception('Chat room does not exist');
-
-    final roomData = roomSnapshot.data()!;
-    final blockedBy = List<String>.from(roomData['blockedBy'] ?? []);
-    if (blockedBy.isNotEmpty) throw Exception('This chat is blocked.');
-
-    final users = List<String>.from(roomData['users'] ?? []);
-    final receiverId = users.firstWhere((id) => id != cleanSenderId, orElse: () => '');
-    if (receiverId.isEmpty) throw Exception('Receiver user not found');
-
-    final messageRef = roomRef.collection('messages').doc();
-    await messageRef.set({
-      'messageType': 'text',
-      'senderId': cleanSenderId,
-      'message': cleanMessage,
-      'createdAt': FieldValue.serverTimestamp(),
-      'isDeleted': false,
-      'deletedFor': <String>[],
-      'delivered': true,
-      'read': false,
-      'readBy': <String>[],
-    });
-
-    final unreadCounts = Map<String, dynamic>.from(roomData['unreadCounts'] ?? {});
-    unreadCounts[receiverId] = (unreadCounts[receiverId] ?? 0) + 1;
-
-    await roomRef.set({
-      'lastMessage': cleanMessage,
-      'lastMessageTime': FieldValue.serverTimestamp(),
-      'lastMessageSenderId': cleanSenderId,
-      'lastMessageRead': false,
-      'lastMessageDelivered': true,
-      'lastMessageDeleted': false,
-      'lastMessageId': messageRef.id,
-      'unreadCounts': unreadCounts,
-    }, SetOptions(merge: true));
+    await _sendToRoom(
+      roomId: roomId,
+      senderId: senderId,
+      messageType: 'text',
+      lastMessageText: cleanMessage,
+      extraData: {'message': cleanMessage},
+    );
   }
 
   static Future<void> sendLocationMessage({
@@ -520,91 +590,41 @@ class ChatService {
     required double longitude,
     String address = '',
   }) async {
-    final roomRef = _rooms.doc(roomId);
-    final roomSnapshot = await roomRef.get();
-    if (!roomSnapshot.exists) throw Exception('Chat room does not exist');
-
-    final roomData = roomSnapshot.data()!;
-    final blockedBy = List<String>.from(roomData['blockedBy'] ?? []);
-    if (blockedBy.isNotEmpty) throw Exception('This chat is blocked.');
-
-    final users = List<String>.from(roomData['users'] ?? []);
-    final receiverId = users.firstWhere((id) => id != senderId, orElse: () => '');
-
-    final messageRef = roomRef.collection('messages').doc();
-    await messageRef.set({
-      'messageType': 'location',
-      'senderId': senderId,
-      'message': address.isNotEmpty ? address : 'Shared location',
-      'latitude': latitude,
-      'longitude': longitude,
-      'address': address,
-      'createdAt': FieldValue.serverTimestamp(),
-      'isDeleted': false,
-      'deletedFor': <String>[],
-      'delivered': true,
-      'read': false,
-      'readBy': <String>[],
-    });
-
-    final unreadCounts = Map<String, dynamic>.from(roomData['unreadCounts'] ?? {});
-    unreadCounts[receiverId] = (unreadCounts[receiverId] ?? 0) + 1;
-
-    await roomRef.set({
-      'lastMessage': '📍 Location',
-      'lastMessageTime': FieldValue.serverTimestamp(),
-      'lastMessageSenderId': senderId,
-      'lastMessageRead': false,
-      'lastMessageDelivered': true,
-      'lastMessageDeleted': false,
-      'lastMessageId': messageRef.id,
-      'unreadCounts': unreadCounts,
-    }, SetOptions(merge: true));
+    final msg = address.isNotEmpty ? address : 'Shared location';
+    await _sendToRoom(
+      roomId: roomId,
+      senderId: senderId,
+      messageType: 'location',
+      lastMessageText: '📍 Location',
+      extraData: {
+        'message': msg,
+        'latitude': latitude,
+        'longitude': longitude,
+        'address': address,
+      },
+    );
   }
 
+  /// Image + optional caption = ONE message.
   static Future<void> sendImageMessageWithUrl({
     required String roomId,
     required String senderId,
     required String imageUrl,
+    String caption = '',
   }) async {
-    final roomRef = _rooms.doc(roomId);
-    final roomSnapshot = await roomRef.get();
-    if (!roomSnapshot.exists) throw Exception('Chat room does not exist');
+    final cleanCaption = caption.trim();
+    final lastMsg = cleanCaption.isNotEmpty ? '📷 $cleanCaption' : '📷 Photo';
 
-    final roomData = roomSnapshot.data()!;
-    final blockedBy = List<String>.from(roomData['blockedBy'] ?? []);
-    if (blockedBy.isNotEmpty) throw Exception('This chat is blocked.');
-
-    final users = List<String>.from(roomData['users'] ?? []);
-    final receiverId = users.firstWhere((id) => id != senderId, orElse: () => '');
-
-    final messageRef = roomRef.collection('messages').doc();
-    await messageRef.set({
-      'messageType': 'image',
-      'senderId': senderId,
-      'message': '',
-      'imageUrl': imageUrl,
-      'createdAt': FieldValue.serverTimestamp(),
-      'isDeleted': false,
-      'deletedFor': <String>[],
-      'delivered': true,
-      'read': false,
-      'readBy': <String>[],
-    });
-
-    final unreadCounts = Map<String, dynamic>.from(roomData['unreadCounts'] ?? {});
-    unreadCounts[receiverId] = (unreadCounts[receiverId] ?? 0) + 1;
-
-    await roomRef.set({
-      'lastMessage': '📷 Photo',
-      'lastMessageTime': FieldValue.serverTimestamp(),
-      'lastMessageSenderId': senderId,
-      'lastMessageRead': false,
-      'lastMessageDelivered': true,
-      'lastMessageDeleted': false,
-      'lastMessageId': messageRef.id,
-      'unreadCounts': unreadCounts,
-    }, SetOptions(merge: true));
+    await _sendToRoom(
+      roomId: roomId,
+      senderId: senderId,
+      messageType: 'image',
+      lastMessageText: lastMsg,
+      extraData: {
+        'message': cleanCaption,
+        'imageUrl': imageUrl,
+      },
+    );
   }
 
   static Future<void> sendVoiceMessage({
@@ -613,45 +633,74 @@ class ChatService {
     required String audioUrl,
     required String duration,
   }) async {
-    final roomRef = _rooms.doc(roomId);
-    final roomSnapshot = await roomRef.get();
-    if (!roomSnapshot.exists) throw Exception('Chat room does not exist');
+    await _sendToRoom(
+      roomId: roomId,
+      senderId: senderId,
+      messageType: 'audio',
+      lastMessageText: '🎤 Voice message',
+      extraData: {
+        'message': '',
+        'audioUrl': audioUrl,
+        'duration': duration,
+      },
+    );
+  }
 
-    final roomData = roomSnapshot.data()!;
-    final blockedBy = List<String>.from(roomData['blockedBy'] ?? []);
-    if (blockedBy.isNotEmpty) throw Exception('This chat is blocked.');
+  // ============================================================
+  // EDIT MESSAGE
+  // ============================================================
 
-    final users = List<String>.from(roomData['users'] ?? []);
-    final receiverId = users.firstWhere((id) => id != senderId, orElse: () => '');
+  static Future<void> editMessage({
+    required String roomId,
+    required String messageId,
+    required String newText,
+    String? currentUserId,
+  }) async {
+    final cleanRoomId = roomId.trim();
+    final cleanMsgId = messageId.trim();
+    final cleanText = newText.trim();
+    if (cleanRoomId.isEmpty || cleanMsgId.isEmpty || cleanText.isEmpty) return;
 
-    final messageRef = roomRef.collection('messages').doc();
-    await messageRef.set({
-      'messageType': 'audio',
-      'senderId': senderId,
-      'message': '',
-      'audioUrl': audioUrl,
-      'duration': duration,
-      'createdAt': FieldValue.serverTimestamp(),
-      'isDeleted': false,
-      'deletedFor': <String>[],
-      'delivered': true,
-      'read': false,
-      'readBy': <String>[],
+    final roomRef = _rooms.doc(cleanRoomId);
+    final messageRef = roomRef.collection('messages').doc(cleanMsgId);
+
+    final snap = await messageRef.get();
+    if (!snap.exists) return;
+
+    final d = snap.data()!;
+    if (currentUserId != null &&
+        d['senderId']?.toString() != currentUserId.trim()) {
+      throw Exception('You can edit only your own messages.');
+    }
+    if (d['isDeleted'] == true) {
+      throw Exception('Deleted message cannot be edited.');
+    }
+    if ((d['messageType']?.toString() ?? 'text') != 'text') {
+      throw Exception('Only text messages can be edited.');
+    }
+    if ((d['message']?.toString() ?? '') == cleanText) return;
+
+    final batch = _firestore.batch();
+
+    // read / delivered are NOT touched, so an already-seen message stays seen
+    batch.update(messageRef, {
+      'message': cleanText,
+      'isEdited': true,
+      'editedAt': FieldValue.serverTimestamp(),
     });
 
-    final unreadCounts = Map<String, dynamic>.from(roomData['unreadCounts'] ?? {});
-    unreadCounts[receiverId] = (unreadCounts[receiverId] ?? 0) + 1;
+    final roomSnap = await roomRef.get();
+    if (roomSnap.exists &&
+        (roomSnap.data()?['lastMessageId']?.toString() ?? '') == cleanMsgId) {
+      batch.update(roomRef, {
+        'lastMessage': cleanText,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
 
-    await roomRef.set({
-      'lastMessage': '🎤 Voice message',
-      'lastMessageTime': FieldValue.serverTimestamp(),
-      'lastMessageSenderId': senderId,
-      'lastMessageRead': false,
-      'lastMessageDelivered': true,
-      'lastMessageDeleted': false,
-      'lastMessageId': messageRef.id,
-      'unreadCounts': unreadCounts,
-    }, SetOptions(merge: true));
+    unawaited(batch.commit().catchError((e) {
+      debugPrint('[CHAT] edit commit error: $e');
+    }));
   }
 
   // ============================================================
@@ -667,46 +716,147 @@ class ChatService {
         .doc(roomId)
         .collection('messages')
         .orderBy('createdAt', descending: false)
-        .snapshots();
+        .snapshots(includeMetadataChanges: true);
   }
+
+  // ============================================================
+  // DELIVERY TRACKING (receiver side)
+  // ============================================================
+  //
+  // Call ChatService.startDeliveryTracking(userId) once after login /
+  // app start (e.g. in your home screen initState) and
+  // stopDeliveryTracking() on logout.
+  //
+  // When the receiver's app is running and gets a new message, it flips
+  // delivered -> true, so the sender sees the DOUBLE GREY tick.
+  // ============================================================
+
+  static StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _deliverySub;
+
+  static void startDeliveryTracking(String userId) {
+    final me = userId.trim();
+    if (me.isEmpty) return;
+
+    _deliverySub?.cancel();
+
+    _deliverySub = _rooms
+        .where('users', arrayContains: me)
+        .snapshots()
+        .listen((snap) {
+      for (final doc in snap.docs) {
+        final d = doc.data();
+        if (doc.metadata.hasPendingWrites) continue;
+
+        final lastSender = d['lastMessageSenderId']?.toString() ?? '';
+        if (lastSender.isEmpty || lastSender == me) continue;
+        if (d['lastMessageDelivered'] == true) continue;
+
+        markDelivered(roomId: doc.id, userId: me);
+      }
+    }, onError: (e) => debugPrint('[CHAT] delivery listener error: $e'));
+  }
+
+  static void stopDeliveryTracking() {
+    _deliverySub?.cancel();
+    _deliverySub = null;
+  }
+
+  static Future<void> markDelivered({
+    required String roomId,
+    required String userId,
+  }) async {
+    try {
+      final roomRef = _rooms.doc(roomId);
+
+      final snap = await roomRef
+          .collection('messages')
+          .where('delivered', isEqualTo: false)
+          .get();
+
+      final docs = snap.docs
+          .where((d) => d.data()['senderId']?.toString() != userId)
+          .toList();
+
+      final batch = _firestore.batch();
+      for (final d in docs.take(400)) {
+        batch.update(d.reference, {'delivered': true});
+      }
+      batch.set(
+        roomRef,
+        {'lastMessageDelivered': true},
+        SetOptions(merge: true),
+      );
+      await batch.commit();
+    } catch (e) {
+      debugPrint('[CHAT] markDelivered error: $e');
+    }
+  }
+
+  // ============================================================
+  // MARK ROOM AS READ (receiver side)
+  // ============================================================
+  //
+  // Uses a single-field query (no composite index needed) and filters
+  // senderId on the client. Errors are logged, never swallowed silently.
+  // ============================================================
 
   static Future<void> markRoomAsRead({
     required String roomId,
     required String userId,
   }) async {
-    final roomRef = _rooms.doc(roomId);
-    final roomSnapshot = await roomRef.get();
-    if (!roomSnapshot.exists) return;
+    final rid = roomId.trim();
+    final uid = userId.trim();
+    if (rid.isEmpty || uid.isEmpty) return;
 
-    final roomData = roomSnapshot.data()!;
-    final unreadCounts = Map<String, dynamic>.from(roomData['unreadCounts'] ?? {});
-    unreadCounts[userId] = 0;
+    try {
+      final roomRef = _rooms.doc(rid);
+      final roomSnap = await roomRef.get();
+      if (!roomSnap.exists) return;
+      final room = roomSnap.data()!;
 
-    await roomRef.set({
-      'unreadCounts': unreadCounts,
-      'seenBy': FieldValue.arrayUnion([userId]),
-    }, SetOptions(merge: true));
+      final unreadMap = room['unreadCounts'];
+      final currentUnread = unreadMap is Map
+          ? (int.tryParse(unreadMap[uid]?.toString() ?? '0') ?? 0)
+          : 0;
 
-    final msgs = await roomRef
-        .collection('messages')
-        .where('senderId', isNotEqualTo: userId)
-        .get();
+      final snap = await roomRef
+          .collection('messages')
+          .where('read', isEqualTo: false)
+          .get();
 
-    if (msgs.docs.isNotEmpty) {
+      final docs = snap.docs
+          .where((d) => d.data()['senderId']?.toString() != uid)
+          .toList();
+
+      if (docs.isEmpty && currentUnread == 0) return;
+
+      final lastFromOther =
+          (room['lastMessageSenderId']?.toString() ?? '') != uid;
+
       final batch = _firestore.batch();
-      for (final doc in msgs.docs) {
-        final rb = List<String>.from(doc.data()['readBy'] ?? []);
-        if (!rb.contains(userId)) {
-          rb.add(userId);
-          batch.update(doc.reference, {'read': true, 'readBy': rb});
-        }
-      }
-      await batch.commit();
-    }
 
-    final lastSender = roomData['lastMessageSenderId']?.toString() ?? '';
-    if (lastSender.isNotEmpty && lastSender != userId) {
-      await roomRef.set({'lastMessageRead': true}, SetOptions(merge: true));
+      for (final d in docs.take(400)) {
+        batch.update(d.reference, {
+          'read': true,
+          'delivered': true,
+          'readBy': FieldValue.arrayUnion([uid]),
+        });
+      }
+
+      batch.set(
+        roomRef,
+        {
+          'unreadCounts': {uid: 0},
+          'seenBy': FieldValue.arrayUnion([uid]),
+          if (lastFromOther) 'lastMessageRead': true,
+          if (lastFromOther) 'lastMessageDelivered': true,
+        },
+        SetOptions(merge: true),
+      );
+
+      await batch.commit();
+    } catch (e) {
+      debugPrint('[CHAT] markRoomAsRead error: $e');
     }
   }
 
@@ -759,9 +909,15 @@ class ChatService {
     } else {
       final d = latest.docs.first.data();
       String msg = d['isDeleted'] == true ? 'This message was deleted' : (d['message'] ?? '');
-      if (d['messageType'] == 'item') msg = 'Item shared';
-      if (d['messageType'] == 'location') msg = '📍 Location';
-      if (d['messageType'] == 'image') msg = '📷 Photo';
+      if (d['isDeleted'] != true) {
+        if (d['messageType'] == 'item') msg = 'Item shared';
+        if (d['messageType'] == 'location') msg = '📍 Location';
+        if (d['messageType'] == 'audio') msg = '🎤 Voice message';
+        if (d['messageType'] == 'image') {
+          final cap = d['message']?.toString().trim() ?? '';
+          msg = cap.isNotEmpty ? '📷 $cap' : '📷 Photo';
+        }
+      }
 
       await _rooms.doc(roomId).update({
         'lastMessage': msg,

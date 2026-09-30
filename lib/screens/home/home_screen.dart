@@ -77,35 +77,32 @@ class _HomeScreenState extends State<HomeScreen>
   //notifications
 
   bool _hasUnreadNotification = false;
+  int _latestNotificationId = 0;   // NEW
 
   Future<void> _checkNotifications() async {
     try {
       final userId = AppPreferences.getUserId();
-
-      if (userId == null) {
-        return;
-      }
+      if (userId == null) return;
 
       final response = await authController.getNotificationList(
         userId: userId,
         page: 1,
         pageSize: 10,
       );
-
       if (!mounted) return;
 
       if (response.isSuccess && response.data != null) {
-        final notifications = response.data!.notifications;
         int maxId = 0;
-        for (final notification in notifications) {
-          if (notification.id > maxId) {
-            maxId = notification.id;
-          }
+        for (final n in response.data!.notifications) {
+          if (n.id > maxId) maxId = n.id;
         }
-        final lastSeenId = AppPreferences.getLastSeenNotificationId();
+        _latestNotificationId = maxId;
+
+        final lastSeenId = AppPreferences.getLastSeenNotificationId(userId);
+        debugPrint('[NOTIF] maxId=$maxId lastSeenId=$lastSeenId');
 
         setState(() {
-          _hasUnreadNotification = notifications.isNotEmpty && maxId > lastSeenId;
+          _hasUnreadNotification = maxId > lastSeenId;
         });
       }
     } catch (e) {
@@ -113,46 +110,46 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  Future<void> _markNotificationsAsSeen() async {
-    try {
-      final userId = AppPreferences.getUserId();
-
-      if (userId == null) {
-        return;
-      }
-
-      final response = await authController.getNotificationList(
-        userId: userId,
-        page: 1,
-        pageSize: 10,
-      );
-
-      if (!mounted) return;
-
-      if (response.isSuccess && response.data != null) {
-        final notifications = response.data!.notifications;
-        int maxId = 0;
-        for (final notification in notifications) {
-          if (notification.id > maxId) {
-            maxId = notification.id;
-          }
-        }
-        if (maxId > 0) {
-          await AppPreferences.setLastSeenNotificationId(maxId);
-        }
-      }
-      setState(() {
-        _hasUnreadNotification = false;
-      });
-    } catch (e) {
-      debugPrint('Error marking notifications as seen: $e');
-      if (mounted) {
-        setState(() {
-          _hasUnreadNotification = false;
-        });
-      }
-    }
-  }
+  // Future<void> _markNotificationsAsSeen() async {
+  //   try {
+  //     final userId = AppPreferences.getUserId();
+  //
+  //     if (userId == null) {
+  //       return;
+  //     }
+  //
+  //     final response = await authController.getNotificationList(
+  //       userId: userId,
+  //       page: 1,
+  //       pageSize: 10,
+  //     );
+  //
+  //     if (!mounted) return;
+  //
+  //     if (response.isSuccess && response.data != null) {
+  //       final notifications = response.data!.notifications;
+  //       int maxId = 0;
+  //       for (final notification in notifications) {
+  //         if (notification.id > maxId) {
+  //           maxId = notification.id;
+  //         }
+  //       }
+  //       if (maxId > 0) {
+  //         await AppPreferences.setLastSeenNotificationId(maxId);
+  //       }
+  //     }
+  //     setState(() {
+  //       _hasUnreadNotification = false;
+  //     });
+  //   } catch (e) {
+  //     debugPrint('Error marking notifications as seen: $e');
+  //     if (mounted) {
+  //       setState(() {
+  //         _hasUnreadNotification = false;
+  //       });
+  //     }
+  //   }
+  // }
 
   // ============================================================
   // LOST POSTS
@@ -915,15 +912,18 @@ class _HomeScreenState extends State<HomeScreen>
 
                           GestureDetector(
                             onTap: () async {
-                              setState(() {
-                                _hasUnreadNotification = false;
-                              });
+                              final userId = AppPreferences.getUserId();
+                              if (userId != null && _latestNotificationId > 0) {
+                                await AppPreferences.setLastSeenNotificationId(
+                                  userId,
+                                  _latestNotificationId,
+                                );
+                              }
+                              setState(() => _hasUnreadNotification = false);
 
-                              await AppRoutes.pushNamed(
-                                AppRoutes.notificationScreen,
-                              );
+                              await AppRoutes.pushNamed(AppRoutes.notificationScreen);
 
-                              await _markNotificationsAsSeen();
+                              await _checkNotifications();
                             },
                             child: Stack(
                               children: [

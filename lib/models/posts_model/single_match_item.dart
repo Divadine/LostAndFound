@@ -306,6 +306,14 @@ class SingleMatchModel {
             '')
         .toString();
 
+    final handoverTypeParsed = int.tryParse((data['handover_type'] ?? handoverObj?['handover_type'] ?? handoverObj?['type'] ?? '').toString()) ?? 0;
+
+    final rawStatus = data['status'] ?? data['post_status'];
+    int statusParsed = int.tryParse(rawStatus?.toString() ?? '') ?? 0;
+    if (statusParsed == 0 && (handoverTypeParsed != 0 || handoverObj != null)) {
+      statusParsed = 2;
+    }
+
     return SingleMatchModel(
       id: data['id'] as int? ?? 0,
       postUid: data['post_uid']?.toString() ?? '',
@@ -318,7 +326,7 @@ class SingleMatchModel {
       description: data['description']?.toString() ?? '',
       location: data['location']?.toString() ?? '',
       postDate: data['post_date'] != null ? DateTime.tryParse(data['post_date'].toString()) : null,
-      status: int.tryParse(data['status']?.toString() ?? '') ?? 0,
+      status: statusParsed,
       imageUrl: foundImage ?? '',
       audioUrl: data['audioUrl']?.toString() ?? data['audio_url']?.toString(),
       videoUrl: foundVideo,
@@ -335,7 +343,7 @@ class SingleMatchModel {
       values: valuesList
           .map((e) => SingleMatchValue.fromJson(e as Map<String, dynamic>))
           .toList(),
-      handoverType: int.tryParse((data['handover_type'] ?? handoverObj?['handover_type'] ?? handoverObj?['type'] ?? '').toString()) ?? 0,
+      handoverType: handoverTypeParsed,
       handoverName: handoverName,
       stationName: stationName,
       stationAddress: stationAddress,

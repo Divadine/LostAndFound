@@ -161,7 +161,7 @@ class _OthersHandoverState extends State<OthersHandover> {
                 ),
               ],
             ).pad(),
-          ),
+          ).pad(),
           buildTextFieldWithHeading(
             title: '1. Name',
             fieldWidget: AppTextField(
@@ -184,29 +184,40 @@ class _OthersHandoverState extends State<OthersHandover> {
           ),
           buildTextFieldWithHeading(
             title: '3. Number',
-            fieldWidget: AppTextField(
-              prefixIcon: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                decoration: BoxDecoration(
-                  border:
-                  Border(right: BorderSide(color: AppColors.fieldGrey)),
+            fieldWidget: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              spacing: 10,
+              children: [
+                // +91 box (same as login screen)
+                SizedBox(
+                  width: 70,
+                  child: AppTextField(
+                    readOnly: true,
+                    hintText: '+91',
+                    textController: TextEditingController(),
+                    textInputType: TextInputType.phone,
+                    maxLength: 10,
+                    onChange: (v) {},
+                    onSubmit: (v) {},
+                  ),
                 ),
-                child: AppText(
-                  text: '+91',
-                  fontWeight: FontWeight.w400,
-                  fontSize: 12,
-                  color: AppColors.numberGrey,
+
+                // number input
+                Expanded(
+                  flex: 8,
+                  child: AppTextField(
+                    hintText: 'Enter a mobile number',
+                    textController: numberController,
+                    textInputType: TextInputType.phone,
+                    maxLength: 10,
+                    onChange: (v) => setState(() {}),
+                    onSubmit: (v) {},
+                  ),
                 ),
-              ),
-              hintText: 'Enter a mobile number',
-              textController: numberController,
-              textInputType: TextInputType.phone,
-              maxLength: 10,
-              onChange: (value) => setState(() {}),
-              onSubmit: (v) {},
+              ],
             ),
           ),
+
           const SizedBox(height: 5),
           AppButton(
             title: isSubmitting ? 'Please wait...' : 'Submit',

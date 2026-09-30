@@ -104,8 +104,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
               maxId = n.id;
             }
           }
-          if (maxId > 0) {
-            await AppPreferences.setLastSeenNotificationId(maxId);
+          if (maxId > 0 && userId > 0) {
+            // only move the saved id forward, never backwards
+            final saved = AppPreferences.getLastSeenNotificationId(userId);
+            if (maxId > saved) {
+              await AppPreferences.setLastSeenNotificationId(userId, maxId);
+            }
           }
         }
 

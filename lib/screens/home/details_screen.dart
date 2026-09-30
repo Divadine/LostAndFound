@@ -244,7 +244,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
         // /Match/viewSingleMatch endpoint does NOT return handover_info or matches/matchPercentage.
         // For Jewellery & Valuables or closed posts, we fetch /Match/post/{postId} (PostMatchesModel)
         // to populate handover_info and match details.
-        if (isJewelleryCategory || fetchedPost.status == 2 || fetchedPost.handoverType != 0) {
+        if (isJewelleryCategory || fetchedPost.status == 2 || fetchedPost.handoverType != 0 || widget.hideEnquiryButton || widget.isUserPost) {
           debugPrint('[DetailsScreen] Fetching PostMatches for Jewellery/Closed post ID: ${widget.postId}');
           final postMatchesResp = await authController.getPostMatches(postId: widget.postId);
           if (postMatchesResp.isSuccess && postMatchesResp.data != null) {
@@ -271,8 +271,10 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                 ? summary.stationName
                 : (summary.handoverName.isNotEmpty ? summary.handoverName : fetchedPost.stationName);
 
+            final isClosedInSummary = summary.status == 2 || summary.handoverType != 0 || summary.handoverName.isNotEmpty || summary.stationName.isNotEmpty;
+
             fetchedPost = fetchedPost.copyWith(
-              status: (summary.id != 0 && summary.handoverType != 0) ? 2 : fetchedPost.status,
+              status: (isClosedInSummary || fetchedPost.status == 2) ? 2 : fetchedPost.status,
               handoverType: summary.handoverType != 0 ? summary.handoverType : fetchedPost.handoverType,
               handoverName: hName,
               stationName: sName,

@@ -5,12 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:intl/intl.dart';
-import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
-import 'package:lost_and_found/utils/app_permission.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
@@ -117,6 +114,12 @@ class _IndividualChatScreenState
   final FocusNode _focusNode = FocusNode();
 
   String? selectedMessageId;
+  Map<String, dynamic>? _selectedMessageData;
+  String? _editingMessageId;
+
+  String _createdRoomId = '';
+  String get _effectiveRoomId =>
+      widget.roomId.trim().isNotEmpty ? widget.roomId.trim() : _createdRoomId;
 
   Map<String, dynamic>? _pendingAttachment;
 
@@ -130,9 +133,10 @@ class _IndividualChatScreenState
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
 
-  Stream<bool>? _blockedStream;
+  Stream<List<String>>? _blockedByStream;
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
   Stream<Map<String, dynamic>>? _contactRequestStream;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messagesSub;
 
   RecorderState _lastRecorderState = RecorderState.idle;
 
@@ -155,7 +159,7 @@ class _IndividualChatScreenState
     _loadPhoneAndInitialize();
 
     ChatService.markRoomAsRead(
-      roomId: widget.roomId,
+      roomId: _effectiveRoomId,
       userId: widget.currentUserId,
     );
 
@@ -177,9 +181,31 @@ class _IndividualChatScreenState
   }
 
   void _initStreams() {
-    _blockedStream = ChatService.chatBlockedStream(roomId: widget.roomId);
-    _messagesStream = ChatService.messagesStream(widget.roomId);
-    _contactRequestStream = ChatService.contactRequestStream(roomId: widget.roomId);
+    _blockedByStream = ChatService.chatBlockedByStream(roomId: _effectiveRoomId);
+    _messagesStream = ChatService.messagesStream(_effectiveRoomId);
+    _contactRequestStream = ChatService.contactRequestStream(roomId: _effectiveRoomId);
+
+    _messagesSub?.cancel();
+    if (_effectiveRoomId.isNotEmpty) {
+      _messagesSub = _messagesStream?.listen((snapshot) {
+        if (!mounted) return;
+        final hasUnreadFromOther = snapshot.docs.any((doc) {
+          final d = doc.data();
+          return d['senderId']?.toString() != widget.currentUserId &&
+              d['read'] != true;
+        });
+        if (hasUnreadFromOther) {
+          ChatService.markRoomAsRead(
+            roomId: _effectiveRoomId,
+            userId: widget.currentUserId,
+          );
+        }
+      });
+    }
+
+    if (widget.currentUserId.trim().isNotEmpty) {
+      ChatService.startDeliveryTracking(widget.currentUserId);
+    }
   }
 
   void _onRecorderChanged() {
@@ -199,7 +225,7 @@ class _IndividualChatScreenState
       _initStreams();
       _loadPhoneAndInitialize();
       ChatService.markRoomAsRead(
-        roomId: widget.roomId,
+        roomId: _effectiveRoomId,
         userId: widget.currentUserId,
       );
     }
@@ -246,11 +272,11 @@ class _IndividualChatScreenState
         return;
       }
 
-      if (widget.roomId.trim().isNotEmpty &&
+      if (_effectiveRoomId.isNotEmpty &&
           widget.otherUserId.trim().isNotEmpty) {
         final firestorePhone =
         await ChatService.getParticipantPhone(
-          roomId: widget.roomId,
+          roomId: _effectiveRoomId,
           userId: widget.otherUserId,
         );
 
@@ -315,14 +341,14 @@ class _IndividualChatScreenState
     final cleanPhone = phone.trim();
 
     if (cleanPhone.isEmpty ||
-        widget.roomId.trim().isEmpty ||
+        _effectiveRoomId.isEmpty ||
         widget.otherUserId.trim().isEmpty) {
       return;
     }
 
     try {
       await ChatService.updateParticipantPhone(
-        roomId: widget.roomId,
+        roomId: _effectiveRoomId,
         userId: widget.otherUserId,
         phone: cleanPhone,
       );
@@ -357,6 +383,16 @@ class _IndividualChatScreenState
           otherUserAvatar: widget.otherUserAvatar,
           otherUserPhone: _otherUserPhone,
         );
+
+        if (mounted && roomId.isNotEmpty && roomId != _createdRoomId) {
+          _createdRoomId = roomId;
+          _initStreams();
+          setState(() {});
+          ChatService.markRoomAsRead(
+            roomId: _effectiveRoomId,
+            userId: widget.currentUserId,
+          );
+        }
       } else {
         // Room ID provided, just ensure metadata is merged/updated if necessary
         // without recreating the whole room structure.
@@ -404,6 +440,7 @@ class _IndividualChatScreenState
 
   @override
   void dispose() {
+    _messagesSub?.cancel();
     AppRecorderService.instance.removeListener(_onRecorderChanged);
     _connectivitySub?.cancel();
     textController.dispose();
@@ -450,14 +487,14 @@ class _IndividualChatScreenState
         userId: receiverId,
       );
 
-      print(
+      debugPrint(
         '[Chat Notification] receiver=${widget.otherUserId}, '
             'sender=${widget.currentUserId}, '
             'preview=${preview ?? ''}, '
             'response=${notificationResponse.message}',
       );
     } catch (e) {
-      print('[Chat Notification] ERROR: $e');
+      debugPrint('[Chat Notification] ERROR: $e');
     }
   }
 
@@ -469,22 +506,55 @@ class _IndividualChatScreenState
 
     final text = textController.text.trim();
 
+    if (_editingMessageId != null) {
+      if (text.isEmpty) return;
+      final editId = _editingMessageId!;
+      textController.clear();
+      setState(() {
+        _editingMessageId = null;
+      });
+
+      try {
+        await ChatService.editMessage(
+          roomId: _effectiveRoomId,
+          messageId: editId,
+          newText: text,
+          currentUserId: widget.currentUserId,
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.toString().replaceFirst('Exception: ', ''),
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     if (text.isEmpty && _pendingAttachment == null) return;
 
     try {
       if (_pendingAttachment != null) {
         final type = _pendingAttachment!['type'];
         if (type == 'image') {
+          final caption = text;
+          textController.clear();
           await ChatService.sendImageMessageWithUrl(
-            roomId: widget.roomId,
+            roomId: _effectiveRoomId,
             senderId: widget.currentUserId,
             imageUrl: _pendingAttachment!['url'],
+            caption: caption,
           );
 
-          await _notifyOtherUser(preview: 'Photo');
+          await _notifyOtherUser(
+            preview: caption.isNotEmpty ? '📷 $caption' : 'Photo',
+          );
         } else if (type == 'location') {
           await ChatService.sendLocationMessage(
-            roomId: widget.roomId,
+            roomId: _effectiveRoomId,
             senderId: widget.currentUserId,
             latitude: _pendingAttachment!['latitude'],
             longitude: _pendingAttachment!['longitude'],
@@ -494,7 +564,7 @@ class _IndividualChatScreenState
           await _notifyOtherUser(preview: 'Location');
         } else if (type == 'address') {
           await ChatService.sendMessage(
-            roomId: widget.roomId,
+            roomId: _effectiveRoomId,
             senderId: widget.currentUserId,
             message: _pendingAttachment!['address'],
           );
@@ -506,13 +576,11 @@ class _IndividualChatScreenState
         setState(() {
           _pendingAttachment = null;
         });
-      }
-
-      if (text.isNotEmpty) {
+      } else if (text.isNotEmpty) {
         textController.clear();
 
         await ChatService.sendMessage(
-          roomId: widget.roomId,
+          roomId: _effectiveRoomId,
           senderId: widget.currentUserId,
           message: text,
         );
@@ -571,7 +639,7 @@ class _IndividualChatScreenState
       if (response.isSuccess && response.data != null) {
         final audioUrl = response.data!.audio;
         await ChatService.sendVoiceMessage(
-          roomId: widget.roomId,
+          roomId: _effectiveRoomId,
           senderId: widget.currentUserId,
           audioUrl: audioUrl,
           duration: duration,
@@ -664,7 +732,7 @@ class _IndividualChatScreenState
       return;
     }
     await ChatService.blockChat(
-      roomId: widget.roomId,
+      roomId: _effectiveRoomId,
       userId:
       widget.currentUserId,
     );
@@ -676,7 +744,7 @@ class _IndividualChatScreenState
       return;
     }
     await ChatService.unblockChat(
-      roomId: widget.roomId,
+      roomId: _effectiveRoomId,
       userId:
       widget.currentUserId,
     );
@@ -688,7 +756,7 @@ class _IndividualChatScreenState
       return;
     }
     await ChatService.clearChat(
-      roomId: widget.roomId,
+      roomId: _effectiveRoomId,
       currentUserId: widget.currentUserId,
     );
   }
@@ -696,12 +764,18 @@ class _IndividualChatScreenState
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: selectedMessageId == null,
+      canPop: selectedMessageId == null && _editingMessageId == null,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         if (selectedMessageId != null) {
           setState(() {
             selectedMessageId = null;
+            _selectedMessageData = null;
+          });
+        } else if (_editingMessageId != null) {
+          textController.clear();
+          setState(() {
+            _editingMessageId = null;
           });
         }
       },
@@ -1142,7 +1216,7 @@ class _IndividualChatScreenState
     }
     try {
       await ChatService.sendContactRequest(
-        roomId: widget.roomId,
+        roomId: _effectiveRoomId,
         senderId:
         widget.currentUserId,
         receiverId:
@@ -1203,7 +1277,7 @@ class _IndividualChatScreenState
           try {
             await ChatService
                 .declineContactRequest(
-              roomId: widget.roomId,
+              roomId: _effectiveRoomId,
             );
 
             if (!mounted) return;
@@ -1223,7 +1297,7 @@ class _IndividualChatScreenState
           try {
             await ChatService
                 .acceptContactRequest(
-              roomId: widget.roomId,
+              roomId: _effectiveRoomId,
             );
 
             await _loadOtherUserPhone();
@@ -1278,7 +1352,7 @@ class _IndividualChatScreenState
             Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
           .collection('chatRooms')
-          .doc(widget.roomId)
+          .doc(_effectiveRoomId)
           .snapshots(),
 
       builder: (
@@ -1396,9 +1470,9 @@ class _IndividualChatScreenState
     );
   }
 
-  // ============================================================
-  // MESSAGES
-  // ============================================================
+// ============================================================
+// MESSAGES
+// ============================================================
 
   Widget _buildMessagesList() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -1407,6 +1481,10 @@ class _IndividualChatScreenState
           context,
           snapshot,
           ) {
+        // ============================================================
+        // LOADING
+        // ============================================================
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _isOffline
               ? const NoInternetWidget()
@@ -1414,6 +1492,10 @@ class _IndividualChatScreenState
             child: CircularProgressIndicator(),
           );
         }
+
+        // ============================================================
+        // ERROR
+        // ============================================================
 
         if (snapshot.hasError) {
           return const Center(
@@ -1424,35 +1506,84 @@ class _IndividualChatScreenState
           );
         }
 
+        // ============================================================
+        // NO DATA
+        // ============================================================
+
         if (!snapshot.hasData) {
           return const SizedBox.shrink();
         }
 
-        final docs = snapshot.data!.docs.where(
-              (doc) {
-            final data = doc.data();
-            final deletedFor = List<String>.from(
-              data['deletedFor'] ?? [],
-            );
-            return !deletedFor.contains(
-              widget.currentUserId,
-            );
-          },
-        ).toList();
+        // ============================================================
+        // MESSAGES
+        // ============================================================
+        //
+        // IMPORTANT:
+        //
+        // Do NOT remove messages from the list using deletedFor.
+        //
+        // Delete for Me:
+        //   deletedFor contains currentUserId
+        //   -> show "This message was deleted"
+        //
+        // Delete for Everyone:
+        //   isDeleted == true
+        //   -> show "This message was deleted"
+        //
+        // Therefore, we keep ALL documents here.
+        // ============================================================
+
+        final docs = snapshot.data!.docs.toList();
+
+        // ============================================================
+        // MARK MESSAGES AS READ
+        // ============================================================
+
+        final hasUnreadFromOther = snapshot.data!.docs.any((doc) {
+          final d = doc.data();
+
+          return d['senderId']?.toString() != widget.currentUserId &&
+              d['read'] != true;
+        });
+
+        if (hasUnreadFromOther) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ChatService.markRoomAsRead(
+                roomId: _effectiveRoomId,
+                userId: widget.currentUserId,
+              );
+            }
+          });
+        }
+
+        // ============================================================
+        // EMPTY CHAT
+        // ============================================================
 
         if (docs.isEmpty) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 100),
+              padding: EdgeInsets.symmetric(
+                vertical: 100,
+              ),
               child: Column(
                 children: [
-                  AppIconWidget(assetPath: AssetImages.chatEmpty),
-                  AppText(
-                    text: 'Chat looks fresh!',fontSize: 16,fontWeight: FontWeight.w600,
+                  AppIconWidget(
+                    assetPath: AssetImages.chatEmpty,
                   ),
 
                   AppText(
-                    text: 'start a new conversation anytime!',fontSize: 12,fontWeight: FontWeight.w500,color: AppColors.fieldGrey,
+                    text: 'Chat looks fresh!',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+
+                  AppText(
+                    text: 'start a new conversation anytime!',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.fieldGrey,
                   ),
                 ],
               ),
@@ -1460,24 +1591,44 @@ class _IndividualChatScreenState
           );
         }
 
+        // ============================================================
+        // BUILD DATE ENTRIES
+        // ============================================================
+
         final entries = _buildEntries(docs);
 
-        // Schedule scroll to bottom after frame
+        // ============================================================
+        // SCROLL TO BOTTOM
+        // ============================================================
+
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _scrollController.hasClients) {
-            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+            _scrollController.jumpTo(
+              _scrollController.position.maxScrollExtent,
+            );
           }
         });
+
+        // ============================================================
+        // MESSAGE LIST
+        // ============================================================
 
         return ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
+
           padding: const EdgeInsets.symmetric(
             vertical: 10,
           ),
+
           itemCount: entries.length,
+
           itemBuilder: (context, index) {
             final entry = entries[index];
+
+            // ========================================================
+            // DATE HEADER
+            // ========================================================
 
             if (entry.isHeader) {
               return _buildDateHeader(
@@ -1487,11 +1638,75 @@ class _IndividualChatScreenState
 
             final doc = entry.doc!;
             final data = doc.data();
-            final messageType = data['messageType']?.toString() ?? 'text';
+
+            // ========================================================
+            // DELETE STATUS
+            // ========================================================
+
+            final deletedFor = List<String>.from(
+              data['deletedFor'] ?? [],
+            );
+
+            final isDeletedForMe = deletedFor.contains(
+              widget.currentUserId,
+            );
+
+            final isDeletedForEveryone =
+                data['isDeleted'] == true;
+
+            // ========================================================
+            // DELETE FOR ME / DELETE FOR EVERYONE
+            // ========================================================
+            //
+            // IMPORTANT:
+            //
+            // This check MUST happen before messageType.
+            //
+            // So even if the original message was:
+            //   text
+            //   image
+            //   audio
+            //   location
+            //
+            // it will show:
+            //
+            // "This message was deleted"
+            //
+            // ========================================================
+
+            if (isDeletedForMe || isDeletedForEveryone) {
+              return _buildTextMessage(
+                data: {
+                  ...data,
+
+                  // Force deleted UI
+                  'isDeleted': true,
+
+                  // Force deleted message text
+                  'message': 'This message was deleted',
+                },
+                docId: doc.id,
+              );
+            }
+
+            // ========================================================
+            // MESSAGE TYPE
+            // ========================================================
+
+            final messageType =
+                data['messageType']?.toString() ?? 'text';
+
+            // ========================================================
+            // ITEM MESSAGE
+            // ========================================================
 
             if (messageType == 'item') {
               return const SizedBox.shrink();
             }
+
+            // ========================================================
+            // LOCATION MESSAGE
+            // ========================================================
 
             if (messageType == 'location') {
               return _buildLocationMessage(
@@ -1500,6 +1715,10 @@ class _IndividualChatScreenState
               );
             }
 
+            // ========================================================
+            // IMAGE MESSAGE
+            // ========================================================
+
             if (messageType == 'image') {
               return _buildImageMessage(
                 data: data,
@@ -1507,12 +1726,20 @@ class _IndividualChatScreenState
               );
             }
 
+            // ========================================================
+            // AUDIO MESSAGE
+            // ========================================================
+
             if (messageType == 'audio') {
               return _buildAudioMessage(
                 data: data,
                 docId: doc.id,
               );
             }
+
+            // ========================================================
+            // TEXT MESSAGE
+            // ========================================================
 
             return _buildTextMessage(
               data: data,
@@ -1685,16 +1912,16 @@ class _IndividualChatScreenState
         if (isDeleted) return;
 
         setState(() {
-          selectedMessageId =
-              docId;
+          selectedMessageId = docId;
+          _selectedMessageData = data;
         });
       },
 
       onTap: () {
         if (selectedMessageId != null) {
           setState(() {
-            selectedMessageId =
-            null;
+            selectedMessageId = null;
+            _selectedMessageData = null;
           });
         }
       },
@@ -1727,8 +1954,8 @@ class _IndividualChatScreenState
 
                 padding:
                 const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+                  horizontal: 14,
+                  vertical: 8,
                 ),
 
                 constraints:
@@ -1737,7 +1964,7 @@ class _IndividualChatScreenState
                   MediaQuery.of(
                     context,
                   ).size.width *
-                      0.6,
+                      0.65,
                 ),
 
                 decoration:
@@ -1757,38 +1984,38 @@ class _IndividualChatScreenState
                 child: AppText(
                   text: isDeleted
                       ? 'This message was deleted'
-                      : data['message']
-                      ?.toString() ??
-                      '',
-                  fontSize: 12,
+                      : (data['message']?.toString() ?? ''),
+                  fontSize: 13,
                   fontWeight:
                   FontWeight.w400,
+                  color: isDeleted ? AppColors.white : null,
                 ),
               ),
 
               Row(
-                mainAxisSize:
-                MainAxisSize.min,
-
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (isMe && !isDeleted)
-                    MessageTick(
-                      read:
-                      data['read'] ==
-                          true,
-                      delivered:
-                      data['delivered'] ==
-                          true,
-                    ),
-
-                  const SizedBox(width: 3),
-
                   AppText(
                     text: time,
                     fontSize: 10,
-                    fontWeight:
-                    FontWeight.w400,
+                    fontWeight: FontWeight.w400,
                   ),
+                  if (isMe) ...[
+                    const SizedBox(width: 4),
+                    if (data['read'] == true) ...[
+                      const AppText(
+                        text: 'Seen',
+                        fontSize: 10,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      const SizedBox(width: 2),
+                    ],
+                    MessageTick(
+                      read: data['read'] == true,
+                      delivered: data['delivered'] == true,
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -1813,10 +2040,23 @@ class _IndividualChatScreenState
     final isSelected =
         selectedMessageId == docId;
 
+    final isDeleted =
+        data['isDeleted'] == true;
+
+    if (isDeleted) {
+      return _buildTextMessage(
+        data: data,
+        docId: docId,
+      );
+    }
+
     final imageUrl =
         data['imageUrl']?.toString() ??
             data['message']?.toString() ??
             '';
+
+    final messageText = data['message']?.toString().trim() ?? '';
+    final caption = (messageText.isNotEmpty && messageText != imageUrl) ? messageText : '';
 
     DateTime? date;
 
@@ -1836,16 +2076,16 @@ class _IndividualChatScreenState
     return GestureDetector(
       onLongPress: () {
         setState(() {
-          selectedMessageId =
-              docId;
+          selectedMessageId = docId;
+          _selectedMessageData = data;
         });
       },
 
       onTap: () {
         if (selectedMessageId != null) {
           setState(() {
-            selectedMessageId =
-            null;
+            selectedMessageId = null;
+            _selectedMessageData = null;
           });
         }
       },
@@ -1868,73 +2108,80 @@ class _IndividualChatScreenState
                 : CrossAxisAlignment.start,
 
             children: [
-              if (imageUrl.isNotEmpty)
-                Container(
-                  width: 240,
-                  height: 250,
-
-                  margin:
-                  const EdgeInsets.symmetric(
-                    vertical: 5,
-                    horizontal: 10,
-                  ),
-
-                  clipBehavior:
-                  Clip.antiAlias,
-
-                  decoration:
-                  BoxDecoration(
-                    borderRadius:
-                    BorderRadius.circular(
-                      16,
-                    ),
-                  ),
-
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-
-                    errorBuilder:
-                        (
-                        context,
-                        error,
-                        stackTrace,
-                        ) {
-                      return Container(
-                        color:
-                        AppColors.fieldGrey,
-                        alignment:
-                        Alignment.center,
-                        child: const Icon(
-                          Icons
-                              .broken_image_outlined,
-                        ),
-                      );
-                    },
-                  ),
+              Container(
+                margin: const EdgeInsets.symmetric(
+                  vertical: 5,
+                  horizontal: 10,
                 ),
+                padding: const EdgeInsets.all(4),
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.65,
+                ),
+                decoration: BoxDecoration(
+                  color: isMe ? AppColors.chatByMe : AppColors.chatByOther,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (imageUrl.isNotEmpty)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          imageUrl,
+                          width: double.infinity,
+                          height: 220,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 180,
+                              color: AppColors.fieldGrey,
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.broken_image_outlined),
+                            );
+                          },
+                        ),
+                      ),
+                    if (caption.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        child: AppText(
+                          text: caption,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
 
               Row(
-                mainAxisSize:
-                MainAxisSize.min,
-
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (isMe)
-                    MessageTick(
-                      read:
-                      data['read'] ==
-                          true,
-                      delivered:
-                      data['delivered'] ==
-                          true,
-                    ),
-
-                  const SizedBox(width: 3),
-
                   AppText(
                     text: time,
                     fontSize: 10,
+                    fontWeight: FontWeight.w400,
                   ),
+                  if (isMe) ...[
+                    const SizedBox(width: 4),
+                    if (data['read'] == true) ...[
+                      const AppText(
+                        text: 'Seen',
+                        fontSize: 10,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      const SizedBox(width: 2),
+                    ],
+                    MessageTick(
+                      read: data['read'] == true,
+                      delivered: data['delivered'] == true,
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -2002,16 +2249,16 @@ class _IndividualChatScreenState
     return GestureDetector(
       onLongPress: () {
         setState(() {
-          selectedMessageId =
-              docId;
+          selectedMessageId = docId;
+          _selectedMessageData = data;
         });
       },
 
       onTap: () {
         if (selectedMessageId != null) {
           setState(() {
-            selectedMessageId =
-            null;
+            selectedMessageId = null;
+            _selectedMessageData = null;
           });
           return;
         }
@@ -2305,28 +2552,29 @@ class _IndividualChatScreenState
               // ==================================================
 
               Row(
-                mainAxisSize:
-                MainAxisSize.min,
-
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (isMe)
-                    MessageTick(
-                      read:
-                      data['read'] ==
-                          true,
-                      delivered:
-                      data['delivered'] ==
-                          true,
-                    ),
-
-                  const SizedBox(width: 3),
-
                   AppText(
                     text: time,
                     fontSize: 10,
-                    fontWeight:
-                    FontWeight.w400,
+                    fontWeight: FontWeight.w400,
                   ),
+                  if (isMe) ...[
+                    const SizedBox(width: 4),
+                    if (data['read'] == true) ...[
+                      const AppText(
+                        text: 'Seen',
+                        fontSize: 10,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      const SizedBox(width: 2),
+                    ],
+                    MessageTick(
+                      read: data['read'] == true,
+                      delivered: data['delivered'] == true,
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -2346,6 +2594,16 @@ class _IndividualChatScreenState
 
     final isSelected =
         selectedMessageId == docId;
+
+    final isDeleted =
+        data['isDeleted'] == true;
+
+    if (isDeleted) {
+      return _buildTextMessage(
+        data: data,
+        docId: docId,
+      );
+    }
 
     final audioUrl =
         data['audioUrl']?.toString() ?? '';
@@ -2371,16 +2629,16 @@ class _IndividualChatScreenState
     return GestureDetector(
       onLongPress: () {
         setState(() {
-          selectedMessageId =
-              docId;
+          selectedMessageId = docId;
+          _selectedMessageData = data;
         });
       },
 
       onTap: () {
         if (selectedMessageId != null) {
           setState(() {
-            selectedMessageId =
-            null;
+            selectedMessageId = null;
+            _selectedMessageData = null;
           });
         }
       },
@@ -2443,26 +2701,29 @@ class _IndividualChatScreenState
                 ),
 
               Row(
-                mainAxisSize:
-                MainAxisSize.min,
-
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (isMe)
-                    MessageTick(
-                      read:
-                      data['read'] ==
-                          true,
-                      delivered:
-                      data['delivered'] ==
-                          true,
-                    ),
-
-                  const SizedBox(width: 3),
-
                   AppText(
                     text: time,
                     fontSize: 10,
+                    fontWeight: FontWeight.w400,
                   ),
+                  if (isMe) ...[
+                    const SizedBox(width: 4),
+                    if (data['read'] == true) ...[
+                      const AppText(
+                        text: 'Seen',
+                        fontSize: 10,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      const SizedBox(width: 2),
+                    ],
+                    MessageTick(
+                      read: data['read'] == true,
+                      delivered: data['delivered'] == true,
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -2519,16 +2780,18 @@ class _IndividualChatScreenState
     final recorderService = AppRecorderService.instance;
     final isRecording = recorderService.isRecording || recorderService.isPaused;
 
-    return StreamBuilder<bool>(
-      stream: _blockedStream,
+    return StreamBuilder<List<String>>(
+      stream: _blockedByStream,
       builder: (
           context,
           snapshot,
           ) {
-        final isBlocked = snapshot.data ?? false;
+        final blockedBy = snapshot.data ?? <String>[];
+        final isBlocked = blockedBy.isNotEmpty;
+        final isBlockedByMe = blockedBy.contains(widget.currentUserId);
 
         if (isBlocked) {
-          return _buildBlockedInlineCard();
+          return _buildBlockedInlineCard(isBlockedByMe: isBlockedByMe);
         }
 
         if (isRecording) {
@@ -2540,6 +2803,39 @@ class _IndividualChatScreenState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (_editingMessageId != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  margin: const EdgeInsets.only(bottom: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryColor.withAlpha(20),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.edit, size: 16, color: AppColors.primaryColor),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: AppText(
+                          text: 'Editing message',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          textController.clear();
+                          setState(() {
+                            _editingMessageId = null;
+                          });
+                        },
+                        child: const Icon(Icons.close, size: 18, color: AppColors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (_pendingAttachment != null) _buildPendingAttachmentPreview(),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -2866,7 +3162,7 @@ class _IndividualChatScreenState
 
 
 
-  Widget _buildBlockedInlineCard() {
+  Widget _buildBlockedInlineCard({required bool isBlockedByMe}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
@@ -2903,15 +3199,17 @@ class _IndividualChatScreenState
             ),
           ),
           const SizedBox(height: 16),
-          const AppText(
-            text: 'This chat has been blocked',
+          AppText(
+            text: isBlockedByMe ? 'This chat has been blocked' : 'You have been blocked',
             fontSize: 17,
             fontWeight: FontWeight.w600,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           AppText(
-            text: 'You can no longer send or receive messages in this chat.',
+            text: isBlockedByMe
+                ? 'You cannot send or receive messages in this chat while it is blocked.'
+                : 'You can no longer send or receive messages in this chat.',
             fontSize: 13,
             fontWeight: FontWeight.w400,
             color: AppColors.grey,
@@ -2945,31 +3243,33 @@ class _IndividualChatScreenState
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryColor,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              if (isBlockedByMe) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryColor,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      if (_isOffline) {
+                        _showNoInternetSnackbar();
+                        return;
+                      }
+                      await _unblockChat();
+                    },
+                    child: const AppText(
+                      text: 'Unblock chat',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.white,
                     ),
                   ),
-                  onPressed: () async {
-                    if (_isOffline) {
-                      _showNoInternetSnackbar();
-                      return;
-                    }
-                    await _unblockChat();
-                  },
-                  child: const AppText(
-                    text: 'Unblock chat',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.white,
-                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ],
@@ -2977,32 +3277,7 @@ class _IndividualChatScreenState
     );
   }
 
-  void _showBlockedPopup() {
-    AppUiHelper.showBottomSheet(
-      showHandle: false,
-      context: context,
 
-      child: BlockChat(
-        onUnblock:
-            () async {
-          await _unblockChat();
-        },
-
-        onDeleteChat:
-            () async {
-          await _clearChat();
-        },
-      ),
-
-      showCloseIcon: false,
-
-      color:
-      AppColors.primaryColor,
-
-      iconColor:
-      AppColors.white,
-    );
-  }
 
   // ============================================================
   // HEADER
@@ -3012,12 +3287,10 @@ class _IndividualChatScreenState
     return Row(
       children: [
         GestureDetector(
-          onTap:
-              () => AppRoutes.pop(),
+          onTap: () => AppRoutes.pop(),
 
           child: AppIconWidget(
-            assetPath:
-            AssetImages.backArrow,
+            assetPath: AssetImages.backArrow,
             size: 20,
           ),
         ),
@@ -3028,23 +3301,17 @@ class _IndividualChatScreenState
           radius: 18,
 
           child: ClipOval(
-            child:
-            widget.otherUserAvatar
-                .isNotEmpty
+            child: widget.otherUserAvatar.isNotEmpty
                 ? AppCachedNetworkImage(
-              imageUrl:
-              widget
-                  .otherUserAvatar,
-              height: 36,
-              width: 36,
-              fit:
-              BoxFit.cover,
-            )
+                    imageUrl: widget.otherUserAvatar,
+                    height: 36,
+                    width: 36,
+                    fit: BoxFit.cover,
+                  )
                 : Icon(
-              Icons.person,
-              color: AppColors
-                  .primaryColor,
-            ),
+                    Icons.person,
+                    color: AppColors.primaryColor,
+                  ),
           ),
         ),
 
@@ -3052,286 +3319,283 @@ class _IndividualChatScreenState
 
         Expanded(
           child: AppText(
-            text:
-            widget.otherUserName
-                .isNotEmpty
-                ? widget
-                .otherUserName
+            text: widget.otherUserName.isNotEmpty
+                ? widget.otherUserName
                 : 'User ${widget.otherUserId}',
             fontSize: 16,
-            fontWeight:
-            FontWeight.w500,
+            fontWeight: FontWeight.w500,
           ),
         ),
 
-        // StreamBuilder<Map<String, dynamic>>(
-        //   stream: ChatService.contactRequestStream(roomId: widget.roomId),
-        //   builder: (context, snapshot) {
-        //     final data = snapshot.data ?? <String, dynamic>{};
-        //     final status = data['status']?.toString() ?? 'none';
-        //     if (status != 'accepted' || _otherUserPhone.isEmpty) {
-        //       return const SizedBox.shrink();
-        //     }
-        //     return Row(
-        //       mainAxisSize: MainAxisSize.min,
-        //       children: [
-        //         GestureDetector(
-        //           onTap: _call,
-        //           child: AppIconWidget(
-        //             assetPath: AssetImages.call,
-        //             size: 20,
-        //             color: AppColors.primaryColor,
-        //           ),
-        //         ),
-        //         const SizedBox(width: 15),
-        //       ],
-        //     );
-        //   },
-        // ),
+        StreamBuilder<List<String>>(
+          stream: _blockedByStream,
+          builder: (context, snapshot) {
+            final blockedBy = snapshot.data ?? <String>[];
+            final isBlockedByMe = blockedBy.contains(widget.currentUserId);
+            final isBlockedByOther = blockedBy.isNotEmpty && !isBlockedByMe;
 
-        Container(
-          height: 30,
-          width: 30,
+            return Container(
+              height: 30,
+              width: 30,
 
-          decoration:
-          BoxDecoration(
-            border: Border.all(
-              color:
-              AppColors.fieldGrey,
-            ),
-            borderRadius:
-            BorderRadius.circular(
-              10,
-            ),
-          ),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: AppColors.fieldGrey,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
 
-          child:
-          PopupMenuButton<String>(
-            padding:
-            EdgeInsets.zero,
+              child: PopupMenuButton<String>(
+                padding: EdgeInsets.zero,
 
-            icon: AppIconWidget(
-              assetPath:
-              AssetImages.more,
-              size: 20,
-              color:
-              AppColors.black,
-            ),
+                icon: AppIconWidget(
+                  assetPath: AssetImages.more,
+                  size: 20,
+                  color: AppColors.black,
+                ),
 
-            offset:
-            const Offset(0, 40),
+                offset: const Offset(0, 40),
 
-            onSelected:
-                (value) async {
-              if (_isOffline) {
-                _showNoInternetSnackbar();
-                return;
-              }
-              switch (value) {
-                case 'clear':
-                  await _clearChat();
-                  break;
-
-                case 'block':
-                  await _blockChat();
-
-                  break;
-
-                case 'report':
-                  final currentUserId =
-                  int.tryParse(
-                    widget.currentUserId,
-                  );
-
-                  if (currentUserId ==
-                      null) {
+                onSelected: (value) async {
+                  if (_isOffline) {
+                    _showNoInternetSnackbar();
                     return;
                   }
+                  switch (value) {
+                    case 'clear':
+                      await _clearChat();
+                      break;
 
-                  AppUiHelper
-                      .showBottomSheet(
-                    context: context,
+                    case 'unblock':
+                      await _unblockChat();
+                      break;
 
-                    child:
-                    ReportChatReasonSheet(
-                      userId:
-                      currentUserId,
-                      userName: '',
-                      userMobile: '',
-                      userEmail: '',
-                      roomId:
-                      widget.roomId,
+                    case 'block':
+                      await _blockChat();
+                      break;
 
-                      authControllers:
-                      AuthControllers(
-                        authRepository:
-                        AuthRepository(
-                          apiClient:
-                          ApiClient(),
+                    case 'report':
+                      final currentUserId = int.tryParse(widget.currentUserId);
+
+                      if (currentUserId == null) return;
+
+                      AppUiHelper.showBottomSheet(
+                        context: context,
+
+                        child: ReportChatReasonSheet(
+                          userId: currentUserId,
+                          userName: '',
+                          userMobile: '',
+                          userEmail: '',
+                          roomId: widget.roomId,
+
+                          authControllers: AuthControllers(
+                            authRepository: AuthRepository(
+                              apiClient: ApiClient(),
+                            ),
+                          ),
                         ),
-                      ),
+
+                        showCloseIcon: true,
+
+                        color: AppColors.white,
+
+                        iconColor: AppColors.black,
+                      );
+
+                      break;
+                  }
+                },
+
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'clear',
+                    child: Text('Clear Chat'),
+                  ),
+
+                  if (isBlockedByMe)
+                    const PopupMenuItem(
+                      value: 'unblock',
+                      child: Text('Unblock'),
+                    )
+                  else if (isBlockedByOther)
+                    const PopupMenuItem(
+                      enabled: false,
+                      value: 'blocked',
+                      child: Text('Blocked'),
+                    )
+                  else
+                    const PopupMenuItem(
+                      value: 'block',
+                      child: Text('Block'),
                     ),
 
-                    showCloseIcon:
-                    true,
-
-                    color: AppColors
-                        .white,
-
-                    iconColor:
-                    AppColors.black,
-                  );
-
-                  break;
-              }
-            },
-
-            itemBuilder:
-                (context) => [
-              const PopupMenuItem(
-                child:
-                Text('Clear Chat'),
-                value: 'clear',
+                  const PopupMenuItem(
+                    value: 'report',
+                    child: Text('Report'),
+                  ),
+                ],
               ),
-
-              const PopupMenuItem(
-                child:
-                Text('Block'),
-                value: 'block',
-              ),
-
-              const PopupMenuItem(
-                child:
-                Text('Report'),
-                value: 'report',
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ],
     );
   }
 
   Widget _buildSelectionTopRow() {
+    final isMyMessage = _selectedMessageData?['senderId']?.toString() == widget.currentUserId;
+    final messageType = _selectedMessageData?['messageType']?.toString() ?? 'text';
+    final isTextMessage = messageType == 'text';
+    final isDeleted = _selectedMessageData?['isDeleted'] == true;
+    final canEdit = isMyMessage && isTextMessage && !isDeleted;
+
     return Row(
       children: [
         GestureDetector(
           onTap: () {
             setState(() {
-              selectedMessageId =
-              null;
+              selectedMessageId = null;
+              _selectedMessageData = null;
             });
           },
 
           child: AppIconWidget(
-            assetPath:
-            AssetImages.backArrow,
+            assetPath: AssetImages.backArrow,
           ),
         ),
 
         const Spacer(),
 
-        PopupMenuButton<String>(
-          offset:
-          const Offset(0, 40),
-
-          icon: AppIconWidget(
-            assetPath:
-            AssetImages.delete,
-            size: 22,
+        if (canEdit) ...[
+          Container(
+            height: 36,
+            width: 36,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: AppColors.fieldGrey,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () {
+                if (_selectedMessageData != null) {
+                  final msgText = _selectedMessageData!['message']?.toString() ?? '';
+                  textController.text = msgText;
+                  textController.selection = TextSelection.fromPosition(
+                    TextPosition(offset: msgText.length),
+                  );
+                  setState(() {
+                    _editingMessageId = selectedMessageId;
+                    selectedMessageId = null;
+                    _selectedMessageData = null;
+                  });
+                  _focusNode.requestFocus();
+                }
+              },
+              child: Center(
+                child: AppIconWidget(
+                  assetPath: AssetImages.editChat,
+                  size: 18,
+                  color: AppColors.black,
+                ),
+              ),
+            ),
           ),
+          const SizedBox(width: 10),
+        ],
 
-          onSelected:
-              (value) async {
-            if (_isOffline) {
-              _showNoInternetSnackbar();
-              return;
-            }
-            final id =
-                selectedMessageId;
+        Container(
+          height: 36,
+          width: 36,
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: AppColors.fieldGrey,
+            ),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: PopupMenuButton<String>(
+            padding: EdgeInsets.zero,
+            offset: const Offset(0, 40),
 
-            if (id == null) return;
+            icon: AppIconWidget(
+              assetPath: AssetImages.delete,
+              size: 18,
+              color: AppColors.black,
+            ),
 
-            try {
-              if (value == 'me') {
-                await ChatService
-                    .deleteForMe(
-                  roomId:
-                  widget.roomId,
-                  messageId: id,
-                  currentUserId:
-                  widget
-                      .currentUserId,
-                );
+            onSelected: (value) async {
+              if (_isOffline) {
+                _showNoInternetSnackbar();
+                return;
               }
+              final id = selectedMessageId;
 
-              if (value ==
-                  'everyone') {
-                await ChatService
-                    .deleteForEveryone(
-                  roomId:
-                  widget.roomId,
-                  messageId: id,
-                  currentUserId:
-                  widget
-                      .currentUserId,
-                );
-              }
+              if (id == null) return;
 
-              if (!mounted) return;
+              try {
+                if (value == 'me') {
+                  await ChatService.deleteForMe(
+                    roomId: _effectiveRoomId,
+                    messageId: id,
+                    currentUserId: widget.currentUserId,
+                  );
+                }
 
-              setState(() {
-                selectedMessageId =
-                null;
-              });
-            } catch (e) {
-              if (!mounted) return;
+                if (value == 'everyone') {
+                  await ChatService.deleteForEveryone(
+                    roomId: _effectiveRoomId,
+                    messageId: id,
+                    currentUserId: widget.currentUserId,
+                  );
+                }
 
-              setState(() {
-                selectedMessageId =
-                null;
-              });
+                if (!mounted) return;
 
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    e.toString()
-                        .replaceFirst(
-                      'Exception: ',
-                      '',
+                setState(() {
+                  selectedMessageId = null;
+                  _selectedMessageData = null;
+                });
+              } catch (e) {
+                if (!mounted) return;
+
+                setState(() {
+                  selectedMessageId = null;
+                  _selectedMessageData = null;
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      e.toString().replaceFirst('Exception: ', ''),
                     ),
                   ),
+                );
+              }
+            },
+
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'me',
+                child: AppText(
+                  text: 'Delete for me',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
-              );
-            }
-          },
-
-          itemBuilder:
-              (context) => [
-            const PopupMenuItem(
-              value: 'me',
-              child: AppText(
-                text:
-                'Delete for me',
-                fontSize: 14,
-                fontWeight:
-                FontWeight.w500,
               ),
-            ),
 
-            const PopupMenuItem(
-              value: 'everyone',
-              child: AppText(
-                text:
-                'Delete for everyone',
-                fontSize: 14,
-                fontWeight:
-                FontWeight.w500,
-              ),
-            ),
-          ],
+              if (isMyMessage)
+                const PopupMenuItem(
+                  value: 'everyone',
+                  child: AppText(
+                    text: 'Delete for everyone',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
+          ),
         ),
       ],
     );

@@ -2061,11 +2061,13 @@ class _DeviceLocationAccessState extends State<DeviceLocationAccess> with Widget
 class BlockChat extends StatefulWidget {
   final Future<void> Function()? onUnblock;
   final Future<void> Function()? onDeleteChat;
+  final bool isBlockedByMe;
 
   const BlockChat({
     super.key,
     this.onUnblock,
     this.onDeleteChat,
+    this.isBlockedByMe = true,
   });
 
   @override
@@ -2196,6 +2198,8 @@ class _BlockChatState extends State<BlockChat> {
     if (_isOffline) {
       return const NoInternetWidget();
     }
+    final isBlockedByMe = widget.isBlockedByMe;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2213,8 +2217,10 @@ class _BlockChatState extends State<BlockChat> {
         // TITLE
         // ========================================================
 
-        const AppText(
-          text: 'This chat has been blocked',
+        AppText(
+          text: isBlockedByMe
+              ? 'This chat has been blocked'
+              : 'You have been blocked',
           fontWeight: FontWeight.w500,
           fontSize: 20,
         ),
@@ -2226,8 +2232,9 @@ class _BlockChatState extends State<BlockChat> {
         // ========================================================
 
         AppText(
-          text:
-          'You cannot send or receive messages in this chat while it is blocked.',
+          text: isBlockedByMe
+              ? 'You cannot send or receive messages in this chat while it is blocked.'
+              : 'You can no longer send or receive messages in this chat.',
           fontSize: 14,
           fontWeight: FontWeight.w400,
           textAlign: TextAlign.center,
@@ -2248,40 +2255,34 @@ class _BlockChatState extends State<BlockChat> {
 
             Expanded(
               child: AppButton(
-                title: _isDeleting
-                    ? 'Deleting...'
-                    : 'Delete chat',
-                onTap: _isUnblocking || _isDeleting
-                    ? () {}
-                    : _handleDeleteChat,
+                title: _isDeleting ? 'Deleting...' : 'Delete chat',
+                onTap: _isUnblocking || _isDeleting ? () {} : _handleDeleteChat,
                 fontSize: 14,
-                bgColor: Colors.transparent,
-                border: Border.all(
-                  color: AppColors.black,
+                bgColor: isBlockedByMe ? Colors.transparent : AppColors.primaryColor,
+                border: isBlockedByMe
+                    ? Border.all(color: AppColors.black)
+                    : null,
+                textColor: isBlockedByMe ? AppColors.black : AppColors.white,
+                radius: BorderRadius.circular(7),
+              ),
+            ),
+
+            if (isBlockedByMe) ...[
+              const SizedBox(width: 10),
+
+              // ====================================================
+              // UNBLOCK CHAT (Only shown if current user blocked it)
+              // ====================================================
+
+              Expanded(
+                child: AppButton(
+                  title: _isUnblocking ? 'Unblocking...' : 'Unblock chat',
+                  onTap: _isUnblocking || _isDeleting ? () {} : _handleUnblock,
+                  fontSize: 16,
+                  radius: BorderRadius.circular(7),
                 ),
-                textColor: AppColors.black,
-                radius: BorderRadius.circular(7),
               ),
-            ),
-
-            const SizedBox(width: 10),
-
-            // ====================================================
-            // UNBLOCK CHAT
-            // ====================================================
-
-            Expanded(
-              child: AppButton(
-                title: _isUnblocking
-                    ? 'Unblocking...'
-                    : 'Unblock chat',
-                onTap: _isUnblocking || _isDeleting
-                    ? () {}
-                    : _handleUnblock,
-                fontSize: 16,
-                radius: BorderRadius.circular(7),
-              ),
-            ),
+            ],
           ],
         ),
       ],

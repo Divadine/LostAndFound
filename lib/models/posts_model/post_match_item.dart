@@ -9,15 +9,23 @@ class PostMatchesModel {
   PostMatchesModel({required this.post, required this.matchingCount, required this.matches});
 
   factory PostMatchesModel.fromJson(Map<String, dynamic> json) {
-    final postData = json['post'] != null ? Map<String, dynamic>.from(json['post'] as Map) : null;
-    if (postData != null && json['handover_info'] != null) {
+    Map<String, dynamic> postData;
+    if (json['post'] != null && json['post'] is Map) {
+      postData = Map<String, dynamic>.from(json['post'] as Map);
+    } else {
+      postData = Map<String, dynamic>.from(json);
+    }
+
+    if (json['handover_info'] != null) {
       postData['handover_info'] = json['handover_info'];
+    }
+    if (json['post_status'] != null) {
+      postData['status'] = json['post_status'];
+      postData['post_status'] = json['post_status'];
     }
 
     return PostMatchesModel(
-      post: postData != null 
-          ? MatchedPostSummary.fromJson(postData)
-          : MatchedPostSummary.fromJson({}),
+      post: MatchedPostSummary.fromJson(postData),
       matchingCount: json['matching_count'] as int? ?? 0,
       matches: (json['matches'] as List? ?? [])
           .map((e) => MatchItemModel.fromJson(e as Map<String, dynamic>))
@@ -35,6 +43,7 @@ class MatchedPostSummary {
   final DateTime? postDate;
   final DateTime? createdAt;
   final List<String> images;
+  final int status;
 
   // Handover Info Fields
   final int handoverType;
@@ -59,6 +68,7 @@ class MatchedPostSummary {
     this.postDate,
     this.createdAt,
     required this.images,
+    this.status = 0,
     this.handoverType = 0,
     this.handoverName = '',
     this.stationName = '',
@@ -137,6 +147,14 @@ class MatchedPostSummary {
             '')
         .toString();
 
+    final handoverTypeParsed = int.tryParse((json['handover_type'] ?? handoverObj?['handover_type'] ?? handoverObj?['type'] ?? '').toString()) ?? 0;
+
+    final rawStatus = json['status'] ?? json['post_status'];
+    int statusParsed = int.tryParse(rawStatus?.toString() ?? '') ?? 0;
+    if (statusParsed == 0 && (handoverTypeParsed != 0 || handoverName.isNotEmpty || stationName.isNotEmpty || handoverImages.isNotEmpty)) {
+      statusParsed = 2;
+    }
+
     return MatchedPostSummary(
       id: json['id'] as int? ?? 0,
       postUid: json['post_uid']?.toString() ?? '',
@@ -150,7 +168,8 @@ class MatchedPostSummary {
           ? DateTime.tryParse(json['created_at'].toString())
           : null,
       images: _parseImages(json['images']),
-      handoverType: int.tryParse((json['handover_type'] ?? handoverObj?['handover_type'] ?? handoverObj?['type'] ?? '').toString()) ?? 0,
+      status: statusParsed,
+      handoverType: handoverTypeParsed,
       handoverName: handoverName,
       stationName: stationName,
       stationAddress: stationAddress,

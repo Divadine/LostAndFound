@@ -203,6 +203,7 @@ class AppRoutes {
             isReceived: data['isReceived'] as bool? ?? false,
             status: data['status'] as int?,
             categoryId: data['categoryId'] as int?,
+            isFound: data['isFound'] as bool? ?? false,
           );
         },
       ),

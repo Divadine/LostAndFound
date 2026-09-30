@@ -53,6 +53,8 @@ class _ChatScreenState
           message: 'User not found',
         );
       });
+    } else {
+      ChatService.startDeliveryTracking(currentUserId!);
     }
   }
 

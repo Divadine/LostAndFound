@@ -22,12 +22,14 @@ class ChatSharingFiles extends StatefulWidget {
   final String roomId;
   final String currentUserId;
   final Function(Map<String, dynamic>)? onAttachmentSelected;
+  final Function(String address)? onAddressFetched;
 
   const ChatSharingFiles({
     super.key,
     required this.roomId,
     required this.currentUserId,
     this.onAttachmentSelected,
+    this.onAddressFetched,
   });
 
   @override
@@ -45,7 +47,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
   );
 
   bool _loading = false;
-  String _loadingText = '';
 
   // ============================================================
   // CAMERA
@@ -75,10 +76,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
       if (!mounted) return;
 
-      // ========================================================
-      // UPLOAD VIA createImage API
-      // ========================================================
-
       final uploadResponse = await authController.createImage(
         images: [imageFile],
       );
@@ -105,7 +102,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
           'url': imageUrl.trim(),
         });
       } else {
-        // Fallback to original behavior if no callback provided
         await ChatService.sendImageMessageWithUrl(
           roomId: widget.roomId,
           senderId: widget.currentUserId,
@@ -158,10 +154,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
       if (!mounted) return;
 
-      // ========================================================
-      // UPLOAD VIA createImage API
-      // ========================================================
-
       final uploadResponse = await authController.createImage(
         images: [imageFile],
       );
@@ -188,7 +180,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
           'url': imageUrl.trim(),
         });
       } else {
-        // Fallback to original behavior if no callback provided
         await ChatService.sendImageMessageWithUrl(
           roomId: widget.roomId,
           senderId: widget.currentUserId,
@@ -264,7 +255,7 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
   }
 
   // ============================================================
-  // SHARE ADDRESS
+  // SHARE ADDRESS (Direct fetch -> put in text box, no map screen)
   // ============================================================
 
   Future<void> _shareAddress() async {
@@ -284,27 +275,33 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      String address = 'Current location';
+      try {
+        final placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+        if (placemarks.isNotEmpty) {
+          final formatted = _formatPlacemark(placemarks.first);
+          if (formatted.isNotEmpty) address = formatted;
+        }
+      } catch (e) {
+        debugPrint('[ADDRESS] Geocoding error: $e');
+      }
+
       _stopLoading();
 
       if (!mounted) return;
 
       Navigator.of(context).pop();
 
-      final bool? sent = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(
-          fullscreenDialog: true,
-          builder: (_) => LocationConfirmationScreen(
-            roomId: widget.roomId,
-            currentUserId: widget.currentUserId,
-            position: position,
-            addressOnly: true,
-            onAttachmentSelected: widget.onAttachmentSelected,
-          ),
-        ),
-      );
-
-      if (sent == true && mounted) {
-        _showSuccess('Address shared');
+      if (widget.onAddressFetched != null) {
+        widget.onAddressFetched!(address);
+      } else if (widget.onAttachmentSelected != null) {
+        widget.onAttachmentSelected!({
+          'type': 'address',
+          'address': address,
+        });
       }
     } catch (e) {
       _stopLoading();
@@ -313,6 +310,29 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
       _showError('Unable to get your address.\n$e');
     }
+  }
+
+  String _formatPlacemark(Placemark place) {
+    final List<String> parts = [];
+    void add(String? value) {
+      if (value == null) return;
+      final clean = value.trim();
+      if (clean.isEmpty) return;
+      if (!parts.contains(clean)) {
+        parts.add(clean);
+      }
+    }
+
+    add(place.name);
+    add(place.street);
+    add(place.subLocality);
+    add(place.locality);
+    add(place.subAdministrativeArea);
+    add(place.administrativeArea);
+    add(place.postalCode);
+    add(place.country);
+
+    return parts.join(', ');
   }
 
   // ============================================================
@@ -324,7 +344,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
     setState(() {
       _loading = false;
-      _loadingText = '';
     });
   }
 
@@ -364,104 +383,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       );
   }
 
-  // ============================================================
-  // LOCATION SERVICE DIALOG
-  // ============================================================
-
-  Future<void> _showLocationServiceDialog() async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text(
-            'Location is disabled',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          content: const Text(
-            'Please turn on your device location service and try again.',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-
-                await Geolocator.openLocationSettings();
-              },
-              child: const Text('Settings'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // PERMISSION SETTINGS
-  // ============================================================
-
-  Future<void> _showPermissionSettingsDialog() async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text(
-            'Location permission required',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          content: const Text(
-            'Location permission was permanently denied. Please enable it from app settings.',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-
-                await Geolocator.openAppSettings();
-              },
-              child: const Text('Settings'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // ============================================================
-  // BUILD  (DESIGN UPDATED TO MATCH REFERENCE — logic unchanged)
-  // ============================================================
-
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -474,7 +395,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Options card — larger radius, no drag handle, to match reference
               Container(
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
@@ -513,7 +433,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
 
               const SizedBox(height: 10),
 
-              // Cancel button — same radius/style as the card above
               Material(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -595,16 +514,11 @@ class LocationConfirmationScreen extends StatefulWidget {
   final Position position;
   final Function(Map<String, dynamic>)? onAttachmentSelected;
 
-  /// If true, this screen is being used
-  /// specifically for sharing the address.
-  final bool addressOnly;
-
   const LocationConfirmationScreen({
     super.key,
     required this.roomId,
     required this.currentUserId,
     required this.position,
-    this.addressOnly = false,
     this.onAttachmentSelected,
   });
 
@@ -635,10 +549,6 @@ class _LocationConfirmationScreenState
 
     _getAddress();
   }
-
-  // ============================================================
-  // GET ADDRESS
-  // ============================================================
 
   Future<void> _getAddress() async {
     try {
@@ -671,20 +581,13 @@ class _LocationConfirmationScreenState
     }
   }
 
-  // ============================================================
-  // FORMAT ADDRESS
-  // ============================================================
-
   String _formatPlacemark(Placemark place) {
     final List<String> parts = [];
 
     void add(String? value) {
       if (value == null) return;
-
       final clean = value.trim();
-
       if (clean.isEmpty) return;
-
       if (!parts.contains(clean)) {
         parts.add(clean);
       }
@@ -702,10 +605,6 @@ class _LocationConfirmationScreenState
     return parts.join(', ');
   }
 
-  // ============================================================
-  // SEND LOCATION
-  // ============================================================
-
   Future<void> _sendLocation() async {
     if (!_sendCurrentLocation) {
       _showMessage(
@@ -722,35 +621,20 @@ class _LocationConfirmationScreenState
       });
 
       if (widget.onAttachmentSelected != null) {
-        if (widget.addressOnly) {
-          widget.onAttachmentSelected!({
-            'type': 'address',
-            'address': _address,
-          });
-        } else {
-          widget.onAttachmentSelected!({
-            'type': 'location',
-            'latitude': widget.position.latitude,
-            'longitude': widget.position.longitude,
-            'address': _address,
-          });
-        }
+        widget.onAttachmentSelected!({
+          'type': 'location',
+          'latitude': widget.position.latitude,
+          'longitude': widget.position.longitude,
+          'address': _address,
+        });
       } else {
-        if (widget.addressOnly) {
-          await ChatService.sendMessage(
-            roomId: widget.roomId,
-            senderId: widget.currentUserId,
-            message: _address,
-          );
-        } else {
-          await ChatService.sendLocationMessage(
-            roomId: widget.roomId,
-            senderId: widget.currentUserId,
-            latitude: widget.position.latitude,
-            longitude: widget.position.longitude,
-            address: _address,
-          );
-        }
+        await ChatService.sendLocationMessage(
+          roomId: widget.roomId,
+          senderId: widget.currentUserId,
+          latitude: widget.position.latitude,
+          longitude: widget.position.longitude,
+          address: _address,
+        );
       }
 
       if (!mounted) return;
@@ -767,10 +651,6 @@ class _LocationConfirmationScreenState
     }
   }
 
-  // ============================================================
-  // MESSAGE
-  // ============================================================
-
   void _showMessage(String message) {
     if (!mounted) return;
 
@@ -784,17 +664,9 @@ class _LocationConfirmationScreenState
       );
   }
 
-  // ============================================================
-  // MAP CREATED
-  // ============================================================
-
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
   }
-
-  // ============================================================
-  // BUILD
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -815,9 +687,9 @@ class _LocationConfirmationScreenState
         backgroundColor: AppColors.primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(
-          widget.addressOnly ? 'Share Address' : 'Share Location',
-          style: const TextStyle(
+        title: const Text(
+          'Share Location',
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -868,10 +740,6 @@ class _LocationConfirmationScreenState
     );
   }
 
-  // ============================================================
-  // BOTTOM PANEL
-  // ============================================================
-
   Widget _buildBottomPanel() {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
@@ -894,24 +762,24 @@ class _LocationConfirmationScreenState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AppText(
-              text: widget.addressOnly ? 'Nearby Place' : 'Nearby Place',
+            const AppText(
+              text: 'Nearby Place',
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
 
             const SizedBox(height: 8),
 
-            Text(
-              _address,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.black54,
-                height: 1.4,
-              ),
-            ),
+            // Text(
+            //   _address,
+            //   maxLines: 3,
+            //   overflow: TextOverflow.ellipsis,
+            //   style: const TextStyle(
+            //     fontSize: 13,
+            //     color: Colors.black54,
+            //     height: 1.4,
+            //   ),
+            // ),
 
             const SizedBox(height: 12),
 
@@ -947,12 +815,10 @@ class _LocationConfirmationScreenState
 
                   const SizedBox(width: 2),
 
-                  Expanded(
+                  const Expanded(
                     child: Text(
-                      widget.addressOnly
-                          ? 'Send this address'
-                          : 'Send your current location',
-                      style: const TextStyle(
+                      'Send your current location',
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),

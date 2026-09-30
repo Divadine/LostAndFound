@@ -155,6 +155,8 @@ class AssetImages {
   static const String chatEmpty = "assets/images/chatEmpty.svg";
   static const String notificationBackIcon = "assets/images/notificationBackIcon.svg";
   static const String notificationBackIcon1 = "assets/images/notificationBackIcon.svg";
+  static const String editChat = "assets/images/editChat.svg";
+
 
 
 

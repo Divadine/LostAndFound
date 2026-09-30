@@ -18,7 +18,9 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
+import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
+import 'chat/chat_firebaase_functions.dart';
 import 'chat/chat_screen.dart';
 import 'authentication/role_chosen_screen.dart';
 import 'maps/police_station_mapscreen.dart';
@@ -60,6 +62,10 @@ class _BottomScreenState extends State<BottomScreen> {
       SettingsScreen(),
     ];
     _initConnectivityListener();
+    final uid = AppPreferences.getUserId()?.toString().trim();
+    if (uid != null && uid.isNotEmpty) {
+      ChatService.startDeliveryTracking(uid);
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         await AppPermissions().requestNotificationPermission(context);

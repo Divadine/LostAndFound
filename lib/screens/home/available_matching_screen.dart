@@ -155,7 +155,8 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
       // If handover_info is missing from Match API, try viewEnquiry API.
       // Both sides must read the SAME completed handover record.
       // ============================================================
-      if (widget.status == 2 || widget.isReceived) {
+       if (widget.status == 2 || widget.isReceived) {
+      //if (postSummary?.status == 2 || widget.isReceived) {
         if (postSummary != null && postSummary!.handoverType == 0) {
           debugPrint('[HandoverFallback] handover_info missing in Match API for postId=${widget.postId}. Trying viewEnquiry...');
           final enqResp = await authController.viewEnquiry(postId: widget.postId);
@@ -197,6 +198,8 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
         matchesErrorMessage = response.message.isNotEmpty ? response.message : 'Failed to fetch matches';
         isLoadingMatches = false;
       });
+      debugPrint('[CLOSED CHECK] post_status=${postSummary?.status} '
+          'handoverType=${postSummary?.handoverType} widget.status=${widget.status}');
     }
   }
 
@@ -208,7 +211,13 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
   Future<void> _onMatchTap(MatchItemModel match) async {
     if (!mounted) return;
 
-    final isMainPostClosed = widget.status == 2 || widget.isReceived;
+    final effectiveStatus = (postSummary != null && postSummary!.status != 0)
+        ? postSummary!.status
+        : (postSummary != null && (postSummary!.handoverType != 0 || postSummary!.handoverName.isNotEmpty || postSummary!.stationName.isNotEmpty))
+            ? 2
+            : (widget.status ?? 0);
+
+    final isMainPostClosed = effectiveStatus == 2 || widget.isReceived;
     final isMatchClosed = match.status == 2;
     final shouldHideEnquiry = isMainPostClosed || isMatchClosed;
 
@@ -239,7 +248,13 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isClosed = widget.status == 2;
+    final effectiveStatus = (postSummary != null && postSummary!.status != 0)
+        ? postSummary!.status
+        : (postSummary != null && (postSummary!.handoverType != 0 || postSummary!.handoverName.isNotEmpty || postSummary!.stationName.isNotEmpty))
+            ? 2
+            : (widget.status ?? 0);
+
+    final isClosed = effectiveStatus == 2 || widget.isReceived;
 
     // Find the winning match if the post is closed
     MatchItemModel? winnerMatch;
@@ -255,11 +270,13 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
           'matches=${matches.length} winnerMatch=${winnerMatch?.posterName ?? "NULL"}');
     }
 
-    final winnerName = (postSummary != null && postSummary!.handoverName.isNotEmpty)
-        ? postSummary!.handoverName
-        : ((winnerMatch != null && winnerMatch.posterName.isNotEmpty)
-            ? winnerMatch.posterName
-            : (widget.isFound ? 'Owner' : 'Finder'));
+    final winnerName = (postSummary != null && postSummary!.stationName.isNotEmpty)
+        ? postSummary!.stationName
+        : ((postSummary != null && postSummary!.handoverName.isNotEmpty)
+            ? postSummary!.handoverName
+            : ((winnerMatch != null && winnerMatch.posterName.isNotEmpty)
+                ? winnerMatch.posterName
+                : (widget.isFound ? 'Owner' : 'Finder')));
 
     return Scaffold(
       backgroundColor: isClosed ? AppColors.closedColor : AppColors.white,
@@ -290,7 +307,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                   bg: AppColors.lightBlue_2,
                   onTap: () {},
                   showPostId: true,
-                  status: widget.status,
+                  status: effectiveStatus,
                 ).pad(),
 
                 AppContainer(
@@ -350,7 +367,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: widget.status == 2
+      bottomNavigationBar: isClosed
           ? SafeArea(
               child: SucessCard(
                 name: winnerName,
@@ -376,7 +393,9 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                   // Fallback to Match item (winnerMatch)
                   final actorName = postSummary?.handoverName.isNotEmpty == true 
                       ? postSummary!.handoverName 
-                      : (winnerMatch?.posterName ?? (widget.isFound ? 'Owner' : 'Finder'));
+                      : (postSummary?.stationName.isNotEmpty == true
+                          ? postSummary!.stationName
+                          : (winnerMatch?.posterName ?? (widget.isFound ? 'Owner' : 'Finder')));
                   
                   final actorUid = postSummary?.handoverUserUid.isNotEmpty == true
                       ? postSummary!.handoverUserUid
@@ -432,8 +451,12 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                         proofPhotos: handoverImgs,
                         matchPercentage: matchPercentage,
                         handoverDate: postSummary?.handoverDate ?? '',
-                        policeStationName: postSummary?.stationName ?? '',
-                        policeStationAddress: postSummary?.stationAddress ?? '',
+                        policeStationName: postSummary?.stationName.isNotEmpty == true
+                            ? postSummary!.stationName
+                            : (postSummary?.handoverName.isNotEmpty == true ? postSummary!.handoverName : 'Police Station'),
+                        policeStationAddress: postSummary?.stationAddress.isNotEmpty == true
+                            ? postSummary!.stationAddress
+                            : widget.location,
                       ),
                     ),
                   );
