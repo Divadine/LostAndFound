@@ -59,8 +59,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       final XFile? pickedFile = await _imagePicker.pickImage(
         source: ImageSource.camera,
         imageQuality: 85,
-        maxWidth: 1600,
-        maxHeight: 1600,
       );
 
       if (pickedFile == null) {
@@ -137,8 +135,6 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
       final XFile? pickedFile = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 85,
-        maxWidth: 1600,
-        maxHeight: 1600,
       );
 
       if (pickedFile == null) {

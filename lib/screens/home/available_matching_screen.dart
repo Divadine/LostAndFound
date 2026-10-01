@@ -371,7 +371,9 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
           ? SafeArea(
               child: SucessCard(
                 name: winnerName,
-                location: widget.date,
+                location: (postSummary?.handoverDate.isNotEmpty == true)
+                    ? postSummary!.handoverDate
+                    : widget.date,
                 isReceiver: !widget.isFound,
                 onTap: () {
                   TransferType type;
@@ -399,7 +401,11 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                   
                   final actorUid = postSummary?.handoverUserUid.isNotEmpty == true
                       ? postSummary!.handoverUserUid
-                      : (winnerMatch?.userUid ?? '');
+                      : (winnerMatch?.userUid.isNotEmpty == true
+                          ? winnerMatch!.userUid
+                          : (postSummary?.postUid.isNotEmpty == true
+                              ? postSummary!.postUid
+                              : (postSummary?.userId != null && postSummary!.userId != 0 ? postSummary!.userId.toString() : '')));
 
                   final actorAvatar = postSummary?.handoverAvatar.isNotEmpty == true
                       ? postSummary!.handoverAvatar
@@ -450,7 +456,9 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                         description: handoverDesc,
                         proofPhotos: handoverImgs,
                         matchPercentage: matchPercentage,
-                        handoverDate: postSummary?.handoverDate ?? '',
+                        handoverDate: (postSummary?.handoverDate.isNotEmpty == true)
+                            ? postSummary!.handoverDate
+                            : widget.date,
                         policeStationName: postSummary?.stationName.isNotEmpty == true
                             ? postSummary!.stationName
                             : (postSummary?.handoverName.isNotEmpty == true ? postSummary!.handoverName : 'Police Station'),
@@ -467,7 +475,9 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
               ? SafeArea(
                   child: SucessCard(
                     name: winnerName,
-                    location: widget.date,
+                    location: (postSummary?.handoverDate.isNotEmpty == true)
+                        ? postSummary!.handoverDate
+                        : widget.date,
                     onTap: () {
                       final actorName = postSummary?.handoverName.isNotEmpty == true 
                           ? postSummary!.handoverName 
@@ -511,7 +521,9 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                             description: handoverDesc,
                             proofPhotos: postSummary?.handoverImg ?? [],
                             matchPercentage: matchPercentage,
-                            handoverDate: postSummary?.handoverDate ?? '',
+                            handoverDate: (postSummary?.handoverDate.isNotEmpty == true)
+                                ? postSummary!.handoverDate
+                                : widget.date,
                           ),
                         ),
                       );

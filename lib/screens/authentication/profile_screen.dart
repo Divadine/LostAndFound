@@ -17,6 +17,7 @@ import 'package:lost_and_found/models/posts_model/selected_location_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/authentication/otp_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
+import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
 import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
 import 'package:lost_and_found/screens/permissions/location_permission.dart';
 import 'package:lost_and_found/screens/post/first_stepper_screen.dart';
@@ -1215,6 +1216,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               final response = await authController.updateProfileForm(profile);
               if (!mounted) return;
               if (response.status == 1) {
+                final userId = AppPreferences.getUserId();
+                String updatedAvatar = '';
+                if (userId != null) {
+                  final profileResp = await authController.getProfile(userId: userId);
+                  updatedAvatar = _isImageDeleted ? '' : (profileResp.data?.profileImageUrl ?? '');
+                }
+                await AppPreferences.saveUserAvatar(updatedAvatar);
+                if (userId != null) {
+                  await ChatService.updateAvatarEverywhere(userId.toString(), updatedAvatar);
+                }
                 if (!widget.profileModel.isFromEdit) {
                   await AppPreferences.setProfileStatus(1);
                 }

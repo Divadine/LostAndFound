@@ -264,6 +264,65 @@ class ChatService {
   }
 
   // ============================================================
+  // SET PARTICIPANT AVATAR (WRITES EMPTY STRING TOO)
+  // ============================================================
+
+  static Future<void> setParticipantAvatar(
+    String roomId,
+    String userId,
+    String avatarUrl,
+  ) async {
+    final cleanRoomId = roomId.trim();
+    final cleanUserId = userId.trim();
+    if (cleanRoomId.isEmpty || cleanUserId.isEmpty) return;
+
+    try {
+      final roomRef = _rooms.doc(cleanRoomId);
+      await roomRef.update({
+        'participants.$cleanUserId.avatar': avatarUrl.trim(),
+      });
+    } catch (e) {
+      debugPrint('[ChatService] Error setting participant avatar: $e');
+    }
+  }
+
+  // ============================================================
+  // UPDATE AVATAR EVERYWHERE (WRITES EMPTY STRING TOO)
+  // ============================================================
+
+  static Future<void> updateAvatarEverywhere(
+    String userId,
+    String avatarUrl,
+  ) async {
+    final cleanUserId = userId.trim();
+    if (cleanUserId.isEmpty) return;
+
+    try {
+      final cleanAvatar = avatarUrl.trim();
+      final roomsQuery = await _rooms.where('users', arrayContains: cleanUserId).get();
+
+      if (roomsQuery.docs.isEmpty) return;
+
+      for (var i = 0; i < roomsQuery.docs.length; i += 500) {
+        final batch = _firestore.batch();
+        final chunk = roomsQuery.docs.sublist(
+          i,
+          i + 500 > roomsQuery.docs.length ? roomsQuery.docs.length : i + 500,
+        );
+        for (final doc in chunk) {
+          batch.update(doc.reference, {
+            'participants.$cleanUserId.avatar': cleanAvatar,
+          });
+        }
+        await batch.commit();
+      }
+      debugPrint('[ChatService] Updated avatar everywhere for $cleanUserId to "$cleanAvatar" across ${roomsQuery.docs.length} rooms.');
+    } catch (e) {
+      debugPrint('[ChatService] Error updating avatar everywhere: $e');
+    }
+  }
+
+  // ============================================================
   // GET ROOM
   // ============================================================
 
@@ -547,6 +606,7 @@ class ChatService {
       'lastMessageDeleted': false,
       'lastMessageId': messageRef.id,
       'updatedAt': now,
+      'hiddenFor': FieldValue.arrayRemove([cleanSenderId, receiverId]),
     };
 
     if (receiverId.isNotEmpty) {
@@ -935,6 +995,11 @@ class ChatService {
     required String currentUserId,
   }) async {
     final mRef = _rooms.doc(roomId).collection('messages').doc(messageId);
+    final snap = await mRef.get();
+    if (!snap.exists) return;
+    if (snap.data()?['senderId'] != currentUserId) {
+      throw Exception('You can delete only your own messages.');
+    }
     await mRef.update({
       'deletedFor': FieldValue.arrayUnion([currentUserId])
     });
@@ -943,21 +1008,21 @@ class ChatService {
   static Future<void> clearChat({
     required String roomId,
     required String currentUserId,
+    bool hide = false,
   }) async {
-    final msgs = await _rooms.doc(roomId).collection('messages').get();
-    if (msgs.docs.isEmpty) return;
-    WriteBatch batch = _firestore.batch();
-    int count = 0;
-    for (final doc in msgs.docs) {
-      batch.update(doc.reference, {
-        'deletedFor': FieldValue.arrayUnion([currentUserId])
-      });
-      if (++count >= 450) {
-        await batch.commit();
-        batch = _firestore.batch();
-        count = 0;
-      }
-    }
-    if (count > 0) await batch.commit();
+    final cleanRoomId = roomId.trim();
+    final cleanUserId = currentUserId.trim();
+    if (cleanRoomId.isEmpty || cleanUserId.isEmpty) return;
+
+    final roomRef = _rooms.doc(cleanRoomId);
+    await roomRef.set({
+      'clearedAt': {
+        cleanUserId: FieldValue.serverTimestamp(),
+      },
+      'unreadCounts': {
+        cleanUserId: 0,
+      },
+      if (hide) 'hiddenFor': FieldValue.arrayUnion([cleanUserId]),
+    }, SetOptions(merge: true));
   }
 }

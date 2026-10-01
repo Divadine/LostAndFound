@@ -19,6 +19,34 @@ class AppUtils {
     return true;
   }
 
+  static String formatHandoverDate(String? rawDate) {
+    if (rawDate == null || rawDate.trim().isEmpty) return '';
+
+    final trimmed = rawDate.trim();
+
+    try {
+      DateTime dt;
+      if (trimmed.contains('T')) {
+        // Treat 'T' timestamps without Z/offset as UTC
+        final hasOffset = trimmed.endsWith('Z') ||
+            trimmed.endsWith('z') ||
+            RegExp(r'[+-]\d{2}:?\d{2}$').hasMatch(trimmed);
+
+        if (!hasOffset) {
+          dt = DateTime.parse('${trimmed}Z').toLocal();
+        } else {
+          dt = DateTime.parse(trimmed).toLocal();
+        }
+      } else {
+        dt = DateTime.parse(trimmed).toLocal();
+      }
+
+      return DateFormat('d MMM yyyy').format(dt);
+    } catch (_) {
+      return trimmed;
+    }
+  }
+
   static String formatTimeAgo(DateTime? date) {
     if (date == null) return '';
 

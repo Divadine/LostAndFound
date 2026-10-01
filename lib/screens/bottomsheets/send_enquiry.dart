@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
@@ -20,6 +21,41 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 
 import '../post/first_stepper_screen.dart';
+
+class WordLimitFormatter extends TextInputFormatter {
+  final int maxWords;
+
+  WordLimitFormatter({this.maxWords = 250});
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) {
+      return newValue;
+    }
+
+    final words = trimmed.split(RegExp(r'\s+'));
+    if (words.length <= maxWords) {
+      return newValue;
+    }
+
+    final truncatedText = words.take(maxWords).join(' ');
+    return TextEditingValue(
+      text: truncatedText,
+      selection: TextSelection.collapsed(offset: truncatedText.length),
+    );
+  }
+}
+
+int countWords(String text) {
+  final clean = text.trim();
+  if (clean.isEmpty) return 0;
+  return clean.split(RegExp(r'\s+')).length;
+}
 
 class SendEnquiry extends StatefulWidget {
   // ============================================================
@@ -243,14 +279,25 @@ class _SendEnquiryState extends State<SendEnquiry> {
     }
 
     // ============================================================
-// VALIDATE DESCRIPTION
-// ============================================================
+    // VALIDATE DESCRIPTION
+    // ============================================================
 
     if (descriptionController.text.trim().isEmpty) {
       AppDialogue.showPopup(
         context: context,
         content: const AppText(
           text: 'Description is required',
+        ),
+      );
+
+      return;
+    }
+
+    if (countWords(descriptionController.text) > 250) {
+      AppDialogue.showPopup(
+        context: context,
+        content: const AppText(
+          text: 'Description cannot exceed 250 words',
         ),
       );
 
@@ -755,18 +802,43 @@ class _SendEnquiryState extends State<SendEnquiry> {
         // DESCRIPTION
         // ========================================================
 
-        buildTextFieldWithHeading(
-          isRequired: true,
-          title: 'Description',
-          fieldWidget: AppTextField(
-            hintText: '',
-            textController:
-            descriptionController,
-            readOnly: false,
-            onChange: (v) {},
-            onSubmit: (v) {},
-            maxLines: 5,
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            buildTextFieldWithHeading(
+              isRequired: true,
+              title: 'Description',
+              fieldWidget: AppTextField(
+                hintText: '',
+                textController:
+                descriptionController,
+                readOnly: false,
+                inputFormatters: [
+                  WordLimitFormatter(maxWords: 250),
+                ],
+                onChange: (v) {},
+                onSubmit: (v) {},
+                maxLines: 5,
+              ),
+            ),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: descriptionController,
+              builder: (context, value, child) {
+                final wordCount = countWords(value.text);
+                return Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4, right: 4),
+                    child: AppText(
+                      text: '$wordCount/250 words',
+                      fontSize: 12,
+                      color: wordCount > 250 ? AppColors.red : AppColors.grey,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
 
         // ========================================================

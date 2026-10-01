@@ -23,6 +23,7 @@ class AppTextField extends StatelessWidget {
   final VoidCallback? onTap;
   final int? maxLength;
   final int? maxLines;
+  final int? minLines;
   final Color? backgroundColor;
   final Color? borderColor;
 
@@ -57,6 +58,7 @@ class AppTextField extends StatelessWidget {
     this.onTap,
     this.maxLength,
     this.maxLines,
+    this.minLines,
     this.backgroundColor,
     this.isTextVisible = false,
     this.textColor,
@@ -101,6 +103,7 @@ class AppTextField extends StatelessWidget {
                   style: appTextStyle(color: textBackgroundColor),
                   readOnly: readOnly ?? false,
                   maxLength: maxLength,
+                  minLines: minLines,
                   maxLines: maxLines ?? 1,
                   obscureText: obscureText ?? false,
                   textCapitalization:
@@ -110,7 +113,7 @@ class AppTextField extends StatelessWidget {
                     ...?inputFormatters,
                   ],
                   keyboardType: textInputType ??
-                      (maxLines != null && maxLines! > 1
+                      ((maxLines != null && maxLines! > 1) || (minLines != null && minLines! > 1)
                           ? TextInputType.multiline
                           : TextInputType.text),
                   textInputAction: textInputAction,

@@ -137,6 +137,10 @@ class _IndividualChatScreenState
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
   Stream<Map<String, dynamic>>? _contactRequestStream;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messagesSub;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _roomSub;
+
+  String _otherUserAvatar = '';
+  DateTime? _clearedAt;
 
   RecorderState _lastRecorderState = RecorderState.idle;
 
@@ -150,6 +154,8 @@ class _IndividualChatScreenState
   @override
   void initState() {
     super.initState();
+
+    _otherUserAvatar = widget.otherUserAvatar.trim();
 
     _otherUserPhone =
         widget.otherUserPhone.trim();
@@ -184,6 +190,43 @@ class _IndividualChatScreenState
     _blockedByStream = ChatService.chatBlockedByStream(roomId: _effectiveRoomId);
     _messagesStream = ChatService.messagesStream(_effectiveRoomId);
     _contactRequestStream = ChatService.contactRequestStream(roomId: _effectiveRoomId);
+
+    _roomSub?.cancel();
+    if (_effectiveRoomId.isNotEmpty) {
+      _roomSub = FirebaseFirestore.instance
+          .collection('chatRooms')
+          .doc(_effectiveRoomId)
+          .snapshots()
+          .listen((snap) {
+        if (!snap.exists || !mounted) return;
+        final data = snap.data();
+        if (data == null) return;
+
+        final clearedAtMap = data['clearedAt'];
+        if (clearedAtMap is Map) {
+          final userClearedAt = clearedAtMap[widget.currentUserId];
+          if (userClearedAt is Timestamp) {
+            final newClearedAt = userClearedAt.toDate();
+            if (_clearedAt != newClearedAt) {
+              setState(() {
+                _clearedAt = newClearedAt;
+              });
+            }
+          }
+        }
+
+        final participants = Map<String, dynamic>.from(data['participants'] ?? {});
+        final otherP = participants[widget.otherUserId];
+        if (otherP is Map) {
+          final avatar = otherP['avatar']?.toString().trim() ?? '';
+          if (avatar != _otherUserAvatar) {
+            setState(() {
+              _otherUserAvatar = avatar;
+            });
+          }
+        }
+      });
+    }
 
     _messagesSub?.cancel();
     if (_effectiveRoomId.isNotEmpty) {
@@ -419,6 +462,14 @@ class _IndividualChatScreenState
         currentUserId: widget.currentUserId,
       );
 
+      if (_effectiveRoomId.isNotEmpty) {
+        await ChatService.setParticipantAvatar(
+          _effectiveRoomId,
+          widget.currentUserId,
+          AppPreferences.getUserAvatar() ?? '',
+        );
+      }
+
       if (_otherUserPhone.isNotEmpty) {
         await _savePhoneToRoom(_otherUserPhone);
       }
@@ -441,6 +492,7 @@ class _IndividualChatScreenState
   @override
   void dispose() {
     _messagesSub?.cancel();
+    _roomSub?.cancel();
     AppRecorderService.instance.removeListener(_onRecorderChanged);
     _connectivitySub?.cancel();
     textController.dispose();
@@ -805,24 +857,25 @@ class _IndividualChatScreenState
               ),
               Expanded(
                 child: SingleChildScrollView(
-                    controller: _scrollController,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
+                  controller: _scrollController,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
                           children: [
                             _buildPhoneRow(),
                             const SizedBox(height: 8),
                             _buildTopItemCard(),
                             const SizedBox(height: 8),
                             _buildSafetyCard(),
-                            const SizedBox(height: 5),
-                            _buildMessagesList(),
-
-                          ]
+                          ],
+                        ),
                       ),
-                    )
-
-
+                      const SizedBox(height: 5),
+                      _buildMessagesList(),
+                    ],
+                  ),
                 ),
               ),
               Divider(),
@@ -1533,7 +1586,16 @@ class _IndividualChatScreenState
         // Therefore, we keep ALL documents here.
         // ============================================================
 
-        final docs = snapshot.data!.docs.toList();
+        final docs = snapshot.data!.docs.where((doc) {
+          final data = doc.data();
+          final createdAt = data['createdAt'];
+          if (_clearedAt != null && createdAt is Timestamp) {
+            if (createdAt.toDate().isBefore(_clearedAt!)) {
+              return false;
+            }
+          }
+          return true;
+        }).toList();
 
         // ============================================================
         // MARK MESSAGES AS READ
@@ -1656,22 +1718,6 @@ class _IndividualChatScreenState
 
             // ========================================================
             // DELETE FOR ME / DELETE FOR EVERYONE
-            // ========================================================
-            //
-            // IMPORTANT:
-            //
-            // This check MUST happen before messageType.
-            //
-            // So even if the original message was:
-            //   text
-            //   image
-            //   audio
-            //   location
-            //
-            // it will show:
-            //
-            // "This message was deleted"
-            //
             // ========================================================
 
             if (isDeletedForMe || isDeletedForEveryone) {
@@ -1875,6 +1921,92 @@ class _IndividualChatScreenState
   }
 
   // ============================================================
+  // AVATAR & FULLSCREEN HELPERS
+  // ============================================================
+
+  Widget _chatAvatar(String? url, {double size = 28}) {
+    final cleanUrl = url?.trim() ?? '';
+    final isEmpty = cleanUrl.isEmpty || cleanUrl.toLowerCase() == 'null';
+    return CircleAvatar(
+      radius: size / 2,
+      backgroundColor: AppColors.fieldGrey,
+      child: ClipOval(
+        child: !isEmpty
+            ? AppCachedNetworkImage(
+                imageUrl: cleanUrl,
+                height: size,
+                width: size,
+                fit: BoxFit.cover,
+              )
+            : Icon(
+                Icons.person,
+                size: size * 0.7,
+                color: AppColors.grey,
+              ),
+      ),
+    );
+  }
+
+  Widget _withAvatar({
+    required bool isMe,
+    required Widget child,
+  }) {
+    final senderAvatar = isMe
+        ? (AppPreferences.getUserAvatar() ?? '')
+        : _otherUserAvatar;
+
+    return Row(
+      mainAxisAlignment:
+          isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (!isMe) ...[
+          _chatAvatar(senderAvatar, size: 28),
+          const SizedBox(width: 6),
+        ],
+        Flexible(child: child),
+        if (isMe) ...[
+          const SizedBox(width: 6),
+          _chatAvatar(senderAvatar, size: 28),
+        ],
+      ],
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: InteractiveViewer(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Center(
+                    child: Icon(Icons.broken_image, color: Colors.white, size: 50),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
   // TEXT MESSAGE
   // ============================================================
 
@@ -1928,102 +2060,89 @@ class _IndividualChatScreenState
 
       child: Container(
         width: double.infinity,
-
         color: isSelected
             ? AppColors.chatDelete
             : Colors.transparent,
-
-        child: Align(
-          alignment: isMe
-              ? Alignment.centerRight
-              : Alignment.centerLeft,
-
-          child: Column(
-            crossAxisAlignment:
-            isMe
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-
-            children: [
-              Container(
-                margin:
-                const EdgeInsets.symmetric(
-                  vertical: 5,
-                  horizontal: 10,
-                ),
-
-                padding:
-                const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-
-                constraints:
-                BoxConstraints(
-                  maxWidth:
-                  MediaQuery.of(
-                    context,
-                  ).size.width *
-                      0.65,
-                ),
-
-                decoration:
-                BoxDecoration(
-                  color: isDeleted
-                      ? AppColors.fieldGrey
-                      : isMe
-                      ? AppColors.chatByMe
-                      : AppColors.chatByOther,
-
-                  borderRadius:
-                  BorderRadius.circular(
-                    16,
-                  ),
-                ),
-
-                child: AppText(
-                  text: isDeleted
-                      ? 'This message was deleted'
-                      : (data['message']?.toString() ?? ''),
-                  fontSize: 13,
-                  fontWeight:
-                  FontWeight.w400,
-                  color: isDeleted ? AppColors.white : null,
-                ),
-              ),
-
-              Row(
-                mainAxisSize: MainAxisSize.min,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          child: _withAvatar(
+            isMe: isMe,
+            child: Align(
+              alignment: isMe
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment:
+                isMe
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
                 children: [
-                  AppText(
-                    text: time,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  if (isMe) ...[
-                    const SizedBox(width: 4),
-                    if (data['read'] == true) ...[
-                      const AppText(
-                        text: 'Seen',
-                        fontSize: 10,
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      const SizedBox(width: 2),
-                    ],
-                    MessageTick(
-                      read: data['read'] == true,
-                      delivered: data['delivered'] == true,
+                  Container(
+                    margin: const EdgeInsets.symmetric(
+                      vertical: 4,
+                      horizontal: 6,
                     ),
-                  ],
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDeleted
+                          ? AppColors.fieldGrey
+                          : isMe
+                          ? AppColors.chatByMe
+                          : AppColors.chatByOther,
+                      borderRadius: BorderRadius.circular(
+                        16,
+                      ),
+                    ),
+                    child: AppText(
+                      text: isDeleted
+                          ? 'This message was deleted'
+                          : (data['message']?.toString() ?? ''),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: isDeleted ? AppColors.white : null,
+                    ),
+                  ),
+
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppText(
+                        text: time,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      if (isMe) ...[
+                        const SizedBox(width: 4),
+                        if (data['read'] == true) ...[
+                          const AppText(
+                            text: 'Seen',
+                            fontSize: 10,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          const SizedBox(width: 2),
+                        ],
+                        MessageTick(
+                          read: data['read'] == true,
+                          delivered: data['delivered'] == true,
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
-  }
+}
 
   // ============================================================
   // IMAGE MESSAGE
@@ -2096,95 +2215,117 @@ class _IndividualChatScreenState
             ? AppColors.chatDelete
             : Colors.transparent,
 
-        child: Align(
-          alignment: isMe
-              ? Alignment.centerRight
-              : Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          child: _withAvatar(
+            isMe: isMe,
+            child: Align(
+              alignment: isMe
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft,
 
-          child: Column(
-            crossAxisAlignment:
-            isMe
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment:
+                isMe
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
 
-            children: [
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  vertical: 5,
-                  horizontal: 10,
-                ),
-                padding: const EdgeInsets.all(4),
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.65,
-                ),
-                decoration: BoxDecoration(
-                  color: isMe ? AppColors.chatByMe : AppColors.chatByOther,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (imageUrl.isNotEmpty)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          imageUrl,
-                          width: double.infinity,
-                          height: 220,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 180,
-                              color: AppColors.fieldGrey,
-                              alignment: Alignment.center,
-                              child: const Icon(Icons.broken_image_outlined),
-                            );
-                          },
-                        ),
-                      ),
-                    if (caption.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        child: AppText(
-                          text: caption,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  AppText(
-                    text: time,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  if (isMe) ...[
-                    const SizedBox(width: 4),
-                    if (data['read'] == true) ...[
-                      const AppText(
-                        text: 'Seen',
-                        fontSize: 10,
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      const SizedBox(width: 2),
-                    ],
-                    MessageTick(
-                      read: data['read'] == true,
-                      delivered: data['delivered'] == true,
+                  Container(
+                    margin: const EdgeInsets.symmetric(
+                      vertical: 4,
+                      horizontal: 6,
                     ),
-                  ],
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: isMe ? AppColors.chatByMe : AppColors.chatByOther,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (imageUrl.isNotEmpty)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: GestureDetector(
+                              onTap: () {
+                                if (selectedMessageId != null) {
+                                  setState(() {
+                                    selectedMessageId = null;
+                                    _selectedMessageData = null;
+                                  });
+                                  return;
+                                }
+                                if (imageUrl.isNotEmpty) {
+                                  _showFullScreenImage(context, imageUrl);
+                                }
+                              },
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: MediaQuery.of(context).size.width * 0.55,
+                                  maxHeight: 300,
+                                ),
+                                child: Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      height: 180,
+                                      width: 180,
+                                      color: AppColors.fieldGrey,
+                                      alignment: Alignment.center,
+                                      child: const Icon(Icons.broken_image_outlined),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (caption.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            child: AppText(
+                              text: caption,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppText(
+                        text: time,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      if (isMe) ...[
+                        const SizedBox(width: 4),
+                        if (data['read'] == true) ...[
+                          const AppText(
+                            text: 'Seen',
+                            fontSize: 10,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          const SizedBox(width: 2),
+                        ],
+                        MessageTick(
+                          read: data['read'] == true,
+                          delivered: data['delivered'] == true,
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -2279,305 +2420,310 @@ class _IndividualChatScreenState
             ? AppColors.chatDelete
             : Colors.transparent,
 
-        child: Align(
-          alignment: isMe
-              ? Alignment.centerRight
-              : Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          child: _withAvatar(
+            isMe: isMe,
+            child: Align(
+              alignment: isMe
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft,
 
-          child: Column(
-            crossAxisAlignment:
-            isMe
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment:
+                isMe
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
 
-            children: [
-              // ==================================================
-              // LOCATION CARD
-              // ==================================================
+                children: [
+                  // ==================================================
+                  // LOCATION CARD
+                  // ==================================================
 
-              Container(
-                width: 260,
+                  Container(
+                    width: 250,
 
-                margin:
-                const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
+                    margin:
+                    const EdgeInsets.symmetric(
+                      vertical: 2,
+                    ),
 
-                clipBehavior:
-                Clip.antiAlias,
+                    clipBehavior:
+                    Clip.antiAlias,
 
-                decoration:
-                BoxDecoration(
-                  color: AppColors.white,
+                    decoration:
+                    BoxDecoration(
+                      color: AppColors.white,
 
-                  borderRadius:
-                  BorderRadius.circular(
-                    16,
-                  ),
+                      borderRadius:
+                      BorderRadius.circular(
+                        16,
+                      ),
 
-                  border: Border.all(
-                    color:
-                    AppColors.fieldGrey,
-                  ),
-                ),
-
-                child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
-
-                  children: [
-                    // ==================================================
-                    // MAP
-                    // ==================================================
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 145,
-
-                      child: Stack(
-                        children: [
-                          Container(
-                            width:
-                            double.infinity,
-                            height:
-                            double.infinity,
-
-                            decoration:
-                            const BoxDecoration(
-                              gradient:
-                              LinearGradient(
-                                begin:
-                                Alignment.topLeft,
-                                end:
-                                Alignment.bottomRight,
-                                colors: [
-                                  Color(
-                                    0xFFE5EDF0,
-                                  ),
-                                  Color(
-                                    0xFFD8E4E8,
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            child:
-                            CustomPaint(
-                              painter:
-                              _LocationMapPainter(),
-                            ),
-                          ),
-
-                          // ==================================================
-                          // CENTER LOCATION PIN
-                          // ==================================================
-
-                          const Center(
-                            child: Icon(
-                              Icons
-                                  .location_on,
-                              size: 44,
-                              color: AppColors
-                                  .primaryColor,
-                            ),
-                          ),
-
-                          // ==================================================
-                          // MAP LABEL
-                          // ==================================================
-
-                          Positioned(
-                            left: 10,
-                            top: 10,
-
-                            child: Container(
-                              padding:
-                              const EdgeInsets
-                                  .symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-
-                              decoration:
-                              BoxDecoration(
-                                color:
-                                Colors.white,
-                                borderRadius:
-                                BorderRadius
-                                    .circular(
-                                  20,
-                                ),
-                              ),
-
-                              child:
-                              const Text(
-                                'Location',
-                                style:
-                                TextStyle(
-                                  fontSize: 11,
-                                  fontWeight:
-                                  FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // ==================================================
-                          // OPEN MAP ICON
-                          // ==================================================
-
-                          Positioned(
-                            right: 10,
-                            top: 10,
-
-                            child: Container(
-                              width: 34,
-                              height: 34,
-
-                              decoration:
-                              BoxDecoration(
-                                color:
-                                Colors.white,
-                                shape:
-                                BoxShape.circle,
-                              ),
-
-                              child: const Icon(
-                                Icons
-                                    .open_in_new,
-                                size: 17,
-                              ),
-                            ),
-                          ),
-                        ],
+                      border: Border.all(
+                        color:
+                        AppColors.fieldGrey,
                       ),
                     ),
 
-                    // ==================================================
-                    // LOCATION DETAILS
-                    // ==================================================
+                    child: Column(
+                      crossAxisAlignment:
+                      CrossAxisAlignment.start,
 
-                    Padding(
-                      padding:
-                      const EdgeInsets
-                          .all(12),
+                      children: [
+                        // ==================================================
+                        // MAP
+                        // ==================================================
 
-                      child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment
-                            .start,
+                        SizedBox(
+                          width: double.infinity,
+                          height: 145,
 
-                        children: [
-                          Row(
+                          child: Stack(
                             children: [
-                              const Icon(
-                                Icons
-                                    .location_on,
-                                size: 18,
-                                color: AppColors
-                                    .primaryColor,
+                              Container(
+                                width:
+                                double.infinity,
+                                height:
+                                double.infinity,
+
+                                decoration:
+                                const BoxDecoration(
+                                  gradient:
+                                  LinearGradient(
+                                    begin:
+                                    Alignment.topLeft,
+                                    end:
+                                    Alignment.bottomRight,
+                                    colors: [
+                                      Color(
+                                        0xFFE5EDF0,
+                                      ),
+                                      Color(
+                                        0xFFD8E4E8,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                child:
+                                CustomPaint(
+                                  painter:
+                                  _LocationMapPainter(),
+                                ),
                               ),
 
-                              const SizedBox(
-                                width: 6,
+                              // ==================================================
+                              // CENTER LOCATION PIN
+                              // ==================================================
+
+                              const Center(
+                                child: Icon(
+                                  Icons
+                                      .location_on,
+                                  size: 44,
+                                  color: AppColors
+                                      .primaryColor,
+                                ),
                               ),
 
-                              const Expanded(
-                                child: Text(
-                                  'Shared Location',
-                                  style:
-                                  TextStyle(
-                                    fontSize: 13,
-                                    fontWeight:
-                                    FontWeight
-                                        .w600,
+                              // ==================================================
+                              // MAP LABEL
+                              // ==================================================
+
+                              Positioned(
+                                left: 10,
+                                top: 10,
+
+                                child: Container(
+                                  padding:
+                                  const EdgeInsets
+                                      .symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+
+                                  decoration:
+                                  BoxDecoration(
+                                    color:
+                                    Colors.white,
+                                    borderRadius:
+                                    BorderRadius
+                                        .circular(
+                                      20,
+                                    ),
+                                  ),
+
+                                  child:
+                                  const Text(
+                                    'Location',
+                                    style:
+                                    TextStyle(
+                                      fontSize: 11,
+                                      fontWeight:
+                                      FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // ==================================================
+                              // OPEN MAP ICON
+                              // ==================================================
+
+                              Positioned(
+                                right: 10,
+                                top: 10,
+
+                                child: Container(
+                                  width: 34,
+                                  height: 34,
+
+                                  decoration:
+                                  BoxDecoration(
+                                    color:
+                                    Colors.white,
+                                    shape:
+                                    BoxShape.circle,
+                                  ),
+
+                                  child: const Icon(
+                                    Icons
+                                        .open_in_new,
+                                    size: 17,
                                   ),
                                 ),
                               ),
                             ],
                           ),
+                        ),
 
-                          if (address
-                              .isNotEmpty) ...[
-                            const SizedBox(
-                              height: 6,
-                            ),
+                        // ==================================================
+                        // LOCATION DETAILS
+                        // ==================================================
 
-                            Text(
-                              address,
-                              maxLines: 2,
-                              overflow:
-                              TextOverflow
-                                  .ellipsis,
+                        Padding(
+                          padding:
+                          const EdgeInsets
+                              .all(12),
 
-                              style:
-                              const TextStyle(
-                                fontSize: 11,
-                                color: Colors
-                                    .black54,
-                                height: 1.35,
+                          child: Column(
+                            crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
+
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons
+                                        .location_on,
+                                    size: 18,
+                                    color: AppColors
+                                        .primaryColor,
+                                  ),
+
+                                  const SizedBox(
+                                    width: 6,
+                                  ),
+
+                                  const Expanded(
+                                    child: Text(
+                                      'Shared Location',
+                                      style:
+                                      TextStyle(
+                                        fontSize: 13,
+                                        fontWeight:
+                                        FontWeight
+                                            .w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
 
-                          if (latitude != null &&
-                              longitude !=
-                                  null) ...[
-                            const SizedBox(
-                              height: 7,
-                            ),
+                              if (address
+                                  .isNotEmpty) ...[
+                                const SizedBox(
+                                  height: 6,
+                                ),
 
-                            Text(
-                              '${latitude.toStringAsFixed(5)}, '
-                                  '${longitude.toStringAsFixed(5)}',
+                                Text(
+                                  address,
+                                  maxLines: 2,
+                                  overflow:
+                                  TextOverflow
+                                      .ellipsis,
 
-                              style:
-                              const TextStyle(
-                                fontSize: 10,
-                                color: Colors
-                                    .black45,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                                  style:
+                                  const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors
+                                        .black54,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+
+                              if (latitude != null &&
+                                  longitude !=
+                                      null) ...[
+                                const SizedBox(
+                                  height: 7,
+                                ),
+
+                                Text(
+                                  '${latitude.toStringAsFixed(5)}, '
+                                      '${longitude.toStringAsFixed(5)}',
+
+                                  style:
+                                  const TextStyle(
+                                    fontSize: 10,
+                                    color: Colors
+                                        .black45,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-
-              // ==================================================
-              // TIME
-              // ==================================================
-
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AppText(
-                    text: time,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
                   ),
-                  if (isMe) ...[
-                    const SizedBox(width: 4),
-                    if (data['read'] == true) ...[
-                      const AppText(
-                        text: 'Seen',
+
+                  // ==================================================
+                  // TIME
+                  // ==================================================
+
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppText(
+                        text: time,
                         fontSize: 10,
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w400,
                       ),
-                      const SizedBox(width: 2),
+                      if (isMe) ...[
+                        const SizedBox(width: 4),
+                        if (data['read'] == true) ...[
+                          const AppText(
+                            text: 'Seen',
+                            fontSize: 10,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          const SizedBox(width: 2),
+                        ],
+                        MessageTick(
+                          read: data['read'] == true,
+                          delivered: data['delivered'] == true,
+                        ),
+                      ],
                     ],
-                    MessageTick(
-                      read: data['read'] == true,
-                      delivered: data['delivered'] == true,
-                    ),
-                  ],
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -2649,84 +2795,89 @@ class _IndividualChatScreenState
             ? AppColors.chatDelete
             : Colors.transparent,
 
-        child: Align(
-          alignment: isMe
-              ? Alignment.centerRight
-              : Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          child: _withAvatar(
+            isMe: isMe,
+            child: Align(
+              alignment: isMe
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft,
 
-          child: Column(
-            crossAxisAlignment:
-            isMe
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment:
+                isMe
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
 
-            children: [
-              if (audioUrl.isNotEmpty)
-                Container(
-                  width: 250,
-                  margin:
-                  const EdgeInsets.symmetric(
-                    vertical: 5,
-                    horizontal: 10,
-                  ),
+                children: [
+                  if (audioUrl.isNotEmpty)
+                    Container(
+                      width: 250,
+                      margin:
+                      const EdgeInsets.symmetric(
+                        vertical: 2,
+                      ),
 
-                  padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(8),
 
-                  decoration:
-                  BoxDecoration(
-                    color: isMe
-                        ? AppColors.chatByMe
-                        : AppColors.chatByOther,
-                    borderRadius:
-                    BorderRadius.circular(
-                      16,
-                    ),
-                  ),
-
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppAudioPlayer(url: audioUrl),
-                      const SizedBox(height: 4),
-                      Align(
-                        alignment: Alignment.bottomRight,
-                        child: AppText(
-                          text: duration,
-                          fontSize: 10,
-                          color: AppColors.grey,
+                      decoration:
+                      BoxDecoration(
+                        color: isMe
+                            ? AppColors.chatByMe
+                            : AppColors.chatByOther,
+                        borderRadius:
+                        BorderRadius.circular(
+                          16,
                         ),
                       ),
-                    ],
-                  ),
-                ),
 
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AppText(
-                    text: time,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  if (isMe) ...[
-                    const SizedBox(width: 4),
-                    if (data['read'] == true) ...[
-                      const AppText(
-                        text: 'Seen',
-                        fontSize: 10,
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppAudioPlayer(url: audioUrl),
+                          const SizedBox(height: 4),
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: AppText(
+                              text: duration,
+                              fontSize: 10,
+                              color: AppColors.grey,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 2),
-                    ],
-                    MessageTick(
-                      read: data['read'] == true,
-                      delivered: data['delivered'] == true,
                     ),
-                  ],
+
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppText(
+                        text: time,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      if (isMe) ...[
+                        const SizedBox(width: 4),
+                        if (data['read'] == true) ...[
+                          const AppText(
+                            text: 'Seen',
+                            fontSize: 10,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          const SizedBox(width: 2),
+                        ],
+                        MessageTick(
+                          read: data['read'] == true,
+                          delivered: data['delivered'] == true,
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -2862,9 +3013,18 @@ class _IndividualChatScreenState
                             roomId: widget.roomId,
                             currentUserId: widget.currentUserId,
                             onAttachmentSelected: (attachment) {
-                              setState(() {
-                                _pendingAttachment = attachment;
-                              });
+                              if (attachment['type'] == 'address') {
+                                final address = attachment['address']?.toString() ?? '';
+                                textController.text = address;
+                                textController.selection = TextSelection.fromPosition(
+                                  TextPosition(offset: address.length),
+                                );
+                                _focusNode.requestFocus();
+                              } else {
+                                setState(() {
+                                  _pendingAttachment = attachment;
+                                });
+                              }
                             },
                           ),
                         );
@@ -2881,10 +3041,11 @@ class _IndividualChatScreenState
                   const SizedBox(width: 8),
                   Expanded(
                     child: AppContainer(
-                      height: 50,
                       color: AppColors.fieldGrey.withAlpha(50),
                       widget: AppTextField(
                         focusNode: _focusNode,
+                        minLines: 1,
+                        maxLines: 5,
                         borderRadius: BorderRadius.circular(14),
                         borderColor: Colors.transparent,
                         hintStyle: TextStyle(
@@ -3025,59 +3186,56 @@ class _IndividualChatScreenState
     final type = _pendingAttachment!['type'];
 
     if (type == 'image') {
-      return Container(
-        margin: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
-        height: 150,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  _pendingAttachment!['url'],
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: AppColors.fieldGrey,
-                    child: const Icon(Icons.broken_image),
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
+          child: Stack(
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 180,
+                  maxHeight: 180,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    _pendingAttachment!['url'],
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 100,
+                      height: 100,
+                      color: AppColors.fieldGrey,
+                      child: const Icon(Icons.broken_image),
+                    ),
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _pendingAttachment = null;
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.black54,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.close,
-                    size: 18,
-                    color: Colors.white,
+              Positioned(
+                top: 4,
+                right: 4,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _pendingAttachment = null;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 16,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
@@ -3233,7 +3391,14 @@ class _IndividualChatScreenState
                       _showNoInternetSnackbar();
                       return;
                     }
-                    await _clearChat();
+                    await ChatService.clearChat(
+                      roomId: _effectiveRoomId,
+                      currentUserId: widget.currentUserId,
+                      hide: true,
+                    );
+                    if (mounted) {
+                      AppRoutes.pop();
+                    }
                   },
                   child: const AppText(
                     text: 'Delete chat',
@@ -3297,23 +3462,7 @@ class _IndividualChatScreenState
 
         const SizedBox(width: 20),
 
-        CircleAvatar(
-          radius: 18,
-
-          child: ClipOval(
-            child: widget.otherUserAvatar.isNotEmpty
-                ? AppCachedNetworkImage(
-                    imageUrl: widget.otherUserAvatar,
-                    height: 36,
-                    width: 36,
-                    fit: BoxFit.cover,
-                  )
-                : Icon(
-                    Icons.person,
-                    color: AppColors.primaryColor,
-                  ),
-          ),
-        ),
+        _chatAvatar(_otherUserAvatar, size: 36),
 
         const SizedBox(width: 15),
 
@@ -3506,97 +3655,98 @@ class _IndividualChatScreenState
           const SizedBox(width: 10),
         ],
 
-        Container(
-          height: 36,
-          width: 36,
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: AppColors.fieldGrey,
+        if (isMyMessage)
+          Container(
+            height: 36,
+            width: 36,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: AppColors.fieldGrey,
+              ),
+              borderRadius: BorderRadius.circular(10),
             ),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: PopupMenuButton<String>(
-            padding: EdgeInsets.zero,
-            offset: const Offset(0, 40),
+            child: PopupMenuButton<String>(
+              padding: EdgeInsets.zero,
+              offset: const Offset(0, 40),
 
-            icon: AppIconWidget(
-              assetPath: AssetImages.delete,
-              size: 18,
-              color: AppColors.black,
-            ),
-
-            onSelected: (value) async {
-              if (_isOffline) {
-                _showNoInternetSnackbar();
-                return;
-              }
-              final id = selectedMessageId;
-
-              if (id == null) return;
-
-              try {
-                if (value == 'me') {
-                  await ChatService.deleteForMe(
-                    roomId: _effectiveRoomId,
-                    messageId: id,
-                    currentUserId: widget.currentUserId,
-                  );
-                }
-
-                if (value == 'everyone') {
-                  await ChatService.deleteForEveryone(
-                    roomId: _effectiveRoomId,
-                    messageId: id,
-                    currentUserId: widget.currentUserId,
-                  );
-                }
-
-                if (!mounted) return;
-
-                setState(() {
-                  selectedMessageId = null;
-                  _selectedMessageData = null;
-                });
-              } catch (e) {
-                if (!mounted) return;
-
-                setState(() {
-                  selectedMessageId = null;
-                  _selectedMessageData = null;
-                });
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      e.toString().replaceFirst('Exception: ', ''),
-                    ),
-                  ),
-                );
-              }
-            },
-
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'me',
-                child: AppText(
-                  text: 'Delete for me',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+              icon: AppIconWidget(
+                assetPath: AssetImages.delete,
+                size: 18,
+                color: AppColors.black,
               ),
 
-              if (isMyMessage)
+              onSelected: (value) async {
+                if (_isOffline) {
+                  _showNoInternetSnackbar();
+                  return;
+                }
+                final id = selectedMessageId;
+
+                if (id == null) return;
+
+                try {
+                  if (value == 'me') {
+                    await ChatService.deleteForMe(
+                      roomId: _effectiveRoomId,
+                      messageId: id,
+                      currentUserId: widget.currentUserId,
+                    );
+                  }
+
+                  if (value == 'everyone') {
+                    await ChatService.deleteForEveryone(
+                      roomId: _effectiveRoomId,
+                      messageId: id,
+                      currentUserId: widget.currentUserId,
+                    );
+                  }
+
+                  if (!mounted) return;
+
+                  setState(() {
+                    selectedMessageId = null;
+                    _selectedMessageData = null;
+                  });
+                } catch (e) {
+                  if (!mounted) return;
+
+                  setState(() {
+                    selectedMessageId = null;
+                    _selectedMessageData = null;
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        e.toString().replaceFirst('Exception: ', ''),
+                      ),
+                    ),
+                  );
+                }
+              },
+
+              itemBuilder: (context) => [
                 const PopupMenuItem(
-                  value: 'everyone',
+                  value: 'me',
                   child: AppText(
-                    text: 'Delete for everyone',
+                    text: 'Delete for me',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-            ],
+
+                if (isMyMessage)
+                  const PopupMenuItem(
+                    value: 'everyone',
+                    child: AppText(
+                      text: 'Delete for everyone',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
       ],
     );
   }

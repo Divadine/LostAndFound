@@ -801,7 +801,9 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                       : (post.postType == 0
                           ? (post.ownerName.isNotEmpty ? post.ownerName : (post.posterName.isNotEmpty ? post.posterName : 'Owner'))
                           : (post.ownerName.isNotEmpty ? post.ownerName : 'Owner'))),
-              location: _formatDate(post.postDate),
+              location: post.handoverDate.isNotEmpty
+                  ? post.handoverDate
+                  : _formatDate(post.postDate),
               onTap: () {
                 TransferType type;
                 if (post.handoverType == 2 || isJewellery) {
@@ -832,9 +834,11 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                         ? (post.stationName.isNotEmpty ? post.stationName : (post.handoverName.isNotEmpty && post.handoverName != 'Owner' ? post.handoverName : 'Police Station'))
                         : (post.handoverName.isNotEmpty ? post.handoverName : 'Others'));
 
-                final String finalUserId = isOwnerType
-                    ? (post.handoverUserUid.isNotEmpty ? post.handoverUserUid : post.postUid)
-                    : (post.handoverUserUid.isNotEmpty ? post.handoverUserUid : '');
+                final String finalUserId = post.handoverUserUid.isNotEmpty
+                    ? post.handoverUserUid
+                    : (post.postUid.isNotEmpty
+                        ? post.postUid
+                        : (post.userId != 0 ? post.userId.toString() : ''));
 
                 // For owner types, NO fallback to original post description/image is allowed.
                 final String finalDesc = isOwnerType

@@ -232,6 +232,10 @@ class _ChatScreenState
                               currentUserId!,
                             );
 
+                            if (room.hiddenForMe) {
+                              continue;
+                            }
+
                             if (room
                                 .isReceivedEnquiry) {
                               receivedLeads
@@ -494,9 +498,22 @@ class _ChatScreenState
               data['deletedFor'] ?? [],
             );
 
-            return !deletedFor.contains(
+            if (deletedFor.contains(
               currentUserId!,
-            );
+            )) {
+              return false;
+            }
+
+            if (chat.clearedAt != null) {
+              final createdAt = data['createdAt'];
+              if (createdAt is Timestamp) {
+                if (createdAt.toDate().isBefore(chat.clearedAt!)) {
+                  return false;
+                }
+              }
+            }
+
+            return true;
           }).toList();
 
           if (visibleMessages
@@ -821,6 +838,9 @@ class ChatRoomData {
 
   final List<String> users;
 
+  final bool hiddenForMe;
+  final DateTime? clearedAt;
+
   ChatRoomData({
     required this.roomId,
     required this.currentUserId,
@@ -843,6 +863,8 @@ class ChatRoomData {
     required this.itemPostId,
     required this.matchedPostId,
     required this.users,
+    required this.hiddenForMe,
+    this.clearedAt,
   });
 
   factory ChatRoomData.fromFirestore(
@@ -1024,6 +1046,18 @@ class ChatRoomData {
             ?.toString() ??
             '';
 
+    final hiddenFor = List<String>.from(data['hiddenFor'] ?? []);
+    final hiddenForMe = hiddenFor.contains(currentUserId);
+
+    DateTime? clearedAt;
+    final clearedAtMap = data['clearedAt'];
+    if (clearedAtMap is Map) {
+      final userClearedAt = clearedAtMap[currentUserId];
+      if (userClearedAt is Timestamp) {
+        clearedAt = userClearedAt.toDate();
+      }
+    }
+
     // ============================================================
     // DEBUG
     // ============================================================
@@ -1107,6 +1141,12 @@ class ChatRoomData {
 
       users:
       users,
+
+      hiddenForMe:
+      hiddenForMe,
+
+      clearedAt:
+      clearedAt,
     );
   }
 
@@ -1168,6 +1208,9 @@ Widget ChatTile({
       ? 'No messages yet'
       : lastMessage;
 
+  final cleanImageUrl = imageUrl.trim();
+  final isAvatarEmpty = cleanImageUrl.isEmpty || cleanImageUrl.toLowerCase() == 'null';
+
   return InkWell(
     onTap: onTap,
 
@@ -1192,10 +1235,10 @@ Widget ChatTile({
               AppColors.fieldGrey,
 
               child: ClipOval(
-                child: imageUrl.isNotEmpty
+                child: !isAvatarEmpty
                     ? AppCachedNetworkImage(
                   imageUrl:
-                  imageUrl,
+                  cleanImageUrl,
 
                   height: 56,
 

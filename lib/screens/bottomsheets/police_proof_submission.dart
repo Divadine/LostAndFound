@@ -16,7 +16,6 @@ import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
-import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 
 import 'owner_proof_submission.dart';
@@ -156,6 +155,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
     if (response.isSuccess) {
       Navigator.of(context).pop();
       AppDialogue.showPopup(
+        showCloseIcon: true,
         context: context,
         content: TransferCompleted(
           type: widget.isReceiver ? TransferType.receiveToPolice : TransferType.handOverToPolice,
@@ -163,8 +163,8 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
             policeStationName: widget.stationName,
             policeStationAddress: widget.stationAddress,
             userId: widget.isReceiver
-                ? codeController.text.trim()
-                : null,
+                ? (codeController.text.trim().isNotEmpty ? codeController.text.trim() : widget.userId.toString())
+                : widget.userId.toString(),
             codeId: widget.isReceiver ? codeController.text.trim() : '',
             phoneNumber: widget.phoneNumber,
             description: textController.text.trim(),

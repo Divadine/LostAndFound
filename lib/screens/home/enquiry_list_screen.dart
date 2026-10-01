@@ -314,9 +314,16 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
             // User ID Priority:
             // 1. Handover User UID
             // 2. Winner Enquirer UID
-            final String finalUserId = isOwnerType
-                ? (post?.handoverUserUid.isNotEmpty == true ? post!.handoverUserUid : (winnerEnquiry?.userUid ?? ''))
-                : (post?.handoverUserUid.isNotEmpty == true ? post!.handoverUserUid : (winnerEnquiry?.userUid ?? ''));
+            // 3. Post User UID / Post UID
+            final String finalUserId = post?.handoverUserUid.isNotEmpty == true
+                ? post!.handoverUserUid
+                : (winnerEnquiry?.userUid.isNotEmpty == true
+                    ? winnerEnquiry!.userUid
+                    : (post?.userUid.isNotEmpty == true
+                        ? post!.userUid
+                        : (post?.postUid.isNotEmpty == true
+                            ? post!.postUid
+                            : (post?.userId != null && post!.userId != 0 ? post!.userId.toString() : ''))));
 
             final String finalDesc = isOwnerType
                 ? (post?.handoverDescription.isNotEmpty == true ? post!.handoverDescription : 'Item successfully closed')
