@@ -219,7 +219,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final roomId = ChatService.generateRoomId(
       userId1: currentUserIdStr,
       userId2: otherUserIdStr,
-      postId: notification.postId.toString(),
+      postId: notification.postId,
+      matchedPostId: notification.matchedPostId != 0 ? notification.matchedPostId : null,
     );
 
     debugPrint('Generated notification roomId: $roomId');

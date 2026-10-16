@@ -5,6 +5,7 @@ class NotificationModel {
   final int userId;
   final int senderId;
   final int postId;
+  final int matchedPostId;
   final String title;
   final String description;
   final String? createdAt;
@@ -16,6 +17,7 @@ class NotificationModel {
     required this.userId,
     required this.senderId,
     required this.postId,
+    this.matchedPostId = 0,
     required this.title,
     required this.description,
     this.createdAt,
@@ -40,11 +42,16 @@ class NotificationModel {
       );
     }
 
+    int parsedMatchedPostId = parseId(
+      json['matched_postid'] ?? json['matched_id'] ?? json['matchedPostId'],
+    );
+
     return NotificationModel(
       id: parseId(json['id']),
       userId: parseId(json['user_id']),
       senderId: parsedSenderId,
       postId: parseId(json['post_id']),
+      matchedPostId: parsedMatchedPostId,
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       createdAt: json['created_at']?.toString(),

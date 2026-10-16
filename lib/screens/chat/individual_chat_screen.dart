@@ -521,11 +521,31 @@ class _IndividualChatScreenState
   // ============================================================
 
   Future<void> _notifyOtherUser({String? preview}) async {
-    final receiverId = int.tryParse(widget.otherUserId);
+    String receiverStr = widget.otherUserId.trim();
 
-    if (receiverId == null) {
+    if (receiverStr.isEmpty) {
+      final roomData = await ChatService.getRoom(_effectiveRoomId);
+      if (roomData != null) {
+        List<String> participantIds = [];
+        if (roomData['participantsList'] is List) {
+          participantIds = List<String>.from(roomData['participantsList']);
+        } else if (roomData['users'] is List) {
+          participantIds = List<String>.from(roomData['users']);
+        } else if (roomData['participants'] is Map) {
+          participantIds = (roomData['participants'] as Map).keys.cast<String>().toList();
+        }
+        receiverStr = participantIds.firstWhere(
+          (id) => id != widget.currentUserId.trim(),
+          orElse: () => '',
+        );
+      }
+    }
+
+    final receiverId = int.tryParse(receiverStr);
+
+    if (receiverId == null || receiverId == 0) {
       debugPrint(
-        '[FCM] Notification receiver: Invalid receiver ID: ${widget.otherUserId}',
+        '[FCM] Notification receiver: Invalid receiver ID: "$receiverStr"',
       );
       return;
     }
@@ -540,10 +560,10 @@ class _IndividualChatScreenState
       );
 
       debugPrint(
-        '[Chat Notification] receiver=${widget.otherUserId}, '
-            'sender=${widget.currentUserId}, '
-            'preview=${preview ?? ''}, '
-            'response=${notificationResponse.message}',
+        '[Chat Notification] receiver=$receiverId, '
+        'sender=${widget.currentUserId}, '
+        'preview=${preview ?? ''}, '
+        'response=${notificationResponse.message}',
       );
     } catch (e) {
       debugPrint('[Chat Notification] ERROR: $e');

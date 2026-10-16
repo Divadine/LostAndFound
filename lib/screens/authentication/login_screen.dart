@@ -165,6 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         radius: BorderRadius.circular(8),
                         title: "Login",
                         onTap: () async {
+
                           errorText = AppUtils.validateMobileNumber(phoneController.text);
                           numberStream.add(errorText);
 
@@ -234,6 +235,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         text1: "Don't have an account?",
                         tappableText: 'Register',
                         onTap: () async {
+
                           await AppRoutes.pushNamed(AppRoutes.registerScreen);
 
                           if (!mounted) return;

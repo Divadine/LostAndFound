@@ -174,7 +174,8 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
     final roomId = ChatService.generateRoomId(
       userId1: currentUserId,
       userId2: otherUserId,
-      postId: widget.postId.toString(),
+      postId: widget.postId,
+      matchedPostId: widget.originalPostId,
     );
 
     debugPrint('[EnquiryCheck] currentUserId=$currentUserId otherUserId=$otherUserId');
@@ -182,30 +183,18 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
 
     final room = await ChatService.getRoom(roomId);
 
-    if (room != null) {
-      if (!mounted) return;
+    if (!mounted) return;
 
+    if (room != null) {
       setState(() {
         hasEnquired = true;
         existingRoomId = roomId;
       });
     } else {
-      try {
-        final enquiryResponse = await authController.viewEnquiry(postId: widget.postId);
-        if (enquiryResponse.isSuccess && enquiryResponse.data != null) {
-          final enquiries = enquiryResponse.data!.enquiries;
-          final alreadyEnquired = enquiries.any((e) => e.enquirerUserId == userId);
-          if (alreadyEnquired) {
-            if (!mounted) return;
-            setState(() {
-              hasEnquired = true;
-              existingRoomId = roomId;
-            });
-          }
-        }
-      } catch (e) {
-        debugPrint('[EnquiryCheck] viewEnquiry check failed: $e');
-      }
+      setState(() {
+        hasEnquired = false;
+        existingRoomId = null;
+      });
     }
   }
 
@@ -218,6 +207,8 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
       setState(() {
         isLoading = true;
         errorMessage = null;
+        hasEnquired = false;
+        existingRoomId = null;
       });
     }
 

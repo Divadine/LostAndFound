@@ -16,16 +16,26 @@ class ChatService {
   static String generateRoomId({
     required String userId1,
     required String userId2,
-    required String postId,
+    dynamic matchedPostId,
+    required dynamic postId,
   }) {
-    final cleanUser1 = userId1.trim();
-    final cleanUser2 = userId2.trim();
-    final cleanPostId = postId.trim();
+    final cleanUser1 = userId1.toString().trim();
+    final cleanUser2 = userId2.toString().trim();
+    final cleanPostId = postId.toString().trim();
+    final cleanMatchedPostId = matchedPostId?.toString().trim() ?? '';
 
     final users = [cleanUser1, cleanUser2]..sort();
 
-    // Deterministic ID based on sorted users and target post ID
-    return '${users[0]}_${users[1]}_$cleanPostId';
+    String comboPostId;
+    if (cleanMatchedPostId.isNotEmpty &&
+        cleanMatchedPostId != '0' &&
+        !cleanPostId.contains('_')) {
+      comboPostId = '${cleanMatchedPostId}_$cleanPostId';
+    } else {
+      comboPostId = cleanPostId;
+    }
+
+    return '${users[0]}_${users[1]}_$comboPostId';
   }
 
   // ============================================================
@@ -66,9 +76,10 @@ class ChatService {
       userId1: cleanCurrentUserId,
       userId2: cleanOtherUserId,
       postId: cleanPostId,
+      matchedPostId: matchedPostId,
     );
 
-    debugPrint('[CHAT_ID]\n'
+    print('[CHAT_ID]\n'
         'currentUserId=$cleanCurrentUserId\n'
         'otherUserId=$cleanOtherUserId\n'
         'postId=$cleanPostId\n'
@@ -86,13 +97,24 @@ class ChatService {
         // ========================================================
         // CREATE NEW ROOM
         // ========================================================
+        debugPrint('[Room] creating roomId=$roomId');
+
         final users = [cleanCurrentUserId, cleanOtherUserId]..sort();
+
+        final effectiveMatchedPostId = matchedPostId?.trim() ?? '';
+        String effectivePostId = cleanPostId;
+        if (effectivePostId.contains('_')) {
+          effectivePostId = effectivePostId.split('_').last;
+        }
 
         final data = <String, dynamic>{
           'roomId': roomId,
           'users': users,
-          'postId': cleanPostId,
-          'matchedPostId': matchedPostId?.trim() ?? '',
+          'participantsList': users,
+          'postId': effectivePostId,
+          'theirPostId': effectivePostId,
+          'matchedPostId': effectiveMatchedPostId,
+          'myPostId': effectiveMatchedPostId,
           'enquiryId': enquiryId?.trim() ?? '',
           'enquirySenderId': enquirySenderId?.trim() ?? '',
           'itemName': itemName?.trim() ?? '',
@@ -130,7 +152,7 @@ class ChatService {
           },
         };
 
-        transaction.set(roomRef, data);
+        transaction.set(roomRef, data, SetOptions(merge: true));
         debugPrint('[CHAT_CREATED] Created new room: $roomId');
       } else {
         // ========================================================
@@ -161,11 +183,11 @@ class ChatService {
         mergeField('profileUrl', profileUrl);
 
         // Merge participants
-        final participants =
-        Map<String, dynamic>.from(existingData['participants'] ?? {});
+        final participants =Map<String, dynamic>.from(existingData['participants'] ?? {});
 
-        void updateParticipant(
-            String uid, String? name, String? avatar, String? phone) {
+
+        void updateParticipant(String uid, String? name, String? avatar, String? phone) {
+
           final p = Map<String, dynamic>.from(participants[uid] ?? {});
           final n = name?.trim() ?? '';
           final a = avatar?.trim() ?? '';
@@ -191,7 +213,7 @@ class ChatService {
         updateData['participants'] = participants;
 
         transaction.update(roomRef, updateData);
-        debugPrint('[CHAT_EXISTING] Using existing room: $roomId');
+        print('[CHAT_EXISTING] Using existing room: $roomId');
       }
 
       return roomId;
@@ -239,10 +261,10 @@ class ChatService {
       if (!snapshot.exists) return;
 
       final roomData = snapshot.data()!;
-      final participants =
-      Map<String, dynamic>.from(roomData['participants'] ?? {});
-      final participant =
-      Map<String, dynamic>.from(participants[cleanUserId] ?? {});
+      final participants = Map<String, dynamic>.from(roomData['participants'] ?? {});
+
+      final participant = Map<String, dynamic>.from(participants[cleanUserId] ?? {});
+
 
       if (name.trim().isNotEmpty) {
         participant['name'] = name.trim();
@@ -465,13 +487,13 @@ class ChatService {
     });
   }
 
-  static Stream<bool> chatBlockedStream({required String roomId}) {
-    return _rooms.doc(roomId).snapshots().map((s) {
-      if (!s.exists) return false;
-      final blockedBy = List<String>.from(s.data()?['blockedBy'] ?? []);
-      return blockedBy.isNotEmpty;
-    });
-  }
+  // static Stream<bool> chatBlockedStream({required String roomId}) {
+  //   return _rooms.doc(roomId).snapshots().map((s) {
+  //     if (!s.exists) return false;
+  //     final blockedBy = List<String>.from(s.data()?['blockedBy'] ?? []);
+  //     return blockedBy.isNotEmpty;
+  //   });
+  // }
 
   static Stream<Map<String, dynamic>> contactRequestStream(
       {required String roomId}) {
@@ -562,20 +584,33 @@ class ChatService {
       final blockedBy = List<String>.from(roomData['blockedBy'] ?? []);
       if (blockedBy.isNotEmpty) throw Exception('This chat is blocked.');
 
-      final users = List<String>.from(roomData['users'] ?? []);
-      receiverId = users.firstWhere(
-            (id) => id != cleanSenderId,
+      List<String> participantIds = [];
+      if (roomData['participantsList'] is List) {
+        participantIds = List<String>.from(roomData['participantsList']);
+      }
+      if (participantIds.isEmpty && roomData['users'] is List) {
+        participantIds = List<String>.from(roomData['users']);
+      }
+      if (participantIds.isEmpty && roomData['participants'] is Map) {
+        participantIds = (roomData['participants'] as Map).keys.cast<String>().toList();
+      }
+
+      receiverId = participantIds.firstWhere(
+        (id) => id != cleanSenderId,
         orElse: () => '',
       );
-    } on FirebaseException catch (e) {
-      // Offline with nothing cached: fall back to parsing the room id.
-      debugPrint('[CHAT] room lookup failed: ${e.code}');
+    } catch (e) {
+      debugPrint('[CHAT] room lookup error: $e');
     }
 
     if (receiverId.isEmpty) {
       final parts = cleanRoomId.split('_');
       if (parts.length >= 2) {
-        receiverId = (parts[0] == cleanSenderId) ? parts[1] : parts[0];
+        if (parts[0] == cleanSenderId) {
+          receiverId = parts[1];
+        } else if (parts[1] == cleanSenderId) {
+          receiverId = parts[0];
+        }
       }
     }
 

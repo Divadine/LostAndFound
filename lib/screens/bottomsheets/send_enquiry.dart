@@ -186,7 +186,8 @@ class _SendEnquiryState extends State<SendEnquiry> {
         final roomIdCheck = ChatService.generateRoomId(
           userId1: currentUserId,
           userId2: otherUserId,
-          postId: widget.postId.toString(),
+          postId: widget.postId,
+          matchedPostId: widget.matchedPostId,
         );
         final existingRoom = await ChatService.getRoom(roomIdCheck);
         if (existingRoom != null && mounted) {
@@ -393,7 +394,8 @@ class _SendEnquiryState extends State<SendEnquiry> {
       final roomIdCheck = ChatService.generateRoomId(
         userId1: currentUserId,
         userId2: otherUserId,
-        postId: widget.postId.toString(),
+        postId: widget.postId,
+        matchedPostId: widget.matchedPostId,
       );
 
       print('[SendEnquiry] Checking for existing room: $roomIdCheck');

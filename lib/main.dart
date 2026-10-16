@@ -5,15 +5,13 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_permission.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:lost_and_found/utils/notification.dart';
-
 import 'firebase_options.dart';
-
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(
     RemoteMessage message,
@@ -69,7 +67,9 @@ Future<void> firebaseMessagingBackgroundHandler(
 
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  //WidgetsFlutterBinding.ensureInitialized();
+  final binding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: binding);
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
