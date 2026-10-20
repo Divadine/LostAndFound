@@ -183,7 +183,11 @@ class AppRoutes {
         path: '/reportJustification',
         name: reportJustification,
         builder: (context, state) {
-          return ReportJustification();
+          final data = state.extra as Map<String, dynamic>? ?? {};
+          return ReportJustification(
+            userId: data['userId'] as int? ?? 0,
+            phone: data['phone']?.toString() ?? '',
+          );
         },
       ),
 

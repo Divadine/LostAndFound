@@ -2,16 +2,17 @@ import 'dart:io';
 
 class AppUrls {
   static final String rateUs = Platform.isAndroid
-      ? 'https://play.google.com/store/apps/details?id=com.skyraan.newsraan'
+      ? 'https://play.google.com/store/apps/details?id=com.findora.lostandfound'
       : 'https://apps.apple.com/app/id$appStoreId';
+
   static const String aboutUsURL =
       'https://skyraan.com/aboutus/webview/main.html';
   static const String feedBackURL =
       'https://skyraanapps.com/m_feedback/API/feedback_form/index.php';
   static const String privacyPolicyLink =
-      'https://www.newsraan.com/backend/privacy-policy.html';
+      'https://findora.skyraantechnologies.com/privacy_policy.html';
   static const String termsAndConditions =
-      'https://www.newsraan.com/backend/terms-conditions.html';
+      'https://findora.skyraantechnologies.com/terms_and_conditions.html';
   static const String disclaimer =
       'https://www.newsraan.com/backend/disclaimer.html';
   static const String copyRights =

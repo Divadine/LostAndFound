@@ -833,6 +833,51 @@ class _IndividualChatScreenState
     );
   }
 
+  Future<void> _onReportTap() async {
+    final currentUserId = int.tryParse(widget.currentUserId);
+    final receiverId = int.tryParse(widget.otherUserId);
+
+    if (currentUserId == null || receiverId == null) return;
+
+    try {
+      final response = await _authController.getChatReportStatus(
+        userId: currentUserId,
+        receiverId: receiverId,
+      );
+
+      if (!mounted) return;
+
+      if (response.isSuccess) {
+        AppSnackBar.show(
+          context: context,
+          message: 'You have already reported this chat',
+          icon: Icons.info_outline,
+        );
+        return;
+      }
+    } catch (e) {
+      debugPrint('[ChatReportStatus] ERROR: $e');
+    }
+
+    if (!mounted) return;
+
+    AppUiHelper.showBottomSheet(
+      context: context,
+      child: ReportChatReasonSheet(
+        userId: currentUserId,
+        receiverId: receiverId,
+        userName: '',
+        userMobile: '',
+        userEmail: '',
+        roomId: widget.roomId,
+        authControllers: _authController,
+      ),
+      showCloseIcon: true,
+      color: AppColors.white,
+      iconColor: AppColors.black,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -3544,35 +3589,9 @@ class _IndividualChatScreenState
                       break;
 
                     case 'report':
-                      final currentUserId = int.tryParse(widget.currentUserId);
-
-                      if (currentUserId == null) return;
-
-                      AppUiHelper.showBottomSheet(
-                        context: context,
-
-                        child: ReportChatReasonSheet(
-                          userId: currentUserId,
-                          userName: '',
-                          userMobile: '',
-                          userEmail: '',
-                          roomId: widget.roomId,
-
-                          authControllers: AuthControllers(
-                            authRepository: AuthRepository(
-                              apiClient: ApiClient(),
-                            ),
-                          ),
-                        ),
-
-                        showCloseIcon: true,
-
-                        color: AppColors.white,
-
-                        iconColor: AppColors.black,
-                      );
-
+                      await _onReportTap();
                       break;
+
                   }
                 },
 

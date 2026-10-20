@@ -1,13 +1,22 @@
+import 'dart:async'; // NEW
 import 'dart:developer';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:lost_and_found/api_providers/api_endpoints.dart';
 import 'package:lost_and_found/enums/current_state.dart';
 import 'package:lost_and_found/models/api_model/response_model.dart';
+import 'package:lost_and_found/shared_widgets/session_expired_popup.dart'; // NEW
+import 'package:lost_and_found/utils/app_dialog.dart';
+import 'package:lost_and_found/utils/app_preferences.dart'; // NEW
+import 'package:lost_and_found/utils/app_utils.dart'; // NEW
 
 class ApiClient {
   late final Dio dio;
+
+  // NEW: multiple status 10 vandhalum popup oru thadava dhaan varum
+  static bool _isSessionExpiredPopupShown = false; // NEW
 
   ApiClient() {
     dio = Dio(
@@ -32,6 +41,34 @@ class ApiClient {
   }
 
   // ============================================================
+  // SESSION CONFLICT (status 10)  -- NEW
+  // ============================================================
+
+  bool _isSessionConflict(dynamic body) { // NEW
+    return body is Map && _parseStatus(body["status"]) == 10; // NEW
+  } // NEW
+
+  Future<void> _showSessionExpiredPopup() async { // NEW
+    if (_isSessionExpiredPopupShown) return; // NEW
+
+    final context = AppUtils.navigatorKey.currentContext; // NEW
+    if (context == null) return; // NEW
+
+    _isSessionExpiredPopupShown = true; // NEW
+
+    try { // NEW
+      await showDialog( // NEW
+        context: context, // NEW
+        barrierDismissible: false, // NEW
+        useRootNavigator: true, // NEW
+        builder: (_) => const SessionExpiredPopups(), // NEW
+      ); // NEW
+    } finally { // NEW
+      _isSessionExpiredPopupShown = false; // NEW
+    } // NEW
+  } // NEW
+
+  // ============================================================
   // COMMON REQUEST
   // ============================================================
 
@@ -42,7 +79,6 @@ class ApiClient {
         bool addToken = true,
         Map<String, dynamic>? queryParameters,
       }) async {
-
 
     final connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult.contains(ConnectivityResult.none)) {
@@ -58,16 +94,14 @@ class ApiClient {
         "Content-Type": "application/json",
       };
 
-      // Add token only when required
-      // if (addToken) {
-      //   final token = AppUtils.jwtToken;
-      //
-      //   if (token != null && token.isNotEmpty) {
-      //     headers["Authorization"] = "Bearer $token";
-      //   }
-      // }
-
-
+      // NEW: backend req.header("auth-token") padikkum
+      if (addToken) { // NEW
+        final token = await AppPreferences.getToken(); // NEW
+        print('// DEBUG: TOKEN => $token | PATH => $path'); // DEBUG // NEW
+        if (token != null && token.isNotEmpty) { // NEW
+          headers["auth-token"] = token; // NEW
+        } // NEW
+      } // NEW
 
       final response = await dio.request(
         path,
@@ -185,6 +219,17 @@ class ApiClient {
   ResponseModel _handleResponse(Response response) {
     final responseData = response.data;
 
+    // NEW: status 10 check (HTTP 200 la vandhaalum pidikkum)
+    if (_isSessionConflict(responseData)) { // NEW
+      unawaited(_showSessionExpiredPopup()); // NEW
+      return ResponseModel( // NEW
+        status: 10, // NEW
+        message: responseData["message"]?.toString() ?? "", // NEW
+        data: responseData["data"], // NEW
+        currentState: CurrentState.somethingWentWrong, // NEW
+      ); // NEW
+    } // NEW
+
     if (responseData == null) {
       return ResponseModel(
         status: 0,
@@ -275,9 +320,16 @@ class ApiClient {
   ResponseModel _handleServerError(DioException error) {
     final response = error.response;
 
-    if (response?.statusCode == 401) {
-      // e.g. AppPreferences.clearSession(); Get.offAllNamed('/login');
-    }
+    // NEW: backend non-2xx la status 10 anuppinaalum pidikkum
+    if (_isSessionConflict(response?.data)) { // NEW
+      unawaited(_showSessionExpiredPopup()); // NEW
+      final body = response!.data as Map; // NEW
+      return ResponseModel( // NEW
+        status: 10, // NEW
+        message: body["message"]?.toString() ?? "", // NEW
+        currentState: CurrentState.somethingWentWrong, // NEW
+      ); // NEW
+    } // NEW
 
     // If backend itself sends a message, use it.
     if (response?.data is Map<String, dynamic>) {
@@ -299,45 +351,42 @@ class ApiClient {
         return ResponseModel(
           status: 0,
           message: "Bad request.",
-            currentState: CurrentState.somethingWentWrong
+          currentState: CurrentState.somethingWentWrong,
         );
 
       case 401:
         return ResponseModel(
           status: 0,
           message: "Session expired. Please login again.",
-            currentState: CurrentState.somethingWentWrong
-
+          currentState: CurrentState.somethingWentWrong,
         );
 
       case 403:
         return ResponseModel(
           status: 0,
           message: "Access denied.",
-            currentState: CurrentState.somethingWentWrong
-
+          currentState: CurrentState.somethingWentWrong,
         );
 
       case 404:
         return ResponseModel(
           status: 0,
           message: "Requested resource not found.",
-            currentState: CurrentState.somethingWentWrong
-
+          currentState: CurrentState.somethingWentWrong,
         );
 
       case 500:
         return ResponseModel(
           status: 0,
           message: "Server error. Please try again later.",
-            currentState: CurrentState.somethingWentWrong
+          currentState: CurrentState.somethingWentWrong,
         );
 
       default:
         return ResponseModel(
           status: 0,
           message: "Server error. Please try again.",
-            currentState: CurrentState.somethingWentWrong
+          currentState: CurrentState.somethingWentWrong,
         );
     }
   }

@@ -85,14 +85,16 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 flutter_native_splash:
     color: "#FFFFFF"
-    image: assets/images/finalEdit.png
+    image: assets/images/finalEdit1.png
 
     android: true
+
+
     ios: true
 
     android_12:
       color: "#FFFFFF"
-      image: assets/images/finalEdit.png
+      image: assets/images/finalEdit1.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

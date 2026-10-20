@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:lost_and_found/models/report_model/chat_report_model.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
@@ -291,7 +292,8 @@ class ProfileReportPopUp extends StatelessWidget {
       stream: Connectivity().onConnectivityChanged,
       builder: (context, snapshot) {
         final results = snapshot.data ?? [];
-        final isOffline = results.contains(ConnectivityResult.none) || (snapshot.hasData && results.isEmpty);
+        final isOffline = results.contains(ConnectivityResult.none) ||
+            (snapshot.hasData && results.isEmpty);
 
         if (isOffline) {
           return const NoInternetWidget();
@@ -300,30 +302,28 @@ class ProfileReportPopUp extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             AppIconWidget(assetPath: AssetImages.hazards),
-            SizedBox(height: 7),
+            const SizedBox(height: 7),
             AppText(
               text: 'Profile Report Limit Reached',
               fontWeight: FontWeight.w500,
               fontSize: 18,
             ),
-            SizedBox(height: 7),
+            const SizedBox(height: 7),
             AppText(
               text:
-                  'You’ve reached the maximum number of profile reports allowed within a limited period. As a safety precaution, reporting has been temporarily restricted on your account. \n If you believe this restriction was applied by mistake, you can submit a review request.',
+              'You’ve reached the maximum number of profile reports allowed within a limited period. As a safety precaution, reporting has been temporarily restricted on your account. \n If you believe this restriction was applied by mistake, you can submit a review request.',
               fontSize: 12,
               fontWeight: FontWeight.w400,
-              textAlign: .center,
+              textAlign: TextAlign.center,
             ).padHorizontal(20),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
             Row(
               spacing: 10,
               children: [
                 Expanded(
                   child: AppButton(
-                    title: ' Cancel',
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
+                    title: 'Cancel',
+                    onTap: () => Navigator.pop(context, false),
                     fontSize: 14,
                     bgColor: Colors.transparent,
                     border: Border.all(color: AppColors.grey),
@@ -334,7 +334,7 @@ class ProfileReportPopUp extends StatelessWidget {
                 Expanded(
                   child: AppButton(
                     title: 'Justify',
-                    onTap: () {},
+                    onTap: () => Navigator.pop(context, true), // <-- fix
                     fontSize: 14,
                     bgColor: AppColors.primaryColor,
                     textColor: AppColors.white,
@@ -345,7 +345,7 @@ class ProfileReportPopUp extends StatelessWidget {
             ),
           ],
         );
-      }
+      },
     );
   }
 }
@@ -386,7 +386,9 @@ class SubmissionReceivedPopUp extends StatelessWidget {
             SizedBox(height: 15),
             AppButton(
               title: 'Done',
-              onTap: () {},
+              onTap: () {
+                AppRoutes.pop();
+              },
               fontSize: 14,
               bgColor: AppColors.primaryColor,
               textColor: AppColors.white,
@@ -494,7 +496,9 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
           AppText(text: 'Disclaimer', fontWeight: FontWeight.w500, fontSize: 18),
           AppText(
             text:
-                'Findora helps people reconnect with their lost and found belongings. Please verify ownership and relevant details carefully before handing over or claiming any item. Findora does not take responsibility for disputes, losses, damages, or transactions between users.',
+                'Findora helps people reconnect with their lost and found belongings. '
+                    'Please verify ownership and relevant details carefully before handing over or claiming any item. '
+                    'Findora does not take responsibility for disputes, losses, damages, or transactions between users.',
             fontSize: 14,
             fontWeight: FontWeight.w400,
             textAlign: .center,
@@ -2292,6 +2296,7 @@ class _BlockChatState extends State<BlockChat> {
 
 class ReportChatReasonSheet extends StatefulWidget {
   final int userId;
+  final int receiverId;
   final String userName;
   final String userMobile;
   final String userEmail;
@@ -2301,6 +2306,7 @@ class ReportChatReasonSheet extends StatefulWidget {
   const ReportChatReasonSheet({
     super.key,
     required this.userId,
+    required this.receiverId,
     required this.userName,
     required this.userMobile,
     required this.userEmail,
@@ -2313,13 +2319,9 @@ class ReportChatReasonSheet extends StatefulWidget {
 }
 
 class _ReportChatReasonSheetState extends State<ReportChatReasonSheet> {
-  // TODO: swap for a real reasons API if you have one (like getReasonsDeletePost)
-  final List<String> reasons = const [
-    'Spam or scam',
-    'Inappropriate content',
-    'Harassment or abuse',
-    'Fake item / listing',
-  ];
+  List<ReportReasonModel> reasons = [];
+  bool isLoading = true;
+  String? loadError;
 
   String? selectedReason;
   bool isOthers = false;
@@ -2338,6 +2340,7 @@ class _ReportChatReasonSheetState extends State<ReportChatReasonSheet> {
   void initState() {
     super.initState();
     _initConnectivityListener();
+    _loadReasons();
   }
 
   @override
@@ -2347,24 +2350,49 @@ class _ReportChatReasonSheetState extends State<ReportChatReasonSheet> {
     super.dispose();
   }
 
+  Future<void> _loadReasons() async {
+    setState(() {
+      isLoading = true;
+      loadError = null;
+    });
+
+    final response = await widget.authControllers.getReportReasons();
+    if (!mounted) return;
+
+    setState(() {
+      isLoading = false;
+      if (response.isSuccess && response.data != null) {
+        reasons = response.data!;
+      } else {
+        loadError = response.message.isNotEmpty
+            ? response.message
+            : 'Unable to load reasons';
+      }
+    });
+  }
+
   void _initConnectivityListener() async {
     final results = await Connectivity().checkConnectivity();
     _updateOfflineStatus(results);
-    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
   }
 
   void _updateOfflineStatus(List<ConnectivityResult> results) {
-    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    final offline =
+        results.contains(ConnectivityResult.none) || results.isEmpty;
     if (!mounted) return;
-    setState(() {
-      _isOffline = offline;
-    });
+    setState(() => _isOffline = offline);
   }
 
   void _onSubmit() async {
     bool hasNet = await AppUtils.checkConnectivity();
     if (!hasNet) {
-      AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
+      if (!mounted) return;
+      AppSnackBar.show(
+          context: context,
+          message: 'No internet connection',
+          icon: Icons.wifi_off);
       return;
     }
 
@@ -2377,13 +2405,13 @@ class _ReportChatReasonSheetState extends State<ReportChatReasonSheet> {
       content: ReportChatDialog(
         reason: reason,
         userId: widget.userId,
+        receiverId: widget.receiverId,
         userName: widget.userName,
         userMobile: widget.userMobile,
         userEmail: widget.userEmail,
         roomId: widget.roomId,
         authControllers: widget.authControllers,
       ),
-
     );
   }
 
@@ -2392,70 +2420,113 @@ class _ReportChatReasonSheetState extends State<ReportChatReasonSheet> {
     if (_isOffline) {
       return const NoInternetWidget();
     }
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppText(text: 'Report this chat', fontWeight: FontWeight.w600, fontSize: 18),
-        const SizedBox(height: 12),
-        AppText(text: 'Why are you reporting this review?', fontSize: 14),
-        const SizedBox(height: 8),
 
-        for (final r in reasons)
-          RadioListTile<String>(
-            contentPadding: EdgeInsets.zero,
-            value: r,
-            groupValue: selectedReason,
-            title: AppText(text: r, fontSize: 14),
-            onChanged: (v) => setState(() {
-              selectedReason = v;
-              isOthers = false;
-            }),
-          ),
-
-        RadioListTile<String>(
-          contentPadding: EdgeInsets.zero,
-          value: 'Others',
-          groupValue: selectedReason,
-          title: AppText(text: 'Others', fontSize: 14),
-          onChanged: (v) => setState(() {
-            selectedReason = v;
-            isOthers = true;
-          }),
-        ),
-
-        if (isOthers) ...[
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.fieldGrey),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: TextField(
-              controller: othersController,
-              inputFormatters: [NoLeadingSpaceFormatter()],
-              maxLines: 3,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                hintText: 'Type here',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.all(10),
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppText(
+                text: 'Report this chat',
+                fontWeight: FontWeight.w600,
+                fontSize: 18),
+            const SizedBox(height: 12),
+            AppText(text: 'Why are you reporting this chat?', fontSize: 14),
+            const SizedBox(height: 8),
+        
+            if (isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (loadError != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  children: [
+                    AppText(text: loadError!, fontSize: 13),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: _loadReasons,
+                      child: AppText(
+                        text: 'Retry',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else ...[
+                for (final r in reasons)
+                  Material(
+                    color: Colors.transparent,
+                    child: RadioListTile<String>(
+                      contentPadding: EdgeInsets.zero,
+                      value: r.text,
+                      groupValue: selectedReason,
+                      title: AppText(text: r.text, fontSize: 14),
+                      onChanged: (v) => setState(() {
+                        selectedReason = v;
+                        isOthers = false;
+                      }),
+                    ),
+                  ),
+                Material(
+                  color: Colors.transparent,
+                  child: RadioListTile<String>(
+                    contentPadding: EdgeInsets.zero,
+                    value: 'Others',
+                    groupValue: selectedReason,
+                    title: AppText(text: 'Others', fontSize: 14),
+                    onChanged: (v) => setState(() {
+                      selectedReason = v;
+                      isOthers = true;
+                    }),
+                  ),
+                ),
+              ],
+        
+            if (isOthers) ...[
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.fieldGrey),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextField(
+                  controller: othersController,
+                  inputFormatters: [NoLeadingSpaceFormatter()],
+                  maxLines: 3,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    hintText: 'Type here',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.all(10),
+                  ),
+                ),
+              ),
+            ],
+        
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                title: 'Submit',
+                onTap: isSubmitEnabled ? _onSubmit : () {},
+                bgColor:
+                isSubmitEnabled ? AppColors.primaryColor : AppColors.fieldGrey,
+                radius: BorderRadius.circular(8),
               ),
             ),
-          ),
-        ],
-
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: AppButton(
-            title: 'Submit',
-            onTap: isSubmitEnabled ? _onSubmit : () {}, // was: null
-            bgColor: isSubmitEnabled ? AppColors.primaryColor : AppColors.fieldGrey,
-            radius: BorderRadius.circular(8),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -2463,6 +2534,7 @@ class _ReportChatReasonSheetState extends State<ReportChatReasonSheet> {
 class ReportChatDialog extends StatefulWidget {
   final String reason;
   final int userId;
+  final int receiverId;
   final String userName;
   final String userMobile;
   final String userEmail;
@@ -2473,6 +2545,7 @@ class ReportChatDialog extends StatefulWidget {
     super.key,
     required this.reason,
     required this.userId,
+    required this.receiverId,
     required this.userName,
     required this.userMobile,
     required this.userEmail,
@@ -2518,6 +2591,7 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
   }
 
   Future<void> _submitReport() async {
+
     if (_isOffline) {
       AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
       return;
@@ -2531,13 +2605,12 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
 
     setState(() => isSubmitting = true);
 
-    final response = await widget.authControllers.createReport(
+    final response = await widget.authControllers.reportChat(
       userId: widget.userId,
-      name: widget.userName,
-      mobileno: widget.userMobile,
-      email: widget.userEmail,
-      description: widget.reason, // <-- the reason picked in step 1
+      receiverId: widget.receiverId,
+      reason: widget.reason,
     );
+
 
     if (isChecked) {
       await ChatService.blockChat(
@@ -3131,3 +3204,68 @@ class _RecoverDeletePopUpState extends State<RecoverDeletePopUp> {
     );
   }
 }
+
+
+
+
+class SessionExpiredPopups extends StatefulWidget { // NEW
+  const SessionExpiredPopups({super.key}); // NEW
+
+  @override // NEW
+  State<SessionExpiredPopups> createState() => _SessionExpiredPopupState(); // NEW
+} // NEW
+
+class _SessionExpiredPopupState extends State<SessionExpiredPopups> { // NEW
+  bool _isProcessing = false; // NEW
+
+  Future<void> _handleLogout() async { // NEW
+    if (_isProcessing) return; // NEW
+    setState(() { // NEW
+      _isProcessing = true; // NEW
+    }); // NEW
+
+    try { // NEW
+      await AppPreferences.logout(); // NEW
+      if (!mounted) return; // NEW
+      Navigator.of(context, rootNavigator: true).pop(); // NEW
+      AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen); // NEW
+    } finally { // NEW
+      if (mounted) { // NEW
+        setState(() { // NEW
+          _isProcessing = false; // NEW
+        }); // NEW
+      } // NEW
+    } // NEW
+  } // NEW
+
+  @override // NEW
+  Widget build(BuildContext context) { // NEW
+    return PopScope( // NEW
+      canPop: false, // NEW
+      child: AlertDialog( // NEW
+        title: const Text( // NEW
+          'Session Expired', // NEW
+          textAlign: TextAlign.center, // NEW
+        ), // NEW
+        content: const Text( // NEW
+          'Your account has been logged in on another device. Please login again to continue using Findora.', // NEW
+          textAlign: TextAlign.center, // NEW
+        ), // NEW
+        actionsAlignment: MainAxisAlignment.center, // NEW
+        actions: [ // NEW
+          SizedBox( // NEW
+            width: 140, // NEW
+            child: ElevatedButton( // NEW
+              style: ElevatedButton.styleFrom( // NEW
+                backgroundColor: AppColors.primaryColor, // NEW
+                foregroundColor: Colors.white, // NEW
+              ), // NEW
+              onPressed: _isProcessing ? null : _handleLogout, // NEW
+              child: const Text('OK'), // NEW
+            ), // NEW
+          ), // NEW
+        ], // NEW
+      ), // NEW
+    ); // NEW
+  } // NEW
+} // NEW

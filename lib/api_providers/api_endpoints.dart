@@ -73,6 +73,9 @@ class ApiEndPoints {
 
   //report
   static const String createReport = 'handover/createReport';
+  static const String reportChat = 'enquiry/reportchat';
+  static const String getReasonsReport = 'enquiry/getReasonsReport';
+  static const String chatReportStatus = 'enquiry/chat-report-status';
 
   //notification
   static const String notification = 'notification/getNotificationList';

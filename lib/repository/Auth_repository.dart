@@ -31,6 +31,7 @@ import 'package:lost_and_found/models/posts_model/enquiry_model.dart';
 import 'package:lost_and_found/models/posts_model/post_list_model.dart';
 import 'package:lost_and_found/models/posts_model/post_match_item.dart';
 import 'package:lost_and_found/models/posts_model/single_match_item.dart';
+import 'package:lost_and_found/models/report_model/chat_report_model.dart';
 
 class AuthRepository {
   final ApiClient apiClient;
@@ -48,13 +49,17 @@ class AuthRepository {
       data: {"phoneno": phone},
       addToken: false,
     );
-    // Only a genuine connectivity failure should be treated as an error here.
+
     if (response.currentState == CurrentState.noInternet) {
       return response.asFailure<UserCheckModel>();
     }
 
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! => ${response.data}");
-    final responseJson = {'status' : response.status,'message' : response.message};
+    final responseJson = {
+      'status': response.status,
+      'message': response.message,
+      'data': response.data,
+    };
+
     return ResponseModel<UserCheckModel>(
       status: response.status,
       message: response.message,
@@ -74,17 +79,8 @@ class AuthRepository {
 }
 
 
-  // Future<ResponseModel<LoginOtpResponseModel>> verifyOtp({required LoginOtpVerifyModel verify})async {
-  //   final response = await apiClient.post(ApiEndPoints.verifyOtp, verify.toJson(),);
-  //
-  //   return ResponseModel<LoginOtpResponseModel>.fromJson(response.data,(json) => LoginOtpResponseModel.fromJson(json));
-  //
-  // }
-
-
   Future<ResponseModel<PinCodeDetailsModel>> getAddressByPinCode({required String pinCode}) async {
     final response = await apiClient.post(ApiEndPoints.getAddressByPincode,data: {"pincode" : pinCode},
-        // Change to false if your backend says this API is public.
         addToken: false);
 
     if(!response.isSuccess){
@@ -102,21 +98,11 @@ class AuthRepository {
        );
   }
 
-  // Future<ResponseModel<PinCodeDetailsModel>> getAddressByPinCode({required String pinCode}) async {
-  //   final response = await apiClient.post(ApiEndPoints.getAddressByPincode, {"pincode" : pinCode});
-  //   return ResponseModel<PinCodeDetailsModel>.fromJson(response.data,(json) =>PinCodeDetailsModel.fromJson(json));
-  // }
-
 
   Future<ResponseModel> generateMobileOtp({required String phone}) async {
     return  await apiClient.post(ApiEndPoints.generateMobileOtp,data: {"phoneno" : phone},addToken: false,);
 
   }
-
-  // Future<dynamic> generateMobileOtp({required String phone,}) async {
-  //   final response = await apiClient.post(ApiEndPoints.generateMobileOtp, {"phoneno" : phone});
-  //   return response.data;
-  // }
 
   Future<ResponseModel> verifyMobileOtp({required String phone, required int userId, required String otp}) async {
     return  await apiClient.post(ApiEndPoints.verifyMobileOtp,data: {
@@ -129,16 +115,6 @@ class AuthRepository {
 
 }
 
-  // Future<ResponseModel<dynamic>> verifyMobileOtp({required String phone, required int userId, required String otp}) async {
-  //   final response = await apiClient.post(ApiEndPoints.verifyMobileOtp, {
-  //     "phoneno": phone,
-  //     "user_id": userId,
-  //     "otp": otp,
-  //   });
-  //   print('????????/////////////////////////////////////////$response');
-  //   return ResponseModel<dynamic>.fromJson(response.data,(json) => json);
-  // }
-
   Future<ResponseModel> updateProfile(UpdateProfileForm profile) async {
     final map  =  profile.toMap();
     final file = map.remove('profileimg') as File?;
@@ -147,24 +123,8 @@ class AuthRepository {
         'profileimg' : await dio.MultipartFile.fromFile(file.path,filename: file.path.split('/').last,)
     });
     
-    return  await apiClient.post(ApiEndPoints.updateProfile,data: formData,addToken: false);
+    return  await apiClient.post(ApiEndPoints.updateProfile,data: formData); // NEW
   }
-
-  // Future<ResponseModel<dynamic>>  updateProfile(UpdateProfileForm profile) async {
-  //   final map  =  profile.toMap();
-  //   final file = map.remove('profileImg') as File?;
-  //   final formData =  dio.FormData.fromMap({
-  //     ...map,
-  //     if (file != null)
-  //       'profileImg': await dio.MultipartFile.fromFile(
-  //         file.path,
-  //         filename: file.path.split('/').last,
-  //       ),
-  //   });
-  //  final response = await  apiClient.post(ApiEndPoints.updateProfile,formData);
-  //  print('response is **********************************$response');
-  //   return ResponseModel<dynamic>.fromJson(response.data,(json) => json);
-  // }
 
   Future<ResponseModel<ProfileScreenModel>> getProfile({
     required int userId,
@@ -173,8 +133,7 @@ class AuthRepository {
       ApiEndPoints.getUserInfo,
       data: {
         "id": userId,
-      },
-      addToken: false,
+      }, // NEW
     );
 
     if (!response.isSuccess) {
@@ -204,43 +163,6 @@ class AuthRepository {
       ),
     );
   }
-  // Future<ResponseModel<ProfileScreenModel>> getProfile({required int userId}) async {
-  //   final response = await apiClient.post(ApiEndPoints.getUserInfo,data:{"id": userId},addToken: false );
-  //
-  //   if (!response.isSuccess) {
-  //     return ResponseModel<ProfileScreenModel>(
-  //       status: response.status,
-  //       message: response.message,
-  //         currentState: response.currentState
-  //     );
-  //   }
-  //
-  //   final list = response.data as List;
-  //   if(list.isEmpty){
-  //     return ResponseModel<ProfileScreenModel>(
-  //       status: 0,
-  //       message: "Profile data not found.",
-  //         currentState: response.currentState
-  //     );
-  //   }
-  //   return ResponseModel<ProfileScreenModel>(
-  //     status: response.status,
-  //     message: response.message,
-  //     currentState: response.currentState,
-  //     data: ProfileScreenModel.fromJson(list.first as Map<String, dynamic>,),
-  //
-  //   );
-  // }
-  // Future<ResponseModel<ProfileScreenModel>> getProfile({required int userId}) async {
-  //   final response = await apiClient.post(ApiEndPoints.getUserInfo, {"id": userId});
-  //   return ResponseModel<ProfileScreenModel>.fromJson(
-  //     response.data,
-  //         (json) {
-  //       final list = json as List;
-  //       return ProfileScreenModel.fromJson(list.first as Map<String, dynamic>);
-  //     },
-  //   );
-  // }
 
   Future <ResponseModel<CategoryListModel>> getCategories({required int page, required int limit, String? search}) async {
     final response = await apiClient.get(ApiEndPoints.getCategory,queryParams: {
@@ -248,8 +170,7 @@ class AuthRepository {
       'limit': limit,
       if (search != null && search.isNotEmpty)
         'search': search,
-    },
-      addToken: false,
+    }, // NEW
     );
     if (!response.isSuccess) {
       return ResponseModel<CategoryListModel>(
@@ -269,17 +190,11 @@ class AuthRepository {
     );
   }
 
-  // Future <ResponseModel<CategoryListModel>> getCategories({required int page, required int limit, String? search}) async {
-  //  final response = await  apiClient.get(ApiEndPoints.getCategory,queryParams: {'page': page,  'limit': limit,if (search != null && search.isNotEmpty) 'search': search,});
-  //  return ResponseModel<CategoryListModel>.fromJson(response.data, (json) => CategoryListModel.fromJson(json));
-  // }
-
   Future<ResponseModel<List<SubCategoryModel>>> getSubCategories({required int catId, String? search}) async {
     final response = await apiClient.get(ApiEndPoints.getSubCategory,queryParams: {
       'category_id' : catId,
       if (search != null && search.isNotEmpty) 'search': search,
-    },
-      addToken: false
+    }, // NEW
     );
 
     if (!response.isSuccess) {
@@ -306,21 +221,10 @@ class AuthRepository {
 
   }
 
-
-  // Future<ResponseModel<List<SubCategoryModel>>> getSubCategories({required int catId, String? search}) async {
-  //   final response = await apiClient.get(ApiEndPoints.getSubCategory,queryParams: {
-  //     'category_id' : catId, if (search != null && search.isNotEmpty) 'search': search,
-  //   }
-  //   );
-  //
-  //   return ResponseModel<List<SubCategoryModel>>.fromJson(response.data,(json) => (json as List).map((e) => SubCategoryModel.fromJson(e as Map<String,dynamic>)).toList());
-  // }
-
   Future<ResponseModel<List<DynamicFieldsModel>>> getDynamicFields({required int subCategoryId,}) async {
     final response = await apiClient.get(ApiEndPoints.getDynamicFields,queryParams: {
       'subcategory_id': subCategoryId,
-    },
-    addToken: false
+    }, // NEW
     );
 
     if (!response.isSuccess) {
@@ -346,12 +250,6 @@ class AuthRepository {
 
     );
   }
-
-
-  // Future <ResponseModel<List<DynamicFieldsModel>>> getDynamicFields({required int subCategoryId}) async{
-  //  final response =  await apiClient.get(ApiEndPoints.getDynamicFields,queryParams: {'subcategory_id': subCategoryId});
-  //   return ResponseModel<List<DynamicFieldsModel>>.fromJson(response.data, (json) =>(json as List).map((e) =>DynamicFieldsModel.fromJson(e as Map<String, dynamic>)).toList() );
-  // }
 
 
   Future<ResponseModel<List<DynamicValueModel>>> getDynamicValues({required String brandMasterName})async {
@@ -382,8 +280,8 @@ class AuthRepository {
     final response = await apiClient.get(ApiEndPoints.getDynamicNestedValues,queryParams:{
       'master_name':brandMasterName,
       'parent_value': parentValue,
-    },
-    addToken: false);
+    }, // NEW
+    );
 
     if (!response.isSuccess) {
       return ResponseModel<List<DynamicValueModel>>(
@@ -411,7 +309,7 @@ class AuthRepository {
       ));
     }
 
-    final response = await apiClient.post(ApiEndPoints.createImage, data: formData, addToken: false);
+    final response = await apiClient.post(ApiEndPoints.createImage, data: formData); // NEW
 
     if (!response.isSuccess) {
       return response.asFailure<List<PostImageModel>>();
@@ -430,7 +328,7 @@ class AuthRepository {
       'audio': await dio.MultipartFile.fromFile(audio.path, filename: audio.path.split('/').last),
     });
 
-    final response = await apiClient.post(ApiEndPoints.createAudio, data: formData, addToken: false);
+    final response = await apiClient.post(ApiEndPoints.createAudio, data: formData); // NEW
 
     if (!response.isSuccess) {
       return response.asFailure<PostAudioModel>();
@@ -448,7 +346,7 @@ class AuthRepository {
       'video': await dio.MultipartFile.fromFile(video.path, filename: video.path.split('/').last),
     });
 
-    final response = await apiClient.post(ApiEndPoints.createVideo, data: formData, addToken: false);
+    final response = await apiClient.post(ApiEndPoints.createVideo, data: formData); // NEW
 
     if (!response.isSuccess) {
       return response.asFailure<PostVideoModel>();
@@ -469,8 +367,8 @@ class AuthRepository {
     required int subcategoryId,
     required String itemName,
     required String color,
-    required String postImages, // comma-separated image ids, e.g. "1,2,3"
-    required List<Map<String, String>> postValues, // [{"field": "color", "value": "red"}]
+    required String postImages,
+    required List<Map<String, String>> postValues,
   }) async {
     final body = {
       if (id != null) 'id': id,
@@ -484,7 +382,7 @@ class AuthRepository {
       'post_values': postValues,
     };
 
-    final response = await apiClient.post(ApiEndPoints.createPostStep1, data: body, addToken: false);
+    final response = await apiClient.post(ApiEndPoints.createPostStep1, data: body); // NEW
 
     if (!response.isSuccess) {
       return response.asFailure<CreatePostStep1Response>();
@@ -501,7 +399,7 @@ class AuthRepository {
     required int postId,
     required String location,
     required String address,
-    required List<Map<String, String>> coordinates, // [{"latitude": "..", "longitude": ".."}]
+    required List<Map<String, String>> coordinates,
     required DateTime postDate,
     required String description,
     int? audioId,
@@ -518,11 +416,10 @@ class AuthRepository {
       if (videoId != null) 'video_id': videoId,
     };
 
-    return await apiClient.post(ApiEndPoints.completePostStep2, data: body, addToken: false);
+    return await apiClient.post(ApiEndPoints.completePostStep2, data: body); // NEW
   }
 
 
-  //postType = 0->lost, 1=> found
   Future<ResponseModel<PostListModel>> getPosts({required int userId,required int postType,  int? page ,int? limit,}) async {
 
     final response = await apiClient.get(ApiEndPoints.getPost,queryParams: {
@@ -530,8 +427,7 @@ class AuthRepository {
       'post_type': postType,
       if (page != null) 'page': page,
       if (limit != null) 'limit': limit,
-    },
-      addToken: false,
+    }, // NEW
     );
 
     if (!response.isSuccess) {
@@ -547,31 +443,12 @@ class AuthRepository {
 
   }
 
-
-  // Future<ResponseModel<List<DeletePostReasons>>> getDeleteReasons() async {
-  //   final response = await apiClient.get(ApiEndPoints.getReasonsDeletePost,);
-  //   if(!response.isSuccess){
-  //     return response.asFailure<List<DeletePostReasons>>();
-  //   }
-  //
-  //   final list = response.data as List;
-  //
-  //   return ResponseModel<List<DeletePostReasons>>(
-  //       status: response.status,
-  //       message: response.message,
-  //     currentState: response.currentState,
-  //     data: list.map((e) => DeletePostReasons.fromJson(e as Map<String, dynamic> )).toList(),
-  //   );
-  //
-  // }
-
   Future<ResponseModel> deletePost({required int postId, required String reason}) async {
    return  await  apiClient.delete(ApiEndPoints.deletePost,
       data: {
         'postId': postId,
         'reason': reason,
-    },
-    addToken: false,
+    }, // NEW
     );
   }
 
@@ -595,8 +472,7 @@ class AuthRepository {
         if (endDate != null) 'end_date': endDate,
         if (page != null) 'page': page,
         if (limit != null) 'limit': limit,
-      },
-      addToken: false,
+      }, // NEW
     );
 
     if (!response.isSuccess) {
@@ -627,7 +503,7 @@ class AuthRepository {
   }
 
   Future<ResponseModel<SingleMatchModel>> getSingleMatch({required int postId, required int userId}) async {
-    final response= await apiClient.get( '${ApiEndPoints.viewSingleMatch}/$postId/$userId',addToken: false);
+    final response= await apiClient.get('${ApiEndPoints.viewSingleMatch}/$postId/$userId'); // NEW
 
 
     if (!response.isSuccess) {
@@ -653,8 +529,7 @@ class AuthRepository {
       queryParams: {
         'page': page,
         'pageSize': pageSize,
-      },
-      addToken: false,
+      }, // NEW
     );
 
     if (!response.isSuccess) {
@@ -679,18 +554,18 @@ class AuthRepository {
   Future<ResponseModel> generateHandoverOtp({required String phone}) async {
     return await apiClient.post(
       ApiEndPoints.generateHandoverOtp,
-      data: {"phoneno": phone},
-      addToken: false,
+      data: {"phoneno": phone}, // NEW
     );
   }
 
   Future<ResponseModel> verifyHandoverOtp({required String phone, required String otp}) async {
     return await apiClient.post(
       ApiEndPoints.verifyHandoverOtp,
-      data: {"phoneno": phone, "otp": otp},
-      addToken: false,
+      data: {"phoneno": phone, "otp": otp}, // NEW
     );
   }
+
+
 
   Future<ResponseModel> createHandover({
     int? enquiryId,
@@ -726,12 +601,12 @@ class AuthRepository {
     };
 
     debugPrint('[Handover] JSON body: ${jsonEncode(body)}');
-    debugPrint('[Handover] Request body: $body'); // <-- add this
+    debugPrint('[Handover] Request body: $body');
 
-    final response = await apiClient.post(ApiEndPoints.createHandover, data: body, addToken: false);
+    final response = await apiClient.post(ApiEndPoints.createHandover, data: body); // NEW
 
     debugPrint('[Handover] Raw response: status=${response.status}, '
-        'message=${response.message}, data=${response.data}'); // <-- and this
+        'message=${response.message}, data=${response.data}');
 
     return response;
   }
@@ -740,8 +615,7 @@ class AuthRepository {
     final response = await apiClient.get(ApiEndPoints.searchLocation,queryParams: {
       'query': query,
       'limit': limit,
-    },
-      addToken: false
+    }, // NEW
     );
 
     if (!response.isSuccess) {
@@ -759,7 +633,7 @@ class AuthRepository {
 
   Future<ResponseModel<List<PoliceStationModel>>> getNearByPoliceStations({required double latitude, required double longitude,double radiusKm = 15,}) async {
 
-    final response = await apiClient.get(ApiEndPoints.nearbyPoliceStations,addToken: false,queryParams: {
+    final response = await apiClient.get(ApiEndPoints.nearbyPoliceStations,queryParams: { // NEW
       'latitude': latitude.toString(),
       'longitude': longitude.toString(),
       'radiusKm': radiusKm,
@@ -782,7 +656,7 @@ class AuthRepository {
 
 
   Future<ResponseModel<List<ColorModel>>> getColors() async {
-    final response = await apiClient.post(ApiEndPoints.getColors, data: {}, addToken: false);
+    final response = await apiClient.post(ApiEndPoints.getColors, data: {}); // NEW
 
     if (!response.isSuccess) {
       return response.asFailure<List<ColorModel>>();
@@ -815,8 +689,7 @@ class AuthRepository {
         'name': name,
         'description': description,
         if (enquirerProfileImg != null) 'enquirer_profile_img': enquirerProfileImg,
-      },
-      addToken: false,
+      }, // NEW
     );
 
     debugPrint('[Enquiry] status=${response.status}, message=${response.message}, data=${response.data}');
@@ -833,7 +706,7 @@ class AuthRepository {
       'Final API URL : ${ApiEndPoints.viewEnquiry}/$postId',
     );
     debugPrint('=======================================');
-    final response = await apiClient.get('${ApiEndPoints.viewEnquiry}/$postId', addToken: false);
+    final response = await apiClient.get('${ApiEndPoints.viewEnquiry}/$postId'); // NEW
 
     if (!response.isSuccess) {
       return response.asFailure<PostEnquiriesModel>();
@@ -850,8 +723,7 @@ class AuthRepository {
   Future<ResponseModel> logout({required int userId}) async {
     final response = await apiClient.post(
       ApiEndPoints.logout,
-      data: {'userId': userId},
-      addToken: false,
+      data: {'userId': userId}, // NEW
     );
 
     debugPrint('[Logout] status=${response.status}, message=${response.message}');
@@ -862,7 +734,7 @@ class AuthRepository {
 
 
   Future<ResponseModel<List<DeletePostReasons>>> getDeleteAccountReasons() async {
-    final response = await apiClient.get(ApiEndPoints.getReasonsDeleteAccount, addToken: false);
+    final response = await apiClient.get(ApiEndPoints.getReasonsDeleteAccount); // NEW
 
     if (!response.isSuccess) {
       return response.asFailure<List<DeletePostReasons>>();
@@ -883,8 +755,7 @@ class AuthRepository {
       data: {
         'userId': userId,
         'reason': reason,
-      },
-      addToken: false,
+      }, // NEW
     );
 
     debugPrint('[DeleteAccount] status=${response.status}, message=${response.message}');
@@ -895,11 +766,69 @@ class AuthRepository {
   Future<ResponseModel> deleteProfileImage({required int userId}) async {
     return await apiClient.delete(
       ApiEndPoints.deleteProfileImage,
-      data: {'userId': userId},
-      addToken: false,
+      data: {'userId': userId}, // NEW
     );
   }
 
+  Future<ResponseModel<List<ReportReasonModel>>> getReportReasons() async {
+    final response = await apiClient.get(
+      ApiEndPoints.getReasonsReport, // NEW
+    );
+
+    if (!response.isSuccess) {
+      return response.asFailure<List<ReportReasonModel>>();
+    }
+
+    final list = response.data as List;
+    return ResponseModel<List<ReportReasonModel>>(
+      status: response.status,
+      message: response.message,
+      currentState: response.currentState,
+      data: list
+          .map((e) => ReportReasonModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Future<ResponseModel> getChatReportStatus({
+    required int userId,
+    required int receiverId,
+  }) async {
+    final response = await apiClient.post(
+      ApiEndPoints.chatReportStatus,
+      data: {
+        'user_id': userId,
+        'receiver_id': receiverId,
+      },
+    );
+
+    debugPrint(
+      '[ChatReportStatus] status=${response.status}, message=${response.message}, data=${response.data}',
+    );
+
+    return response;
+  }
+
+  Future<ResponseModel> reportChat({
+    required int userId,
+    required int receiverId,
+    required String reason,
+  }) async {
+    final response = await apiClient.post(
+      ApiEndPoints.reportChat,
+      data: {
+        'user_id': userId,
+        'receiver_id': receiverId,
+        'reason': reason,
+      },
+    );
+
+    debugPrint(
+      '[ReportChat] status=${response.status}, message=${response.message}, data=${response.data}',
+    );
+
+    return response;
+  }
 
   Future<ResponseModel> createReport({
     required int userId,
@@ -920,8 +849,7 @@ class AuthRepository {
 
     final response = await apiClient.post(
       ApiEndPoints.createReport,
-      data: body,
-      addToken: false,
+      data: body, // NEW
     );
 
     print('[Report] status=${response.status}, message=${response.message}, data=${response.data}');
@@ -941,8 +869,7 @@ class AuthRepository {
         'user_id': userId,
         'page': page,
         'pageSize': pageSize,
-      },
-      addToken: false,
+      }, // NEW
     );
 
     if (!response.isSuccess) {
@@ -967,8 +894,7 @@ class AuthRepository {
       ApiEndPoints.sendNotification,
       data: {
         'user_id': userId,
-      },
-      addToken: false,
+      }, // NEW
     );
 
     debugPrint(
@@ -980,5 +906,3 @@ class AuthRepository {
     return response;
   }
 }
-
-
