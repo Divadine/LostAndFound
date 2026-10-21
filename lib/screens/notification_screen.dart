@@ -216,12 +216,23 @@ class _NotificationScreenState extends State<NotificationScreen> {
       debugPrint('Failed to fetch sender profile: $e');
     }
 
-    final roomId = ChatService.generateRoomId(
+    String roomId = ChatService.generateRoomId(
       userId1: currentUserIdStr,
       userId2: otherUserIdStr,
       postId: notification.postId,
       matchedPostId: notification.matchedPostId != 0 ? notification.matchedPostId : null,
     );
+
+    try {
+      final existingRoomId = await ChatService.findExistingRoom(
+        userId1: currentUserIdStr,
+        userId2: otherUserIdStr,
+        postId: notification.postId.toString(),
+      );
+      if (existingRoomId != null) roomId = existingRoomId;
+    } catch (e) {
+      debugPrint('findExistingRoom error: $e');
+    }
 
     debugPrint('Generated notification roomId: $roomId');
 
@@ -237,6 +248,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         'otherUserAvatar': otherUserAvatar,
         'otherUserPhone': otherUserPhone,
         'itemPostId': notification.postId.toString(),
+        'skipRoomSync': true,
       },
     );
   }

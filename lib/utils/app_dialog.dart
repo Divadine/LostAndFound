@@ -2564,7 +2564,7 @@ class _ReportChatDialogState extends State<ReportChatDialog> {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
 
-  @override
+  @override   
   void initState() {
     super.initState();
     _initConnectivityListener();

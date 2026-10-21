@@ -193,15 +193,7 @@ class _BottomScreenState extends State<BottomScreen> {
           SystemNavigator.pop();
         }
       },
-      // canPop: selectedIndex == 0,
-      // onPopInvokedWithResult: (didPop, result) {
-      //   if (didPop) return;
-      //   if (selectedIndex != 0) {
-      //     setState(() {
-      //       selectedIndex = 0;
-      //     });
-      //   }
-      // },
+
       child: Scaffold(
         appBar: AppBar(toolbarHeight: 0,backgroundColor: AppColors.primaryColor,),
         backgroundColor: AppColors.white,

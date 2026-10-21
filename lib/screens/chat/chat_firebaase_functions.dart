@@ -354,6 +354,51 @@ class ChatService {
     return snapshot.exists ? snapshot.data() : null;
   }
 
+  static Future<String?> findExistingRoom({
+    required String userId1,
+    required String userId2,
+    required String postId,
+  }) async {
+    final u1 = userId1.trim();
+    final u2 = userId2.trim();
+    final pid = postId.trim();
+    if (u1.isEmpty || u2.isEmpty || pid.isEmpty) return null;
+
+    final snap = await _rooms.where('users', arrayContains: u1).get();
+
+    final matches = snap.docs.where((doc) {
+      final d = doc.data();
+      final users = List<String>.from(d['users'] ?? []);
+      if (!users.contains(u2)) return false;
+      final idParts = doc.id.split('_').skip(2).toList();
+      final p1 = d['postId']?.toString() ?? '';
+      final p2 = d['matchedPostId']?.toString() ?? '';
+      return p1 == pid || p2 == pid || idParts.contains(pid);
+    }).toList();
+
+    if (matches.isEmpty) return null;
+
+    int score(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+      final d = doc.data();
+      var s = 0;
+      if (doc.id.split('_').last == pid) s += 4;
+      if ((d['lastMessage']?.toString() ?? '').isNotEmpty) s += 2;
+      if ((d['itemName']?.toString() ?? '').isNotEmpty) s += 1;
+      return s;
+    }
+
+    matches.sort((a, b) {
+      final c = score(b).compareTo(score(a));
+      if (c != 0) return c;
+      final ta = a.data()['updatedAt'];
+      final tb = b.data()['updatedAt'];
+      if (ta is Timestamp && tb is Timestamp) return tb.compareTo(ta);
+      return 0;
+    });
+
+    return matches.first.id;
+  }
+
   // ============================================================
   // GET PARTICIPANT
   // ============================================================

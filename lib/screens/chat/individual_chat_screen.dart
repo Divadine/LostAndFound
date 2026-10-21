@@ -50,6 +50,7 @@ class IndividualChatScreen extends StatefulWidget {
   final String itemPostId;
   final String matchedPostId;
   final String enquirySenderId;
+  final bool skipRoomSync;
 
   const IndividualChatScreen({
     super.key,
@@ -66,6 +67,7 @@ class IndividualChatScreen extends StatefulWidget {
     this.itemPostId = '',
     this.matchedPostId = '',
     this.enquirySenderId = '',
+    this.skipRoomSync = false,
   });
 
   factory IndividualChatScreen.fromArgs(
@@ -98,6 +100,7 @@ class IndividualChatScreen extends StatefulWidget {
       args['matchedPostId']?.toString() ?? '',
       enquirySenderId:
       args['enquirySenderId']?.toString() ?? '',
+      skipRoomSync: args['skipRoomSync'] == true,
     );
   }
 
@@ -439,22 +442,28 @@ class _IndividualChatScreenState
       } else {
         // Room ID provided, just ensure metadata is merged/updated if necessary
         // without recreating the whole room structure.
-        await ChatService.getOrCreateChatRoom(
-          currentUserId: widget.currentUserId,
-          otherUserId: widget.otherUserId,
-          postId: widget.itemPostId.isNotEmpty
-              ? widget.itemPostId
-              : _extractPostId(),
-          matchedPostId: widget.matchedPostId,
-          enquirySenderId: widget.enquirySenderId,
-          itemName: widget.itemName,
-          itemImage: widget.itemImage,
-          itemLocation: widget.itemLocation,
-          itemPostDate: widget.itemPostDate,
-          otherUserName: widget.otherUserName,
-          otherUserAvatar: widget.otherUserAvatar,
-          otherUserPhone: _otherUserPhone,
-        );
+        bool shouldSync = true;
+        if (widget.skipRoomSync) {
+          shouldSync = (await ChatService.getRoom(roomId)) == null;
+        }
+        if (shouldSync) {
+          await ChatService.getOrCreateChatRoom(
+            currentUserId: widget.currentUserId,
+            otherUserId: widget.otherUserId,
+            postId: widget.itemPostId.isNotEmpty
+                ? widget.itemPostId
+                : _extractPostId(),
+            matchedPostId: widget.matchedPostId,
+            enquirySenderId: widget.enquirySenderId,
+            itemName: widget.itemName,
+            itemImage: widget.itemImage,
+            itemLocation: widget.itemLocation,
+            itemPostDate: widget.itemPostDate,
+            otherUserName: widget.otherUserName,
+            otherUserAvatar: widget.otherUserAvatar,
+            otherUserPhone: _otherUserPhone,
+          );
+        }
       }
 
       await ChatService.ensureItemCardFromRoom(
