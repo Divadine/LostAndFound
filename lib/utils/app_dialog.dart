@@ -3248,7 +3248,8 @@ class _SessionExpiredPopupState extends State<SessionExpiredPopups> { // NEW
           textAlign: TextAlign.center, // NEW
         ), // NEW
         content: const Text( // NEW
-          'Your account has been logged in on another device. Please login again to continue using Findora.', // NEW
+          'Your account has been logged in on another device. For your security, your session on this device has expired. Please log in again to continue.', // NEW
+
           textAlign: TextAlign.center, // NEW
         ), // NEW
         actionsAlignment: MainAxisAlignment.center, // NEW

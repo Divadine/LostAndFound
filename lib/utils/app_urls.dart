@@ -6,7 +6,7 @@ class AppUrls {
       : 'https://apps.apple.com/app/id$appStoreId';
 
   static const String aboutUsURL =
-      'https://skyraan.com/aboutus/webview/main.html';
+      'https://miraxtechnologies.com/aboutus/webview/main.html';
   static const String feedBackURL =
       'https://skyraanapps.com/m_feedback/API/feedback_form/index.php';
   static const String privacyPolicyLink =

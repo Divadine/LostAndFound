@@ -408,7 +408,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   String _deviceId = '';
   String _deviceName = '';
   String _deviceType = '';
-  String _groupId = '78';
+  String _groupId = '8';
   String _deviceModel = '';
   String _appVersion = '';
   String _osVersion = '';
@@ -446,7 +446,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       _osVersion = iosInfo.systemVersion;
       _deviceName = iosInfo.name;
     }
-    _groupId = '78';
+    _groupId = '8';
     _appVersion = packageInfo.version;
     _appName = packageInfo.appName;
     _packageName = packageInfo.packageName;
