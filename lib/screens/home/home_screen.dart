@@ -1,5 +1,3 @@
-
-
 import 'dart:async';
 import 'dart:math';
 
@@ -49,16 +47,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final authController = AuthControllers(
-    authRepository: AuthRepository(
-      apiClient: ApiClient(),
-    ),
+    authRepository: AuthRepository(apiClient: ApiClient()),
   );
 
-  final List<TextEditingController> _controller = List.generate(6, (_) => TextEditingController());
+  final List<TextEditingController> _controller = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
   List<Map<String, dynamic>> details = [
-    {
-      'imageUrl': '',
-    },
+    {'imageUrl': ''},
   ];
 
   final Map<int, int> matchingCounts = {};
@@ -66,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen>
   HomeFilterState filterState = const HomeFilterState();
 
   final StreamController<HomeFilterState> filterStateStream =
-  StreamController<HomeFilterState>.broadcast();
+      StreamController<HomeFilterState>.broadcast();
 
   late TabController _tabController;
 
@@ -78,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen>
   //notifications
 
   bool _hasUnreadNotification = false;
-  int _latestNotificationId = 0;   // NEW
+  int _latestNotificationId = 0; // NEW
 
   Future<void> _checkNotifications() async {
     try {
@@ -188,23 +185,17 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _clearFilter() {
-    _emitFilter(
-      HomeFilterState.cleared(),
-    );
+    _emitFilter(HomeFilterState.cleared());
   }
 
   // ============================================================
   // MATCH COUNT
   // ============================================================
 
-  Future<void> _fetchMatchCounts(
-      List<PostModel> posts,
-      ) async {
+  Future<void> _fetchMatchCounts(List<PostModel> posts) async {
     for (final post in posts) {
       try {
-        final response = await authController.getPostMatches(
-          postId: post.id,
-        );
+        final response = await authController.getPostMatches(postId: post.id);
 
         if (!mounted) {
           return;
@@ -214,14 +205,11 @@ class _HomeScreenState extends State<HomeScreen>
             response.data != null &&
             response.data!.matchingCount > 0) {
           setState(() {
-            matchingCounts[post.id] =
-                response.data!.matchingCount;
+            matchingCounts[post.id] = response.data!.matchingCount;
           });
         }
       } catch (e) {
-        debugPrint(
-          'Error fetching match count for post ${post.id}: $e',
-        );
+        debugPrint('Error fetching match count for post ${post.id}: $e');
       }
     }
   }
@@ -230,9 +218,7 @@ class _HomeScreenState extends State<HomeScreen>
   // DATE FILTER
   // ============================================================
 
-  String? _mapRangeToApiFilter(
-      String? label,
-      ) {
+  String? _mapRangeToApiFilter(String? label) {
     switch (label) {
       case 'Today':
         return 'today';
@@ -261,32 +247,24 @@ class _HomeScreenState extends State<HomeScreen>
   // FORMAT POST DATE
   // ============================================================
 
-  String _formatDate(
-      DateTime? date,
-      ) {
+  String _formatDate(DateTime? date) {
     if (date == null) {
       return '';
     }
 
-    return DateFormat(
-      'd MMM yyyy',
-    ).format(date);
+    return DateFormat('d MMM yyyy').format(date);
   }
 
   // ============================================================
   // AVAILABLE MATCHING
   // ============================================================
 
-  void _openAvailableMatching(
-      PostModel post,
-      ) {
+  void _openAvailableMatching(PostModel post) {
     AppRoutes.pushNamed(
       AppRoutes.availableMatchingScreen,
       arguments: {
         'postId': post.id,
-        'imgUrl': post.images.isNotEmpty
-            ? post.images.first
-            : '',
+        'imgUrl': post.images.isNotEmpty ? post.images.first : '',
         'title': post.name,
         'location': post.location,
         'date': _formatDate(post.postDate),
@@ -298,6 +276,25 @@ class _HomeScreenState extends State<HomeScreen>
         'categoryId': post.categoryId,
       },
     );
+  }
+
+  // ============================================================
+  // OPEN CLOSED POST DETAILS
+  // ============================================================
+
+  Future<void> _openClosedPostDetails(PostModel post, {required bool isLostPost}) async {
+    await AppRoutes.pushNamed(
+      AppRoutes.lostItemsDetailsScreen,
+      arguments: {
+        'postId': post.id,
+        'userId': AppPreferences.getUserId(),
+        'isLostPost': isLostPost,
+        'isUserPost': true,
+        'hideEnquiryButton': true,
+      },
+    );
+    if (!mounted) return;
+    _refreshPosts();
   }
 
   // ============================================================
@@ -322,30 +319,30 @@ class _HomeScreenState extends State<HomeScreen>
 
       final response = filterState.filterApplied
           ? await authController.filterPosts(
-        userId: userId ?? 0,
-        postType: 0,
-        dateFilter: filterState.effectiveRange != null
-            ? 'custom'
-            : filterState.dateFilter,
-        startDate: filterState.effectiveRange != null
-            ? DateFormat('yyyy-MM-dd').format(
-          filterState.effectiveRange!.start,
-        )
-            : null,
-        endDate: filterState.effectiveRange != null
-            ? DateFormat('yyyy-MM-dd').format(
-          filterState.effectiveRange!.end,
-        )
-            : null,
-        page: currentPageLost,
-        limit: limitLost,
-      )
+              userId: userId ?? 0,
+              postType: 0,
+              dateFilter: filterState.effectiveRange != null
+                  ? 'custom'
+                  : filterState.dateFilter,
+              startDate: filterState.effectiveRange != null
+                  ? DateFormat(
+                      'yyyy-MM-dd',
+                    ).format(filterState.effectiveRange!.start)
+                  : null,
+              endDate: filterState.effectiveRange != null
+                  ? DateFormat(
+                      'yyyy-MM-dd',
+                    ).format(filterState.effectiveRange!.end)
+                  : null,
+              page: currentPageLost,
+              limit: limitLost,
+            )
           : await authController.getPost(
-        userId: userId ?? 0,
-        postType: 0,
-        page: currentPageLost,
-        limit: limitLost,
-      );
+              userId: userId ?? 0,
+              postType: 0,
+              page: currentPageLost,
+              limit: limitLost,
+            );
 
       if (!mounted) {
         return;
@@ -404,30 +401,30 @@ class _HomeScreenState extends State<HomeScreen>
 
       final response = filterState.filterApplied
           ? await authController.filterPosts(
-        userId: userId ?? 0,
-        postType: 1,
-        dateFilter: filterState.effectiveRange != null
-            ? 'custom'
-            : filterState.dateFilter,
-        startDate: filterState.effectiveRange != null
-            ? DateFormat('yyyy-MM-dd').format(
-          filterState.effectiveRange!.start,
-        )
-            : null,
-        endDate: filterState.effectiveRange != null
-            ? DateFormat('yyyy-MM-dd').format(
-          filterState.effectiveRange!.end,
-        )
-            : null,
-        page: currentPageFound,
-        limit: limitFound,
-      )
+              userId: userId ?? 0,
+              postType: 1,
+              dateFilter: filterState.effectiveRange != null
+                  ? 'custom'
+                  : filterState.dateFilter,
+              startDate: filterState.effectiveRange != null
+                  ? DateFormat(
+                      'yyyy-MM-dd',
+                    ).format(filterState.effectiveRange!.start)
+                  : null,
+              endDate: filterState.effectiveRange != null
+                  ? DateFormat(
+                      'yyyy-MM-dd',
+                    ).format(filterState.effectiveRange!.end)
+                  : null,
+              page: currentPageFound,
+              limit: limitFound,
+            )
           : await authController.getPost(
-        userId: userId ?? 0,
-        postType: 1,
-        page: currentPageFound,
-        limit: limitFound,
-      );
+              userId: userId ?? 0,
+              postType: 1,
+              page: currentPageFound,
+              limit: limitFound,
+            );
 
       if (!mounted) {
         return;
@@ -499,6 +496,11 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
+    final currentUserId = AppPreferences.getUserId()?.toString().trim();
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      ChatService.setOnline(currentUserId);
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         await AppPermissions().requestNotificationPermission(context);
@@ -512,7 +514,8 @@ class _HomeScreenState extends State<HomeScreen>
     _selectedIndex = widget.initialTabIndex ?? 0;
 
     _tabController.addListener(() {
-      if (_tabController.indexIsChanging || _tabController.index != _selectedIndex) {
+      if (_tabController.indexIsChanging ||
+          _tabController.index != _selectedIndex) {
         setState(() {
           _selectedIndex = _tabController.index;
         });
@@ -520,7 +523,8 @@ class _HomeScreenState extends State<HomeScreen>
     });
 
     _lostScrollController.addListener(() {
-      if (_lostScrollController.position.pixels >= _lostScrollController.position.maxScrollExtent - 200 &&
+      if (_lostScrollController.position.pixels >=
+              _lostScrollController.position.maxScrollExtent - 200 &&
           !isMoreLoadingLost &&
           lostPosts.length < totalLost) {
         currentPageLost++;
@@ -529,7 +533,8 @@ class _HomeScreenState extends State<HomeScreen>
     });
 
     _foundScrollController.addListener(() {
-      if (_foundScrollController.position.pixels >= _foundScrollController.position.maxScrollExtent - 200 &&
+      if (_foundScrollController.position.pixels >=
+              _foundScrollController.position.maxScrollExtent - 200 &&
           !isMoreLoadingFound &&
           foundPosts.length < totalFound) {
         currentPageFound++;
@@ -569,7 +574,8 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _updateOfflineStatus(List<ConnectivityResult> results) {
-    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    final offline =
+        results.contains(ConnectivityResult.none) || results.isEmpty;
     if (!mounted) return;
 
     if (_isOffline == offline) return;
@@ -590,13 +596,26 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final currentUserId = AppPreferences.getUserId()?.toString().trim();
     if (state == AppLifecycleState.resumed) {
+      if (currentUserId != null && currentUserId.isNotEmpty) {
+        ChatService.setOnline(currentUserId);
+      }
       _checkNotifications();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      if (currentUserId != null && currentUserId.isNotEmpty) {
+        ChatService.setOffline(currentUserId);
+      }
     }
   }
 
   @override
   void dispose() {
+    final currentUserId = AppPreferences.getUserId()?.toString().trim();
+    // if (currentUserId != null && currentUserId.isNotEmpty) {
+    //   ChatService.setOffline(currentUserId);
+    // }
     WidgetsBinding.instance.removeObserver(this);
     AppUtils.postRefreshNotifier.removeListener(_refreshPosts);
     _connectivitySub?.cancel();
@@ -613,9 +632,7 @@ class _HomeScreenState extends State<HomeScreen>
   // ============================================================
 
   @override
-  Widget build(
-      BuildContext context,
-      ) {
+  Widget build(BuildContext context) {
     final currentUserId = AppPreferences.getUserId()?.toString() ?? '';
 
     return StreamBuilder<Map<String, Map<String, int>>>(
@@ -640,18 +657,15 @@ class _HomeScreenState extends State<HomeScreen>
                 // ====================================================
                 // BLUE BACKGROUND
                 // ====================================================
-
                 Container(
                   height: double.infinity,
                   width: double.infinity,
                   color: AppColors.primaryColor,
                 ),
 
-
                 // ====================================================
                 // HOME BOX IMAGE
                 // ====================================================
-
                 Positioned(
                   top: 10,
                   right: -10,
@@ -664,7 +678,6 @@ class _HomeScreenState extends State<HomeScreen>
                 // ====================================================
                 // WHITE CONTENT CONTAINER
                 // ====================================================
-
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Container(
@@ -684,11 +697,8 @@ class _HomeScreenState extends State<HomeScreen>
                         // ==========================================
                         // TAB + FILTER
                         // ==========================================
-
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Row(
                             children: [
                               Expanded(
@@ -745,31 +755,26 @@ class _HomeScreenState extends State<HomeScreen>
                                 ),
                               ),
 
-                              const SizedBox(
-                                width: 5,
-                              ),
+                              const SizedBox(width: 5),
 
                               // ====================================
                               // FILTER BUTTON
                               // ====================================
-
                               GestureDetector(
                                 onTap: () async {
                                   //AppRoutes.pushNamed(AppRoutes.reportJustification);
-                                  final filterData = await AppUiHelper.showBottomSheet(
-                                    context: context,
-                                    child:FilterScreen(),
-
-                                  );
+                                  final filterData =
+                                      await AppUiHelper.showBottomSheet(
+                                        context: context,
+                                        child: FilterScreen(),
+                                      );
 
                                   if (!mounted) {
                                     return;
                                   }
 
                                   if (filterData == 'clear') {
-                                    _emitFilter(
-                                      HomeFilterState.cleared(),
-                                    );
+                                    _emitFilter(HomeFilterState.cleared());
 
                                     _fetchLostPosts();
                                     _fetchFoundPosts();
@@ -815,14 +820,11 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         ),
 
-                        const SizedBox(
-                          height: 10,
-                        ),
+                        const SizedBox(height: 10),
 
                         // ==========================================
                         // TAB CONTENT
                         // ==========================================
-
                         Expanded(
                           child: TabBarView(
                             controller: _tabController,
@@ -840,8 +842,6 @@ class _HomeScreenState extends State<HomeScreen>
                 // ====================================================
                 // HEADER
                 // ====================================================
-
-
                 Positioned(
                   top: 30,
                   left: 20,
@@ -850,16 +850,13 @@ class _HomeScreenState extends State<HomeScreen>
                   child: Column(
                     spacing: 10,
 
-                    crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
 
                     children: [
                       Row(
-                        mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
                         children: [
-
                           const AppText(
                             text: 'Lost & Found',
                             color: AppColors.white,
@@ -907,12 +904,9 @@ class _HomeScreenState extends State<HomeScreen>
                           //   ),
                           // ),
 
-
-
                           // ========================================
                           // NOTIFICATION
                           // ========================================
-
                           GestureDetector(
                             onTap: () async {
                               final userId = AppPreferences.getUserId();
@@ -924,7 +918,9 @@ class _HomeScreenState extends State<HomeScreen>
                               }
                               setState(() => _hasUnreadNotification = false);
 
-                              await AppRoutes.pushNamed(AppRoutes.notificationScreen);
+                              await AppRoutes.pushNamed(
+                                AppRoutes.notificationScreen,
+                              );
 
                               await _checkNotifications();
                             },
@@ -948,16 +944,14 @@ class _HomeScreenState extends State<HomeScreen>
                         ],
                       ),
 
-                      SizedBox(height: 10,),
+                      SizedBox(height: 10),
                       const AppText(
-                        text:
-                        'Helping you reunite with what\nmatters.',
+                        text: 'Helping you reunite with what\nmatters.',
                         color: AppColors.white,
                         fontSize: 14,
                       ),
 
-
-                      SizedBox(height: 10,),
+                      SizedBox(height: 10),
                       // Row(
                       //   crossAxisAlignment: CrossAxisAlignment.center,
                       //   mainAxisAlignment: MainAxisAlignment.start,
@@ -1007,7 +1001,6 @@ class _HomeScreenState extends State<HomeScreen>
                       //   }),
                       // ),
 
-
                       //AppText(text: "Users benefited",fontWeight: FontWeight.bold,fontSize: 12,color: AppColors.white,)
                     ],
                   ),
@@ -1025,25 +1018,22 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-// ============================================================
-// LOST TAB
-// ============================================================
+  // ============================================================
+  // LOST TAB
+  // ============================================================
 
-  Widget _buildLostTab(Map<String, int> seenCounts, Map<String, int> totalCounts) {
+  Widget _buildLostTab(
+    Map<String, int> seenCounts,
+    Map<String, int> totalCounts,
+  ) {
     if (isLoadingLost) {
       return _isOffline
           ? const NoInternetWidget()
-          : const Center(
-              child: CircularProgressIndicator(),
-            );
+          : const Center(child: CircularProgressIndicator());
     }
 
     if (lostPosts.isEmpty) {
-      return const Center(
-        child: AppText(
-          text: 'No lost items posted yet',
-        ),
-      );
+      return const Center(child: AppText(text: 'No lost items posted yet'));
     }
 
     return RefreshIndicator(
@@ -1055,18 +1045,12 @@ class _HomeScreenState extends State<HomeScreen>
           // ================================================
           // FILTER DISPLAY
           // ================================================
-
           StreamBuilder<HomeFilterState>(
             stream: filterStateStream.stream,
             initialData: filterState,
 
-            builder: (
-                context,
-                asyncSnapshot,
-                ) {
-              final filterData =
-                  asyncSnapshot.data ??
-                      const HomeFilterState();
+            builder: (context, asyncSnapshot) {
+              final filterData = asyncSnapshot.data ?? const HomeFilterState();
 
               if (!filterData.filterApplied) {
                 return const SizedBox.shrink();
@@ -1083,10 +1067,7 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const SizedBox(width: 8),
-                    AppIconWidget(
-                      assetPath: AssetImages.filterTick,
-                      size: 16,
-                    ),
+                    AppIconWidget(assetPath: AssetImages.filterTick, size: 16),
                     const SizedBox(width: 8),
                     Expanded(
                       child: AppText(
@@ -1121,95 +1102,110 @@ class _HomeScreenState extends State<HomeScreen>
           // ================================================
           // LOST ITEMS
           // ================================================
-
           Expanded(
             child: lostPosts.isEmpty
-                ? const Center(
-              child: AppText(
-                text: 'No lost items posted yet',
-              ),
-            )
+                ? const Center(child: AppText(text: 'No lost items posted yet'))
                 : ListView.builder(
-              controller: _lostScrollController,
-              itemCount: lostPosts.length + (isMoreLoadingLost ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == lostPosts.length) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _isOffline
-                        ? const NoInternetWidget(size: 50)
-                        : const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                  );
-                }
-                final post = lostPosts[index];
-                final seenCount = seenCounts[post.id.toString()] ?? 0;
-                final totalCount = totalCounts[post.id.toString()] ?? 0;
+                    controller: _lostScrollController,
+                    itemCount: lostPosts.length + (isMoreLoadingLost ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == lostPosts.length) {
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: _isOffline
+                              ? const NoInternetWidget(size: 50)
+                              : const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                        );
+                      }
+                      final post = lostPosts[index];
+                      final seenCount = seenCounts[post.id.toString()] ?? 0;
+                      final totalCount = totalCounts[post.id.toString()] ?? 0;
 
-                // Total enquiries is either from API or Firestore, whichever is greater
-                final finalTotalCount = max(post.enquiriesCount, totalCount);
-
-                final effectiveEnquiries = (finalTotalCount - seenCount).clamp(0, 999);
-
-                return ItemCard(
-                  imgUrl: post.images.isNotEmpty ? post.images.first : '',
-                  title: post.name,
-                  location: post.location,
-                  date: _formatDate(post.postDate),
-                  time: AppUtils.formatTimeAgo(post.createdAt ?? post.postDate),
-                  isFromHomePage: true,
-                  postId: post.postUid,
-                  foundCount: matchingCounts[post.id],
-                  postIntId: post.id,
-                  categoryName: post.categoryName,
-                  onDeleted: (id) {
-                    setState(() {
-                      lostPosts.removeWhere((p) => p.id == id);
-                    });
-                    _fetchLostPosts();
-                  },
-                  onViewAll: () => _openAvailableMatching(post),
-                  status: post.status,
-                  onTap: () {
-                    final isJewellery =
-                        post.categoryName.toLowerCase() == 'jewellery & valuables';
-
-                    if (isJewellery) {
-                      AppRoutes.pushNamed(
-                        AppRoutes.lostItemsDetailsScreen,
-                        arguments: {
-                          'postId': post.id,
-                          'userId': AppPreferences.getUserId(),
-                          'isLostPost': true,
-                          'isUserPost': true,
-                          'hideEnquiryButton': post.status == 2,
-                        },
+                      // Total enquiries is either from API or Firestore, whichever is greater
+                      final finalTotalCount = max(
+                        post.enquiriesCount,
+                        totalCount,
                       );
-                    } else {
-                      AppRoutes.pushNamed(
-                        AppRoutes.availableMatchingScreen,
-                        arguments: {
-                          'postId': post.id,
-                          'imgUrl':
-                              post.images.isNotEmpty ? post.images.first : '',
-                          'title': post.name,
-                          'location': post.location,
-                          'date': _formatDate(post.postDate),
-                          'postUid': post.postUid,
-                          'foundCount':
-                              matchingCounts[post.id] ?? post.enquiriesCount,
-                          'isReceived': false,
-                          'status': post.status,
-                          'isFound': false,
+
+                      final effectiveEnquiries = (finalTotalCount - seenCount)
+                          .clamp(0, 999);
+
+                      return ItemCard(
+                        imgUrl: post.images.isNotEmpty ? post.images.first : '',
+                        title: post.name,
+                        location: post.location,
+                        date: _formatDate(post.postDate),
+                        time: AppUtils.formatTimeAgo(
+                          post.createdAt ?? post.postDate,
+                        ),
+                        isFromHomePage: true,
+                        postId: post.postUid,
+                        foundCount: matchingCounts[post.id],
+                        postIntId: post.id,
+                        categoryName: post.categoryName,
+                        onDeleted: (id) {
+                          setState(() {
+                            lostPosts.removeWhere((p) => p.id == id);
+                          });
+                          _fetchLostPosts();
                         },
-                      );
-                    }
-                  },
-                  showPostId: true,
-                ).pad();
-              },
-            ),
+                        onViewAll: () {
+                          if (post.status == 2) {
+                            _openClosedPostDetails(post, isLostPost: true);
+                          } else {
+                            _openAvailableMatching(post);
+                          }
+                        },
+                        status: post.status,
+                        onTap: () {
+                          if (post.status == 2) {
+                            _openClosedPostDetails(post, isLostPost: true);
+                            return;
+                          }
+
+                          final isJewellery =
+                              post.categoryName.toLowerCase() ==
+                              'jewellery & valuables';
+
+                          if (isJewellery) {
+                            AppRoutes.pushNamed(
+                              AppRoutes.lostItemsDetailsScreen,
+                              arguments: {
+                                'postId': post.id,
+                                'userId': AppPreferences.getUserId(),
+                                'isLostPost': true,
+                                'isUserPost': true,
+                                'hideEnquiryButton': post.status == 2,
+                              },
+                            );
+                          } else {
+                            AppRoutes.pushNamed(
+                              AppRoutes.availableMatchingScreen,
+                              arguments: {
+                                'postId': post.id,
+                                'imgUrl': post.images.isNotEmpty
+                                    ? post.images.first
+                                    : '',
+                                'title': post.name,
+                                'location': post.location,
+                                'date': _formatDate(post.postDate),
+                                'postUid': post.postUid,
+                                'foundCount':
+                                    matchingCounts[post.id] ??
+                                    post.enquiriesCount,
+                                'isReceived': false,
+                                'status': post.status,
+                                'isFound': false,
+                              },
+                            );
+                          }
+                        },
+                        showPostId: true,
+                      ).pad();
+                    },
+                  ),
           ),
         ],
       ),
@@ -1220,21 +1216,18 @@ class _HomeScreenState extends State<HomeScreen>
   // FOUND TAB
   // ============================================================
 
-  Widget _buildFoundTab(Map<String, int> seenCounts, Map<String, int> totalCounts) {
+  Widget _buildFoundTab(
+    Map<String, int> seenCounts,
+    Map<String, int> totalCounts,
+  ) {
     if (isLoadingFound) {
       return _isOffline
           ? const NoInternetWidget()
-          : const Center(
-              child: CircularProgressIndicator(),
-            );
+          : const Center(child: CircularProgressIndicator());
     }
 
     if (foundPosts.isEmpty) {
-      return const Center(
-        child: AppText(
-          text: 'No found items posted yet',
-        ),
-      );
+      return const Center(child: AppText(text: 'No found items posted yet'));
     }
 
     return RefreshIndicator(
@@ -1246,18 +1239,12 @@ class _HomeScreenState extends State<HomeScreen>
           // ================================================
           // FILTER DISPLAY
           // ================================================
-
           StreamBuilder<HomeFilterState>(
             stream: filterStateStream.stream,
             initialData: filterState,
 
-            builder: (
-                context,
-                asyncSnapshot,
-                ) {
-              final filterData =
-                  asyncSnapshot.data ??
-                      const HomeFilterState();
+            builder: (context, asyncSnapshot) {
+              final filterData = asyncSnapshot.data ?? const HomeFilterState();
 
               if (!filterData.filterApplied) {
                 return const SizedBox.shrink();
@@ -1274,10 +1261,7 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const SizedBox(width: 8),
-                    AppIconWidget(
-                      assetPath: AssetImages.filterTick,
-                      size: 16,
-                    ),
+                    AppIconWidget(assetPath: AssetImages.filterTick, size: 16),
                     const SizedBox(width: 8),
                     Expanded(
                       child: AppText(
@@ -1312,108 +1296,122 @@ class _HomeScreenState extends State<HomeScreen>
           // ================================================
           // FOUND ITEMS
           // ================================================
-
           Expanded(
             child: foundPosts.isEmpty
                 ? const Center(
-              child: AppText(
-                text: 'No found items posted yet',
-              ),
-            )
+                    child: AppText(text: 'No found items posted yet'),
+                  )
                 : ListView.builder(
-              controller: _foundScrollController,
-              itemCount: foundPosts.length + (isMoreLoadingFound ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == foundPosts.length) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _isOffline
-                        ? const NoInternetWidget(size: 50)
-                        : const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                  );
-                }
-                final post = foundPosts[index];
-                final seenCount = seenCounts[post.id.toString()] ?? 0;
-                final totalCount = totalCounts[post.id.toString()] ?? 0;
+                    controller: _foundScrollController,
+                    itemCount: foundPosts.length + (isMoreLoadingFound ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == foundPosts.length) {
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: _isOffline
+                              ? const NoInternetWidget(size: 50)
+                              : const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                        );
+                      }
+                      final post = foundPosts[index];
+                      final seenCount = seenCounts[post.id.toString()] ?? 0;
+                      final totalCount = totalCounts[post.id.toString()] ?? 0;
 
-                // Total enquiries is either from API or Firestore, whichever is greater
-                final finalTotalCount = max(post.enquiriesCount, totalCount);
-
-                final effectiveEnquiries = (finalTotalCount - seenCount).clamp(0, 999);
-
-                return ItemCard(
-                  imgUrl: post.images.isNotEmpty ? post.images.first : '',
-                  title: post.name,
-                  location: post.location,
-                  date: _formatDate(post.postDate),
-                  time: AppUtils.formatTimeAgo(post.createdAt ?? post.postDate),
-                  isFromHomePage: true,
-                  isFound: true,
-                  postId: post.postUid,
-                  postIntId: post.id,
-                  foundCount: matchingCounts[post.id],
-                  categoryName: post.categoryName,
-                  onDeleted: (id) {
-                    setState(() {
-                      foundPosts.removeWhere((p) => p.id == id);
-                    });
-                    _fetchFoundPosts();
-                  },
-                  // ============================================================
-                  // CHANGED: Driven by actual post.enquiriesCount for the Found tab
-                  // ============================================================
-                  newMessageCount: post.enquiriesCount > 0 && effectiveEnquiries > 0
-                      ? effectiveEnquiries.toString()
-                      : null,
-                  enquiriesCount: post.enquiriesCount,
-                  enquiredProfile: post.enquirerAvatars.isNotEmpty
-                      ? post.enquirerAvatars
-                      .map((e) => e.imageUrl)
-                      .where((url) => url.isNotEmpty)
-                      .toList()
-                      : null,
-                  onEnquiryTap: () {
-                    AppRoutes.pushNamed(
-                      AppRoutes.enquiryListScreen,
-                      arguments: {
-                        'postId': post.id,
-                        'isFound': true,
-                      },
-                    );
-                  },
-                  onViewAll: () => _openAvailableMatching(post),
-                  status: post.status,
-                  onTap: () {
-                    final isJewellery =
-                        post.categoryName.toLowerCase() == 'jewellery & valuables';
-
-                    if (isJewellery) {
-                      AppRoutes.pushNamed(
-                        AppRoutes.lostItemsDetailsScreen,
-                        arguments: {
-                          'postId': post.id,
-                          'userId': AppPreferences.getUserId(),
-                          'isLostPost': false,
-                          'isUserPost': true,
-                          'hideEnquiryButton': post.status == 2,
-                        },
+                      // Total enquiries is either from API or Firestore, whichever is greater
+                      final finalTotalCount = max(
+                        post.enquiriesCount,
+                        totalCount,
                       );
-                    } else {
-                      AppRoutes.pushNamed(
-                        AppRoutes.enquiryListScreen,
-                        arguments: {
-                          'postId': post.id,
-                          'isFound': true,
+
+                      final effectiveEnquiries = (finalTotalCount - seenCount)
+                          .clamp(0, 999);
+
+                      return ItemCard(
+                        imgUrl: post.images.isNotEmpty ? post.images.first : '',
+                        title: post.name,
+                        location: post.location,
+                        date: _formatDate(post.postDate),
+                        time: AppUtils.formatTimeAgo(
+                          post.createdAt ?? post.postDate,
+                        ),
+                        isFromHomePage: true,
+                        isFound: true,
+                        postId: post.postUid,
+                        postIntId: post.id,
+                        foundCount: matchingCounts[post.id],
+                        categoryName: post.categoryName,
+                        onDeleted: (id) {
+                          setState(() {
+                            foundPosts.removeWhere((p) => p.id == id);
+                          });
+                          _fetchFoundPosts();
                         },
-                      );
-                    }
-                  },
-                  showPostId: true,
-                ).pad();
-              },
-            ),
+                        // ============================================================
+                        // CHANGED: Driven by actual post.enquiriesCount for the Found tab
+                        // ============================================================
+                        newMessageCount:
+                            post.enquiriesCount > 0 && effectiveEnquiries > 0
+                            ? effectiveEnquiries.toString()
+                            : null,
+                        enquiriesCount: post.enquiriesCount,
+                        enquiredProfile: post.enquirerAvatars.isNotEmpty
+                            ? post.enquirerAvatars
+                                  .map((e) => e.imageUrl)
+                                  .where((url) => url.isNotEmpty)
+                                  .toList()
+                            : null,
+                        onEnquiryTap: () {
+                          if (post.status == 2) {
+                            _openClosedPostDetails(post, isLostPost: false);
+                            return;
+                          }
+                          AppRoutes.pushNamed(
+                            AppRoutes.enquiryListScreen,
+                            arguments: {'postId': post.id, 'isFound': true},
+                          );
+                        },
+                        onViewAll: () {
+                          if (post.status == 2) {
+                            _openClosedPostDetails(post, isLostPost: false);
+                          } else {
+                            _openAvailableMatching(post);
+                          }
+                        },
+                        status: post.status,
+                        onTap: () {
+                          if (post.status == 2) {
+                            _openClosedPostDetails(post, isLostPost: false);
+                            return;
+                          }
+
+                          final isJewellery =
+                              post.categoryName.toLowerCase() ==
+                              'jewellery & valuables';
+
+                          if (isJewellery) {
+                            AppRoutes.pushNamed(
+                              AppRoutes.lostItemsDetailsScreen,
+                              arguments: {
+                                'postId': post.id,
+                                'userId': AppPreferences.getUserId(),
+                                'isLostPost': false,
+                                'isUserPost': true,
+                                'hideEnquiryButton': post.status == 2,
+                              },
+                            );
+                          } else {
+                            AppRoutes.pushNamed(
+                              AppRoutes.enquiryListScreen,
+                              arguments: {'postId': post.id, 'isFound': true},
+                            );
+                          }
+                        },
+                        showPostId: true,
+                      ).pad();
+                    },
+                  ),
           ),
         ],
       ),
@@ -1429,21 +1427,15 @@ class _HomeScreenState extends State<HomeScreen>
     required String title,
     required bool isSelected,
   }) {
-    final color = isSelected
-        ? AppColors.primaryColor
-        : AppColors.grey;
+    final color = isSelected ? AppColors.primaryColor : AppColors.grey;
 
     return Row(
       spacing: 10,
 
-      mainAxisAlignment:
-      MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
 
       children: [
-        AppIconWidget(
-          assetPath: image,
-          color: color,
-        ),
+        AppIconWidget(assetPath: image, color: color),
 
         AppText(
           text: title,
@@ -1475,7 +1467,7 @@ class GlassBorderPainter extends CustomPainter {
       end: Alignment.bottomLeft,
       colors: [
         Colors.white10, // Top-right disappears
-        Colors.white,   // Sharp top-left and bottom-right
+        Colors.white, // Sharp top-left and bottom-right
         Colors.white10, // Bottom-left disappears
       ],
       stops: [0.0, 0.5, 1.0],
@@ -1591,25 +1583,14 @@ class ChatSendRequest extends StatelessWidget {
   // REQUEST DATE
   // ============================================================
 
-  String _formatRequestDate(
-      DateTime date,
-      ) {
+  String _formatRequestDate(DateTime date) {
     final now = DateTime.now();
 
-    final today = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    );
+    final today = DateTime(now.year, now.month, now.day);
 
-    final requestDay = DateTime(
-      date.year,
-      date.month,
-      date.day,
-    );
+    final requestDay = DateTime(date.year, date.month, date.day);
 
-    final difference =
-        today.difference(requestDay).inDays;
+    final difference = today.difference(requestDay).inDays;
 
     if (difference == 0) {
       return 'Today';
@@ -1619,17 +1600,12 @@ class ChatSendRequest extends StatelessWidget {
       return 'Yesterday';
     }
 
-    return DateFormat(
-      'd MMM yyyy',
-    ).format(date);
+    return DateFormat('d MMM yyyy').format(date);
   }
 
   @override
-  Widget build(
-      BuildContext context,
-      ) {
-    final displayName =
-    senderName.trim().isNotEmpty
+  Widget build(BuildContext context) {
+    final displayName = senderName.trim().isNotEmpty
         ? senderName.trim()
         : 'This user';
 
@@ -1640,54 +1616,40 @@ class ChatSendRequest extends StatelessWidget {
         // ======================================================
         // HEADER
         // ======================================================
-
         Row(
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
 
           children: [
             CircleAvatar(
-              backgroundColor:
-              AppColors.idCardColor,
+              backgroundColor: AppColors.idCardColor,
 
               radius: 20,
 
-              child: AppIconWidget(
-                assetPath:
-                AssetImages.phone,
-              ),
+              child: AppIconWidget(assetPath: AssetImages.phone),
             ),
 
-            const SizedBox(
-              width: 7,
-            ),
+            const SizedBox(width: 7),
 
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
 
                 children: [
                   const AppText(
-                    text:
-                    'Contact Received',
+                    text: 'Contact Received',
 
                     fontSize: 14,
 
-                    fontWeight:
-                    FontWeight.w500,
+                    fontWeight: FontWeight.w500,
                   ),
 
-                  const SizedBox(
-                    height: 7,
-                  ),
+                  const SizedBox(height: 7),
 
                   AppText(
                     text:
-                    '$displayName wants to share contact information with you.',
+                        '$displayName wants to share contact information with you.',
 
-                    fontWeight:
-                    FontWeight.w400,
+                    fontWeight: FontWeight.w400,
 
                     fontSize: 12,
 
@@ -1697,39 +1659,28 @@ class ChatSendRequest extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(
-              width: 8,
-            ),
+            const SizedBox(width: 8),
 
             // ==================================================
             // TODAY / YESTERDAY / DATE
             // ==================================================
-
             AppText(
-              text:
-              _formatRequestDate(
-                requestTime,
-              ),
+              text: _formatRequestDate(requestTime),
 
               fontSize: 12,
 
-              fontWeight:
-              FontWeight.w500,
+              fontWeight: FontWeight.w500,
 
-              color:
-              AppColors.primaryColor,
+              color: AppColors.primaryColor,
             ),
           ],
         ),
 
-        const SizedBox(
-          height: 12,
-        ),
+        const SizedBox(height: 12),
 
         // ======================================================
         // BUTTONS
         // ======================================================
-
         Row(
           children: [
             Expanded(
@@ -1738,24 +1689,17 @@ class ChatSendRequest extends StatelessWidget {
 
                 onTap: onDecline,
 
-                bgColor:
-                AppColors.white,
+                bgColor: AppColors.white,
 
-                border: Border.all(
-                  color:
-                  AppColors.red,
-                ),
+                border: Border.all(color: AppColors.red),
 
-                textColor:
-                AppColors.red,
+                textColor: AppColors.red,
 
                 fontSize: 14,
               ),
             ),
 
-            const SizedBox(
-              width: 10,
-            ),
+            const SizedBox(width: 10),
 
             Expanded(
               child: AppButton(
@@ -1763,11 +1707,9 @@ class ChatSendRequest extends StatelessWidget {
 
                 onTap: onAccept,
 
-                bgColor:
-                AppColors.primaryColor,
+                bgColor: AppColors.primaryColor,
 
-                textColor:
-                AppColors.white,
+                textColor: AppColors.white,
 
                 fontSize: 14,
               ),
@@ -1778,5 +1720,3 @@ class ChatSendRequest extends StatelessWidget {
     );
   }
 }
-
-

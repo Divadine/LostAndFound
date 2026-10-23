@@ -1,42 +1,31 @@
-
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
 
 class AppPreferences {
   static late SharedPreferences _prefs;
 
   static Future<void> init() async {
-
     _prefs = await SharedPreferences.getInstance();
-
   }
 
   static const String _isOnboarded = 'onboard';
 
   static Future<bool> setIsOnboarded(bool isOnBoard) async {
-
     return _prefs.setBool(_isOnboarded, isOnBoard);
-
   }
 
   static bool getIsOnboarded() {
-
     return _prefs.getBool(_isOnboarded) ?? false;
-
   }
 
-
-  static const String _isLoggedIn= 'login';
+  static const String _isLoggedIn = 'login';
 
   static Future<bool> setIsLoggedIn(bool isLogin) async {
-
     return _prefs.setBool(_isLoggedIn, isLogin);
-
   }
 
   static bool getIsLoggedIn() {
-
     return _prefs.getBool(_isLoggedIn) ?? false;
-
   }
 
   static const String _profileStatus = 'profile_status';
@@ -49,7 +38,8 @@ class AppPreferences {
     return _prefs.getInt(_profileStatus) ?? 0;
   }
 
-  static const String _askedDeviceLocationService = 'asked_device_location_service_before';
+  static const String _askedDeviceLocationService =
+      'asked_device_location_service_before';
 
   static Future<bool> setAskedDeviceLocationService(bool asked) async {
     return _prefs.setBool(_askedDeviceLocationService, asked);
@@ -59,14 +49,15 @@ class AppPreferences {
     return _prefs.getBool(_askedDeviceLocationService) ?? false;
   }
 
-  static const String _askedAppLocationPermission = 'asked_app_location_permission_before';
+  static const String _askedAppLocationPermission =
+      'asked_app_location_permission_before';
 
   static Future<bool> setAskedAppLocationPermission(bool asked) {
     return _prefs.setBool(_askedAppLocationPermission, asked);
   }
 
-  static bool getAskedAppLocationPermission(){
-    return _prefs.getBool(_askedAppLocationPermission) ?? false ;
+  static bool getAskedAppLocationPermission() {
+    return _prefs.getBool(_askedAppLocationPermission) ?? false;
   }
 
   static const String _askedMicPermission = 'asked_mic_permission_before';
@@ -80,6 +71,11 @@ class AppPreferences {
   }
 
   static Future<void> logout() async {
+    final uid = getUserId()?.toString();
+    if (uid != null && uid.isNotEmpty) {
+      await ChatService.setOffline(uid);
+    }
+
     await _prefs.remove(_tokenKey);
     await _prefs.remove(_userIdKey);
     await _prefs.remove(_userNameKey);
@@ -89,13 +85,8 @@ class AppPreferences {
     // await _prefs.remove(_lastSeenNotificationId);
     await _prefs.setInt(_profileStatus, 0);
 
-    await _prefs.setBool(
-      _isLoggedIn,
-      false,
-    );
+    await _prefs.setBool(_isLoggedIn, false);
   }
-
-
 
   static const String _tokenKey = "access_token";
 
@@ -108,7 +99,6 @@ class AppPreferences {
     //final prefs = await SharedPreferences.getInstance();
     return _prefs.getString(_tokenKey);
   }
-
 
   static Future<void> clearToken() async {
     //final prefs = await SharedPreferences.getInstance();
@@ -158,6 +148,11 @@ class AppPreferences {
   }
 
   static Future<void> clearAll() async {
+    final uid = getUserId()?.toString();
+    if (uid != null && uid.isNotEmpty) {
+      await ChatService.setOffline(uid);
+    }
+
     await _prefs.remove(_tokenKey);
     await _prefs.remove(_userIdKey);
     await _prefs.remove(_userNameKey);
@@ -188,15 +183,13 @@ class AppPreferences {
     return _prefs.getBool(_isItemPosted) ?? false;
   }
 
-
-
   static const String safetyCardDismissed = 'safetyCardDismissed';
 
   static Future<bool> setSafetyCardDismissed(bool dismissed) async {
     return _prefs.setBool(safetyCardDismissed, dismissed);
   }
 
-  static bool  getSafetyCardDismissed()  {
+  static bool getSafetyCardDismissed() {
     return _prefs.getBool(safetyCardDismissed) ?? false;
   }
 

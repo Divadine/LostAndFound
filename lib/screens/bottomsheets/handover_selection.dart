@@ -27,6 +27,7 @@ class ReceiveHandoverSheet extends StatefulWidget {
   final int? categoryId;
   final int? enquiryId;
   final int? matchPercentage;
+  final bool hasEnquiries;
 
   const ReceiveHandoverSheet({
     super.key,
@@ -36,6 +37,7 @@ class ReceiveHandoverSheet extends StatefulWidget {
     this.categoryId,
     this.enquiryId,
     this.matchPercentage,
+    this.hasEnquiries = false,
   });
 
   @override
@@ -52,6 +54,11 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
     return widget.categoryId == 9 ||
         titleLower.contains('jewellery') ||
         titleLower.contains('valuable');
+  }
+
+  bool get showOwnerOption {
+    if (isJewellery) return false;
+    return widget.isReceiver || widget.hasEnquiries;
   }
 
   @override
@@ -97,22 +104,22 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
-              if (widget.matchPercentage != null && widget.matchPercentage! > 0) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppUtils.getMatchColor(widget.matchPercentage!).withAlpha(70),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: AppText(
-                    text: '${widget.matchPercentage}% match',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 10,
-                    color: AppUtils.getMatchColor(widget.matchPercentage!),
-                  ),
-                ),
-              ],
+              // if (widget.matchPercentage != null && widget.matchPercentage! > 0) ...[
+              //   const SizedBox(width: 8),
+              //   Container(
+              //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              //     decoration: BoxDecoration(
+              //       color: AppUtils.getMatchColor(widget.matchPercentage!).withAlpha(70),
+              //       borderRadius: BorderRadius.circular(20),
+              //     ),
+              //     child: AppText(
+              //       text: '${widget.matchPercentage}% match',
+              //       fontWeight: FontWeight.w500,
+              //       fontSize: 10,
+              //       color: AppUtils.getMatchColor(widget.matchPercentage!),
+              //     ),
+              //   ),
+              // ],
             ],
           ),
 
@@ -125,32 +132,9 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
           ),
 
           // ==========================================================
-          // JEWELLERY
-          // ONLY POLICE STATION
+          // OPTIONS
           // ==========================================================
-          if (isJewellery) ...[
-            BottomSheetHandOver(
-              title: widget.isReceiver
-                  ? 'Receive from Police Station'
-                  : 'Hand Over to Police Station',
-              subtitle: widget.isReceiver
-                  ? 'Receive the item from the police station.'
-                  : 'Provide the Police station details.',
-              image: AssetImages.police,
-              isSelected: selectedIndex == 2,
-              onTap: () {
-                setState(() {
-                  selectedIndex = 2;
-                });
-              },
-            ),
-          ]
-
-          // ==========================================================
-          // NON-JEWELLERY
-          // ORIGINAL 3 OPTIONS
-          // ==========================================================
-          else ...[
+          if (showOwnerOption)
             BottomSheetHandOver(
               title: widget.isReceiver
                   ? 'Receive from found Person'
@@ -167,22 +151,23 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
               },
             ),
 
-            BottomSheetHandOver(
-              title: widget.isReceiver
-                  ? 'Receive from Police Station'
-                  : 'Hand Over to Police Station',
-              subtitle: widget.isReceiver
-                  ? 'Receive the item from the police station.'
-                  : 'Provide the Police station details.',
-              image: AssetImages.police,
-              isSelected: selectedIndex == 2,
-              onTap: () {
-                setState(() {
-                  selectedIndex = 2;
-                });
-              },
-            ),
+          BottomSheetHandOver(
+            title: widget.isReceiver
+                ? 'Receive from Police Station'
+                : 'Hand Over to Police Station',
+            subtitle: widget.isReceiver
+                ? 'Receive the item from the police station.'
+                : 'Provide the Police station details.',
+            image: AssetImages.police,
+            isSelected: selectedIndex == 2,
+            onTap: () {
+              setState(() {
+                selectedIndex = 2;
+              });
+            },
+          ),
 
+          if (!isJewellery)
             BottomSheetHandOver(
               title: widget.isReceiver
                   ? 'Received to others'
@@ -196,7 +181,6 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                 });
               },
             ),
-          ],
 
           const SizedBox(height: 5),
 
@@ -217,9 +201,8 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
 
               // ========================================================
               // OWNER
-              // Non-Jewellery only
               // ========================================================
-              if (!isJewellery && selectedIndex == 1) {
+              if (showOwnerOption && selectedIndex == 1) {
                 AppUiHelper.showBottomSheet(
                   showHandle: false,
                   context: context,

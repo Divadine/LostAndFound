@@ -413,26 +413,29 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               ),
               AppButton(
                 title: 'Hand Over',
-                onTap: () async {
-                  debugPrint('[Handover] Opening ReceiveHandoverSheet from EnquiryList');
-                  debugPrint('[Handover] postId: ${widget.postId}');
-                  debugPrint('[Handover] categoryId passed: ${enquiryData?.post?.categoryId}');
+                onTap: (isLoading || enquiryData == null)
+                    ? null
+                    : () async {
+                        debugPrint('[Handover] Opening ReceiveHandoverSheet from EnquiryList');
+                        debugPrint('[Handover] postId: ${widget.postId}');
+                        debugPrint('[Handover] categoryId passed: ${enquiryData?.post?.categoryId}');
 
-                  await AppUiHelper.showBottomSheet(
-                    context: context,
-                    child: ReceiveHandoverSheet(
-                      title: enquiryData?.post?.categoryName ?? '',
-                      isReceiver: widget.isFound
-                          ? (enquiryData?.post?.userId != AppPreferences.getUserId())
-                          : (enquiryData?.post?.userId == AppPreferences.getUserId()),
-                      postId: widget.postId,
-                      categoryId: enquiryData?.post?.categoryId,
-                      enquiryId: winnerEnquiry?.enquiryId,
-                      matchPercentage: post?.handoverMatchPercentage ?? winnerEnquiry?.matchPercentage,
-                    ),
-                  );
-                  _fetchEnquiries();
-                },
+                        await AppUiHelper.showBottomSheet(
+                          context: context,
+                          child: ReceiveHandoverSheet(
+                            title: enquiryData?.post?.categoryName ?? '',
+                            isReceiver: widget.isFound
+                                ? (enquiryData?.post?.userId != AppPreferences.getUserId())
+                                : (enquiryData?.post?.userId == AppPreferences.getUserId()),
+                            postId: widget.postId,
+                            categoryId: enquiryData?.post?.categoryId,
+                            enquiryId: winnerEnquiry?.enquiryId,
+                            matchPercentage: post?.handoverMatchPercentage ?? winnerEnquiry?.matchPercentage,
+                            hasEnquiries: enquiries.isNotEmpty,
+                          ),
+                        );
+                        _fetchEnquiries();
+                      },
                 radius: BorderRadius.circular(14),
               ),
             ],

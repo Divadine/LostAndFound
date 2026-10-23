@@ -44,6 +44,8 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
   bool isLoading = true;
   String? errorMessage;
 
+  bool get _onlyEnquired => !widget.isReceiver;
+
   @override
   void initState() {
     super.initState();
@@ -69,7 +71,6 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
       final Map<int, int> userMap = {};
       final Map<String, int> uidMap = {};
 
-      // Optional enquiryId map lookup for matches that happen to have an enquiry
       try {
         final enquiryResponse = await authController.viewEnquiry(postId: widget.postId);
         if (enquiryResponse.isSuccess && enquiryResponse.data != null) {
@@ -78,9 +79,26 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
             userMap[e.enquirerUserId] = e.enquiryId;
             uidMap[e.userUid] = e.enquiryId;
           }
+        } else if (_onlyEnquired) {
+          if (!mounted) return;
+          setState(() {
+            errorMessage = enquiryResponse.message.isNotEmpty
+                ? enquiryResponse.message
+                : 'Failed to fetch enquiries';
+            isLoading = false;
+          });
+          return;
         }
       } catch (e) {
-        debugPrint('[Handover] Optional viewEnquiry lookup error (non-fatal): $e');
+        debugPrint('[Handover] viewEnquiry error: $e');
+        if (_onlyEnquired) {
+          if (!mounted) return;
+          setState(() {
+            errorMessage = 'Failed to fetch enquiries: $e';
+            isLoading = false;
+          });
+          return;
+        }
       }
 
       if (!mounted) return;
@@ -100,6 +118,15 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
 
       final List<HandoverOwnerModel> newOwners = [];
       for (final m in matches) {
+        if (_onlyEnquired) {
+          final isEnquired = userMap.containsKey(m.userId) ||
+              uidMap.containsKey(m.userUid) ||
+              postMap.containsKey(m.postId);
+          if (!isEnquired) {
+            continue;
+          }
+        }
+
         final displayName = m.posterName.isNotEmpty
             ? m.posterName
             : (m.name.isNotEmpty ? m.name : 'Matched User');
@@ -267,7 +294,13 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
             ),
           )
               : owners.isEmpty
-              ? const Center(child: AppText(text: 'No matches available'))
+              ? Center(
+                  child: AppText(
+                    text: _onlyEnquired
+                        ? 'No enquiries received yet'
+                        : 'No matches available',
+                  ),
+                )
               : ListView.builder(
             itemCount: owners.length,
             itemBuilder: (context, index) {

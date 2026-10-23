@@ -9,6 +9,112 @@ class ChatService {
   static CollectionReference<Map<String, dynamic>> get _rooms =>
       _firestore.collection('chatRooms');
 
+// ============================================================
+// PRESENCE
+// ============================================================
+
+  static Timer? _presenceHeartbeatTimer;
+  static String? _activePresenceUserId;
+
+  static DocumentReference<Map<String, dynamic>> _presenceRef(
+      String userId,
+      ) {
+    return _firestore.collection('presence').doc(userId.trim());
+  }
+
+  static Future<void> setOnline(String userId) async {
+    final uid = userId.trim();
+    if (uid.isEmpty) return;
+
+    try {
+      // Cancel the previous heartbeat before starting a new one.
+      _presenceHeartbeatTimer?.cancel();
+      _presenceHeartbeatTimer = null;
+
+      _activePresenceUserId = uid;
+
+      await _presenceRef(uid).set({
+        'isOnline': true,
+        'lastSeen': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      debugPrint('[PRESENCE] User ONLINE: $uid');
+
+      // Start heartbeat only after the initial write succeeds.
+      _presenceHeartbeatTimer = Timer.periodic(
+        const Duration(seconds: 30),
+            (timer) async {
+          if (_activePresenceUserId != uid) {
+            timer.cancel();
+            return;
+          }
+
+          try {
+            await _presenceRef(uid).set({
+              'isOnline': true,
+              'lastSeen': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+          } catch (e) {
+            debugPrint('[PRESENCE] Heartbeat failed for $uid: $e');
+          }
+        },
+      );
+    } catch (e) {
+      debugPrint('[PRESENCE] Failed to set ONLINE for $uid: $e');
+    }
+  }
+
+  static Future<void> setOffline(String userId) async {
+    final uid = userId.trim();
+    if (uid.isEmpty) return;
+
+    // Don't let an old user's cleanup stop another user's heartbeat.
+    if (_activePresenceUserId == uid) {
+      _presenceHeartbeatTimer?.cancel();
+      _presenceHeartbeatTimer = null;
+      _activePresenceUserId = null;
+    }
+
+    try {
+      await _presenceRef(uid).set({
+        'isOnline': false,
+        'lastSeen': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      debugPrint('[PRESENCE] User OFFLINE: $uid');
+    } catch (e) {
+      debugPrint('[PRESENCE] Failed to set OFFLINE for $uid: $e');
+    }
+  }
+
+  static Stream<bool> presenceStream(String userId) {
+    final uid = userId.trim();
+
+    if (uid.isEmpty) {
+      return Stream<bool>.value(false);
+    }
+
+    return _presenceRef(uid).snapshots().map((snapshot) {
+      if (!snapshot.exists) return false;
+
+      final data = snapshot.data();
+      if (data == null || data['isOnline'] != true) {
+        return false;
+      }
+
+      final lastSeen = data['lastSeen'];
+
+      // A server timestamp can temporarily be null during a write.
+      if (lastSeen == null) return true;
+
+      if (lastSeen is! Timestamp) return false;
+
+      final elapsed = DateTime.now().difference(lastSeen.toDate());
+
+      return elapsed.inSeconds <= 70 && !elapsed.isNegative;
+    }).distinct();
+  }
+
   // ============================================================
   // GENERATE DETERMINISTIC ROOM ID
   // ============================================================
@@ -79,173 +185,178 @@ class ChatService {
       matchedPostId: matchedPostId,
     );
 
-    print('[CHAT_ID]\n'
-        'currentUserId=$cleanCurrentUserId\n'
-        'otherUserId=$cleanOtherUserId\n'
-        'postId=$cleanPostId\n'
-        'matchedPostId=${matchedPostId ?? ''}\n'
-        'enquiryId=${enquiryId ?? ''}\n'
-        'generatedRoomId=$roomId');
+    print(
+      '[CHAT_ID]\n'
+      'currentUserId=$cleanCurrentUserId\n'
+      'otherUserId=$cleanOtherUserId\n'
+      'postId=$cleanPostId\n'
+      'matchedPostId=${matchedPostId ?? ''}\n'
+      'enquiryId=${enquiryId ?? ''}\n'
+      'generatedRoomId=$roomId',
+    );
 
     final roomRef = _rooms.doc(roomId);
 
-    return await _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(roomRef);
-      final now = FieldValue.serverTimestamp();
+    return await _firestore
+        .runTransaction((transaction) async {
+          final snapshot = await transaction.get(roomRef);
+          final now = FieldValue.serverTimestamp();
 
-      if (!snapshot.exists) {
-        // ========================================================
-        // CREATE NEW ROOM
-        // ========================================================
-        debugPrint('[Room] creating roomId=$roomId');
+          if (!snapshot.exists) {
+            // ========================================================
+            // CREATE NEW ROOM
+            // ========================================================
+            debugPrint('[Room] creating roomId=$roomId');
 
-        final users = [cleanCurrentUserId, cleanOtherUserId]..sort();
+            final users = [cleanCurrentUserId, cleanOtherUserId]..sort();
 
-        final effectiveMatchedPostId = matchedPostId?.trim() ?? '';
-        String effectivePostId = cleanPostId;
-        if (effectivePostId.contains('_')) {
-          effectivePostId = effectivePostId.split('_').last;
-        }
+            final effectiveMatchedPostId = matchedPostId?.trim() ?? '';
+            String effectivePostId = cleanPostId;
+            if (effectivePostId.contains('_')) {
+              effectivePostId = effectivePostId.split('_').last;
+            }
 
-        final data = <String, dynamic>{
-          'roomId': roomId,
-          'users': users,
-          'participantsList': users,
-          'postId': effectivePostId,
-          'theirPostId': effectivePostId,
-          'matchedPostId': effectiveMatchedPostId,
-          'myPostId': effectiveMatchedPostId,
-          'enquiryId': enquiryId?.trim() ?? '',
-          'enquirySenderId': enquirySenderId?.trim() ?? '',
-          'itemName': itemName?.trim() ?? '',
-          'itemImage': itemImage?.trim() ?? '',
-          'itemLocation': itemLocation?.trim() ?? '',
-          'itemPostDate': itemPostDate?.trim() ?? '',
-          'description': description?.trim() ?? '',
-          'profileUrl': profileUrl?.trim() ?? '',
-          'createdAt': now,
-          'updatedAt': now,
-          'lastMessage': '',
-          'lastMessageTime': now,
-          'lastMessageSenderId': '',
-          'lastMessageRead': false,
-          'lastMessageDelivered': false,
-          'lastMessageDeleted': false,
-          'lastMessageId': '',
-          'unreadCounts': {
-            cleanCurrentUserId: 0,
-            cleanOtherUserId: 0,
-          },
-          'blockedBy': <String>[],
-          'contactRequestStatus': 'none',
-          'participants': {
-            cleanCurrentUserId: {
-              'name': currentUserName?.trim() ?? '',
-              'avatar': currentUserAvatar?.trim() ?? '',
-              'phone': currentUserPhone?.trim() ?? '',
-            },
-            cleanOtherUserId: {
-              'name': otherUserName?.trim() ?? '',
-              'avatar': otherUserAvatar?.trim() ?? '',
-              'phone': otherUserPhone?.trim() ?? '',
-            },
-          },
-        };
+            final data = <String, dynamic>{
+              'roomId': roomId,
+              'users': users,
+              'participantsList': users,
+              'postId': effectivePostId,
+              'theirPostId': effectivePostId,
+              'matchedPostId': effectiveMatchedPostId,
+              'myPostId': effectiveMatchedPostId,
+              'enquiryId': enquiryId?.trim() ?? '',
+              'enquirySenderId': enquirySenderId?.trim() ?? '',
+              'itemName': itemName?.trim() ?? '',
+              'itemImage': itemImage?.trim() ?? '',
+              'itemLocation': itemLocation?.trim() ?? '',
+              'itemPostDate': itemPostDate?.trim() ?? '',
+              'description': description?.trim() ?? '',
+              'profileUrl': profileUrl?.trim() ?? '',
+              'createdAt': now,
+              'updatedAt': now,
+              'lastMessage': '',
+              'lastMessageTime': now,
+              'lastMessageSenderId': '',
+              'lastMessageRead': false,
+              'lastMessageDelivered': false,
+              'lastMessageDeleted': false,
+              'lastMessageId': '',
+              'unreadCounts': {cleanCurrentUserId: 0, cleanOtherUserId: 0},
+              'blockedBy': <String>[],
+              'contactRequestStatus': 'none',
+              'participants': {
+                cleanCurrentUserId: {
+                  'name': currentUserName?.trim() ?? '',
+                  'avatar': currentUserAvatar?.trim() ?? '',
+                  'phone': currentUserPhone?.trim() ?? '',
+                },
+                cleanOtherUserId: {
+                  'name': otherUserName?.trim() ?? '',
+                  'avatar': otherUserAvatar?.trim() ?? '',
+                  'phone': otherUserPhone?.trim() ?? '',
+                },
+              },
+            };
 
-        transaction.set(roomRef, data, SetOptions(merge: true));
-        debugPrint('[CHAT_CREATED] Created new room: $roomId');
-      } else {
-        // ========================================================
-        // UPDATE EXISTING ROOM (Merging logic)
-        // ========================================================
-        final existingData = snapshot.data()!;
-        final updateData = <String, dynamic>{
-          'updatedAt': now,
-        };
+            transaction.set(roomRef, data, SetOptions(merge: true));
+            debugPrint('[CHAT_CREATED] Created new room: $roomId');
+          } else {
+            // ========================================================
+            // UPDATE EXISTING ROOM (Merging logic)
+            // ========================================================
+            final existingData = snapshot.data()!;
+            final updateData = <String, dynamic>{'updatedAt': now};
 
-        // Helper to update only if incoming is non-empty and existing is empty
-        void mergeField(String key, String? newValue) {
-          final val = newValue?.trim() ?? '';
-          final existingVal = existingData[key]?.toString() ?? '';
-          if (val.isNotEmpty && existingVal.isEmpty) {
-            updateData[key] = val;
+            // Helper to update only if incoming is non-empty and existing is empty
+            void mergeField(String key, String? newValue) {
+              final val = newValue?.trim() ?? '';
+              final existingVal = existingData[key]?.toString() ?? '';
+              if (val.isNotEmpty && existingVal.isEmpty) {
+                updateData[key] = val;
+              }
+            }
+
+            mergeField('matchedPostId', matchedPostId);
+            mergeField('enquiryId', enquiryId);
+            mergeField('enquirySenderId', enquirySenderId);
+            mergeField('itemName', itemName);
+            mergeField('itemImage', itemImage);
+            mergeField('itemLocation', itemLocation);
+            mergeField('itemPostDate', itemPostDate);
+            mergeField('description', description);
+            mergeField('profileUrl', profileUrl);
+
+            // Merge participants
+            final participants = Map<String, dynamic>.from(
+              existingData['participants'] ?? {},
+            );
+
+            // Current user: overwrite name, avatar, phone if non-empty
+            final currentP = Map<String, dynamic>.from(
+              participants[cleanCurrentUserId] ?? {},
+            );
+            final cName = currentUserName?.trim() ?? '';
+            final cAvatar = currentUserAvatar?.trim() ?? '';
+            final cPhone = currentUserPhone?.trim() ?? '';
+
+            if (cName.isNotEmpty) {
+              currentP['name'] = cName;
+            }
+            if (cAvatar.isNotEmpty) {
+              currentP['avatar'] = cAvatar;
+            }
+            if (cPhone.isNotEmpty) {
+              currentP['phone'] = cPhone;
+            }
+            participants[cleanCurrentUserId] = currentP;
+
+            // Other user: fill only if empty
+            final otherP = Map<String, dynamic>.from(
+              participants[cleanOtherUserId] ?? {},
+            );
+            final oName = otherUserName?.trim() ?? '';
+            final oAvatar = otherUserAvatar?.trim() ?? '';
+            final oPhone = otherUserPhone?.trim() ?? '';
+
+            if (oName.isNotEmpty &&
+                (otherP['name']?.toString().isEmpty ?? true)) {
+              otherP['name'] = oName;
+            }
+            if (oAvatar.isNotEmpty &&
+                (otherP['avatar']?.toString().isEmpty ?? true)) {
+              otherP['avatar'] = oAvatar;
+            }
+            if (oPhone.isNotEmpty &&
+                (otherP['phone']?.toString().isEmpty ?? true)) {
+              otherP['phone'] = oPhone;
+            }
+            participants[cleanOtherUserId] = otherP;
+
+            updateData['participants'] = participants;
+
+            transaction.update(roomRef, updateData);
+            print('[CHAT_EXISTING] Using existing room: $roomId');
           }
-        }
 
-        mergeField('matchedPostId', matchedPostId);
-        mergeField('enquiryId', enquiryId);
-        mergeField('enquirySenderId', enquirySenderId);
-        mergeField('itemName', itemName);
-        mergeField('itemImage', itemImage);
-        mergeField('itemLocation', itemLocation);
-        mergeField('itemPostDate', itemPostDate);
-        mergeField('description', description);
-        mergeField('profileUrl', profileUrl);
-
-        // Merge participants
-        final participants =
-            Map<String, dynamic>.from(existingData['participants'] ?? {});
-
-        // Current user: overwrite name, avatar, phone if non-empty
-        final currentP = Map<String, dynamic>.from(
-            participants[cleanCurrentUserId] ?? {});
-        final cName = currentUserName?.trim() ?? '';
-        final cAvatar = currentUserAvatar?.trim() ?? '';
-        final cPhone = currentUserPhone?.trim() ?? '';
-
-        if (cName.isNotEmpty) {
-          currentP['name'] = cName;
-        }
-        if (cAvatar.isNotEmpty) {
-          currentP['avatar'] = cAvatar;
-        }
-        if (cPhone.isNotEmpty) {
-          currentP['phone'] = cPhone;
-        }
-        participants[cleanCurrentUserId] = currentP;
-
-        // Other user: fill only if empty
-        final otherP =
-            Map<String, dynamic>.from(participants[cleanOtherUserId] ?? {});
-        final oName = otherUserName?.trim() ?? '';
-        final oAvatar = otherUserAvatar?.trim() ?? '';
-        final oPhone = otherUserPhone?.trim() ?? '';
-
-        if (oName.isNotEmpty && (otherP['name']?.toString().isEmpty ?? true)) {
-          otherP['name'] = oName;
-        }
-        if (oAvatar.isNotEmpty && (otherP['avatar']?.toString().isEmpty ?? true)) {
-          otherP['avatar'] = oAvatar;
-        }
-        if (oPhone.isNotEmpty && (otherP['phone']?.toString().isEmpty ?? true)) {
-          otherP['phone'] = oPhone;
-        }
-        participants[cleanOtherUserId] = otherP;
-
-        updateData['participants'] = participants;
-
-        transaction.update(roomRef, updateData);
-        print('[CHAT_EXISTING] Using existing room: $roomId');
-      }
-
-      return roomId;
-    }).then((id) async {
-      // After transaction, ensure item card message exists if data provided
-      if (itemName?.trim().isNotEmpty == true ||
-          itemImage?.trim().isNotEmpty == true) {
-        await ensureItemCardMessage(
-          roomId: id,
-          senderId: enquirySenderId?.trim().isNotEmpty == true
-              ? enquirySenderId!.trim()
-              : cleanCurrentUserId,
-          itemName: itemName ?? '',
-          itemImage: itemImage ?? '',
-          itemLocation: itemLocation ?? '',
-          itemPostDate: itemPostDate ?? '',
-        );
-      }
-      return id;
-    });
+          return roomId;
+        })
+        .then((id) async {
+          // After transaction, ensure item card message exists if data provided
+          if (itemName?.trim().isNotEmpty == true ||
+              itemImage?.trim().isNotEmpty == true) {
+            await ensureItemCardMessage(
+              roomId: id,
+              senderId: enquirySenderId?.trim().isNotEmpty == true
+                  ? enquirySenderId!.trim()
+                  : cleanCurrentUserId,
+              itemName: itemName ?? '',
+              itemImage: itemImage ?? '',
+              itemLocation: itemLocation ?? '',
+              itemPostDate: itemPostDate ?? '',
+            );
+          }
+          return id;
+        });
   }
 
   // ============================================================
@@ -273,10 +384,13 @@ class ChatService {
       if (!snapshot.exists) return;
 
       final roomData = snapshot.data()!;
-      final participants = Map<String, dynamic>.from(roomData['participants'] ?? {});
+      final participants = Map<String, dynamic>.from(
+        roomData['participants'] ?? {},
+      );
 
-      final participant = Map<String, dynamic>.from(participants[cleanUserId] ?? {});
-
+      final participant = Map<String, dynamic>.from(
+        participants[cleanUserId] ?? {},
+      );
 
       if (name.trim().isNotEmpty) {
         participant['name'] = name.trim();
@@ -333,7 +447,9 @@ class ChatService {
 
     try {
       final cleanAvatar = avatarUrl.trim();
-      final roomsQuery = await _rooms.where('users', arrayContains: cleanUserId).get();
+      final roomsQuery = await _rooms
+          .where('users', arrayContains: cleanUserId)
+          .get();
 
       if (roomsQuery.docs.isEmpty) return;
 
@@ -350,7 +466,9 @@ class ChatService {
         }
         await batch.commit();
       }
-      debugPrint('[ChatService] Updated avatar everywhere for $cleanUserId to "$cleanAvatar" across ${roomsQuery.docs.length} rooms.');
+      debugPrint(
+        '[ChatService] Updated avatar everywhere for $cleanUserId to "$cleanAvatar" across ${roomsQuery.docs.length} rooms.',
+      );
     } catch (e) {
       debugPrint('[ChatService] Error updating avatar everywhere: $e');
     }
@@ -466,8 +584,9 @@ class ChatService {
     final snapshot = await _rooms.doc(roomId).get();
     if (!snapshot.exists) return null;
 
-    final participants =
-    Map<String, dynamic>.from(snapshot.data()?['participants'] ?? {});
+    final participants = Map<String, dynamic>.from(
+      snapshot.data()?['participants'] ?? {},
+    );
     final participant = participants[userId.trim()];
     return participant != null ? Map<String, dynamic>.from(participant) : null;
   }
@@ -485,7 +604,11 @@ class ChatService {
     required String userId,
     required String phone,
   }) async {
-    await updateParticipantProfile(roomId: roomId, userId: userId, phone: phone);
+    await updateParticipantProfile(
+      roomId: roomId,
+      userId: userId,
+      phone: phone,
+    );
   }
 
   // ============================================================
@@ -502,14 +625,18 @@ class ChatService {
   }) async {
     if (roomId.trim().isEmpty) return;
 
-    final hasAnyItemData = itemName.trim().isNotEmpty ||
+    final hasAnyItemData =
+        itemName.trim().isNotEmpty ||
         itemImage.trim().isNotEmpty ||
         itemLocation.trim().isNotEmpty ||
         itemPostDate.trim().isNotEmpty;
 
     if (!hasAnyItemData) return;
 
-    final itemCardRef = _rooms.doc(roomId).collection('messages').doc('itemCard');
+    final itemCardRef = _rooms
+        .doc(roomId)
+        .collection('messages')
+        .doc('itemCard');
     final doc = await itemCardRef.get();
     if (doc.exists) return;
 
@@ -595,8 +722,9 @@ class ChatService {
   //   });
   // }
 
-  static Stream<Map<String, dynamic>> contactRequestStream(
-      {required String roomId}) {
+  static Stream<Map<String, dynamic>> contactRequestStream({
+    required String roomId,
+  }) {
     return _rooms.doc(roomId).snapshots().map((s) {
       if (!s.exists) {
         return {
@@ -692,7 +820,9 @@ class ChatService {
         participantIds = List<String>.from(roomData['users']);
       }
       if (participantIds.isEmpty && roomData['participants'] is Map) {
-        participantIds = (roomData['participants'] as Map).keys.cast<String>().toList();
+        participantIds = (roomData['participants'] as Map).keys
+            .cast<String>()
+            .toList();
       }
 
       receiverId = participantIds.firstWhere(
@@ -745,16 +875,16 @@ class ChatService {
     };
 
     if (receiverId.isNotEmpty) {
-      roomUpdate['unreadCounts'] = {
-        receiverId: FieldValue.increment(1),
-      };
+      roomUpdate['unreadCounts'] = {receiverId: FieldValue.increment(1)};
     }
 
     batch.set(roomRef, roomUpdate, SetOptions(merge: true));
 
-    unawaited(batch.commit().catchError((e) {
-      debugPrint('[CHAT] send commit error: $e');
-    }));
+    unawaited(
+      batch.commit().catchError((e) {
+        debugPrint('[CHAT] send commit error: $e');
+      }),
+    );
   }
 
   // ============================================================
@@ -815,10 +945,7 @@ class ChatService {
       senderId: senderId,
       messageType: 'image',
       lastMessageText: lastMsg,
-      extraData: {
-        'message': cleanCaption,
-        'imageUrl': imageUrl,
-      },
+      extraData: {'message': cleanCaption, 'imageUrl': imageUrl},
     );
   }
 
@@ -833,11 +960,7 @@ class ChatService {
       senderId: senderId,
       messageType: 'audio',
       lastMessageText: '🎤 Voice message',
-      extraData: {
-        'message': '',
-        'audioUrl': audioUrl,
-        'duration': duration,
-      },
+      extraData: {'message': '', 'audioUrl': audioUrl, 'duration': duration},
     );
   }
 
@@ -893,20 +1016,26 @@ class ChatService {
       });
     }
 
-    unawaited(batch.commit().catchError((e) {
-      debugPrint('[CHAT] edit commit error: $e');
-    }));
+    unawaited(
+      batch.commit().catchError((e) {
+        debugPrint('[CHAT] edit commit error: $e');
+      }),
+    );
   }
 
   // ============================================================
   // STREAMS & UTILS
   // ============================================================
 
-  static Stream<QuerySnapshot<Map<String, dynamic>>> chatRoomsStream(String userId) {
+  static Stream<QuerySnapshot<Map<String, dynamic>>> chatRoomsStream(
+    String userId,
+  ) {
     return _rooms.where('users', arrayContains: userId).snapshots();
   }
 
-  static Stream<QuerySnapshot<Map<String, dynamic>>> messagesStream(String roomId) {
+  static Stream<QuerySnapshot<Map<String, dynamic>>> messagesStream(
+    String roomId,
+  ) {
     return _rooms
         .doc(roomId)
         .collection('messages')
@@ -934,10 +1063,9 @@ class ChatService {
 
     _deliverySub?.cancel();
 
-    _deliverySub = _rooms
-        .where('users', arrayContains: me)
-        .snapshots()
-        .listen((snap) {
+    _deliverySub = _rooms.where('users', arrayContains: me).snapshots().listen((
+      snap,
+    ) {
       for (final doc in snap.docs) {
         final d = doc.data();
         if (doc.metadata.hasPendingWrites) continue;
@@ -976,11 +1104,9 @@ class ChatService {
       for (final d in docs.take(400)) {
         batch.update(d.reference, {'delivered': true});
       }
-      batch.set(
-        roomRef,
-        {'lastMessageDelivered': true},
-        SetOptions(merge: true),
-      );
+      batch.set(roomRef, {
+        'lastMessageDelivered': true,
+      }, SetOptions(merge: true));
       await batch.commit();
     } catch (e) {
       debugPrint('[CHAT] markDelivered error: $e');
@@ -1038,16 +1164,12 @@ class ChatService {
         });
       }
 
-      batch.set(
-        roomRef,
-        {
-          'unreadCounts': {uid: 0},
-          'seenBy': FieldValue.arrayUnion([uid]),
-          if (lastFromOther) 'lastMessageRead': true,
-          if (lastFromOther) 'lastMessageDelivered': true,
-        },
-        SetOptions(merge: true),
-      );
+      batch.set(roomRef, {
+        'unreadCounts': {uid: 0},
+        'seenBy': FieldValue.arrayUnion([uid]),
+        if (lastFromOther) 'lastMessageRead': true,
+        if (lastFromOther) 'lastMessageDelivered': true,
+      }, SetOptions(merge: true));
 
       await batch.commit();
     } catch (e) {
@@ -1055,8 +1177,12 @@ class ChatService {
     }
   }
 
-  static Stream<Map<String, Map<String, int>>> enquiryCountsStream(String userId) {
-    return _rooms.where('users', arrayContains: userId).snapshots().map((snapshot) {
+  static Stream<Map<String, Map<String, int>>> enquiryCountsStream(
+    String userId,
+  ) {
+    return _rooms.where('users', arrayContains: userId).snapshots().map((
+      snapshot,
+    ) {
       final Map<String, int> seen = {};
       final Map<String, int> total = {};
       for (final doc in snapshot.docs) {
@@ -1090,7 +1216,10 @@ class ChatService {
       throw Exception('You can delete only your own messages.');
     }
 
-    await mRef.update({'isDeleted': true, 'message': 'This message was deleted'});
+    await mRef.update({
+      'isDeleted': true,
+      'message': 'This message was deleted',
+    });
 
     final latest = await _rooms
         .doc(roomId)
@@ -1103,7 +1232,9 @@ class ChatService {
       await _rooms.doc(roomId).update({'lastMessage': '', 'lastMessageId': ''});
     } else {
       final d = latest.docs.first.data();
-      String msg = d['isDeleted'] == true ? 'This message was deleted' : (d['message'] ?? '');
+      String msg = d['isDeleted'] == true
+          ? 'This message was deleted'
+          : (d['message'] ?? '');
       if (d['isDeleted'] != true) {
         if (d['messageType'] == 'item') msg = 'Item shared';
         if (d['messageType'] == 'location') msg = '📍 Location';
@@ -1136,7 +1267,7 @@ class ChatService {
       throw Exception('You can delete only your own messages.');
     }
     await mRef.update({
-      'deletedFor': FieldValue.arrayUnion([currentUserId])
+      'deletedFor': FieldValue.arrayUnion([currentUserId]),
     });
   }
 
@@ -1151,12 +1282,8 @@ class ChatService {
 
     final roomRef = _rooms.doc(cleanRoomId);
     await roomRef.set({
-      'clearedAt': {
-        cleanUserId: FieldValue.serverTimestamp(),
-      },
-      'unreadCounts': {
-        cleanUserId: 0,
-      },
+      'clearedAt': {cleanUserId: FieldValue.serverTimestamp()},
+      'unreadCounts': {cleanUserId: 0},
       if (hide) 'hiddenFor': FieldValue.arrayUnion([cleanUserId]),
     }, SetOptions(merge: true));
   }

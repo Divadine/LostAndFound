@@ -16,17 +16,13 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'message_tick.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({
-    super.key,
-  });
+  const ChatScreen({super.key});
 
   @override
-  State<ChatScreen> createState() =>
-      _ChatScreenState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState
-    extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen> {
   String? currentUserId;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
@@ -35,32 +31,21 @@ class _ChatScreenState
   void initState() {
     super.initState();
 
-    currentUserId =
-        AppPreferences.getUserId()
-            ?.toString()
-            .trim();
+    currentUserId = AppPreferences.getUserId()?.toString().trim();
 
-    debugPrint(
-      '[ChatScreen] Current user ID: $currentUserId',
-    );
+    debugPrint('[ChatScreen] Current user ID: $currentUserId');
 
     _initConnectivityListener();
 
     if (currentUserId == null || currentUserId!.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        AppSnackBar.show(
-          context: context,
-          message: 'User not found',
-        );
+        AppSnackBar.show(context: context, message: 'User not found');
       });
     } else {
       ChatService.startDeliveryTracking(currentUserId!);
       final myName = AppPreferences.getUserName()?.trim() ?? '';
       if (myName.isNotEmpty) {
-        ChatService.syncMyNameEverywhere(
-          userId: currentUserId!,
-          name: myName,
-        );
+        ChatService.syncMyNameEverywhere(userId: currentUserId!, name: myName);
       }
     }
   }
@@ -83,7 +68,8 @@ class _ChatScreenState
   }
 
   void _updateOfflineStatus(List<ConnectivityResult> results) {
-    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    final offline =
+        results.contains(ConnectivityResult.none) || results.isEmpty;
     if (!mounted) return;
     setState(() {
       _isOffline = offline;
@@ -96,31 +82,26 @@ class _ChatScreenState
       length: 2,
 
       child: Scaffold(
-        backgroundColor:
-        AppColors.white,
+        backgroundColor: AppColors.white,
 
         appBar: AppBar(
           toolbarHeight: 0,
-          backgroundColor:
-          AppColors.primaryColor,
+          backgroundColor: AppColors.primaryColor,
         ),
 
         body: SafeArea(
           child: Stack(
             children: [
               Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
 
                 children: [
                   const SizedBox(height: 15),
 
                   AppText(
-                    text:
-                    'Enquires & Messages',
+                    text: 'Enquires & Messages',
 
-                    fontWeight:
-                    FontWeight.w500,
+                    fontWeight: FontWeight.w500,
 
                     fontSize: 18,
                   ).pad(),
@@ -134,167 +115,124 @@ class _ChatScreenState
                   Expanded(
                     child: (currentUserId == null || currentUserId!.isEmpty)
                         ? Center(
-                      child: AppText(
-                        text: 'Please login to see chats',
-                        color: AppColors.grey,
-                        fontSize: 14,
-                      ),
-                    )
-                        : StreamBuilder<
-                        QuerySnapshot<
-                            Map<String, dynamic>>>(
-                      stream:
-                      ChatService.chatRoomsStream(
-                        currentUserId!,
-                      ),
+                            child: AppText(
+                              text: 'Please login to see chats',
+                              color: AppColors.grey,
+                              fontSize: 14,
+                            ),
+                          )
+                        : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                            stream: ChatService.chatRoomsStream(currentUserId!),
 
-                      builder:
-                          (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return _isOffline
-                              ? const NoInternetWidget()
-                              : const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return _isOffline
+                                    ? const NoInternetWidget()
+                                    : const Center(
+                                        child: CircularProgressIndicator(),
+                                      );
+                              }
 
-                        if (snapshot.hasError) {
-                          debugPrint(
-                            '[ChatScreen] Firestore ERROR:',
-                          );
+                              if (snapshot.hasError) {
+                                debugPrint('[ChatScreen] Firestore ERROR:');
 
-                          debugPrint(
-                            snapshot.error.toString(),
-                          );
+                                debugPrint(snapshot.error.toString());
 
-                          return Center(
-                            child: Padding(
-                              padding:
-                              const EdgeInsets.all(
-                                20,
-                              ),
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(20),
 
-                              child: Column(
-                                mainAxisSize:
-                                MainAxisSize.min,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
 
+                                      children: [
+                                        Icon(
+                                          Icons.error_outline,
+                                          size: 40,
+                                          color: AppColors.grey,
+                                        ),
+
+                                        const SizedBox(height: 10),
+
+                                        const AppText(
+                                          text: 'Unable to load chats',
+                                          fontSize: 14,
+                                        ),
+
+                                        const SizedBox(height: 6),
+
+                                        AppText(
+                                          text: snapshot.error.toString(),
+
+                                          fontSize: 11,
+
+                                          color: AppColors.grey,
+
+                                          maxLine: 5,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              final documents = snapshot.data?.docs ?? [];
+
+                              final receivedLeads = <ChatRoomData>[];
+
+                              final sentEnquiries = <ChatRoomData>[];
+
+                              for (final doc in documents) {
+                                try {
+                                  final room = ChatRoomData.fromFirestore(
+                                    doc,
+                                    currentUserId!,
+                                  );
+
+                                  if (room.hiddenForMe) {
+                                    continue;
+                                  }
+
+                                  if (room.isReceivedEnquiry) {
+                                    receivedLeads.add(room);
+                                  }
+
+                                  if (room.isSentEnquiry) {
+                                    sentEnquiries.add(room);
+                                  }
+                                } catch (e) {
+                                  debugPrint(
+                                    '[ChatScreen] Error parsing room '
+                                    '${doc.id}: $e',
+                                  );
+                                }
+                              }
+
+                              receivedLeads.sort(_sortByLatest);
+
+                              sentEnquiries.sort(_sortByLatest);
+
+                              return TabBarView(
                                 children: [
-                                  Icon(
-                                    Icons.error_outline,
-                                    size: 40,
-                                    color:
-                                    AppColors.grey,
+                                  _buildChatList(
+                                    receivedLeads,
+                                    emptyMessage: 'No leads yet',
                                   ),
 
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-
-                                  const AppText(
-                                    text:
-                                    'Unable to load chats',
-                                    fontSize: 14,
-                                  ),
-
-                                  const SizedBox(
-                                    height: 6,
-                                  ),
-
-                                  AppText(
-                                    text:
-                                    snapshot.error
-                                        .toString(),
-
-                                    fontSize: 11,
-
-                                    color:
-                                    AppColors.grey,
-
-                                    maxLine: 5,
+                                  _buildChatList(
+                                    sentEnquiries,
+                                    emptyMessage: 'No enquiries sent',
                                   ),
                                 ],
-                              ),
-                            ),
-                          );
-                        }
-
-                        final documents =
-                            snapshot.data?.docs ??
-                                [];
-
-                        final receivedLeads =
-                        <ChatRoomData>[];
-
-                        final sentEnquiries =
-                        <ChatRoomData>[];
-
-                        for (final doc
-                        in documents) {
-                          try {
-                            final room =
-                            ChatRoomData
-                                .fromFirestore(
-                              doc,
-                              currentUserId!,
-                            );
-
-                            if (room.hiddenForMe) {
-                              continue;
-                            }
-
-                            if (room
-                                .isReceivedEnquiry) {
-                              receivedLeads
-                                  .add(room);
-                            }
-
-                            if (room
-                                .isSentEnquiry) {
-                              sentEnquiries
-                                  .add(room);
-                            }
-                          } catch (e) {
-                            debugPrint(
-                              '[ChatScreen] Error parsing room '
-                                  '${doc.id}: $e',
-                            );
-                          }
-                        }
-
-                        receivedLeads.sort(
-                          _sortByLatest,
-                        );
-
-                        sentEnquiries.sort(
-                          _sortByLatest,
-                        );
-
-                        return TabBarView(
-                          children: [
-                            _buildChatList(
-                              receivedLeads,
-                              emptyMessage:
-                              'No leads yet',
-                            ),
-
-                            _buildChatList(
-                              sentEnquiries,
-                              emptyMessage:
-                              'No enquiries sent',
-                            ),
-                          ],
-                        );
-                      },
-                    ),
+                              );
+                            },
+                          ),
                   ),
                 ],
               ),
               if (_isOffline)
-                Container(
-                  color: Colors.white,
-                  child: const NoInternetWidget(),
-                ),
+                Container(color: Colors.white, child: const NoInternetWidget()),
             ],
           ),
         ),
@@ -306,23 +244,10 @@ class _ChatScreenState
   // SORT
   // ============================================================
 
-  int _sortByLatest(
-      ChatRoomData a,
-      ChatRoomData b,
-      ) {
-    final aTime =
-        a.lastMessageTime ??
-            DateTime
-                .fromMillisecondsSinceEpoch(
-              0,
-            );
+  int _sortByLatest(ChatRoomData a, ChatRoomData b) {
+    final aTime = a.lastMessageTime ?? DateTime.fromMillisecondsSinceEpoch(0);
 
-    final bTime =
-        b.lastMessageTime ??
-            DateTime
-                .fromMillisecondsSinceEpoch(
-              0,
-            );
+    final bTime = b.lastMessageTime ?? DateTime.fromMillisecondsSinceEpoch(0);
 
     return bTime.compareTo(aTime);
   }
@@ -335,64 +260,39 @@ class _ChatScreenState
     return Container(
       height: 55,
 
-      margin:
-      const EdgeInsets.symmetric(
-        horizontal: 16,
-      ),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
 
-      padding:
-      const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(4),
 
       decoration: BoxDecoration(
-        color:
-        AppColors.fieldGrey
-            .withAlpha(1),
+        color: AppColors.fieldGrey.withAlpha(1),
 
-        borderRadius:
-        BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8),
 
-        border: Border.all(
-          color:
-          AppColors.fieldGrey,
-        ),
+        border: Border.all(color: AppColors.fieldGrey),
       ),
 
       child: TabBar(
-        indicatorSize:
-        TabBarIndicatorSize.tab,
+        indicatorSize: TabBarIndicatorSize.tab,
 
         indicator: BoxDecoration(
-          color:
-          AppColors.primaryColor,
+          color: AppColors.primaryColor,
 
-          borderRadius:
-          BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(5),
         ),
 
-        dividerColor:
-        Colors.transparent,
+        dividerColor: Colors.transparent,
 
-        labelColor:
-        AppColors.white,
+        labelColor: AppColors.white,
 
-        unselectedLabelColor:
-        AppColors.grey,
+        unselectedLabelColor: AppColors.grey,
 
-        labelStyle:
-        const TextStyle(
-          fontSize: 14,
-          fontWeight:
-          FontWeight.w500,
-        ),
+        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
 
         tabs: const [
-          Tab(
-            text: 'My Leads',
-          ),
+          Tab(text: 'My Leads'),
 
-          Tab(
-            text: 'Enquiry',
-          ),
+          Tab(text: 'Enquiry'),
         ],
       ),
     );
@@ -411,16 +311,12 @@ class _ChatScreenState
   // ============================================================
 
   Widget _buildChatList(
-      List<ChatRoomData> chats, {
-        required String emptyMessage,
-      }) {
+    List<ChatRoomData> chats, {
+    required String emptyMessage,
+  }) {
     if (chats.isEmpty) {
       return Center(
-        child: AppText(
-          text: emptyMessage,
-          color: AppColors.grey,
-          fontSize: 14,
-        ),
+        child: AppText(text: emptyMessage, color: AppColors.grey, fontSize: 14),
       );
     }
 
@@ -439,10 +335,7 @@ class _ChatScreenState
     }
 
     return ListView(
-      padding:
-      const EdgeInsets.only(
-        bottom: 20,
-      ),
+      padding: const EdgeInsets.only(bottom: 20),
 
       children: children,
     );
@@ -457,190 +350,142 @@ class _ChatScreenState
   // _buildChatList above.
   // ============================================================
 
-  Widget _buildChatRoomTile(
-      ChatRoomData chat,
-      ) {
-    return StreamBuilder<
-        QuerySnapshot<
-            Map<String, dynamic>>>(
-      stream:
-      ChatService.messagesStream(
-        chat.roomId,
-      ),
+  Widget _buildChatRoomTile(ChatRoomData chat) {
 
-      builder:
-          (context, snapshot) {
-        DateTime? visibleLatestTime;
+    return StreamBuilder<bool>(
+      stream: ChatService.presenceStream(chat.otherUserId),
+      builder: (context, presenceSnapshot) {
+        debugPrint(
+          '[PRESENCE CHECK] '
+              'currentUserId=$currentUserId, '
+              'otherUserId=${chat.otherUserId}, '
+              'snapshot=${presenceSnapshot.data}, '
+              'error=${presenceSnapshot.error}',
+        );
+        final isOnline = presenceSnapshot.data ?? false;
 
-        String visibleLastMessage =
-            chat.lastMessage;
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
 
-        String visibleLastSenderId =
-            chat.lastMessageSenderId;
+          stream: ChatService.messagesStream(chat.roomId),
 
-        bool visibleLastMessageRead =
-            chat.lastMessageRead;
+          builder: (context, snapshot) {
+            DateTime? visibleLatestTime;
 
-        bool visibleLastMessageDelivered =
-            chat.lastMessageDelivered;
+            String visibleLastMessage = chat.lastMessage;
 
-        bool visibleLastMessageDeleted =
-            chat.lastMessageDeleted;
+            String visibleLastSenderId = chat.lastMessageSenderId;
 
-        if (snapshot.hasData) {
-          final docs =
-              snapshot.data!.docs;
+            bool visibleLastMessageRead = chat.lastMessageRead;
 
-          // ======================================================
-          // FILTER DELETE FOR ME
-          // ======================================================
+            bool visibleLastMessageDelivered = chat.lastMessageDelivered;
 
-          final visibleMessages =
-          docs.where((doc) {
-            final data =
-            doc.data();
+            bool visibleLastMessageDeleted = chat.lastMessageDeleted;
 
-            final deletedFor =
-            List<String>.from(
-              data['deletedFor'] ?? [],
-            );
+            if (snapshot.hasData) {
+              final docs = snapshot.data!.docs;
 
-            if (deletedFor.contains(
-              currentUserId!,
-            )) {
-              return false;
-            }
+              // ======================================================
+              // FILTER DELETE FOR ME
+              // ======================================================
 
-            if (chat.clearedAt != null) {
-              final createdAt = data['createdAt'];
-              if (createdAt is Timestamp) {
-                if (createdAt.toDate().isBefore(chat.clearedAt!)) {
+              final visibleMessages = docs.where((doc) {
+                final data = doc.data();
+
+                final deletedFor = List<String>.from(data['deletedFor'] ?? []);
+
+                if (deletedFor.contains(currentUserId!)) {
                   return false;
                 }
-              }
-            }
 
-            return true;
-          }).toList();
+                if (chat.clearedAt != null) {
+                  final createdAt = data['createdAt'];
+                  if (createdAt is Timestamp) {
+                    if (createdAt.toDate().isBefore(chat.clearedAt!)) {
+                      return false;
+                    }
+                  }
+                }
 
-          if (visibleMessages
-              .isNotEmpty) {
-            final lastDoc =
-                visibleMessages.last;
+                return true;
+              }).toList();
 
-            final data =
-            lastDoc.data();
+              if (visibleMessages.isNotEmpty) {
+                final lastDoc = visibleMessages.last;
 
-            final isDeleted =
-                data['isDeleted'] ==
-                    true;
+                final data = lastDoc.data();
 
-            final timestamp =
-            data['createdAt'];
+                final isDeleted = data['isDeleted'] == true;
 
-            if (timestamp
-            is Timestamp) {
-              visibleLatestTime =
-                  timestamp.toDate();
-            }
+                final timestamp = data['createdAt'];
 
-            visibleLastSenderId =
-                data['senderId']
-                    ?.toString() ??
-                    '';
+                if (timestamp is Timestamp) {
+                  visibleLatestTime = timestamp.toDate();
+                }
 
-            visibleLastMessageRead =
-                data['read'] == true;
+                visibleLastSenderId = data['senderId']?.toString() ?? '';
 
-            visibleLastMessageDelivered =
-                data['delivered'] == true;
+                visibleLastMessageRead = data['read'] == true;
 
-            visibleLastMessageDeleted =
-                isDeleted;
+                visibleLastMessageDelivered = data['delivered'] == true;
 
-            if (isDeleted) {
-              visibleLastMessage =
-              'This message was deleted';
-            } else {
-              final messageType =
-                  data['messageType']
-                      ?.toString() ??
-                      'text';
+                visibleLastMessageDeleted = isDeleted;
 
-              if (messageType ==
-                  'image') {
-                visibleLastMessage =
-                '📷 Photo';
-              } else if (messageType ==
-                  'location') {
-                visibleLastMessage =
-                '📍 Location';
-              } else if (messageType ==
-                  'item') {
-                visibleLastMessage =
-                'Item shared';
+                if (isDeleted) {
+                  visibleLastMessage = 'This message was deleted';
+                } else {
+                  final messageType = data['messageType']?.toString() ?? 'text';
+
+                  if (messageType == 'image') {
+                    visibleLastMessage = '📷 Photo';
+                  } else if (messageType == 'location') {
+                    visibleLastMessage = '📍 Location';
+                  } else if (messageType == 'item') {
+                    visibleLastMessage = 'Item shared';
+                  } else {
+                    visibleLastMessage = data['message']?.toString() ?? '';
+                  }
+                }
               } else {
-                visibleLastMessage =
-                    data['message']
-                        ?.toString() ??
-                        '';
+                visibleLastMessage = '';
+
+                visibleLatestTime = null;
+
+                visibleLastSenderId = '';
+
+                visibleLastMessageRead = false;
+
+                visibleLastMessageDelivered = false;
+
+                visibleLastMessageDeleted = false;
               }
             }
-          } else {
-            visibleLastMessage = '';
 
-            visibleLatestTime = null;
+            return ChatTile(
+              imageUrl: chat.otherUserAvatar,
 
-            visibleLastSenderId = '';
+              name: chat.otherUserName,
 
-            visibleLastMessageRead =
-            false;
+              lastMessage: visibleLastMessage.isEmpty
+                  ? 'No messages yet'
+                  : visibleLastMessage,
 
-            visibleLastMessageDelivered =
-            false;
+              time: _formatChatTime(visibleLatestTime ?? chat.lastMessageTime),
 
-            visibleLastMessageDeleted =
-            false;
-          }
-        }
+              isOnline: isOnline,
 
-        return ChatTile(
-          imageUrl:
-          chat.otherUserAvatar,
+              unreadCount: chat.unreadCount,
 
-          name:
-          chat.otherUserName,
+              lastMessageIsMine: visibleLastSenderId == currentUserId,
 
-          lastMessage:
-          visibleLastMessage.isEmpty
-              ? 'No messages yet'
-              : visibleLastMessage,
+              lastMessageRead: visibleLastMessageRead,
 
-          time:
-          _formatChatTime(
-            visibleLatestTime ??
-                chat.lastMessageTime,
-          ),
+              lastMessageDelivered: visibleLastMessageDelivered,
 
-          unreadCount:
-          chat.unreadCount,
+              lastMessageDeleted: visibleLastMessageDeleted,
 
-          lastMessageIsMine:
-          visibleLastSenderId ==
-              currentUserId,
-
-          lastMessageRead:
-          visibleLastMessageRead,
-
-          lastMessageDelivered:
-          visibleLastMessageDelivered,
-
-          lastMessageDeleted:
-          visibleLastMessageDeleted,
-
-          onTap: () {
-            _openExistingChat(
-              chat,
+              onTap: () {
+                _openExistingChat(chat);
+              },
             );
           },
         );
@@ -652,23 +497,14 @@ class _ChatScreenState
   // DATE HEADER
   // ============================================================
 
-  Widget _buildDateHeader(
-      String title,
-      ) {
+  Widget _buildDateHeader(String title) {
     return Padding(
-      padding:
-      const EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        8,
-      ),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
 
       child: AppText(
         text: title,
         fontSize: 13,
-        fontWeight:
-        FontWeight.w600,
+        fontWeight: FontWeight.w600,
         color: AppColors.grey,
       ),
     );
@@ -678,36 +514,18 @@ class _ChatScreenState
   // DATE SECTION
   // ============================================================
 
-  String _getDateSection(
-      DateTime? date,
-      ) {
+  String _getDateSection(DateTime? date) {
     if (date == null) {
       return 'Older';
     }
 
-    final now =
-    DateTime.now();
+    final now = DateTime.now();
 
-    final today =
-    DateTime(
-      now.year,
-      now.month,
-      now.day,
-    );
+    final today = DateTime(now.year, now.month, now.day);
 
-    final messageDate =
-    DateTime(
-      date.year,
-      date.month,
-      date.day,
-    );
+    final messageDate = DateTime(date.year, date.month, date.day);
 
-    final difference =
-        today
-            .difference(
-          messageDate,
-        )
-            .inDays;
+    final difference = today.difference(messageDate).inDays;
 
     if (difference == 0) {
       return 'Today';
@@ -724,27 +542,16 @@ class _ChatScreenState
   // TIME
   // ============================================================
 
-  String _formatChatTime(
-      DateTime? date,
-      ) {
+  String _formatChatTime(DateTime? date) {
     if (date == null) {
       return '';
     }
 
-    final hour =
-    date.hour % 12 == 0
-        ? 12
-        : date.hour % 12;
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
 
-    final minute =
-    date.minute
-        .toString()
-        .padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
 
-    final period =
-    date.hour >= 12
-        ? 'PM'
-        : 'AM';
+    final period = date.hour >= 12 ? 'PM' : 'AM';
 
     return '$hour:$minute $period';
   }
@@ -753,56 +560,38 @@ class _ChatScreenState
   // OPEN CHAT
   // ============================================================
 
-  void _openExistingChat(
-      ChatRoomData chat,
-      ) {
-    ChatService.markRoomAsRead(
-      roomId: chat.roomId,
-      userId: currentUserId!,
-    );
+  void _openExistingChat(ChatRoomData chat) {
+    ChatService.markRoomAsRead(roomId: chat.roomId, userId: currentUserId!);
 
     AppRoutes.pushNamed(
       AppRoutes.individualChatScreen,
 
       arguments: {
-        'roomId':
-        chat.roomId,
+        'roomId': chat.roomId,
 
-        'currentUserId':
-        currentUserId,
+        'currentUserId': currentUserId,
 
-        'otherUserId':
-        chat.otherUserId,
+        'otherUserId': chat.otherUserId,
 
-        'otherUserName':
-        chat.otherUserName,
+        'otherUserName': chat.otherUserName,
 
-        'otherUserAvatar':
-        chat.otherUserAvatar,
+        'otherUserAvatar': chat.otherUserAvatar,
 
-        'otherUserPhone':
-        chat.otherUserPhone,
+        'otherUserPhone': chat.otherUserPhone,
 
-        'itemName':
-        chat.itemName,
+        'itemName': chat.itemName,
 
-        'itemImage':
-        chat.itemImage,
+        'itemImage': chat.itemImage,
 
-        'itemLocation':
-        chat.itemLocation,
+        'itemLocation': chat.itemLocation,
 
-        'itemPostDate':
-        chat.itemPostDate,
+        'itemPostDate': chat.itemPostDate,
 
-        'itemPostId':
-        chat.itemPostId,
+        'itemPostId': chat.itemPostId,
 
-        'matchedPostId':
-        chat.matchedPostId,
+        'matchedPostId': chat.matchedPostId,
 
-        'enquirySenderId':
-        chat.enquirySenderId ?? '',
+        'enquirySenderId': chat.enquirySenderId ?? '',
       },
     );
   }
@@ -875,29 +664,22 @@ class ChatRoomData {
   });
 
   factory ChatRoomData.fromFirestore(
-      DocumentSnapshot<
-          Map<String, dynamic>> doc,
-      String currentUserId,
-      ) {
-    final data =
-        doc.data() ??
-            <String, dynamic>{};
+    DocumentSnapshot<Map<String, dynamic>> doc,
+    String currentUserId,
+  ) {
+    final data = doc.data() ?? <String, dynamic>{};
 
     // ============================================================
     // USERS
     // ============================================================
 
-    final users =
-    List<String>.from(
-      data['users'] ?? [],
-    );
+    final users = List<String>.from(data['users'] ?? []);
 
     String otherUserId = '';
 
     for (final userId in users) {
       if (userId != currentUserId) {
-        otherUserId =
-            userId.toString();
+        otherUserId = userId.toString();
         break;
       }
     }
@@ -906,33 +688,21 @@ class ChatRoomData {
     // PARTICIPANTS
     // ============================================================
 
-    final participants =
-    Map<String, dynamic>.from(
-      data['participants'] ?? {},
-    );
+    final participants = Map<String, dynamic>.from(data['participants'] ?? {});
 
-    final rawOtherParticipant =
-    participants[otherUserId];
+    final rawOtherParticipant = participants[otherUserId];
 
-    final otherParticipant =
-    rawOtherParticipant is Map
-        ? Map<String, dynamic>.from(
-      rawOtherParticipant,
-    )
+    final otherParticipant = rawOtherParticipant is Map
+        ? Map<String, dynamic>.from(rawOtherParticipant)
         : <String, dynamic>{};
 
     // ============================================================
     // ⭐ ACTUAL USER NAME
     // ============================================================
 
-    final firestoreName =
-        otherParticipant['name']
-            ?.toString()
-            .trim() ??
-            '';
+    final firestoreName = otherParticipant['name']?.toString().trim() ?? '';
 
-    final otherUserName =
-    firestoreName.isNotEmpty
+    final otherUserName = firestoreName.isNotEmpty
         ? firestoreName
         : otherUserId.isNotEmpty
         ? 'User $otherUserId'
@@ -942,21 +712,13 @@ class ChatRoomData {
     // AVATAR
     // ============================================================
 
-    final otherUserAvatar =
-        otherParticipant['avatar']
-            ?.toString()
-            .trim() ??
-            '';
+    final otherUserAvatar = otherParticipant['avatar']?.toString().trim() ?? '';
 
     // ============================================================
     // PHONE
     // ============================================================
 
-    final otherUserPhone =
-        otherParticipant['phone']
-            ?.toString()
-            .trim() ??
-            '';
+    final otherUserPhone = otherParticipant['phone']?.toString().trim() ?? '';
 
     // ============================================================
     // LAST MESSAGE TIME
@@ -964,94 +726,54 @@ class ChatRoomData {
 
     DateTime? lastMessageTime;
 
-    final timestamp =
-    data['lastMessageTime'];
+    final timestamp = data['lastMessageTime'];
 
     if (timestamp is Timestamp) {
-      lastMessageTime =
-          timestamp.toDate();
+      lastMessageTime = timestamp.toDate();
     }
 
     // ============================================================
     // ENQUIRY
     // ============================================================
 
-    final enquirySenderId =
-    data['enquirySenderId']
-        ?.toString()
-        .trim();
+    final enquirySenderId = data['enquirySenderId']?.toString().trim();
 
     // ============================================================
     // UNREAD
     // ============================================================
 
-    final unreadCounts =
-    Map<String, dynamic>.from(
-      data['unreadCounts'] ?? {},
-    );
+    final unreadCounts = Map<String, dynamic>.from(data['unreadCounts'] ?? {});
 
     final unreadCount =
-        int.tryParse(
-          unreadCounts[currentUserId]
-              ?.toString() ??
-              '0',
-        ) ??
-            0;
+        int.tryParse(unreadCounts[currentUserId]?.toString() ?? '0') ?? 0;
 
     // ============================================================
     // LAST MESSAGE
     // ============================================================
 
-    final lastMessageSenderId =
-        data['lastMessageSenderId']
-            ?.toString() ??
-            '';
+    final lastMessageSenderId = data['lastMessageSenderId']?.toString() ?? '';
 
-    final lastMessageRead =
-        data['lastMessageRead'] ==
-            true;
+    final lastMessageRead = data['lastMessageRead'] == true;
 
-    final lastMessageDelivered =
-        data['lastMessageDelivered'] ==
-            true;
+    final lastMessageDelivered = data['lastMessageDelivered'] == true;
 
-    final lastMessageDeleted =
-        data['lastMessageDeleted'] ==
-            true;
+    final lastMessageDeleted = data['lastMessageDeleted'] == true;
 
     // ============================================================
     // ITEM
     // ============================================================
 
-    final itemName =
-        data['itemName']
-            ?.toString() ??
-            '';
+    final itemName = data['itemName']?.toString() ?? '';
 
-    final itemImage =
-        data['itemImage']
-            ?.toString() ??
-            '';
+    final itemImage = data['itemImage']?.toString() ?? '';
 
-    final itemLocation =
-        data['itemLocation']
-            ?.toString() ??
-            '';
+    final itemLocation = data['itemLocation']?.toString() ?? '';
 
-    final itemPostDate =
-        data['itemPostDate']
-            ?.toString() ??
-            '';
+    final itemPostDate = data['itemPostDate']?.toString() ?? '';
 
-    final itemPostId =
-        data['postId']
-            ?.toString() ??
-            '';
+    final itemPostId = data['postId']?.toString() ?? '';
 
-    final matchedPostId =
-        data['matchedPostId']
-            ?.toString() ??
-            '';
+    final matchedPostId = data['matchedPostId']?.toString() ?? '';
 
     final hiddenFor = List<String>.from(data['hiddenFor'] ?? []);
     final hiddenForMe = hiddenFor.contains(currentUserId);
@@ -1071,10 +793,10 @@ class ChatRoomData {
 
     debugPrint(
       '[ChatRoomData] '
-          'room=${doc.id} '
-          'otherUserId=$otherUserId '
-          'otherUserName=$otherUserName '
-          'phone=$otherUserPhone',
+      'room=${doc.id} '
+      'otherUserId=$otherUserId '
+      'otherUserName=$otherUserName '
+      'phone=$otherUserPhone',
     );
 
     // ============================================================
@@ -1082,78 +804,51 @@ class ChatRoomData {
     // ============================================================
 
     return ChatRoomData(
-      roomId:
-      data['roomId']
-          ?.toString() ??
-          doc.id,
+      roomId: data['roomId']?.toString() ?? doc.id,
 
-      currentUserId:
-      currentUserId,
+      currentUserId: currentUserId,
 
-      otherUserId:
-      otherUserId,
+      otherUserId: otherUserId,
 
-      otherUserName:
-      otherUserName,
+      otherUserName: otherUserName,
 
-      otherUserAvatar:
-      otherUserAvatar,
+      otherUserAvatar: otherUserAvatar,
 
-      otherUserPhone:
-      otherUserPhone,
+      otherUserPhone: otherUserPhone,
 
-      lastMessage:
-      data['lastMessage']
-          ?.toString() ??
-          '',
+      lastMessage: data['lastMessage']?.toString() ?? '',
 
-      lastMessageTime:
-      lastMessageTime,
+      lastMessageTime: lastMessageTime,
 
-      enquirySenderId:
-      enquirySenderId,
+      enquirySenderId: enquirySenderId,
 
-      unreadCount:
-      unreadCount,
+      unreadCount: unreadCount,
 
-      lastMessageSenderId:
-      lastMessageSenderId,
+      lastMessageSenderId: lastMessageSenderId,
 
-      lastMessageRead:
-      lastMessageRead,
+      lastMessageRead: lastMessageRead,
 
-      lastMessageDelivered:
-      lastMessageDelivered,
+      lastMessageDelivered: lastMessageDelivered,
 
-      lastMessageDeleted:
-      lastMessageDeleted,
+      lastMessageDeleted: lastMessageDeleted,
 
-      itemName:
-      itemName,
+      itemName: itemName,
 
-      itemImage:
-      itemImage,
+      itemImage: itemImage,
 
-      itemLocation:
-      itemLocation,
+      itemLocation: itemLocation,
 
-      itemPostDate:
-      itemPostDate,
+      itemPostDate: itemPostDate,
 
-      itemPostId:
-      itemPostId,
+      itemPostId: itemPostId,
 
-      matchedPostId:
-      matchedPostId,
+      matchedPostId: matchedPostId,
 
-      users:
-      users,
+      users: users,
 
-      hiddenForMe:
-      hiddenForMe,
+      hiddenForMe: hiddenForMe,
 
-      clearedAt:
-      clearedAt,
+      clearedAt: clearedAt,
     );
   }
 
@@ -1162,13 +857,11 @@ class ChatRoomData {
   // ============================================================
 
   bool get isReceivedEnquiry {
-    if (enquirySenderId == null ||
-        enquirySenderId!.isEmpty) {
+    if (enquirySenderId == null || enquirySenderId!.isEmpty) {
       return false;
     }
 
-    return enquirySenderId !=
-        currentUserId;
+    return enquirySenderId != currentUserId;
   }
 
   // ============================================================
@@ -1176,13 +869,11 @@ class ChatRoomData {
   // ============================================================
 
   bool get isSentEnquiry {
-    if (enquirySenderId == null ||
-        enquirySenderId!.isEmpty) {
+    if (enquirySenderId == null || enquirySenderId!.isEmpty) {
       return false;
     }
 
-    return enquirySenderId ==
-        currentUserId;
+    return enquirySenderId == currentUserId;
   }
 }
 
@@ -1196,6 +887,8 @@ Widget ChatTile({
   required String lastMessage,
   required String time,
 
+  bool isOnline = false,
+
   int unreadCount = 0,
 
   bool lastMessageIsMine = false,
@@ -1208,156 +901,120 @@ Widget ChatTile({
 
   VoidCallback? onTap,
 }) {
-  final displayMessage =
-  lastMessageDeleted
+  final displayMessage = lastMessageDeleted
       ? 'This message was deleted'
       : lastMessage.isEmpty
       ? 'No messages yet'
       : lastMessage;
 
   final cleanImageUrl = imageUrl.trim();
-  final isAvatarEmpty = cleanImageUrl.isEmpty || cleanImageUrl.toLowerCase() == 'null';
+  final isAvatarEmpty =
+      cleanImageUrl.isEmpty || cleanImageUrl.toLowerCase() == 'null';
 
   return InkWell(
     onTap: onTap,
 
     child: Row(
-      crossAxisAlignment:
-      CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
 
       children: [
         // ==========================================================
         // PROFILE
         // ==========================================================
-
         Stack(
-          clipBehavior:
-          Clip.none,
+          clipBehavior: Clip.none,
 
           children: [
             CircleAvatar(
               radius: 28,
 
-              backgroundColor:
-              AppColors.fieldGrey,
+              backgroundColor: AppColors.fieldGrey,
 
               child: ClipOval(
                 child: !isAvatarEmpty
                     ? AppCachedNetworkImage(
-                  imageUrl:
-                  cleanImageUrl,
+                        imageUrl: cleanImageUrl,
 
-                  height: 56,
+                        height: 56,
 
-                  width: 56,
+                        width: 56,
 
-                  fit: BoxFit.cover,
-                )
-                    : Icon(
-                  Icons.person,
-
-                  size: 30,
-
-                  color:
-                  AppColors.grey,
-                ),
+                        fit: BoxFit.cover,
+                      )
+                    : Icon(Icons.person, size: 30, color: AppColors.grey),
               ),
             ),
 
-            Positioned(
-              bottom: 0,
-              right: -4,
+            if (isOnline)
+              Positioned(
+                bottom: 0,
+                right: -4,
 
-              child: Container(
-                padding:
-                const EdgeInsets.all(4),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
 
-                decoration:
-                BoxDecoration(
-                  shape:
-                  BoxShape.circle,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
 
-                  color: AppColors
-                      .fieldGrey
-                      .withAlpha(70),
-                ),
+                    color: AppColors.fieldGrey.withAlpha(70),
+                  ),
 
-                child: AppIconWidget(
-                  assetPath:
-                  AssetImages.statusIcon,
+                  child: AppIconWidget(
+                    assetPath: AssetImages.statusIcon,
 
-                  size: 20,
+                    size: 20,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
 
-        const SizedBox(
-          width: 12,
-        ),
+        const SizedBox(width: 12),
 
         // ==========================================================
         // NAME + MESSAGE
         // ==========================================================
-
         Expanded(
           child: Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
 
             children: [
               AppText(
-                text: name.isEmpty
-                    ? 'Unknown User'
-                    : name,
+                text: name.isEmpty ? 'Unknown User' : name,
 
                 fontSize: 16,
 
-                fontWeight:
-                FontWeight.w500,
+                fontWeight: FontWeight.w500,
               ),
 
-              const SizedBox(
-                height: 4,
-              ),
+              const SizedBox(height: 4),
 
               Row(
                 children: [
-                  if (lastMessageIsMine &&
-                      !lastMessageDeleted)
+                  if (lastMessageIsMine && !lastMessageDeleted)
                     Padding(
-                      padding:
-                      const EdgeInsets.only(
-                        right: 4,
-                      ),
+                      padding: const EdgeInsets.only(right: 4),
 
                       child: MessageTick(
-                        read:
-                        lastMessageRead,
+                        read: lastMessageRead,
 
-                        delivered:
-                        lastMessageDelivered,
+                        delivered: lastMessageDelivered,
                       ),
                     ),
 
                   Expanded(
                     child: AppText(
-                      text:
-                      displayMessage,
+                      text: displayMessage,
 
                       fontSize: 12,
 
-                      color:
-                      AppColors.grey,
+                      color: AppColors.grey,
 
-                      fontWeight:
-                      FontWeight.w400,
+                      fontWeight: FontWeight.w400,
 
                       maxLine: 1,
 
-                      textOverflow:
-                      TextOverflow.ellipsis,
+                      textOverflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -1366,20 +1023,15 @@ Widget ChatTile({
           ),
         ),
 
-        const SizedBox(
-          width: 10,
-        ),
+        const SizedBox(width: 10),
 
         // ==========================================================
         // TIME + UNREAD
         // ==========================================================
-
         Column(
-          mainAxisSize:
-          MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
 
-          crossAxisAlignment:
-          CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
 
           children: [
             AppText(
@@ -1387,16 +1039,12 @@ Widget ChatTile({
 
               fontSize: 10,
 
-              color:
-              AppColors.grey,
+              color: AppColors.grey,
 
-              fontWeight:
-              FontWeight.w400,
+              fontWeight: FontWeight.w400,
             ),
 
-            const SizedBox(
-              height: 8,
-            ),
+            const SizedBox(height: 8),
 
             if (unreadCount > 0)
               Container(
@@ -1404,38 +1052,26 @@ Widget ChatTile({
 
                 width: 20,
 
-                decoration:
-                BoxDecoration(
-                  shape:
-                  BoxShape.circle,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
 
-                  color:
-                  AppColors.lightBlue_2,
+                  color: AppColors.lightBlue_2,
                 ),
 
-                alignment:
-                Alignment.center,
+                alignment: Alignment.center,
 
                 child: AppText(
-                  text:
-                  unreadCount > 99
-                      ? '99+'
-                      : unreadCount
-                      .toString(),
+                  text: unreadCount > 99 ? '99+' : unreadCount.toString(),
 
-                  fontWeight:
-                  FontWeight.w600,
+                  fontWeight: FontWeight.w600,
 
                   fontSize: 10,
 
-                  color:
-                  AppColors.primaryColor,
+                  color: AppColors.primaryColor,
                 ),
               )
             else
-              const SizedBox(
-                height: 20,
-              ),
+              const SizedBox(height: 20),
           ],
         ),
       ],

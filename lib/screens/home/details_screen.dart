@@ -150,12 +150,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
     return _getMediaUrl(postDetails?.imageUrl);
   }
 
-  String get _posterAvatarUrl {
-    final apiAvatar = postDetails?.posterAvatar ?? '';
-    final avatar = apiAvatar.isNotEmpty ? apiAvatar : widget.posterAvatar;
-
-    return _getMediaUrl(avatar);
-  }
+  String get _posterAvatarUrl => _getMediaUrl(_posterAvatar);
 
   // ============================================================
   // ENQUIRY STATUS
@@ -378,14 +373,17 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
   String get _posterName {
     final apiName = postDetails?.posterName ?? '';
     if (apiName.isNotEmpty) return apiName;
-
-    return widget.posterName;
+    if (widget.posterName.isNotEmpty) return widget.posterName;
+    if (widget.isUserPost) return AppPreferences.getUserName() ?? '';
+    return '';
   }
 
   String get _posterAvatar {
-    return widget.posterAvatar.isNotEmpty
-        ? widget.posterAvatar
-        : (postDetails?.posterAvatar ?? '');
+    if (widget.posterAvatar.isNotEmpty) return widget.posterAvatar;
+    final apiAvatar = postDetails?.posterAvatar ?? '';
+    if (apiAvatar.isNotEmpty) return apiAvatar;
+    if (widget.isUserPost) return AppPreferences.getUserAvatar() ?? '';
+    return '';
   }
 
   // ============================================================
@@ -660,7 +658,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                         ),
                         child: AppText(
                           text:
-                          '${widget.percentageMatch ?? 0}% match',
+                          '${post.handoverMatchPercentage ?? widget.percentageMatch ?? 0}% match',
                           fontWeight: FontWeight.w600,
                           fontSize: 10,
                           color: AppColors.purple,
