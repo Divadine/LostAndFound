@@ -166,20 +166,7 @@ class _OthersHandoverState extends State<OthersHandover> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (widget.matchPercentage != null && widget.matchPercentage! > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppUtils.getMatchColor(widget.matchPercentage!).withAlpha(70),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: AppText(
-                      text: '${widget.matchPercentage}% match',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 10,
-                      color: AppUtils.getMatchColor(widget.matchPercentage!),
-                    ),
-                  ),
+
               ],
             ).pad(),
           ).pad(),

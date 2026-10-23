@@ -358,8 +358,7 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
               ],
             ),
           ),
-          if (widget.data.matchPercentage != null && widget.data.matchPercentage! > 0)
-            _buildMatch(widget.data.matchPercentage!),
+
         ],
       ).pad(),
     );

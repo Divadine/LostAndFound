@@ -14,7 +14,7 @@ class AppUrls {
   static const String termsAndConditions =
       'https://findora.skyraantechnologies.com/terms_and_conditions.html';
   static const String disclaimer =
-      'https://www.newsraan.com/backend/disclaimer.html';
+      'https://findora.skyraantechnologies.com/disclaimer.html';
   static const String copyRights =
       'https://www.newsraan.com/backend/copyright.html';
 

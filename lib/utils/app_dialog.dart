@@ -444,7 +444,10 @@ class AlreadySubmittedPopUP extends StatelessWidget {
 class DisclaimerPopUP extends StatefulWidget {
   final bool isFromOnBoard;
 
-  const DisclaimerPopUP({super.key, this.isFromOnBoard = false});
+  const DisclaimerPopUP({
+    super.key,
+    this.isFromOnBoard = false,
+  });
 
   @override
   State<DisclaimerPopUP> createState() => _DisclaimerPopUPState();
@@ -455,6 +458,7 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   bool _isOffline = false;
+  bool _hasOpenedDisclaimer = false;
 
   @override
   void initState() {
@@ -468,17 +472,59 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
     super.dispose();
   }
 
-  void _initConnectivityListener() async {
+  Future<void> _initConnectivityListener() async {
     final results = await Connectivity().checkConnectivity();
+
+    if (!mounted) return;
+
     _updateOfflineStatus(results);
-    _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
   }
 
   void _updateOfflineStatus(List<ConnectivityResult> results) {
-    final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+    final offline =
+        results.contains(ConnectivityResult.none) || results.isEmpty;
+
     if (!mounted) return;
+
     setState(() {
       _isOffline = offline;
+    });
+
+    // Onboarding flow remains unchanged.
+    // Non-onboarding opens the Disclaimer WebView directly.
+    if (!widget.isFromOnBoard && !offline) {
+      _openDisclaimerWebView();
+    }
+  }
+
+  void _openDisclaimerWebView() {
+    if (!mounted || _hasOpenedDisclaimer || _isOffline) return;
+
+    _hasOpenedDisclaimer = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        _hasOpenedDisclaimer = false;
+        return;
+      }
+
+      // Close the existing popup before opening the WebView.
+      AppRoutes.pop();
+
+      AppRoutes.pushNamed(
+        AppRoutes.webViewScreen,
+        arguments: WebViewModel(
+          appbar: CustomAppBar(
+            title: 'Disclaimer',
+            leadingSvg: AssetImages.backArrow,
+          ),
+          link: AppUrls.disclaimer,
+          isGenerateUrl: true,
+        ),
+      );
     });
   }
 
@@ -487,133 +533,321 @@ class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
     if (_isOffline) {
       return const NoInternetWidget();
     }
+
+    // Non-onboarding: no popup UI and no OK button.
+    // The Disclaimer WebView is opened directly.
+    if (!widget.isFromOnBoard) {
+      return const SizedBox.shrink();
+    }
+
+    // Existing onboarding UI remains unchanged.
     return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: AppUtils.isTab ? 450 : double.infinity),
+      constraints: BoxConstraints(
+        maxWidth: AppUtils.isTab ? 450 : double.infinity,
+      ),
       child: Column(
         spacing: 15,
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppText(text: 'Disclaimer', fontWeight: FontWeight.w500, fontSize: 18),
+          AppText(
+            text: 'Disclaimer',
+            fontWeight: FontWeight.w500,
+            fontSize: 18,
+          ),
+
           AppText(
             text:
-                'Findora helps people reconnect with their lost and found belongings. '
-                    'Please verify ownership and relevant details carefully before handing over or claiming any item. '
-                    'Findora does not take responsibility for disputes, losses, damages, or transactions between users.',
+            'Findora helps people reconnect with their lost and found belongings. '
+                'Please verify ownership and relevant details carefully before '
+                'handing over or claiming any item. '
+                'Findora does not take responsibility for disputes, losses, '
+                'damages, or transactions between users.',
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            textAlign: .center,
+            textAlign: TextAlign.center,
             color: AppColors.black,
           ),
-          if (!widget.isFromOnBoard)
-            AppButton(
-              title: 'Ok',
-              onTap: () {
-                AppRoutes.pop();
-              },
-              fontSize: 14,
-              bgColor: AppColors.primaryColor,
-              textColor: AppColors.white,
-              radius: BorderRadius.circular(7),
-            ).padHorizontal(80),
 
-          if (widget.isFromOnBoard)
-            Row(
-              crossAxisAlignment: .start,
-              spacing: 5,
-              children: [
-                Checkbox(
-                  value: isChecked,
-                  onChanged: (e) {
-                    setState(() {
-                      isChecked = e!;
-                    });
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 5,
+            children: [
+              Checkbox(
+                value: isChecked,
+                onChanged: (value) {
+                  setState(() {
+                    isChecked = value ?? false;
+                  });
+                },
+                hoverColor: AppColors.grey,
+                focusColor: AppColors.fieldGrey,
+                fillColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return AppColors.primaryColor;
+                  }
+                  return AppColors.white;
+                }),
+                materialTapTargetSize:
+                MaterialTapTargetSize.shrinkWrap,
+                visualDensity: const VisualDensity(
+                  horizontal: -4,
+                  vertical: -4,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                side: BorderSide(
+                  color: AppColors.fieldGrey,
+                  width: 2,
+                ),
+              ),
+
+              Flexible(
+                child: AuthChangeText(
+                  text1: 'By using Findora, you agree to our ',
+                  tappableText: 'terms & conditions ',
+                  text2: 'and',
+                  tappableText2: 'Privacy Policy.',
+                  onTap: () {
+                    AppRoutes.pushNamed(
+                      AppRoutes.webViewScreen,
+                      arguments: WebViewModel(
+                        appbar: CustomAppBar(
+                          title: 'Terms and Condition',
+                          leadingSvg: AssetImages.backArrow,
+                        ),
+                        link: AppUrls.termsAndConditions,
+                        isGenerateUrl: true,
+                      ),
+                    );
                   },
-                  hoverColor: AppColors.grey,
-                  focusColor: AppColors.fieldGrey,
-                  fillColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return AppColors.primaryColor;
-                    }
-                    return AppColors.white;
-                  }),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: const VisualDensity(
-                    horizontal: -4,
-                    vertical: -4,
-                  ),
+                  onTap2: () {
+                    AppRoutes.pushNamed(
+                      AppRoutes.webViewScreen,
+                      arguments: WebViewModel(
+                        appbar: CustomAppBar(
+                          title: 'Privacy & Policy',
+                          leadingSvg: AssetImages.backArrow,
+                        ),
+                        link: AppUrls.privacyPolicyLink,
+                        isGenerateUrl: true,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
 
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  side: BorderSide(color: AppColors.fieldGrey, width: 2),
-                ),
-                Flexible(
-                  child: AuthChangeText(
-                    text1: "By using Findora, you agree to our ",
-                    tappableText: 'terms & conditions ',
-                    text2: "and",
-                    tappableText2: 'Privacy Policy.',
-                    onTap: () {
-                      AppRoutes.pushNamed(
-                        AppRoutes.webViewScreen,
-                        arguments: WebViewModel(
-                          appbar: CustomAppBar(
-                            title: "Terms and Condition",
-                            leadingSvg: AssetImages.backArrow,
-                          ),
-                          link: AppUrls.termsAndConditions,
-                          isGenerateUrl: true,
-                        ),
-                      );
-                    },
-                    onTap2: () {
-                      AppRoutes.pushNamed(
-                        AppRoutes.webViewScreen,
-                        arguments: WebViewModel(
-                          appbar: CustomAppBar(
-                            title: "Privacy & Policy",
-                            leadingSvg: AssetImages.backArrow,
-                          ),
-                          link: AppUrls.privacyPolicyLink,
-                          isGenerateUrl: true,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+          AppButton(
+            radius: const BorderRadius.all(
+              Radius.circular(10),
             ),
-          if (widget.isFromOnBoard)
-            AppButton(
-              radius: BorderRadius.all(Radius.circular(10)),
-              title: 'Confirm',
-              onTap: () async{
-                if (isChecked) {
-                  await AppPreferences.setIsOnboarded(true);
-                  AppRoutes.pop();
-                  AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Please check the disclaimer"),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                  // AppSnackBar.show(
-                  //   context: context,
-                  //   message: "please check the disclaimer",
-                  // );
-                }
-              },
-              bgColor: isChecked ? AppColors.primaryColor : AppColors.disclaimerGrey,
-              fontSize: 16,
-              textColor: AppColors.white,
-            ),
+            title: 'Confirm',
+            onTap: () async {
+              if (isChecked) {
+                await AppPreferences.setIsOnboarded(true);
+
+                if (!mounted) return;
+
+                AppRoutes.pop();
+                AppRoutes.pushAndRemoveUntil(
+                  AppRoutes.loginScreen,
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please check the disclaimer'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            bgColor: isChecked
+                ? AppColors.primaryColor
+                : AppColors.disclaimerGrey,
+            fontSize: 16,
+            textColor: AppColors.white,
+          ),
         ],
       ),
     );
   }
 }
+
+// class DisclaimerPopUP extends StatefulWidget {
+//   final bool isFromOnBoard;
+//
+//   const DisclaimerPopUP({super.key, this.isFromOnBoard = false});
+//
+//   @override
+//   State<DisclaimerPopUP> createState() => _DisclaimerPopUPState();
+// }
+//
+// class _DisclaimerPopUPState extends State<DisclaimerPopUP> {
+//   bool isChecked = false;
+//
+//   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+//   bool _isOffline = false;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _initConnectivityListener();
+//   }
+//
+//   @override
+//   void dispose() {
+//     _connectivitySub?.cancel();
+//     super.dispose();
+//   }
+//
+//   void _initConnectivityListener() async {
+//     final results = await Connectivity().checkConnectivity();
+//     _updateOfflineStatus(results);
+//     _connectivitySub = Connectivity().onConnectivityChanged.listen(_updateOfflineStatus);
+//   }
+//
+//   void _updateOfflineStatus(List<ConnectivityResult> results) {
+//     final offline = results.contains(ConnectivityResult.none) || results.isEmpty;
+//     if (!mounted) return;
+//     setState(() {
+//       _isOffline = offline;
+//     });
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     if (_isOffline) {
+//       return const NoInternetWidget();
+//     }
+//     return ConstrainedBox(
+//       constraints: BoxConstraints(maxWidth: AppUtils.isTab ? 450 : double.infinity),
+//       child: Column(
+//         spacing: 15,
+//         mainAxisSize: MainAxisSize.min,
+//         children: [
+//           AppText(text: 'Disclaimer', fontWeight: FontWeight.w500, fontSize: 18),
+//           AppText(
+//             text:
+//                 'Findora helps people reconnect with their lost and found belongings. '
+//                     'Please verify ownership and relevant details carefully before handing over or claiming any item. '
+//                     'Findora does not take responsibility for disputes, losses, damages, or transactions between users.',
+//             fontSize: 14,
+//             fontWeight: FontWeight.w400,
+//             textAlign: .center,
+//             color: AppColors.black,
+//           ),
+//           if (!widget.isFromOnBoard)
+//             AppButton(
+//               title: 'Ok',
+//               onTap: () {
+//                 AppRoutes.pop();
+//               },
+//               fontSize: 14,
+//               bgColor: AppColors.primaryColor,
+//               textColor: AppColors.white,
+//               radius: BorderRadius.circular(7),
+//             ).padHorizontal(80),
+//
+//           if (widget.isFromOnBoard)
+//             Row(
+//               crossAxisAlignment: .start,
+//               spacing: 5,
+//               children: [
+//                 Checkbox(
+//                   value: isChecked,
+//                   onChanged: (e) {
+//                     setState(() {
+//                       isChecked = e!;
+//                     });
+//                   },
+//                   hoverColor: AppColors.grey,
+//                   focusColor: AppColors.fieldGrey,
+//                   fillColor: WidgetStateProperty.resolveWith((states) {
+//                     if (states.contains(WidgetState.selected)) {
+//                       return AppColors.primaryColor;
+//                     }
+//                     return AppColors.white;
+//                   }),
+//                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+//                   visualDensity: const VisualDensity(
+//                     horizontal: -4,
+//                     vertical: -4,
+//                   ),
+//
+//                   shape: RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(6),
+//                   ),
+//                   side: BorderSide(color: AppColors.fieldGrey, width: 2),
+//                 ),
+//                 Flexible(
+//                   child: AuthChangeText(
+//                     text1: "By using Findora, you agree to our ",
+//                     tappableText: 'terms & conditions ',
+//                     text2: "and",
+//                     tappableText2: 'Privacy Policy.',
+//                     onTap: () {
+//                       AppRoutes.pushNamed(
+//                         AppRoutes.webViewScreen,
+//                         arguments: WebViewModel(
+//                           appbar: CustomAppBar(
+//                             title: "Terms and Condition",
+//                             leadingSvg: AssetImages.backArrow,
+//                           ),
+//                           link: AppUrls.termsAndConditions,
+//                           isGenerateUrl: true,
+//                         ),
+//                       );
+//                     },
+//                     onTap2: () {
+//                       AppRoutes.pushNamed(
+//                         AppRoutes.webViewScreen,
+//                         arguments: WebViewModel(
+//                           appbar: CustomAppBar(
+//                             title: "Privacy & Policy",
+//                             leadingSvg: AssetImages.backArrow,
+//                           ),
+//                           link: AppUrls.privacyPolicyLink,
+//                           isGenerateUrl: true,
+//                         ),
+//                       );
+//                     },
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           if (widget.isFromOnBoard)
+//             AppButton(
+//               radius: BorderRadius.all(Radius.circular(10)),
+//               title: 'Confirm',
+//               onTap: () async{
+//                 if (isChecked) {
+//                   await AppPreferences.setIsOnboarded(true);
+//                   AppRoutes.pop();
+//                   AppRoutes.pushAndRemoveUntil(AppRoutes.loginScreen);
+//                 } else {
+//                   ScaffoldMessenger.of(context).showSnackBar(
+//                     const SnackBar(
+//                       content: Text("Please check the disclaimer"),
+//                       behavior: SnackBarBehavior.floating,
+//                     ),
+//                   );
+//                   // AppSnackBar.show(
+//                   //   context: context,
+//                   //   message: "please check the disclaimer",
+//                   // );
+//                 }
+//               },
+//               bgColor: isChecked ? AppColors.primaryColor : AppColors.disclaimerGrey,
+//               fontSize: 16,
+//               textColor: AppColors.white,
+//             ),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 
 

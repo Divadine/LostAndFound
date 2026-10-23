@@ -279,25 +279,6 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ============================================================
-  // OPEN CLOSED POST DETAILS
-  // ============================================================
-
-  Future<void> _openClosedPostDetails(PostModel post, {required bool isLostPost}) async {
-    await AppRoutes.pushNamed(
-      AppRoutes.lostItemsDetailsScreen,
-      arguments: {
-        'postId': post.id,
-        'userId': AppPreferences.getUserId(),
-        'isLostPost': isLostPost,
-        'isUserPost': true,
-        'hideEnquiryButton': true,
-      },
-    );
-    if (!mounted) return;
-    _refreshPosts();
-  }
-
-  // ============================================================
   // FETCH LOST POSTS
   // ============================================================
 
@@ -1151,20 +1132,9 @@ class _HomeScreenState extends State<HomeScreen>
                           });
                           _fetchLostPosts();
                         },
-                        onViewAll: () {
-                          if (post.status == 2) {
-                            _openClosedPostDetails(post, isLostPost: true);
-                          } else {
-                            _openAvailableMatching(post);
-                          }
-                        },
+                        onViewAll: () => _openAvailableMatching(post),
                         status: post.status,
                         onTap: () {
-                          if (post.status == 2) {
-                            _openClosedPostDetails(post, isLostPost: true);
-                            return;
-                          }
-
                           final isJewellery =
                               post.categoryName.toLowerCase() ==
                               'jewellery & valuables';
@@ -1363,29 +1333,14 @@ class _HomeScreenState extends State<HomeScreen>
                                   .toList()
                             : null,
                         onEnquiryTap: () {
-                          if (post.status == 2) {
-                            _openClosedPostDetails(post, isLostPost: false);
-                            return;
-                          }
                           AppRoutes.pushNamed(
                             AppRoutes.enquiryListScreen,
                             arguments: {'postId': post.id, 'isFound': true},
                           );
                         },
-                        onViewAll: () {
-                          if (post.status == 2) {
-                            _openClosedPostDetails(post, isLostPost: false);
-                          } else {
-                            _openAvailableMatching(post);
-                          }
-                        },
+                        onViewAll: () => _openAvailableMatching(post),
                         status: post.status,
                         onTap: () {
-                          if (post.status == 2) {
-                            _openClosedPostDetails(post, isLostPost: false);
-                            return;
-                          }
-
                           final isJewellery =
                               post.categoryName.toLowerCase() ==
                               'jewellery & valuables';
