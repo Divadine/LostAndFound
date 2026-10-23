@@ -131,7 +131,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
   late final TextEditingController descriptionController;
 
   bool isSubmitting = false;
-  bool isLoadingSource = true;
+  bool isLoadingSource = false;
   bool isEnquirySent = false;
 
   // ============================================================
@@ -163,7 +163,6 @@ class _SendEnquiryState extends State<SendEnquiry> {
       text: "I think this might be mine! \n I lost something that looks like this. Let’s compare the details and see if we’ve found a match. ",
     );
 
-    _fetchSourcePostDetails();
     _checkIfAlreadyEnquired();
 
     print('[SendEnquiry] INIT');
@@ -198,36 +197,6 @@ class _SendEnquiryState extends State<SendEnquiry> {
       }
     } catch (e) {
       print('[SendEnquiry] Error checking existing room: $e');
-    }
-  }
-
-  Future<void> _fetchSourcePostDetails() async {
-    try {
-      final currentUserId = AppPreferences.getUserId();
-      if (currentUserId != null && widget.matchedPostId != 0) {
-        final response = await authController.getSingleMatch(
-          postId: widget.matchedPostId,
-          userId: currentUserId,
-        );
-        if (response.isSuccess && response.data != null) {
-          final sourcePost = response.data!;
-          if (mounted) {
-            setState(() {
-              if (sourcePost.posterName.isNotEmpty) {
-                nameController.text = sourcePost.posterName;
-              }
-            });
-          }
-        }
-      }
-    } catch (e) {
-      print('[SendEnquiry] Error fetching source post details: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoadingSource = false;
-        });
-      }
     }
   }
 
@@ -469,6 +438,17 @@ class _SendEnquiryState extends State<SendEnquiry> {
       );
 
       // ==========================================================
+      // RESOLVE CURRENT USER'S NAME
+      // ==========================================================
+
+      String myName = AppPreferences.getUserName()?.trim() ?? '';
+      try {
+        final me = await authController.getProfile(userId: userId);
+        final apiName = me.data?.name?.toString().trim() ?? '';
+        if (apiName.isNotEmpty) myName = apiName;
+      } catch (_) {}
+
+      // ==========================================================
       // STEP 1
       //
       // CREATE ENQUIRY IN API
@@ -483,7 +463,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
         userId: userId,
         postId: widget.postId,
         matchedPostId: widget.matchedPostId,
-        name: nameController.text.trim(),
+        name: myName,
         description:
         descriptionController.text.trim(),
       );
@@ -570,7 +550,7 @@ class _SendEnquiryState extends State<SendEnquiry> {
 
         enquirySenderId: currentUserId,
 
-        currentUserName: nameController.text.trim(),
+        currentUserName: myName,
 
         currentUserAvatar: AppPreferences.getUserAvatar() ?? '',
 

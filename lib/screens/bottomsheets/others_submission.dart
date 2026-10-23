@@ -40,6 +40,7 @@ import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 import 'owner_proof_submission.dart';
 
 class OthersHandover extends StatefulWidget {
@@ -47,6 +48,7 @@ class OthersHandover extends StatefulWidget {
   final int userId;
   final bool isReceiver;
   final int? enquiryId;
+  final int? matchPercentage;
 
   const OthersHandover({
     super.key,
@@ -54,6 +56,7 @@ class OthersHandover extends StatefulWidget {
     required this.userId,
     this.isReceiver = false,
     this.enquiryId,
+    this.matchPercentage,
   });
 
   @override
@@ -90,6 +93,7 @@ class _OthersHandoverState extends State<OthersHandover> {
       description: descriptionController.text.trim(),
       phoneno: numberController.text.trim(),
       handoverType: 3, // others
+      postPercentage: widget.matchPercentage?.toString(),
     );
 
     if (!mounted) return;
@@ -108,6 +112,7 @@ class _OthersHandoverState extends State<OthersHandover> {
             phoneNumber: numberController.text.trim(),
             description: descriptionController.text.trim(),
             handoverDate: DateFormat('d MMM yyyy').format(DateTime.now()),
+            matchPercentage: widget.matchPercentage,
           ),
         ),
       );
@@ -151,14 +156,30 @@ class _OthersHandoverState extends State<OthersHandover> {
                   ),
                 ),
                 const SizedBox(width: 15),
-                AppText(
-                  text: widget.isReceiver
-                      ? "Receive from others"
-                      : "Hand Over to others",
-                  fontSize: 14,
-                  color: AppColors.primaryColor,
-                  fontWeight: FontWeight.w600,
+                Expanded(
+                  child: AppText(
+                    text: widget.isReceiver
+                        ? "Receive from others"
+                        : "Hand Over to others",
+                    fontSize: 14,
+                    color: AppColors.primaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+                if (widget.matchPercentage != null && widget.matchPercentage! > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppUtils.getMatchColor(widget.matchPercentage!).withAlpha(70),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: AppText(
+                      text: '${widget.matchPercentage}% match',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 10,
+                      color: AppUtils.getMatchColor(widget.matchPercentage!),
+                    ),
+                  ),
               ],
             ).pad(),
           ).pad(),

@@ -95,9 +95,12 @@ class AuthControllers {
   Future<ResponseModel<ProfileScreenModel>> getProfile({required int userId}) async {
     final response = await authRepository.getProfile(userId: userId);
     if (response.isSuccess && response.data != null) {
-      await AppPreferences.saveUserName(response.data!.name ?? '');
-      await AppPreferences.saveUserAvatar(response.data!.profileImageUrl ?? '');
-      await AppPreferences.savePhone(response.data!.mobile ?? '');
+      final currentUserId = AppPreferences.getUserId();
+      if (currentUserId != null && currentUserId == userId) {
+        await AppPreferences.saveUserName(response.data!.name ?? '');
+        await AppPreferences.saveUserAvatar(response.data!.profileImageUrl ?? '');
+        await AppPreferences.savePhone(response.data!.mobile ?? '');
+      }
     }
     return response;
   }
@@ -257,6 +260,7 @@ class AuthControllers {
     required String description,
     required String phoneno,
     required int handoverType,
+    String? postPercentage,
   }) async {
     return await authRepository.createHandover(
       enquiryId: enquiryId,
@@ -273,6 +277,7 @@ class AuthControllers {
       description: description,
       phoneno: phoneno,
       handoverType: handoverType,
+      postPercentage: postPercentage,
     );
   }
 

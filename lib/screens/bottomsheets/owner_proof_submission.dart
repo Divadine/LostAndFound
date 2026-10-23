@@ -96,6 +96,7 @@ class HandoverProofDocuments extends StatefulWidget {
         "phoneno": phoneno,
         "name": selectedOwner.name,
         "handover_type": 1,
+        "post_percentage": selectedOwner.matchPercentage.toString(),
       }.toString());
 
       final handoverResponse = await authController.createHandover(
@@ -110,6 +111,7 @@ class HandoverProofDocuments extends StatefulWidget {
         phoneno: phoneno,
         name: selectedOwner.name,
         handoverType: 1,
+        postPercentage: selectedOwner.matchPercentage.toString(),
       );
 
       if (handoverResponse.isSuccess) {
@@ -253,19 +255,20 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                   ],
                 ),
                 Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppUtils.getMatchColor(widget.selectedOwner.matchPercentage).withAlpha(70),
-                    borderRadius: BorderRadius.circular(20),
+                if (widget.selectedOwner.matchPercentage > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppUtils.getMatchColor(widget.selectedOwner.matchPercentage).withAlpha(70),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: AppText(
+                      text: '${widget.selectedOwner.matchPercentage}% match',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 10,
+                      color: AppUtils.getMatchColor(widget.selectedOwner.matchPercentage),
+                    ),
                   ),
-                  child: AppText(
-                    text: '${widget.selectedOwner.matchPercentage}% match',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 10,
-                    color: AppUtils.getMatchColor(widget.selectedOwner.matchPercentage),
-                  ),
-                ),
               ],
             ).pad(),
           ),

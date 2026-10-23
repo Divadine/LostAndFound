@@ -192,8 +192,10 @@ class MatchedPostSummary {
       handoverImg: handoverImages,
       handoverMatchPercentage: int.tryParse((handoverObj?['match_percentage'] ??
               handoverObj?['matchPercentage'] ??
+              handoverObj?['post_percentage'] ??
               json['handover_match_percentage'] ??
               json['matchPercentage'] ??
+              json['post_percentage'] ??
               '')
           .toString()),
       handoverUserUid: (handoverObj?['user_uid'] ??

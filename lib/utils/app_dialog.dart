@@ -951,7 +951,7 @@ class TransferCompleted extends StatelessWidget {
             ),
           ),
 
-          if (data.matchPercentage != null)
+          if (data.matchPercentage != null && data.matchPercentage! > 0)
             _buildMatchPercentage(
               data.matchPercentage!,
             ),
@@ -968,23 +968,40 @@ class TransferCompleted extends StatelessWidget {
 
   Widget _buildOthersCard() {
     return AppContainer(
-      widget: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 5,
+      widget: Row(
+        spacing: 10,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          AppText(
-            text: data.name.isNotEmpty ? data.name : 'Others',
-            fontSize: 14,
-            color: AppColors.primaryColor,
-            fontWeight: FontWeight.w600,
-          ),
-          if (data.phoneNumber.isNotEmpty)
-            AppText(
-              text: data.phoneNumber,
-              fontSize: 11,
-              color: AppColors.fieldGrey,
-              fontWeight: FontWeight.w400,
+          CircleAvatar(
+            radius: 26,
+            backgroundColor: AppColors.fieldGrey,
+            child: AppIconWidget(
+              assetPath: AssetImages.threeDotsHorizontal,
             ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 5,
+              children: [
+                AppText(
+                  text: data.name.isNotEmpty ? data.name : 'Others',
+                  fontSize: 14,
+                  color: AppColors.primaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
+                if (data.phoneNumber.isNotEmpty)
+                  AppText(
+                    text: data.phoneNumber,
+                    fontSize: 11,
+                    color: AppColors.fieldGrey,
+                    fontWeight: FontWeight.w400,
+                  ),
+              ],
+            ),
+          ),
+          if (data.matchPercentage != null && data.matchPercentage! > 0)
+            _buildMatchPercentage(data.matchPercentage!),
         ],
       ).pad(),
     );
@@ -1032,6 +1049,8 @@ class TransferCompleted extends StatelessWidget {
               ],
             ),
           ),
+          if (data.matchPercentage != null && data.matchPercentage! > 0)
+            _buildMatchPercentage(data.matchPercentage!),
         ],
       ).pad(),
     );

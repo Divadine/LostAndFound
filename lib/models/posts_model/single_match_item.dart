@@ -371,7 +371,9 @@ class SingleMatchModel {
       handoverImg: handoverImages,
       handoverMatchPercentage: int.tryParse((handoverObj?['match_percentage'] ??
               handoverObj?['matchPercentage'] ??
+              handoverObj?['post_percentage'] ??
               data['handover_match_percentage'] ??
+              data['post_percentage'] ??
               '')
           .toString()),
       handoverUserUid: (handoverObj?['user_uid'] ??

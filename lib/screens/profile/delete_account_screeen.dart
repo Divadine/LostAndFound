@@ -202,12 +202,12 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                       setState(() {
                         isChecked = e ?? false;
 
-                        if (isChecked) {
-                          AppSnackBar.show(
-                            context: context,
-                            message: "Confirm for deletion",
-                          );
-                        }
+                        // if (isChecked) {
+                        //   AppSnackBar.show(
+                        //     context: context,
+                        //     message: "Confirm for deletion",
+                        //   );
+                        // }
                       });
                     },
                     hoverColor: AppColors.grey,

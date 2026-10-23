@@ -344,14 +344,15 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppUtils.getMatchColor(percentageMatch).withAlpha(70),
-                borderRadius: BorderRadius.circular(20),
+            if (percentageMatch > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppUtils.getMatchColor(percentageMatch).withAlpha(70),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: AppText(text: '$percentageMatch% match', fontWeight: FontWeight.w500, fontSize: 10, color: AppUtils.getMatchColor(percentageMatch)),
               ),
-              child: AppText(text: '$percentageMatch% match', fontWeight: FontWeight.w500, fontSize: 10, color: AppUtils.getMatchColor(percentageMatch)),
-            ),
           ],
         ).pad(),
       ).pad(),

@@ -183,32 +183,44 @@ class ChatService {
         mergeField('profileUrl', profileUrl);
 
         // Merge participants
-        final participants =Map<String, dynamic>.from(existingData['participants'] ?? {});
+        final participants =
+            Map<String, dynamic>.from(existingData['participants'] ?? {});
 
+        // Current user: overwrite name, avatar, phone if non-empty
+        final currentP = Map<String, dynamic>.from(
+            participants[cleanCurrentUserId] ?? {});
+        final cName = currentUserName?.trim() ?? '';
+        final cAvatar = currentUserAvatar?.trim() ?? '';
+        final cPhone = currentUserPhone?.trim() ?? '';
 
-        void updateParticipant(String uid, String? name, String? avatar, String? phone) {
-
-          final p = Map<String, dynamic>.from(participants[uid] ?? {});
-          final n = name?.trim() ?? '';
-          final a = avatar?.trim() ?? '';
-          final ph = phone?.trim() ?? '';
-
-          if (n.isNotEmpty && (p['name']?.toString().isEmpty ?? true)) {
-            p['name'] = n;
-          }
-          if (a.isNotEmpty && (p['avatar']?.toString().isEmpty ?? true)) {
-            p['avatar'] = a;
-          }
-          if (ph.isNotEmpty && (p['phone']?.toString().isEmpty ?? true)) {
-            p['phone'] = ph;
-          }
-          participants[uid] = p;
+        if (cName.isNotEmpty) {
+          currentP['name'] = cName;
         }
+        if (cAvatar.isNotEmpty) {
+          currentP['avatar'] = cAvatar;
+        }
+        if (cPhone.isNotEmpty) {
+          currentP['phone'] = cPhone;
+        }
+        participants[cleanCurrentUserId] = currentP;
 
-        updateParticipant(cleanCurrentUserId, currentUserName,
-            currentUserAvatar, currentUserPhone);
-        updateParticipant(
-            cleanOtherUserId, otherUserName, otherUserAvatar, otherUserPhone);
+        // Other user: fill only if empty
+        final otherP =
+            Map<String, dynamic>.from(participants[cleanOtherUserId] ?? {});
+        final oName = otherUserName?.trim() ?? '';
+        final oAvatar = otherUserAvatar?.trim() ?? '';
+        final oPhone = otherUserPhone?.trim() ?? '';
+
+        if (oName.isNotEmpty && (otherP['name']?.toString().isEmpty ?? true)) {
+          otherP['name'] = oName;
+        }
+        if (oAvatar.isNotEmpty && (otherP['avatar']?.toString().isEmpty ?? true)) {
+          otherP['avatar'] = oAvatar;
+        }
+        if (oPhone.isNotEmpty && (otherP['phone']?.toString().isEmpty ?? true)) {
+          otherP['phone'] = oPhone;
+        }
+        participants[cleanOtherUserId] = otherP;
 
         updateData['participants'] = participants;
 
@@ -341,6 +353,49 @@ class ChatService {
       debugPrint('[ChatService] Updated avatar everywhere for $cleanUserId to "$cleanAvatar" across ${roomsQuery.docs.length} rooms.');
     } catch (e) {
       debugPrint('[ChatService] Error updating avatar everywhere: $e');
+    }
+  }
+
+  // ============================================================
+  // SYNC MY NAME EVERYWHERE
+  // ============================================================
+
+  static Future<void> syncMyNameEverywhere({
+    required String userId,
+    required String name,
+  }) async {
+    final uid = userId.trim();
+    final n = name.trim();
+    if (uid.isEmpty || n.isEmpty) return;
+
+    try {
+      final q = await _rooms.where('users', arrayContains: uid).get();
+      if (q.docs.isEmpty) return;
+
+      for (var i = 0; i < q.docs.length; i += 500) {
+        final batch = _firestore.batch();
+        final chunk = q.docs.sublist(
+          i,
+          i + 500 > q.docs.length ? q.docs.length : i + 500,
+        );
+        var count = 0;
+        for (final doc in chunk) {
+          final p = doc.data()['participants'];
+          final current = (p is Map && p[uid] is Map)
+              ? (p[uid]['name'] ?? '').toString()
+              : '';
+          if (current != n) {
+            batch.update(doc.reference, {'participants.$uid.name': n});
+            count++;
+          }
+        }
+        if (count > 0) {
+          await batch.commit();
+        }
+      }
+      debugPrint('[ChatService] Synced my name everywhere for $uid to "$n"');
+    } catch (e) {
+      debugPrint('[ChatService] Error syncing name everywhere: $e');
     }
   }
 

@@ -246,7 +246,9 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
             if (updatedMatchPercentage == null && matchesList.isNotEmpty) {
               MatchItemModel? winningMatch;
               for (final m in matchesList) {
-                if (m.status == 2) {
+                if (m.status == 2 ||
+                    (summary.handoverUserUid.isNotEmpty &&
+                        (m.userUid == summary.handoverUserUid || m.userId.toString() == summary.handoverUserUid))) {
                   winningMatch = m;
                   break;
                 }
@@ -944,6 +946,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                     postId: post.id,
                     categoryId: post.categoryId,
                     enquiryId: widget.enquiryId,
+                    matchPercentage: post.handoverMatchPercentage ?? widget.percentageMatch,
                   ),
                 );
                 return;

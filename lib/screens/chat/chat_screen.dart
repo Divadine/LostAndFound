@@ -55,6 +55,13 @@ class _ChatScreenState
       });
     } else {
       ChatService.startDeliveryTracking(currentUserId!);
+      final myName = AppPreferences.getUserName()?.trim() ?? '';
+      if (myName.isNotEmpty) {
+        ChatService.syncMyNameEverywhere(
+          userId: currentUserId!,
+          name: myName,
+        );
+      }
     }
   }
 

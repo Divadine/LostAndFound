@@ -260,7 +260,9 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
     MatchItemModel? winnerMatch;
     if (isClosed || widget.isReceived) {
       for (final m in matches) {
-        if (m.status == 2) {
+        if (m.status == 2 ||
+            (postSummary?.handoverUserUid.isNotEmpty == true &&
+                (m.userUid == postSummary!.handoverUserUid || m.userId.toString() == postSummary!.handoverUserUid))) {
           winnerMatch = m;
           break;
         }
@@ -417,7 +419,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
 
                   final handoverImgs = postSummary?.handoverImg ?? [];
 
-                  final matchPercentage = winnerMatch?.matchPercentage ?? postSummary?.handoverMatchPercentage;
+                  final matchPercentage = postSummary?.handoverMatchPercentage ?? winnerMatch?.matchPercentage;
 
                   debugPrint('========== HANDOVER ACTOR ==========');
                   debugPrint('userUid: $actorUid');
@@ -495,7 +497,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                           ? postSummary!.handoverDescription
                           : 'Successfully processed';
 
-                      final matchPercentage = winnerMatch?.matchPercentage ?? postSummary?.handoverMatchPercentage;
+                      final matchPercentage = postSummary?.handoverMatchPercentage ?? winnerMatch?.matchPercentage;
 
                       debugPrint('========== HANDOVER ACTOR (isReceived) ==========');
                       debugPrint('userUid: $actorUid');
@@ -553,6 +555,10 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                                     postId: widget.postId,
                                     categoryId: widget.categoryId,
                                     enquiryId: null, // No enquiry yet from match list
+                                    matchPercentage: postSummary?.handoverMatchPercentage ??
+                                        (matches.isNotEmpty
+                                            ? matches.first.matchPercentage
+                                            : winnerMatch?.matchPercentage),
                                   ),
                                 );
                               },

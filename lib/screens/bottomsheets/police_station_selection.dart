@@ -13,6 +13,7 @@ import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 import '../post/first_stepper_screen.dart';
 
@@ -26,6 +27,7 @@ class PoliceStationHandOver extends StatefulWidget {
   final int handoverType; // owner=1 / police=2 / others=3 — see HandoverType
   final bool isReceiver;
   final bool isJewellery;
+  final int? matchPercentage;
 
   const PoliceStationHandOver({
     super.key,
@@ -38,6 +40,7 @@ class PoliceStationHandOver extends StatefulWidget {
     required this.handoverType,
     this.isReceiver = false,
     this.isJewellery = false,
+    this.matchPercentage,
   });
 
   @override
@@ -110,10 +113,32 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        AppText(
-          text: widget.isReceiver ? 'Receive from Police Station' : 'Hand Over to Police Station',
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppText(
+              text: widget.isReceiver ? 'Receive from Police Station' : 'Hand Over to Police Station',
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+            if (widget.matchPercentage != null && widget.matchPercentage! > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppUtils.getMatchColor(widget.matchPercentage!).withAlpha(70),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: AppText(
+                  text: '${widget.matchPercentage}% match',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 10,
+                  color: AppUtils.getMatchColor(widget.matchPercentage!),
+                ),
+              ),
+            ],
+          ],
         ),
         AppText(
           text: 'Please Provide the Police Station information',
@@ -257,6 +282,7 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
                 longitude: longitude,
                 isReceiver: widget.isReceiver,
                 isJewellery: widget.isJewellery,
+                matchPercentage: widget.matchPercentage,
               ),
             );
           },

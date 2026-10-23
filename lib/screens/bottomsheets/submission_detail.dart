@@ -221,9 +221,9 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
                   fontWeight: FontWeight.w600,
                 ),
 
-                if (widget.data.matchPercentage != null) ...[
+                if (widget.data.userId != null &&
+                    widget.data.userId!.isNotEmpty) ...[
                   const SizedBox(height: 5),
-
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -234,18 +234,39 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: AppText(
-                      text: 'ID : ${widget.data.userId ?? '-'}',
+                      text: 'ID : ${widget.data.userId}',
                       fontWeight: FontWeight.w500,
                       fontSize: 10,
                       color: AppColors.primaryColor,
                     ),
                   ),
                 ],
+
+                // if (widget.data.matchPercentage != null) ...[
+                //   const SizedBox(height: 5),
+                //
+                //   Container(
+                //     padding: const EdgeInsets.symmetric(
+                //       horizontal: 10,
+                //       vertical: 4,
+                //     ),
+                //     decoration: BoxDecoration(
+                //       color: AppColors.idCardColor,
+                //       borderRadius: BorderRadius.circular(20),
+                //     ),
+                //     child: AppText(
+                //       text: 'ID : ${widget.data.userId ?? '-'}',
+                //       fontWeight: FontWeight.w500,
+                //       fontSize: 10,
+                //       color: AppColors.primaryColor,
+                //     ),
+                //   ),
+                // ],
               ],
             ),
           ),
 
-          if (widget.data.matchPercentage != null)
+          if (widget.data.matchPercentage != null && widget.data.matchPercentage! > 0)
             _buildMatch(
               widget.data.matchPercentage!,
             ),
@@ -274,12 +295,16 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
               assetPath: AssetImages.threeDotsHorizontal,
             ),
           ),
-          AppText(
-            text: isReceive ? 'Receive to others' : 'Hand Over to others',
-            fontSize: 14,
-            color: AppColors.primaryColor,
-            fontWeight: FontWeight.w600,
+          Expanded(
+            child: AppText(
+              text: isReceive ? 'Receive to others' : 'Hand Over to others',
+              fontSize: 14,
+              color: AppColors.primaryColor,
+              fontWeight: FontWeight.w600,
+            ),
           ),
+          if (widget.data.matchPercentage != null && widget.data.matchPercentage! > 0)
+            _buildMatch(widget.data.matchPercentage!),
         ],
       ).pad(),
     );
@@ -333,6 +358,8 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
               ],
             ),
           ),
+          if (widget.data.matchPercentage != null && widget.data.matchPercentage! > 0)
+            _buildMatch(widget.data.matchPercentage!),
         ],
       ).pad(),
     );

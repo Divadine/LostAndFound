@@ -33,11 +33,13 @@ class TransferData {
     return TransferData(
       name: (json['name'] ?? json['poster_name'] ?? json['enquirer_name'] ?? '').toString(),
       avatarUrl: (json['avatar_url'] ?? json['profile_image'] ?? json['poster_avatar'] ?? json['enquirer_profile_img'] ?? '').toString(),
-      matchPercentage: json['matchPercentage'] is int
-          ? json['matchPercentage'] as int
-          : (json['match_percentage'] is int
-              ? json['match_percentage'] as int
-              : int.tryParse((json['matchPercentage'] ?? json['match_percentage'] ?? '').toString())),
+      matchPercentage: int.tryParse(
+        (json['post_percentage'] ??
+            json['matchPercentage'] ??
+            json['match_percentage'] ??
+            '')
+            .toString(),
+      ),
       userId: json['user_uid']?.toString() ?? json['userId']?.toString() ?? json['user_id']?.toString(),
       policeStationName: (json['police_station_name'] ?? json['station_name'] ?? json['policeStationName'] ?? '').toString(),
       policeStationAddress: (json['police_station_address'] ?? json['station_address'] ?? json['policeStationAddress'] ?? '').toString(),

@@ -428,6 +428,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                       postId: widget.postId,
                       categoryId: enquiryData?.post?.categoryId,
                       enquiryId: winnerEnquiry?.enquiryId,
+                      matchPercentage: post?.handoverMatchPercentage ?? winnerEnquiry?.matchPercentage,
                     ),
                   );
                   _fetchEnquiries();

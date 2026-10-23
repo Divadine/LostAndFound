@@ -582,6 +582,7 @@ class AuthRepository {
     required String description,
     required String phoneno,
     required int handoverType,
+    String? postPercentage,
   }) async {
     final body = {
       'enquiry_id': (handoverType == 2 || handoverType == 3) ? null : enquiryId,
@@ -598,6 +599,7 @@ class AuthRepository {
       'description': description,
       'phoneno': phoneno,
       'handover_type': handoverType,
+      'post_percentage': postPercentage ?? '',
     };
 
     debugPrint('[Handover] JSON body: ${jsonEncode(body)}');

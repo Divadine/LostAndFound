@@ -10,6 +10,7 @@ import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 import '../../shared_widgets/app_button.dart';
 
@@ -25,6 +26,7 @@ class ReceiveHandoverSheet extends StatefulWidget {
   final int postId;
   final int? categoryId;
   final int? enquiryId;
+  final int? matchPercentage;
 
   const ReceiveHandoverSheet({
     super.key,
@@ -33,6 +35,7 @@ class ReceiveHandoverSheet extends StatefulWidget {
     required this.postId,
     this.categoryId,
     this.enquiryId,
+    this.matchPercentage,
   });
 
   @override
@@ -83,12 +86,34 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
       child: Column(
         spacing: 10,
         children: [
-          AppText(
-            text: widget.isReceiver
-                ? 'How would you like to Receive?'
-                : 'How would you like to hand Over?',
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppText(
+                text: widget.isReceiver
+                    ? 'How would you like to Receive?'
+                    : 'How would you like to hand Over?',
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+              if (widget.matchPercentage != null && widget.matchPercentage! > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppUtils.getMatchColor(widget.matchPercentage!).withAlpha(70),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: AppText(
+                    text: '${widget.matchPercentage}% match',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 10,
+                    color: AppUtils.getMatchColor(widget.matchPercentage!),
+                  ),
+                ),
+              ],
+            ],
           ),
 
           const SizedBox(height: 10),
@@ -222,6 +247,7 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                     isReceiver: widget.isReceiver,
                     isJewellery: isJewellery,
                     enquiryId: widget.enquiryId,
+                    matchPercentage: widget.matchPercentage,
                   ),
                 );
                 return;
@@ -240,6 +266,7 @@ class _ReceiveHandoverSheetState extends State<ReceiveHandoverSheet> {
                     userId: userId,
                     isReceiver: widget.isReceiver,
                     enquiryId: widget.enquiryId,
+                    matchPercentage: widget.matchPercentage,
                   ),
                 );
               }

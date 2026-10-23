@@ -17,6 +17,7 @@ import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 import 'owner_proof_submission.dart';
 
@@ -34,6 +35,7 @@ class PoliceHandoverProofDocuments extends StatefulWidget {
   final String? longitude;
   final bool isReceiver;
   final bool isJewellery;
+  final int? matchPercentage;
 
   const PoliceHandoverProofDocuments({
     super.key,
@@ -50,6 +52,7 @@ class PoliceHandoverProofDocuments extends StatefulWidget {
     this.longitude,
     this.isReceiver = false,
     this.isJewellery = false,
+    this.matchPercentage,
   });
 
   @override
@@ -127,6 +130,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
       "phoneno": widget.phoneNumber,
       "handover_type": widget.handoverType,
       "code_id": codeController.text.trim(),
+      "post_percentage": widget.matchPercentage?.toString(),
     };
     debugPrint(requestBody.toString());
 
@@ -145,6 +149,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
       description: textController.text.trim(),
       phoneno: widget.phoneNumber,
       handoverType: widget.handoverType,
+      postPercentage: widget.matchPercentage?.toString(),
     );
 
     print('222222222222222222222222222222222222222222222$response');
@@ -170,7 +175,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
             description: textController.text.trim(),
             proofPhotos: imageResponse.data!.map((img) => img.imgPath).toList(),
             handoverDate: DateFormat('d MMM yyyy').format(DateTime.now()),
-
+            matchPercentage: widget.matchPercentage,
           ),
         ),
       );
@@ -228,6 +233,20 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
                     ],
                   ),
                 ),
+                if (widget.matchPercentage != null && widget.matchPercentage! > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppUtils.getMatchColor(widget.matchPercentage!).withAlpha(70),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: AppText(
+                      text: '${widget.matchPercentage}% match',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 10,
+                      color: AppUtils.getMatchColor(widget.matchPercentage!),
+                    ),
+                  ),
               ],
             ).pad(),
           ),
