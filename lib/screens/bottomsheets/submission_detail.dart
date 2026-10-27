@@ -61,8 +61,8 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
     if (_codeId.isNotEmpty) return _codeId;
     if (_userId.isNotEmpty) return _userId;
     return '-';
+    //return _codeId.isNotEmpty ? _codeId : '-';
   }
-
   @override
   void initState() {
     super.initState();

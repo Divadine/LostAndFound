@@ -269,6 +269,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
               stationAddress: summary.stationAddress.isNotEmpty ? summary.stationAddress : fetchedPost.stationAddress,
               handoverDescription: summary.handoverDescription.isNotEmpty ? summary.handoverDescription : fetchedPost.handoverDescription,
               handoverPhoneno: summary.handoverPhoneno.isNotEmpty ? summary.handoverPhoneno : fetchedPost.handoverPhoneno,
+              handoverCodeId: summary.handoverCodeId.isNotEmpty ? summary.handoverCodeId : fetchedPost.handoverCodeId,
               handoverImg: summary.handoverImg.isNotEmpty ? summary.handoverImg : fetchedPost.handoverImg,
               handoverMatchPercentage: updatedMatchPercentage ?? fetchedPost.handoverMatchPercentage,
               handoverUserUid: summary.handoverUserUid.isNotEmpty ? summary.handoverUserUid : fetchedPost.handoverUserUid,
@@ -283,6 +284,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
             debugPrint('stationName       : ${fetchedPost.stationName}');
             debugPrint('stationAddress    : ${fetchedPost.stationAddress}');
             debugPrint('handoverDesc      : ${fetchedPost.handoverDescription}');
+            debugPrint('handoverCodeId    : ${fetchedPost.handoverCodeId}');
             debugPrint('handoverImg       : ${fetchedPost.handoverImg}');
             debugPrint('handoverDate      : ${fetchedPost.handoverDate}');
             debugPrint('matchPercentage   : ${fetchedPost.handoverMatchPercentage}');
@@ -634,39 +636,43 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                 // 4. MATCH
                 // ==================================================
 
-                AppContainer(
-                  bgColor:
-                  isClosed ? AppColors.closedColor : AppColors.white,
-                  height: 50,
-                  widget: Row(
-                    mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
-                    children: [
-                      const AppText(
-                        text: 'matches',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.purple.withAlpha(30),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: AppText(
-                          text:
-                          '${post.handoverMatchPercentage ?? widget.percentageMatch ?? 0}% match',
+                // 4. MATCH
+                if (!isJewellery) ...[
+                  AppContainer(
+                    bgColor: isClosed
+                        ? AppColors.closedColor
+                        : AppColors.white,
+                    height: 50,
+                    widget: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const AppText(
+                          text: 'matches',
+                          fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          fontSize: 10,
-                          color: AppColors.purple,
                         ),
-                      ),
-                    ],
-                  ).padHorizontal(),
-                ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.purple.withAlpha(30),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: AppText(
+                            text:
+                            '${post.handoverMatchPercentage ?? widget.percentageMatch ?? 0}% match',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10,
+                            color: AppColors.purple,
+                          ),
+                        ),
+                      ],
+                    ).padHorizontal(),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 const SizedBox(height: 16),
 

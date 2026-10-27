@@ -524,7 +524,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                                               width: 30,
                                             ),
                                             const SizedBox(width: 7),
-                                            Flexible(
+                                            Expanded(
                                               child: AppText(
                                                 text: locate.address,
                                                 maxLine: 2,
