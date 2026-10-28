@@ -3,6 +3,7 @@ import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/match_badge.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
@@ -41,6 +42,7 @@ class ItemCard extends StatelessWidget {
   final VoidCallback? onViewAll;
   final int? status;
   final bool showClosedStamp;
+  final bool hideClosedFooter; // NEW — hides "Closed / View Details" strip
 
   const ItemCard({
     super.key,
@@ -74,6 +76,7 @@ class ItemCard extends StatelessWidget {
     this.onViewAll,
     this.status,
     this.showClosedStamp = true,
+    this.hideClosedFooter = false, // NEW
   });
 
   @override
@@ -181,24 +184,7 @@ class ItemCard extends StatelessWidget {
                       ),
                     Spacer(),
                     if (percentageMatch != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppUtils.getMatchColor(
-                            percentageMatch!,
-                          ).withAlpha(70),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: AppText(
-                          text: '$percentageMatch% match',
-                          fontWeight: FontWeight.w500,
-                          fontSize: 10,
-                          color: AppUtils.getMatchColor(percentageMatch!),
-                        ),
-                      ),
+                      MatchBadge(percentage: percentageMatch!),
                   ],
                 ).padHorizontal(18),
               ),
@@ -482,7 +468,8 @@ class ItemCard extends StatelessWidget {
                   ],
                 ).padHorizontal(),
               ).pad(),
-            if (status == 2)
+            // CHANGED: strip hidden when hideClosedFooter is true
+            if (status == 2 && !hideClosedFooter)
               Container(
                 height: 38,
                 width: double.infinity,

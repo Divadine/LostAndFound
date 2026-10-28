@@ -17,6 +17,7 @@ class AppTextField extends StatelessWidget {
   final AutovalidateMode? autoValidateMode;
   final String? Function(String?)? validator;
   final TextInputType? textInputType;
+  final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final Function(String) onChange;
   final Function(String) onSubmit;
@@ -53,6 +54,7 @@ class AppTextField extends StatelessWidget {
     this.autoValidateMode,
     this.validator,
     this.textInputType,
+    this.keyboardType,
     required this.onChange,
     required this.onSubmit,
     this.onTap,
@@ -112,7 +114,8 @@ class AppTextField extends StatelessWidget {
                     NoLeadingSpaceFormatter(),
                     ...?inputFormatters,
                   ],
-                  keyboardType: textInputType ??
+                  keyboardType: keyboardType ??
+                      textInputType ??
                       ((maxLines != null && maxLines! > 1) || (minLines != null && minLines! > 1)
                           ? TextInputType.multiline
                           : TextInputType.text),

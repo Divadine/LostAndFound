@@ -59,7 +59,8 @@ class _HomeScreenState extends State<HomeScreen>
   ];
 
   final Map<int, int> matchingCounts = {};
-
+  String? _selectedRange;
+  DateTimeRange? _customRange;
   HomeFilterState filterState = const HomeFilterState();
 
   final StreamController<HomeFilterState> filterStateStream =
@@ -185,6 +186,10 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _clearFilter() {
+    setState(() {
+      _selectedRange = null;
+      _customRange = null;
+    });
     _emitFilter(HomeFilterState.cleared());
   }
 
@@ -578,18 +583,35 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final currentUserId = AppPreferences.getUserId()?.toString().trim();
+
     if (state == AppLifecycleState.resumed) {
       if (currentUserId != null && currentUserId.isNotEmpty) {
         ChatService.setOnline(currentUserId);
       }
       _checkNotifications();
     } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
       if (currentUserId != null && currentUserId.isNotEmpty) {
         ChatService.setOffline(currentUserId);
       }
     }
   }
+  // @override
+  // void didChangeAppLifecycleState(AppLifecycleState state) {
+  //   final currentUserId = AppPreferences.getUserId()?.toString().trim();
+  //   if (state == AppLifecycleState.resumed) {
+  //     if (currentUserId != null && currentUserId.isNotEmpty) {
+  //       ChatService.setOnline(currentUserId);
+  //     }
+  //     _checkNotifications();
+  //   } else if (state == AppLifecycleState.paused ||
+  //       state == AppLifecycleState.detached) {
+  //     if (currentUserId != null && currentUserId.isNotEmpty) {
+  //       ChatService.setOffline(currentUserId);
+  //     }
+  //   }
+  // }
 
   @override
   void dispose() {
@@ -747,7 +769,10 @@ class _HomeScreenState extends State<HomeScreen>
                                   final filterData =
                                       await AppUiHelper.showBottomSheet(
                                         context: context,
-                                        child: FilterScreen(),
+                                        child: FilterScreen(
+                                          initialRange: _selectedRange,
+                                          initialCustomRange: _customRange,
+                                        ),
                                       );
 
                                   if (!mounted) {
@@ -755,11 +780,21 @@ class _HomeScreenState extends State<HomeScreen>
                                   }
 
                                   if (filterData == 'clear') {
+                                    setState(() {
+                                      _selectedRange = null;
+                                      _customRange = null;
+                                    });
+
                                     _emitFilter(HomeFilterState.cleared());
 
                                     _fetchLostPosts();
                                     _fetchFoundPosts();
                                   } else if (filterData is Map) {
+                                    setState(() {
+                                      _selectedRange = filterData['range'];
+                                      _customRange = filterData['customRange'];
+                                    });
+
                                     _emitFilter(
                                       HomeFilterState(
                                         customRange: filterData['customRange'],

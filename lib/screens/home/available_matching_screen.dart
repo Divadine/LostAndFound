@@ -310,6 +310,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                   onTap: () {},
                   showPostId: true,
                   status: effectiveStatus,
+                  hideClosedFooter: true,
                 ).pad(),
 
                 AppContainer(
@@ -355,6 +356,7 @@ class _AvailableMatchingScreenState extends State<AvailableMatchingScreen> {
                         profileUrl: match.posterAvatar.isNotEmpty ? match.posterAvatar : null,
                         profileName: match.posterName,
                         status: match.status,
+
                       ).padBottom(10);
                     },
                   ),

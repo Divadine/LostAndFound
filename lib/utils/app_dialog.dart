@@ -22,6 +22,7 @@ import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
+import 'package:lost_and_found/shared_widgets/match_badge.dart';
 import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
@@ -1295,26 +1296,7 @@ class TransferCompleted extends StatelessWidget {
   // ============================================================
 
   Widget _buildMatchPercentage(int percentage) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 4,
-      ),
-      decoration: BoxDecoration(
-        color: AppUtils
-            .getMatchColor(percentage)
-            .withAlpha(70),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: AppText(
-        text: '$percentage% match',
-        fontWeight: FontWeight.w500,
-        fontSize: 10,
-        color: AppUtils.getMatchColor(
-          percentage,
-        ),
-      ),
-    );
+    return MatchBadge(percentage: percentage);
   }
 }
 // class TransferCompleted extends StatelessWidget {

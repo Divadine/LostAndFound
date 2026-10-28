@@ -42,7 +42,7 @@ class ChatService {
 
       // Start heartbeat only after the initial write succeeds.
       _presenceHeartbeatTimer = Timer.periodic(
-        const Duration(seconds: 30),
+        const Duration(seconds: 20),
             (timer) async {
           if (_activePresenceUserId != uid) {
             timer.cancel();
@@ -86,6 +86,7 @@ class ChatService {
       debugPrint('[PRESENCE] Failed to set OFFLINE for $uid: $e');
     }
   }
+  static const int _presenceStaleSeconds = 45;
 
   static Stream<bool> presenceStream(String userId) {
     final uid = userId.trim();
@@ -94,26 +95,88 @@ class ChatService {
       return Stream<bool>.value(false);
     }
 
-    return _presenceRef(uid).snapshots().map((snapshot) {
-      if (!snapshot.exists) return false;
+    late StreamController<bool> controller;
+    StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? sub;
+    Timer? ticker;
 
-      final data = snapshot.data();
-      if (data == null || data['isOnline'] != true) {
-        return false;
-      }
+    Map<String, dynamic>? latest;
+    bool? lastEmitted;
+
+    bool compute() {
+      final data = latest;
+      if (data == null || data['isOnline'] != true) return false;
 
       final lastSeen = data['lastSeen'];
 
-      // A server timestamp can temporarily be null during a write.
+      // Server timestamp can be null for a moment during a write.
       if (lastSeen == null) return true;
-
       if (lastSeen is! Timestamp) return false;
 
       final elapsed = DateTime.now().difference(lastSeen.toDate());
+      return !elapsed.isNegative && elapsed.inSeconds <= _presenceStaleSeconds;
+    }
 
-      return elapsed.inSeconds <= 70 && !elapsed.isNegative;
-    }).distinct();
+    void emit() {
+      final value = compute();
+      if (value != lastEmitted) {
+        lastEmitted = value;
+        if (!controller.isClosed) controller.add(value);
+      }
+    }
+
+    controller = StreamController<bool>(
+      onListen: () {
+        sub = _presenceRef(uid).snapshots().listen(
+              (snapshot) {
+            latest = snapshot.exists ? snapshot.data() : null;
+            emit();
+          },
+          onError: (e) {
+            debugPrint('[PRESENCE] stream error: $e');
+            latest = null;
+            emit();
+          },
+        );
+
+        // Snapshot varaadha neratthulayum stale-a check pannum.
+        ticker = Timer.periodic(const Duration(seconds: 10), (_) => emit());
+      },
+      onCancel: () async {
+        await sub?.cancel();
+        ticker?.cancel();
+      },
+    );
+
+    return controller.stream;
   }
+
+  // static Stream<bool> presenceStream(String userId) {
+  //   final uid = userId.trim();
+  //
+  //   if (uid.isEmpty) {
+  //     return Stream<bool>.value(false);
+  //   }
+  //
+  //   return _presenceRef(uid).snapshots().map((snapshot) {
+  //     if (!snapshot.exists) return false;
+  //
+  //     final data = snapshot.data();
+  //     if (data == null || data['isOnline'] != true) {
+  //       return false;
+  //     }
+  //
+  //     final lastSeen = data['lastSeen'];
+  //
+  //     // A server timestamp can temporarily be null during a write.
+  //     if (lastSeen == null) return true;
+  //
+  //     if (lastSeen is! Timestamp) return false;
+  //
+  //     final elapsed = DateTime.now().difference(lastSeen.toDate());
+  //
+  //     return elapsed.inSeconds <= 70 && !elapsed.isNegative;
+  //   }).distinct();
+  // }
 
   // ============================================================
   // GENERATE DETERMINISTIC ROOM ID

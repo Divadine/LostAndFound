@@ -451,6 +451,37 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
     }
   }
 
+  Future<String> _getProfileAddress() async {
+    final userId = int.tryParse(widget.currentUserId.trim());
+    if (userId == null) return '';
+
+    try {
+      final response = await _authController.getProfile(userId: userId);
+      if (response.status != 1 || response.data == null) return '';
+
+      final p = response.data!;
+      String clean(dynamic v) {
+        final s = v?.toString().trim() ?? '';
+        return s.toLowerCase() == 'null' ? '' : s;
+      }
+
+      final address = clean(p.address);
+      final landmark = clean(p.landmark);
+
+      final parts = <String>[];
+      if (address.isNotEmpty) parts.add(address);
+      if (landmark.isNotEmpty) parts.add('Landmark: $landmark');
+
+      for (final extra in [clean(p.city), clean(p.state), clean(p.pincode)]) {
+        if (extra.isNotEmpty && !address.contains(extra)) parts.add(extra);
+      }
+
+      return parts.join(', ');
+    } catch (e) {
+      debugPrint('[PROFILE ADDRESS] ERROR: $e');
+      return '';
+    }
+  }
   String _extractPostId() {
     final parts = widget.roomId.split('_');
 
@@ -2631,15 +2662,25 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
                           child: ChatSharingFiles(
                             roomId: widget.roomId,
                             currentUserId: widget.currentUserId,
-                            onAttachmentSelected: (attachment) {
+                            onAttachmentSelected: (attachment) async {
                               if (attachment['type'] == 'address') {
-                                final address =
-                                    attachment['address']?.toString() ?? '';
+                                final address = await _getProfileAddress();
+
+                                if (!mounted) return;
+
+                                if (address.isEmpty) {
+                                  AppSnackBar.show(
+                                    context: context,
+                                    message: 'Please add your address in Profile first',
+                                    icon: Icons.info_outline,
+                                  );
+                                  return;
+                                }
+
                                 textController.text = address;
-                                textController.selection =
-                                    TextSelection.fromPosition(
-                                      TextPosition(offset: address.length),
-                                    );
+                                textController.selection = TextSelection.fromPosition(
+                                  TextPosition(offset: address.length),
+                                );
                                 _focusNode.requestFocus();
                               } else {
                                 setState(() {
@@ -2647,6 +2688,22 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
                                 });
                               }
                             },
+                            // onAttachmentSelected: (attachment) {
+                            //   if (attachment['type'] == 'address') {
+                            //     final address =
+                            //         attachment['address']?.toString() ?? '';
+                            //     textController.text = address;
+                            //     textController.selection =
+                            //         TextSelection.fromPosition(
+                            //           TextPosition(offset: address.length),
+                            //         );
+                            //     _focusNode.requestFocus();
+                            //   } else {
+                            //     setState(() {
+                            //       _pendingAttachment = attachment;
+                            //     });
+                            //   }
+                            // },
                           ),
                         );
                       },

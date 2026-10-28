@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
@@ -73,6 +74,60 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   final Map<int, bool> dropdownLoading = {};
   final Map<int, String?> dropdownError = {};
   final Map<int, int?> dropdownParent = {};
+
+  final Map<int, String> _errorMessages = {};
+
+  bool _validateFields() {
+    if (_isGenericMode) return true;
+
+    final Map<int, String> newErrors = {};
+
+    for (final field in dynamicFields) {
+      if (field.fieldType == DynamicFieldType.text ||
+          field.fieldType == DynamicFieldType.textarea) {
+        final val = textControllers[field.id]?.text.trim() ?? '';
+        if (val.isEmpty) {
+          if (field.isRequired) {
+            newErrors[field.id] = 'This field is required';
+          }
+        } else {
+          final validation = field.fieldValidation;
+          if (validation == 'numeric') {
+            if (!RegExp(r'^[0-9]+$').hasMatch(val)) {
+              newErrors[field.id] = 'Only numbers are allowed';
+            }
+          } else if (validation == 'alphabetic') {
+            if (!RegExp(r'^[a-zA-Z ]+$').hasMatch(val)) {
+              newErrors[field.id] = 'Only letters are allowed';
+            }
+          } else if (validation == 'alphanumeric') {
+            if (!RegExp(r'^[a-zA-Z0-9 ]+$').hasMatch(val)) {
+              newErrors[field.id] = 'Only letters and numbers are allowed';
+            }
+          }
+        }
+      } else if (field.fieldType == DynamicFieldType.dropdown) {
+        if (!field.isRequired) continue;
+
+        final options = dropdownItems[field.id] ?? [];
+        final isLoadingOptions = dropdownLoading[field.id] ?? false;
+        if (options.isEmpty && !isLoadingOptions) {
+          continue;
+        }
+        final val = selectedDropdownValues[field.id];
+        if (val == null || val.trim().isEmpty) {
+          newErrors[field.id] = 'This field is required';
+        }
+      }
+    }
+
+    setState(() {
+      _errorMessages.clear();
+      _errorMessages.addAll(newErrors);
+    });
+
+    return newErrors.isEmpty;
+  }
 
   // Dedicated color dropdown — always from getColors, never from
   // getDynamicFields/getDynamicNestedValues, in every mode.
@@ -295,6 +350,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
   void _onDropdownChanged(DynamicFieldsModel field, String? value) {
     setState(() {
+      _errorMessages.remove(field.id);
       selectedDropdownValues[field.id] = value;
       _resetDescendantsOf(field.id);
     });
@@ -326,6 +382,10 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
       return;
     }
+    if (!_validateFields()) {
+      AppSnackBar.show(context: context, message: 'Please fill all mandatory fields');
+      return;
+    }
     if (selectedImages.isEmpty) {
       AppSnackBar.show(context: context, message: 'Please upload at least one image');
       return;
@@ -350,7 +410,11 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
           value = selectedDropdownValues[field.id];
         }
         if (value != null && value.isNotEmpty) {
-          postValues.add({'field': field.displayName, 'value': value});
+          postValues.add({
+            'field': field.displayName,
+            'value': value,
+            'required': field.isRequired ? '1' : '0',
+          });
           if (field.displayName.toLowerCase() == 'brand') {
             brandValue = value;
           }
@@ -629,16 +693,54 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   }
 
   Widget _buildField(DynamicFieldsModel field) {
+    final errorText = _errorMessages[field.id];
+    final hasError = errorText != null;
+    final borderColor = hasError ? AppColors.red : AppColors.fieldGrey.withAlpha(60);
+
+    List<TextInputFormatter>? formatters;
+    TextInputType? keyboardType;
+
+    if (field.fieldType == DynamicFieldType.text || field.fieldType == DynamicFieldType.textarea) {
+      final list = <TextInputFormatter>[];
+      final validation = field.fieldValidation;
+      if (validation == 'numeric') {
+        list.add(FilteringTextInputFormatter.digitsOnly);
+        keyboardType = TextInputType.number;
+      } else if (validation == 'alphabetic') {
+        list.add(FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z ]')));
+      } else if (validation == 'alphanumeric') {
+        list.add(FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')));
+      }
+
+      if (field.fieldLength != null && field.fieldLength! > 0) {
+        list.add(LengthLimitingTextInputFormatter(field.fieldLength!));
+      }
+
+      if (list.isNotEmpty) {
+        formatters = list;
+      }
+    }
+
     switch (field.fieldType) {
       case DynamicFieldType.text:
         return buildTextFieldWithHeading(
           title: field.displayName,
+          isRequired: field.isRequired,
+          errorText: errorText,
           fieldWidget: AppTextField(
-            borderColor: AppColors.fieldGrey.withAlpha(60),
+            borderColor: borderColor,
             borderRadius: BorderRadius.circular(5),
             hintText: 'Enter ${field.displayName.toLowerCase()}',
             textController: textControllers[field.id]!,
-            onChange: (value) {},
+            inputFormatters: formatters,
+            keyboardType: keyboardType,
+            onChange: (value) {
+              if (_errorMessages.containsKey(field.id)) {
+                setState(() {
+                  _errorMessages.remove(field.id);
+                });
+              }
+            },
             onSubmit: (value) {},
           ).pad(),
         );
@@ -646,13 +748,23 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       case DynamicFieldType.textarea:
         return buildTextFieldWithHeading(
           title: field.displayName,
+          isRequired: field.isRequired,
+          errorText: errorText,
           fieldWidget: AppTextField(
             maxLines: 4,
-            borderColor: AppColors.fieldGrey.withAlpha(60),
+            borderColor: borderColor,
             borderRadius: BorderRadius.circular(5),
             hintText: '',
             textController: textControllers[field.id]!,
-            onChange: (value) {},
+            inputFormatters: formatters,
+            keyboardType: keyboardType,
+            onChange: (value) {
+              if (_errorMessages.containsKey(field.id)) {
+                setState(() {
+                  _errorMessages.remove(field.id);
+                });
+              }
+            },
             onSubmit: (value) {},
           ).pad(),
         );
@@ -678,8 +790,10 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
         return buildTextFieldWithHeading(
           title: field.displayName,
+          isRequired: field.isRequired,
+          errorText: errorText,
           fieldWidget: AppDropdownField<String>(
-            borderColor: AppColors.fieldGrey.withAlpha(60),
+            borderColor: borderColor,
 
             //contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             value: selectedDropdownValues[field.id],
@@ -703,6 +817,7 @@ Widget buildTextFieldWithHeading({
   required String title,
   required Widget fieldWidget,
   bool isRequired = false,
+  String? errorText,
 }) {
   return Column(
     mainAxisSize: MainAxisSize.min,
@@ -710,13 +825,21 @@ Widget buildTextFieldWithHeading({
     children: [
       Row(
         children: [
-          AppText(text: title, fontSize: 14, fontWeight: AppUtils.isTab ?FontWeight.w400 : FontWeight.w600),
+          AppText(text: title, fontSize: 14, fontWeight: AppUtils.isTab ? FontWeight.w400 : FontWeight.w600),
           if (isRequired)
-          AppText(text: ' *',color: AppColors.red,fontSize: 15,),
+            AppText(text: ' *', color: AppColors.red, fontSize: 15),
         ],
       ),
       const SizedBox(height: 10),
       fieldWidget,
+      if (errorText != null && errorText.isNotEmpty) ...[
+        const SizedBox(height: 4),
+        AppText(
+          text: errorText,
+          color: AppColors.red,
+          fontSize: 12,
+        ),
+      ],
     ],
   );
 }

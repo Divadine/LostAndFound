@@ -17,6 +17,7 @@ import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/match_badge.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
@@ -256,19 +257,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                 ),
                 Spacer(),
                 if (widget.selectedOwner.matchPercentage > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppUtils.getMatchColor(widget.selectedOwner.matchPercentage).withAlpha(70),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: AppText(
-                      text: '${widget.selectedOwner.matchPercentage}% match',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 10,
-                      color: AppUtils.getMatchColor(widget.selectedOwner.matchPercentage),
-                    ),
-                  ),
+                  MatchBadge(percentage: widget.selectedOwner.matchPercentage),
               ],
             ).pad(),
           ),

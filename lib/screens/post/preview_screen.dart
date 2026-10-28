@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:lost_and_found/shared_widgets/full_screen_image_viewer.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:lost_and_found/services/media_playback_coordinator.dart';
 import 'package:video_player/video_player.dart';
@@ -43,7 +44,7 @@ class PreviewPostScreen extends StatefulWidget {
   final String? audioPath;
   final File? videoFile;
 
-  // These are for backward compatibility with the user's draft if needed, 
+  // These are for backward compatibility with the user's draft if needed,
   // but we primarily use the fields above.
   final String? category;
   final String? subCategory;
@@ -244,7 +245,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
       itemName: widget.itemName,
       color: widget.color,
       postImages: imageIds,
-      postValues: widget.fieldValues,
+      postValues: widget.fieldValues.map((e) => {'field': e['field']!, 'value': e['value']!}).toList(),
     );
 
     if (!mounted) return;
@@ -393,19 +394,23 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
     );
   }
 
+  List<Map<String, String>> get _dynamicEntries {
+    return widget.fieldValues.where((field) {
+      final name = field['field']?.trim().toLowerCase() ?? '';
+      if (name == 'subcategory' || name == 'color') return false;
+      return (field['value']?.trim() ?? '').isNotEmpty;
+    }).toList();
+  }
+
+  List<Map<String, String>> get _requiredEntries {
+    return _dynamicEntries.where((field) => field['required'] == '1').toList();
+  }
+
+  List<Map<String, String>> get _optionalEntries {
+    return _dynamicEntries.where((field) => field['required'] != '1').toList();
+  }
+
   Widget _buildFirstContainer() {
-    final brandField = widget.fieldValues.firstWhere(
-      (field) => field['field']?.trim().toLowerCase() == 'brand',
-      orElse: () => <String, String>{},
-    );
-    final brand = brandField['value']?.trim() ?? '';
-
-    final modelField = widget.fieldValues.firstWhere(
-      (field) => field['field']?.trim().toLowerCase() == 'model',
-      orElse: () => <String, String>{},
-    );
-    final model = modelField['value']?.trim() ?? '';
-
     String itemType = '';
     if (widget.itemTypeValue.trim().isNotEmpty) {
       itemType = widget.itemTypeValue.trim();
@@ -419,17 +424,26 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
       widget: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: hasImage
-                ? Image.file(
-                    widget.selectedImages.first,
-                    width: 110,
-                    height: 110,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
-                  )
-                : _buildImagePlaceholder(),
+          // Tap image -> full screen view
+          GestureDetector(
+            onTap: hasImage
+                ? () => FullScreenImageViewer.open(
+              context,
+              file: widget.selectedImages.first,
+            )
+                : null,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: hasImage
+                  ? Image.file(
+                widget.selectedImages.first,
+                width: 110,
+                height: 110,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
+              )
+                  : _buildImagePlaceholder(),
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -437,9 +451,9 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (itemType.isNotEmpty) _buildInfoRow('Item Type', itemType),
-                if (brand.isNotEmpty) _buildInfoRow('Brand', brand),
-                if (model.isNotEmpty) _buildInfoRow('Model', model),
+                if (itemType.isNotEmpty) _buildInfoRow(widget.itemTypeLabel, itemType),
+                for (final entry in _requiredEntries)
+                  _buildInfoRow(entry['field'] ?? '', entry['value'] ?? ''),
                 if (widget.color.isNotEmpty) _buildInfoRow('Color', widget.color),
               ],
             ),
@@ -471,7 +485,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 88,
+            width: 100,
             child: AppText(text: title, fontSize: 13, fontWeight: FontWeight.w600),
           ),
           Expanded(
@@ -483,11 +497,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
   }
 
   Widget _buildSecondContainer() {
-    final dynamicFields = widget.fieldValues.where((field) {
-      final name = field['field']?.trim().toLowerCase() ?? '';
-      if (name == 'brand' || name == 'model' || name == 'color' || name == 'subcategory') return false;
-      return (field['value']?.trim() ?? '').isNotEmpty;
-    }).toList();
+    final optionalFields = _optionalEntries;
 
     final hasAudio = widget.audioPath != null && widget.audioPath!.trim().isNotEmpty;
     final hasVideo = widget.videoFile != null;
@@ -501,21 +511,21 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
         children: [
           if (hasLandmark)
             _buildDividerLabeledBlock('Land Mark', widget.locationText.trim(), isFirst: true),
-          
-          for (int i = 0; i < dynamicFields.length; i++)
+
+          for (int i = 0; i < optionalFields.length; i++)
             _buildDividerLabeledBlock(
-              dynamicFields[i]['field']?.trim() ?? '',
-              dynamicFields[i]['value']?.trim() ?? '',
+              optionalFields[i]['field']?.trim() ?? '',
+              optionalFields[i]['value']?.trim() ?? '',
               isFirst: !hasLandmark && i == 0,
             ),
 
           if (hasLocation)
-            _buildLocationsBlock(isFirst: !hasLandmark && dynamicFields.isEmpty),
+            _buildLocationsBlock(isFirst: !hasLandmark && optionalFields.isEmpty),
 
           _buildDividerLabeledBlock(
             'Date',
             _formatDate(widget.postDate),
-            isFirst: !hasLandmark && dynamicFields.isEmpty && !hasLocation,
+            isFirst: !hasLandmark && optionalFields.isEmpty && !hasLocation,
           ),
 
           if (hasDescription)
@@ -683,8 +693,8 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
             child: _isOffline
                 ? const NoInternetWidget(size: 50)
                 : const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+              child: CircularProgressIndicator(),
+            ),
           ),
         ),
       );
@@ -735,7 +745,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
               builder: (context, value, _) {
                 final remaining = value.duration - value.position;
                 final displayTime = (value.position >= value.duration) ? value.duration : remaining;
-                
+
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(6)),

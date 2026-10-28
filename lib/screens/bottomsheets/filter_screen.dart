@@ -59,7 +59,9 @@ class DateFilterState {
 }
 
 class FilterScreen extends StatefulWidget {
-  const FilterScreen({super.key});
+  final String? initialRange;
+  final DateTimeRange? initialCustomRange;
+  const FilterScreen({super.key, this.initialRange, this.initialCustomRange});
 
   @override
   State<FilterScreen> createState() => _FilterScreenState();
@@ -70,6 +72,14 @@ class _FilterScreenState extends State<FilterScreen> {
   // FILTER OPTIONS
   // ============================================================
 
+  @override
+  void initState() {
+    super.initState();
+    _filterState = DateFilterState(
+      selectedRange: widget.initialRange,
+      customRange: widget.initialCustomRange,
+    );
+  }
   final List<String> _ranges = [
     'Today',
     'Last 7 Days',

@@ -30,6 +30,9 @@ import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
+import 'package:lost_and_found/shared_widgets/full_screen_image_viewer.dart';
+import 'package:lost_and_found/shared_widgets/match_badge.dart';
 
 class LostItemsDetailsScreen extends StatefulWidget {
   final int postId;
@@ -39,6 +42,7 @@ class LostItemsDetailsScreen extends StatefulWidget {
   final String posterAvatar;
   final int originalPostId;
   final bool isLostPost;
+
   final bool hideEnquiryButton;
   final bool isUserPost;
   final int? enquiryId;
@@ -480,18 +484,22 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
       ),
     );
 
-    final displayFields = post.values
+    final extraFields = post.values
         .where(
           (v) =>
-      v.fieldName != null &&
-          v.fieldName!.toLowerCase() != 'color' &&
-          v.fieldName!.toLowerCase() != 'brand' &&
-          v.fieldName!.toLowerCase() != 'model' &&
-          v.fieldName!.toLowerCase() != 'subcategory' &&
-          v.fieldValue != null &&
-          v.fieldValue!.trim().isNotEmpty,
-    )
+              v.fieldName != null &&
+              v.fieldName!.trim().toLowerCase() != 'color' &&
+              v.fieldName!.trim().toLowerCase() != 'brand' &&
+              v.fieldName!.trim().toLowerCase() != 'model' &&
+              v.fieldName!.trim().toLowerCase() != 'subcategory' &&
+              v.fieldName!.trim().toLowerCase() != 'item type' &&
+              v.fieldValue != null &&
+              v.fieldValue!.trim().isNotEmpty,
+        )
         .toList();
+
+    final requiredFields = extraFields.where((v) => v.isRequired).toList();
+    final displayFields = extraFields.where((v) => !v.isRequired).toList();
 
     final isClosed = post.status == 2;
 
@@ -526,13 +534,19 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                 // ==================================================
 
                 if (_itemImageUrl.isNotEmpty)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: AppCachedNetworkImage(
-                      imageUrl: _itemImageUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: 150,
+                  GestureDetector(
+                    onTap: () => FullScreenImageViewer.open(
+                      context,
+                      networkUrl: _itemImageUrl,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: AppCachedNetworkImage(
+                        imageUrl: _itemImageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: 150,
+                      ),
                     ),
                   )
                 else
@@ -626,6 +640,9 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                         'Color',
                         post.color,
                       ),
+
+                      for (final f in requiredFields)
+                        _buildInfoRow(f.fieldName!, f.fieldValue!),
                     ],
                   ).padHorizontal(5),
                 ),
@@ -651,22 +668,8 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.purple.withAlpha(30),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: AppText(
-                            text:
-                            '${post.handoverMatchPercentage ?? widget.percentageMatch ?? 0}% match',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 10,
-                            color: AppColors.purple,
-                          ),
+                        MatchBadge(
+                          percentage: widget.percentageMatch ?? post.handoverMatchPercentage ?? 0,
                         ),
                       ],
                     ).padHorizontal(),
@@ -822,10 +825,10 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                 // For owner types, the name must be the actor (Bolu), not the receiver (Dolu).
                 // posterName in SingleMatchModel contains the matched person's name.
                 final String finalName = isOwnerType
-                    ? (post.handoverName.isNotEmpty 
-                        ? post.handoverName 
-                        : (post.posterName.isNotEmpty 
-                            ? post.posterName 
+                    ? (post.handoverName.isNotEmpty
+                        ? post.handoverName
+                        : (post.posterName.isNotEmpty
+                            ? post.posterName
                             : 'Winner'))
                     : ((post.handoverType == 2 || isJewellery)
                         ? (post.stationName.isNotEmpty ? post.stationName : (post.handoverName.isNotEmpty && post.handoverName != 'Owner' ? post.handoverName : 'Police Station'))
@@ -867,7 +870,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                   debugPrint('matchedUserId: ${post.userId}');
                   debugPrint('posterName: ${post.posterName}');
                   debugPrint('posterUserUid: ${post.handoverUserUid}');
-                  debugPrint('matchPercentage: ${post.handoverMatchPercentage ?? widget.percentageMatch}');
+                  debugPrint('matchPercentage: ${widget.percentageMatch ?? post.handoverMatchPercentage}');
                   debugPrint('=====================================');
 
                   debugPrint('========== RECEIVED DETAILS =========');
@@ -877,7 +880,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                   debugPrint('description: $finalDesc');
                   debugPrint('images: $finalPhotos');
                   debugPrint('date: ${post.handoverDate}');
-                  debugPrint('matchPercentage: ${post.handoverMatchPercentage ?? widget.percentageMatch}');
+                  debugPrint('matchPercentage: ${widget.percentageMatch ?? post.handoverMatchPercentage}');
                   debugPrint('=====================================');
                   debugPrint('SOURCE: actor name and UID resolved from posterName/postUid. Handover description, images, and date from Handover record.');
                 }
@@ -895,7 +898,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                       name: finalName,
                       avatarUrl: (post.handoverType == 2 || post.handoverType == 3 || isJewellery)
                           ? ''
-                          : (post.handoverAvatar.isNotEmpty 
+                          : (post.handoverAvatar.isNotEmpty
                               ? _getMediaUrl(post.handoverAvatar)
                               : _getMediaUrl(post.postType == 0 ? post.posterAvatar : post.ownerAvatar)),
                       userId: finalUserId,
@@ -909,7 +912,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                           ? post.stationAddress
                           : post.location,
                       proofPhotos: finalPhotos,
-                      matchPercentage: post.handoverMatchPercentage ?? widget.percentageMatch,
+                      matchPercentage: widget.percentageMatch ?? post.handoverMatchPercentage,
                       handoverDate: post.handoverDate,
                     ),
                   ),
@@ -950,7 +953,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                     postId: post.id,
                     categoryId: post.categoryId,
                     enquiryId: widget.enquiryId,
-                    matchPercentage: post.handoverMatchPercentage ?? widget.percentageMatch,
+                    matchPercentage: widget.percentageMatch ?? post.handoverMatchPercentage,
                   ),
                 );
                 return;
@@ -1126,7 +1129,7 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
         CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 90,
+            width: 120,
             child: AppText(
               text: title,
               fontWeight: FontWeight.w500,

@@ -18,6 +18,7 @@ import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/screens/authentication/otp_screen.dart';
 import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
+import 'package:lost_and_found/shared_widgets/full_screen_image_viewer.dart';
 import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
 import 'package:lost_and_found/screens/permissions/location_permission.dart';
 import 'package:lost_and_found/screens/post/first_stepper_screen.dart';
@@ -355,6 +356,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _checkFormValidity();
   }
 
+
+
   @override
   void dispose() {
     nameStream.close();
@@ -430,44 +433,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     final bool hasImage = selectedImage != null || hasNetworkImage;
                     return Stack(
                       children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor:
-                          AppColors.fieldGrey.withAlpha(40),
-                          backgroundImage: selectedImage != null
-                              ? FileImage(selectedImage)
-                              : null,
-                          child: selectedImage != null
-                              ? null
-                              : hasNetworkImage
-                              ? ClipOval(
-                            child: CachedNetworkImage(
-                              imageUrl: profileImageUrl,
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) {
-                                return const SizedBox(
-                                  width: 100,
-                                  height: 100,
-                                  child: Center(
-                                    child:
-                                    CircularProgressIndicator(),
-                                  ),
-                                );
-                              },
-                              errorWidget:
-                                  (context, url, error) {
-                                return const Icon(
-                                  Icons.person,
-                                  size: 50,
-                                );
-                              },
+                        GestureDetector(
+                          onTap: () => FullScreenImageViewer.open(
+                            context,
+                            file: selectedImage,
+                            networkUrl: hasNetworkImage ? profileImageUrl : null,
+                          ),
+                          child: CircleAvatar(
+                            radius: 50,
+                            backgroundColor:
+                            AppColors.fieldGrey.withAlpha(40),
+                            backgroundImage: selectedImage != null
+                                ? FileImage(selectedImage)
+                                : null,
+                            child: selectedImage != null
+                                ? null
+                                : hasNetworkImage
+                                ? ClipOval(
+                              child: CachedNetworkImage(
+                                imageUrl: profileImageUrl,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) {
+                                  return const SizedBox(
+                                    width: 100,
+                                    height: 100,
+                                    child: Center(
+                                      child:
+                                      CircularProgressIndicator(),
+                                    ),
+                                  );
+                                },
+                                errorWidget:
+                                    (context, url, error) {
+                                  return const Icon(
+                                    Icons.person,
+                                    size: 50,
+                                  );
+                                },
+                              ),
+                            )
+                                : const Icon(
+                              Icons.person,
+                              size: 50,
                             ),
-                          )
-                              : const Icon(
-                            Icons.person,
-                            size: 50,
                           ),
                         ),
 
@@ -614,7 +624,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         flex: 8,
                         child: AppTextField(
                           maxLength: 10,
-                          readOnly: !widget.profileModel.isFromEdit,
+                          readOnly:true, // !widget.profileModel.isFromEdit,
                           hintText: 'Enter a mobile number',
                           textController: mobileController,
                           onChange: (v) {
@@ -716,6 +726,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 .text) ==
                                             null) {
                                           AppDialogue.showPopup(
+                                            showCloseIcon: true,
                                             context: context,
                                             content: OtpSharedScreen(
                                               isAlternateNumber: true,
@@ -1259,3 +1270,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+
+

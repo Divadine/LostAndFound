@@ -7,6 +7,7 @@ import 'package:lost_and_found/shared_widgets/app_button.dart';
 import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/match_badge.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
@@ -195,6 +196,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
     debugPrint('[Handover] enquiryId: ${enquiryId ?? "NONE (Proceeding without enquiry)"}');
 
     final result = await AppUiHelper.showBottomSheet(
+
       maxHeightFactor: 0.7,
       context: context,
       child: HandoverProofDocuments(
@@ -217,6 +219,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
 
       // Show OTP screen on top of the parent screen
       final otpResult = await AppDialogue.showPopup(
+        showCloseIcon: true,
         context: activeContext,
         content: OtpSharedScreen(
           isAlternateNumber: true,
@@ -378,14 +381,7 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
               ),
             ),
             if (percentageMatch > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppUtils.getMatchColor(percentageMatch).withAlpha(70),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: AppText(text: '$percentageMatch% match', fontWeight: FontWeight.w500, fontSize: 10, color: AppUtils.getMatchColor(percentageMatch)),
-              ),
+              MatchBadge(percentage: percentageMatch),
           ],
         ).pad(),
       ).pad(),

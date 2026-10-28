@@ -159,7 +159,11 @@ class SingleMatchModel {
     }
 
     // Also check values for image fields
-    final valuesData = data['values'] ?? data['post_values'] ?? data['postValues'] ?? data['dynamic_values'];
+    final valuesData = data['values'] ??
+        data['post_values'] ??
+        data['postValues'] ??
+        data['dynamic_values'] ??
+        (data['post'] is Map ? (data['post'] as Map)['values'] : null);
     final valuesList = (valuesData is List) ? valuesData : [];
     
     for (var v in valuesList) {
@@ -341,7 +345,14 @@ class SingleMatchModel {
           data['category']?.toString() ??
           '',
       values: valuesList
-          .map((e) => SingleMatchValue.fromJson(e as Map<String, dynamic>))
+          .map((e) {
+            if (e is Map<String, dynamic>) {
+              return SingleMatchValue.fromJson(e);
+            } else if (e is Map) {
+              return SingleMatchValue.fromJson(Map<String, dynamic>.from(e));
+            }
+            return SingleMatchValue();
+          })
           .toList(),
       handoverType: handoverTypeParsed,
       handoverName: handoverName,
@@ -483,18 +494,33 @@ class SingleMatchValue {
   final String? fieldName;
   final String? fieldValue;
   final int step;
+  final bool isRequired;
 
   SingleMatchValue({
     this.fieldName,
     this.fieldValue,
     this.step = 2,
+    this.isRequired = false,
   });
 
   factory SingleMatchValue.fromJson(Map<String, dynamic> json) {
+    final rawIsReq = json['is_required'] ??
+        json['isRequired'] ??
+        json['required'] ??
+        json['is_mandatory'] ??
+        json['is_required_field'];
+
+    final bool isReq = rawIsReq == 1 ||
+        rawIsReq == true ||
+        rawIsReq == '1' ||
+        rawIsReq?.toString().trim() == '1' ||
+        rawIsReq?.toString().trim().toLowerCase() == 'true';
+
     return SingleMatchValue(
-      fieldName: json['field_name']?.toString(),
-      fieldValue: json['field_value']?.toString(),
+      fieldName: (json['field_name'] ?? json['fieldName'] ?? json['name'])?.toString(),
+      fieldValue: (json['field_value'] ?? json['fieldValue'] ?? json['value'])?.toString(),
       step: json['step'] as int? ?? 2,
+      isRequired: isReq,
     );
   }
 }

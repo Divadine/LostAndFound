@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +19,7 @@ import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/item_card.dart';
+import 'package:lost_and_found/shared_widgets/match_badge.dart';
 import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/shared_widgets/sucess_card.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
@@ -481,6 +481,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
           showPostId: true,
           status: post?.status,
           showClosedStamp: false,
+          hideClosedFooter: true,
           onTap: () {},
         ).pad(7),
 
@@ -645,21 +646,11 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.purple.withAlpha(30),
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child: AppText(
-                              text: '$matchPercentage match',
-                              fontWeight: FontWeight.w600,
-                              fontSize: 10,
-                              color: AppColors.purple,
-                            ),
+                          MatchBadge(
+                            percentage: int.tryParse(
+                                  matchPercentage.replaceAll('%', ''),
+                                ) ??
+                                0,
                           ),
                         ],
                       ),
