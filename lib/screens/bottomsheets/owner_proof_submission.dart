@@ -17,6 +17,7 @@ import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_container.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
+import 'package:lost_and_found/shared_widgets/full_screen_image_viewer.dart';
 import 'package:lost_and_found/shared_widgets/match_badge.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
@@ -271,6 +272,7 @@ class _HandoverProofDocumentsState extends State<HandoverProofDocuments> {
                 title: "Add Photo",
                 image: AssetImages.plus,
                 selectedImage: selectedImage,
+                onReplace: pickImage,
               ),
             ),
           ),
@@ -372,18 +374,52 @@ Widget buildDottedBorder({
   required String title,
   required String image,
   File? selectedImage,
+  VoidCallback? onReplace,
 }) {
   if (selectedImage != null) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Image.file(
-        selectedImage,
-        width: double.infinity,
-        height: 100,
-        fit: BoxFit.cover,
+    return Builder(
+      builder: (context) => Stack(
+        children: [
+          GestureDetector(
+            onTap: () => FullScreenImageViewer.open(
+              context,
+              file: selectedImage,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(
+                selectedImage,
+                width: double.infinity,
+                height: 100,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          if (onReplace != null)
+            Positioned(
+              top: 6,
+              right: 6,
+              child: GestureDetector(
+                onTap: onReplace,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: AppColors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.edit,
+                    size: 14,
+                    color: AppColors.primaryColor,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
+
   return DottedBorder(
     borderType: BorderType.RRect,
     radius: const Radius.circular(12),

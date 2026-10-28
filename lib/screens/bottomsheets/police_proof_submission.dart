@@ -258,6 +258,7 @@ class _PoliceHandoverProofDocumentsState extends State<PoliceHandoverProofDocume
                 title: "Add Photo",
                 image: AssetImages.plus,
                 selectedImage: selectedImage,
+                onReplace: pickImage,
               ),
             ),
           ),
