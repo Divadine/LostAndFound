@@ -149,7 +149,7 @@ class AuthControllers {
     required String color,
 
     required String postImages,
-    required List<Map<String, String>> postValues,
+    required List<Map<String, dynamic>> postValues,
   }) async {
     return await authRepository.createPostStep1(
       id: id,

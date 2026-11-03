@@ -76,7 +76,22 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   final Map<int, String?> dropdownError = {};
   final Map<int, int?> dropdownParent = {};
 
-  final Map<int, String> _errorMessages = {};
+  final MenuController _colorMenuController = MenuController();
+  final Map<int, MenuController> _dynamicMenuControllers = {};
+
+  void _closeAllDropdowns() {
+    if (_colorMenuController.isOpen) {
+      _colorMenuController.close();
+    }
+    for (final controller in _dynamicMenuControllers.values) {
+      if (controller.isOpen) {
+        controller.close();
+      }
+    }
+  }
+
+  //final Map<int, String> _errorMessages = {};
+
 
   bool _validateFields() {
     if (_isGenericMode) return true;
@@ -101,9 +116,10 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
             if (!RegExp(r'^[a-zA-Z ]+$').hasMatch(val)) {
               newErrors[field.id] = 'Only letters are allowed';
             }
-          } else if (validation == 'alphanumeric') {
-            if (!RegExp(r'^[a-zA-Z0-9 ]+$').hasMatch(val)) {
-              newErrors[field.id] = 'Only letters and numbers are allowed';
+          }  else if (validation == 'alphanumeric') {
+            // Letters, numbers, spaces and special characters are all allowed
+            if (!RegExp(r'^[a-zA-Z0-9\s\p{P}\p{S}]+$', unicode: true).hasMatch(val)) {
+              newErrors[field.id] = 'Only letters, numbers and special characters are allowed';
             }
           }
         }
@@ -121,13 +137,14 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         }
       }
     }
+    //
+    // setState(() {
+    //
+    //   _errorMessages.clear();
+    //   _errorMessages.addAll(newErrors);
+    // });
 
-    setState(() {
-      _errorMessages.clear();
-      _errorMessages.addAll(newErrors);
-    });
-
-    return newErrors.isEmpty;
+    return newErrors.isEmpty ;
   }
 
   // Dedicated color dropdown — always from getColors, never from
@@ -135,6 +152,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   List<ColorModel> colorOptions = [];
   bool isLoadingColors = false;
   String? selectedColor;
+
 
   final List<File> selectedImages = [];
   final ImagePicker _picker = ImagePicker();
@@ -203,6 +221,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
   @override
   void dispose() {
+    _closeAllDropdowns();
     _connectivitySub?.cancel();
     itemNameController.dispose();
     descriptionController.dispose();
@@ -341,6 +360,9 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   void _resetDescendantsOf(int changedFieldId) {
     for (final field in dynamicFields) {
       if (field.fieldType == DynamicFieldType.dropdown && dropdownParent[field.id] == changedFieldId) {
+        if (_dynamicMenuControllers[field.id]?.isOpen ?? false) {
+          _dynamicMenuControllers[field.id]?.close();
+        }
         selectedDropdownValues[field.id] = null;
         dropdownItems[field.id] = [];
         dropdownError[field.id] = null;
@@ -351,7 +373,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
   void _onDropdownChanged(DynamicFieldsModel field, String? value) {
     setState(() {
-      _errorMessages.remove(field.id);
+     // _errorMessages.remove(field.id);
       selectedDropdownValues[field.id] = value;
       _resetDescendantsOf(field.id);
     });
@@ -379,12 +401,18 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   }
 
   Future<void> _onSubmit() async {
+    _closeAllDropdowns();
     if (_isOffline) {
       AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
       return;
     }
     if (!_validateFields()) {
       AppSnackBar.show(context: context, message: 'Please fill all mandatory fields');
+      return;
+    }
+
+    if (selectedColor == null || selectedColor!.trim().isEmpty) { // <-- added
+      AppSnackBar.show(context: context, message: 'Please select a color');
       return;
     }
     if (selectedImages.isEmpty) {
@@ -474,136 +502,152 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: CustomAppBar(
-        title: widget.postType == 0 ? 'Post Lost Item' : 'Post Found Item',
-        centerTitle: true,
-        leadingSvg: AssetImages.backArrow,
-        leadingIconColor: AppColors.primaryColor,
-        onLeadingTap: () {
-          AppRoutes.pop();
-        },
-      ),
-      body: Column(
-        children: [
-          const AppStepIndicator(currentStep: 1, totalSteps: 2),
-          Expanded(
-            child: _isOffline
-                ? const NoInternetWidget()
-                : isLoading
-                ? const Center(
-              child: CircularProgressIndicator(),
-            )
-                : errorMessage != null
-                ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(errorMessage!, textAlign: TextAlign.center),
-                    const SizedBox(height: 12),
-                    ElevatedButton(onPressed: _fetchDynamicFields, child: const Text('Retry')),
-                  ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _closeAllDropdowns();
+        Navigator.of(context).pop();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        appBar: CustomAppBar(
+          title: widget.postType == 0 ? 'Post Lost Item' : 'Post Found Item',
+          centerTitle: true,
+          leadingSvg: AssetImages.backArrow,
+          leadingIconColor: AppColors.primaryColor,
+          onLeadingTap: () {
+            _closeAllDropdowns();
+            AppRoutes.pop();
+          },
+        ),
+        body: Column(
+          children: [
+            const AppStepIndicator(currentStep: 1, totalSteps: 2),
+            Expanded(
+              child: _isOffline
+                  ? const NoInternetWidget()
+                  : isLoading
+                  ? const Center(
+                child: CircularProgressIndicator(),
+              )
+                  : errorMessage != null
+                  ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(errorMessage!, textAlign: TextAlign.center),
+                      const SizedBox(height: 12),
+                      ElevatedButton(onPressed: _fetchDynamicFields, child: const Text('Retry')),
+                    ],
+                  ),
                 ),
-              ),
-            )
-                : ListView(
-              padding: const EdgeInsets.all(8),
-              children: [
-                // Category — always shown, auto-filled, read-only
-                buildTextFieldWithHeading(
-                  title: 'Category',
-                  fieldWidget: AppTextField(
-                    suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad(),
-                    readOnly: true,
-                    borderColor: AppColors.fieldGrey.withAlpha(60),
-                    borderRadius: BorderRadius.circular(5),
-                    hintText: '',
-                    textController: categoryController,
-                    onChange: (v) {},
-                    onSubmit: (v) {},
-                  ).pad(),
-                ),
-
-                // Sub-Category — only shown when one was actually chosen
-                // (skipped when Category = "Others" was picked at the top level).
-                if (widget.subCategory != null)
+              )
+                  : ListView(
+                padding: const EdgeInsets.all(8),
+                children: [
+                  // Category — always shown, auto-filled, read-only
                   buildTextFieldWithHeading(
-                    title: 'Sub-Category',
+                    title: 'Category',
                     fieldWidget: AppTextField(
                       suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad(),
                       readOnly: true,
                       borderColor: AppColors.fieldGrey.withAlpha(60),
                       borderRadius: BorderRadius.circular(5),
                       hintText: '',
-                      textController: subCategoryController,
+                      textController: categoryController,
                       onChange: (v) {},
                       onSubmit: (v) {},
                     ).pad(),
                   ),
-
-                // Item Name — ONLY in generic mode ("Others" / "Not Sure").
-                // Hidden entirely for a normal category+subcategory selection.
-                if (_isGenericMode)
-                  buildTextFieldWithHeading(
-                    title: 'Item Name',
-                    fieldWidget: AppTextField(
-                      borderColor: AppColors.fieldGrey.withAlpha(60),
-                      borderRadius: BorderRadius.circular(5),
-                      hintText: 'Enter item name',
-                      textController: itemNameController,
-                      onChange: (v) {},
-                      onSubmit: (v) {},
-                    ).pad(),
-                  ),
-
-                // Color — ALWAYS shown, ALWAYS from the dedicated getColors API,
-                // in every mode.
-                _buildColorDropdown(),
-
-                // Normal mode: subcategory-driven dynamic fields (Brand, Model, etc,
-                // with Color already filtered out).
-                // Generic mode: no dynamic fields — description instead.
-                if (_isGenericMode)
-                  buildTextFieldWithHeading(
-                    title: 'Item Description',
-                    fieldWidget: AppTextField(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      maxLines: 4,
-                      borderColor: AppColors.fieldGrey.withAlpha(60),
-                      borderRadius: BorderRadius.circular(5),
-                      hintText: 'Write a item description',
-                      textController: descriptionController,
-                      onChange: (v) {},
-                      onSubmit: (v) {},
-                    ).pad(),
-                  )
-                else
-                  ...dynamicFields.map((field) => _buildField(field)),
-
-                // Image upload — ALWAYS shown, at the end, in every mode.
-                _buildImageUploadSection(),
-              ],
+      
+                  // Sub-Category — only shown when one was actually chosen
+                  // (skipped when Category = "Others" was picked at the top level).
+                  if (widget.subCategory != null)
+                    buildTextFieldWithHeading(
+                      title: 'Sub-Category',
+                      fieldWidget: AppTextField(
+                        suffixIcon: AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad(),
+                        readOnly: true,
+                        borderColor: AppColors.fieldGrey.withAlpha(60),
+                        borderRadius: BorderRadius.circular(5),
+                        hintText: '',
+                        textController: subCategoryController,
+                        onChange: (v) {},
+                        onSubmit: (v) {},
+                      ).pad(),
+                    ),
+      
+                  // Item Name — ONLY in generic mode ("Others" / "Not Sure").
+                  // Hidden entirely for a normal category+subcategory selection.
+                  if (_isGenericMode)
+                    buildTextFieldWithHeading(
+                      title: 'Item Name',
+      
+                      fieldWidget: AppTextField(
+                        borderColor: AppColors.fieldGrey.withAlpha(60),
+                        borderRadius: BorderRadius.circular(5),
+                        hintText: 'Enter item name',
+                        textController: itemNameController,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')), // letters, numbers, spaces
+                          LengthLimitingTextInputFormatter(30),                       // max 30 chars
+                        ],
+                        onChange: (v) {},
+                        onSubmit: (v) {},
+                      ).pad(),
+                    ),
+      
+                  // Color — ALWAYS shown, ALWAYS from the dedicated getColors API,
+                  // in every mode.
+                  _buildColorDropdown(),
+      
+                  // Normal mode: subcategory-driven dynamic fields (Brand, Model, etc,
+                  // with Color already filtered out).
+                  // Generic mode: no dynamic fields — description instead.
+                  if (_isGenericMode)
+                    buildTextFieldWithHeading(
+                      title: 'Item Description',
+                      fieldWidget: AppTextField(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        maxLines: 4,
+                        borderColor: AppColors.fieldGrey.withAlpha(60),
+                        borderRadius: BorderRadius.circular(5),
+                        hintText: 'Write a item description',
+                        textController: descriptionController,
+                        onChange: (v) {},
+                        onSubmit: (v) {},
+                      ).pad(),
+                    )
+                  else
+                    ...dynamicFields.map((field) => _buildField(field)),
+      
+                  // Image upload — ALWAYS shown, at the end, in every mode.
+                  _buildImageUploadSection(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+        bottomNavigationBar: (isLoading || errorMessage != null || _isOffline)
+            ? null
+            : AppButton(
+          radius: BorderRadius.circular(5),
+          title: isSubmitting ? 'Please wait...' : 'Next',
+          onTap: isSubmitting ? () {} : _onSubmit,
+        ).pad(16),
       ),
-      bottomNavigationBar: (isLoading || errorMessage != null || _isOffline)
-          ? null
-          : AppButton(
-        radius: BorderRadius.circular(5),
-        title: isSubmitting ? 'Please wait...' : 'Next',
-        onTap: isSubmitting ? () {} : _onSubmit,
-      ).pad(16),
     );
   }
 
   Widget _buildColorDropdown() {
     return buildTextFieldWithHeading(
       title: 'Color',
+      isRequired: true,
       fieldWidget: AppDropdownField<String>(
+        menuController: _colorMenuController,
         borderColor: AppColors.fieldGrey.withAlpha(60),
         //contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         menuHeight: 200,
@@ -622,10 +666,16 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppText(
-          text: 'Upload Image ${selectedImages.length}/$maxImages',
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
+        Row(
+          children: [
+            AppText(
+              text: 'Upload Image ${selectedImages.length}/$maxImages',
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+            AppText(text: ' *', color: AppColors.red, fontSize: 16),
+
+          ],
         ),
         const SizedBox(height: 12),
         GridView.builder(
@@ -700,9 +750,10 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
   }
 
   Widget _buildField(DynamicFieldsModel field) {
-    final errorText = _errorMessages[field.id];
-    final hasError = errorText != null;
-    final borderColor = hasError ? AppColors.red : AppColors.fieldGrey.withAlpha(60);
+    // final errorText = _errorMessages[field.id];
+    // final hasError = errorText != null;
+    // hasError ? AppColors.red :
+    final borderColor =AppColors.fieldGrey.withAlpha(60);
 
     List<TextInputFormatter>? formatters;
     TextInputType? keyboardType;
@@ -716,7 +767,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
       } else if (validation == 'alphabetic') {
         list.add(FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z ]')));
       } else if (validation == 'alphanumeric') {
-        list.add(FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')));
+        list.add(FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s\p{P}\p{S}]', unicode: true)));
       }
 
       if (field.fieldLength != null && field.fieldLength! > 0) {
@@ -733,7 +784,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         return buildTextFieldWithHeading(
           title: field.displayName,
           isRequired: field.isRequired,
-          errorText: errorText,
+         // errorText: errorText,
           fieldWidget: AppTextField(
             borderColor: borderColor,
             borderRadius: BorderRadius.circular(5),
@@ -741,13 +792,13 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
             textController: textControllers[field.id]!,
             inputFormatters: formatters,
             keyboardType: keyboardType,
-            onChange: (value) {
-              if (_errorMessages.containsKey(field.id)) {
-                setState(() {
-                  _errorMessages.remove(field.id);
-                });
-              }
-            },
+            onChange: (value) {},
+            //   if (_errorMessages.containsKey(field.id)) {
+            //     setState(() {
+            //       _errorMessages.remove(field.id);
+            //     });
+            //   }
+            // },
             onSubmit: (value) {},
           ).pad(),
         );
@@ -756,7 +807,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
         return buildTextFieldWithHeading(
           title: field.displayName,
           isRequired: field.isRequired,
-          errorText: errorText,
+          //errorText: errorText,
           fieldWidget: AppTextField(
             maxLines: 4,
             borderColor: borderColor,
@@ -765,13 +816,13 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
             textController: textControllers[field.id]!,
             inputFormatters: formatters,
             keyboardType: keyboardType,
-            onChange: (value) {
-              if (_errorMessages.containsKey(field.id)) {
-                setState(() {
-                  _errorMessages.remove(field.id);
-                });
-              }
-            },
+            onChange: (value) {},
+            //   if (_errorMessages.containsKey(field.id)) {
+            //     setState(() {
+            //       _errorMessages.remove(field.id);
+            //     });
+            //   }
+            // },
             onSubmit: (value) {},
           ).pad(),
         );
@@ -795,11 +846,17 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
           hint = 'Select ${field.displayName}';
         }
 
+        final dropdownController = _dynamicMenuControllers.putIfAbsent(
+          field.id,
+          () => MenuController(),
+        );
+
         return buildTextFieldWithHeading(
           title: field.displayName,
           isRequired: field.isRequired,
-          errorText: errorText,
+          //errorText: errorText,
           fieldWidget: AppDropdownField<String>(
+            menuController: dropdownController,
             borderColor: borderColor,
 
             //contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

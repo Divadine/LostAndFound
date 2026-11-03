@@ -124,10 +124,10 @@ class ChatService {
       }
     }
 
-    controller = StreamController<bool>(
+    controller = StreamController<bool>.broadcast(
       onListen: () {
         sub = _presenceRef(uid).snapshots().listen(
-              (snapshot) {
+          (snapshot) {
             latest = snapshot.exists ? snapshot.data() : null;
             emit();
           },

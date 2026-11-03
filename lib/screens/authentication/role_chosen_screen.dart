@@ -8,6 +8,7 @@ import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 
 import 'package:lost_and_found/utils/app_permission.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class FirstHomeScreen extends StatefulWidget {
   const FirstHomeScreen({super.key});
@@ -36,6 +37,11 @@ class _FirstHomeScreenState extends State<FirstHomeScreen> {
             //crossAxisAlignment: CrossAxisAlignment.start,
             spacing: 10,
             children: [
+
+              if(AppUtils.isTab)
+              SizedBox(height: 60,),
+
+
               AppIconWidget(assetPath: AssetImages.lostFoundImage),
               AppText(
                 text: 'How can Findora help you? ',

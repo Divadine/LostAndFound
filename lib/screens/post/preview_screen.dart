@@ -36,7 +36,7 @@ class PreviewPostScreen extends StatefulWidget {
   final String itemTypeLabel;
   final String itemTypeValue;
   final String color;
-  final List<Map<String, String>> fieldValues;
+  final List<Map<String, dynamic>> fieldValues;
   final List<SelectedLocationModel> locations;
   final String locationText;
   final DateTime postDate;
@@ -245,7 +245,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
       itemName: widget.itemName,
       color: widget.color,
       postImages: imageIds,
-      postValues: widget.fieldValues.map((e) => {'field': e['field']!, 'value': e['value']!}).toList(),
+      postValues: widget.fieldValues,
     );
 
     if (!mounted) return;
@@ -394,20 +394,26 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
     );
   }
 
-  List<Map<String, String>> get _dynamicEntries {
+  List<Map<String, dynamic>> get _dynamicEntries {
     return widget.fieldValues.where((field) {
-      final name = field['field']?.trim().toLowerCase() ?? '';
+      final name = field['field']?.toString().trim().toLowerCase() ?? '';
       if (name == 'subcategory' || name == 'color') return false;
-      return (field['value']?.trim() ?? '').isNotEmpty;
+      return (field['value']?.toString().trim() ?? '').isNotEmpty;
     }).toList();
   }
 
-  List<Map<String, String>> get _requiredEntries {
-    return _dynamicEntries.where((field) => field['required'] == '1').toList();
+  List<Map<String, dynamic>> get _requiredEntries {
+    return _dynamicEntries.where((field) {
+      final req = field['is_required'] ?? field['required'];
+      return req == 1 || req == '1' || req == true;
+    }).toList();
   }
 
-  List<Map<String, String>> get _optionalEntries {
-    return _dynamicEntries.where((field) => field['required'] != '1').toList();
+  List<Map<String, dynamic>> get _optionalEntries {
+    return _dynamicEntries.where((field) {
+      final req = field['is_required'] ?? field['required'];
+      return req != 1 && req != '1' && req != true;
+    }).toList();
   }
 
   Widget _buildFirstContainer() {
@@ -453,7 +459,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
               children: [
                 if (itemType.isNotEmpty) _buildInfoRow(widget.itemTypeLabel, itemType),
                 for (final entry in _requiredEntries)
-                  _buildInfoRow(entry['field'] ?? '', entry['value'] ?? ''),
+                  _buildInfoRow(entry['field']?.toString() ?? '', entry['value']?.toString() ?? ''),
                 if (widget.color.isNotEmpty) _buildInfoRow('Color', widget.color),
               ],
             ),
@@ -514,8 +520,8 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
 
           for (int i = 0; i < optionalFields.length; i++)
             _buildDividerLabeledBlock(
-              optionalFields[i]['field']?.trim() ?? '',
-              optionalFields[i]['value']?.trim() ?? '',
+              optionalFields[i]['field']?.toString().trim() ?? '',
+              optionalFields[i]['value']?.toString().trim() ?? '',
               isFirst: !hasLandmark && i == 0,
             ),
 

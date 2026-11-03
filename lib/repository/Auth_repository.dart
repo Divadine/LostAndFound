@@ -368,7 +368,7 @@ class AuthRepository {
     required String itemName,
     required String color,
     required String postImages,
-    required List<Map<String, String>> postValues,
+    required List<Map<String, dynamic>> postValues,
   }) async {
     final body = {
       if (id != null) 'id': id,
@@ -379,8 +379,18 @@ class AuthRepository {
       'item_name': itemName,
       'color': color,
       'postimages': postImages,
-      'post_values': postValues,
+      'post_values': postValues.map((v) {
+        final req = v['is_required'] ?? v['required'];
+        final isReqInt = (req == 1 || req == '1' || req == true) ? 1 : 0;
+        return {
+          'field': v['field'],
+          'value': v['value'],
+          'is_required': isReqInt,
+        };
+      }).toList(),
     };
+
+    debugPrint('createPostStep1 body:\n${const JsonEncoder.withIndent('  ').convert(body)}');
 
     final response = await apiClient.post(ApiEndPoints.createPostStep1, data: body); // NEW
 

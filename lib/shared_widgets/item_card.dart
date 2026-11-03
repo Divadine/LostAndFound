@@ -89,8 +89,8 @@ class ItemCard extends StatelessWidget {
 
     // Image frame settings (white ring around the photo)
     const double framePadding = 4;
-    final double frameWidth = imageWidth ?? 140;
-    const double frameHeight = 100;
+    final double frameWidth = imageWidth ??  (AppUtils.isTab ? 200 : 140);;
+     double frameHeight = AppUtils.isTab ? 150 :  100;
 
     // ============================================================
     // FIX: Enquires card visibility must be based ONLY on the
@@ -198,7 +198,7 @@ class ItemCard extends StatelessWidget {
                   children: [
                     // ---- Image inside a white framed container ----
                     Container(
-                      height: frameHeight,
+                      height:frameHeight,
                       width: frameWidth,
                       padding: const EdgeInsets.all(framePadding),
                       decoration: BoxDecoration(
@@ -233,7 +233,7 @@ class ItemCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(width: 12),
+                    SizedBox(width: AppUtils.isTab ? 25 : 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,7 +277,8 @@ class ItemCard extends StatelessWidget {
                         status != 2)
                       PopupMenuButton(
                         color: AppColors.white,
-                        icon: AppIconWidget(assetPath: AssetImages.more),
+
+                        icon: AppIconWidget(assetPath: AssetImages.more,),
                         offset: const Offset(0, 40),
                         itemBuilder: (context) => [
                           PopupMenuItem(
@@ -285,6 +286,7 @@ class ItemCard extends StatelessWidget {
                             value: 'delete',
                             //height: 25
                             child: Container(
+
                               width: double.infinity,
                               decoration: BoxDecoration(
                                 border: Border.all(

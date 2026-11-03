@@ -396,6 +396,17 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
       AppSnackBar.show(context: context, message: 'No internet connection', icon: Icons.wifi_off);
       return;
     }
+
+    if (textController.text.trim().isEmpty) { // <-- added
+      AppSnackBar.show(
+        context: context,
+        message: widget.postType == 0
+            ? 'Please enter where you lost the item'
+            : 'Please enter where you found the item',
+      );
+      return;
+    }
+
     if (loc.isEmpty) {
       AppSnackBar.show(context: context, message: 'Please add a location');
       return;
@@ -477,6 +488,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                     children: [
                       buildTextFieldWithHeading(
                         title: widget.postType == 0 ? 'Where did you lose it ?' : 'Where did you find it ?',
+                         isRequired: true,
                         fieldWidget: AppTextField(
                           hintText: 'eg. near bus stop',
                           textController: textController,
@@ -492,6 +504,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                             final locData = asyncSnapshot.data ?? [];
                             return buildTextFieldWithHeading(
                               title: 'Location',
+                              isRequired: true,
                               fieldWidget: loc.isEmpty
                                   ? AppTextField(
                                 readOnly: true,
@@ -574,6 +587,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                           builder: (context, asyncSnapshot) {
                             return buildTextFieldWithHeading(
                               title: 'Date',
+                              isRequired: true,
                               fieldWidget: AppTextField(
                                 hintText: 'Select Date',
                                 readOnly: true,
@@ -592,6 +606,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                       const SizedBox(height: 10),
                       buildTextFieldWithHeading(
                         title: 'Description',
+                        isRequired: true,
                         fieldWidget: AppTextField(
                           contentPadding: EdgeInsets.symmetric(horizontal: 12,vertical: 10) ,
                           hintText: 'write Description here',

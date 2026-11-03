@@ -36,6 +36,7 @@ class SingleMatchModel {
   final String handoverUserUid;
   final String handoverDate;
   final String handoverAvatar;
+  final int isEnquired;
 
   SingleMatchModel({
     required this.id,
@@ -73,6 +74,7 @@ class SingleMatchModel {
     this.handoverUserUid = '',
     this.handoverDate = '',
     this.handoverAvatar = '',
+    this.isEnquired = 0,
   });
 
   factory SingleMatchModel.fromJson(Map<String, dynamic> json) {
@@ -318,6 +320,15 @@ class SingleMatchModel {
       statusParsed = 2;
     }
 
+    final rawIsEnquired = data['is_enquired'] ?? json['is_enquired'];
+    final int isEnquiredParsed = (rawIsEnquired == 1 ||
+            rawIsEnquired == true ||
+            rawIsEnquired == '1' ||
+            rawIsEnquired?.toString().trim() == '1' ||
+            rawIsEnquired?.toString().trim().toLowerCase() == 'true')
+        ? 1
+        : 0;
+
     return SingleMatchModel(
       id: data['id'] as int? ?? 0,
       postUid: data['post_uid']?.toString() ?? '',
@@ -404,6 +415,7 @@ class SingleMatchModel {
               handoverObj?['image'] ??
               '')
           .toString(),
+      isEnquired: isEnquiredParsed,
     );
   }
 
@@ -443,6 +455,7 @@ class SingleMatchModel {
     String? handoverUserUid,
     String? handoverDate,
     String? handoverAvatar,
+    int? isEnquired,
   }) {
     return SingleMatchModel(
       id: id ?? this.id,
@@ -480,6 +493,7 @@ class SingleMatchModel {
       handoverUserUid: handoverUserUid ?? this.handoverUserUid,
       handoverDate: handoverDate ?? this.handoverDate,
       handoverAvatar: handoverAvatar ?? this.handoverAvatar,
+      isEnquired: isEnquired ?? this.isEnquired,
     );
   }
 

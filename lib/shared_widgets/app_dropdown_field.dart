@@ -54,6 +54,8 @@ class AppDropdownField<T> extends StatefulWidget {
 
   final bool hideSuffixIcon;
 
+  final MenuController? menuController;
+
   const AppDropdownField({
     super.key,
     required this.value,
@@ -71,6 +73,7 @@ class AppDropdownField<T> extends StatefulWidget {
     this.height,
     this.contentPadding,
     this.hideSuffixIcon = false,
+    this.menuController,
   });
 
   @override
@@ -88,7 +91,9 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
   late AnimationController rotationController;
 
   // MenuAnchor controller.
-  final MenuController menuController = MenuController();
+  MenuController? _internalMenuController;
+  MenuController get _effectiveMenuController =>
+      widget.menuController ?? (_internalMenuController ??= MenuController());
 
   bool isOpen = false;
 
@@ -121,6 +126,9 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
 
   @override
   void dispose() {
+    if (_effectiveMenuController.isOpen) {
+      _effectiveMenuController.close();
+    }
     rotationController.dispose();
     controller.dispose();
 
@@ -132,17 +140,11 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
   // =============================================================================
 
   void _openMenu() {
-    if (menuController.isOpen) {
+    if (_effectiveMenuController.isOpen) {
       return;
     }
 
-    menuController.open();
-
-    setState(() {
-      isOpen = true;
-    });
-
-    rotationController.forward();
+    _effectiveMenuController.open();
   }
 
   // =============================================================================
@@ -150,17 +152,11 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
   // =============================================================================
 
   void _closeMenu() {
-    if (!menuController.isOpen) {
+    if (!_effectiveMenuController.isOpen) {
       return;
     }
 
-    menuController.close();
-
-    setState(() {
-      isOpen = false;
-    });
-
-    rotationController.reverse();
+    _effectiveMenuController.close();
   }
 
   // =============================================================================
@@ -168,7 +164,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
   // =============================================================================
 
   void _toggleMenu() {
-    if (menuController.isOpen) {
+    if (_effectiveMenuController.isOpen) {
       _closeMenu();
     } else {
       _openMenu();
@@ -232,7 +228,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
     return LayoutBuilder(
       builder: (context, constraints) {
         Widget dropdownField = MenuAnchor(
-          controller: menuController,
+          controller: _effectiveMenuController,
 
           // -------------------------------------------------------------------
           // MENU OPEN
@@ -241,11 +237,13 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
           onOpen: () {
             if (!mounted) return;
 
-            setState(() {
-              isOpen = true;
-            });
+            if (!isOpen) {
+              setState(() {
+                isOpen = true;
+              });
 
-            rotationController.forward();
+              rotationController.forward();
+            }
           },
 
           // -------------------------------------------------------------------
@@ -255,11 +253,13 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>>
           onClose: () {
             if (!mounted) return;
 
-            setState(() {
-              isOpen = false;
-            });
+            if (isOpen) {
+              setState(() {
+                isOpen = false;
+              });
 
-            rotationController.reverse();
+              rotationController.reverse();
+            }
           },
 
           // -------------------------------------------------------------------

@@ -107,6 +107,10 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
   String get _effectiveRoomId =>
       widget.roomId.trim().isNotEmpty ? widget.roomId.trim() : _createdRoomId;
 
+  String? _lastHandledRoomId;
+  bool _hasInitialScrolled = false;
+  List<String> _previousMessageIds = [];
+
   Map<String, dynamic>? _pendingAttachment;
 
   bool _showSafetyCard = true;
@@ -253,6 +257,9 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
   void didUpdateWidget(covariant IndividualChatScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.roomId != widget.roomId) {
+      _lastHandledRoomId = null;
+      _hasInitialScrolled = false;
+      _previousMessageIds = [];
       _initStreams();
       _loadPhoneAndInitialize();
       ChatService.markRoomAsRead(
@@ -396,6 +403,9 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
 
         if (mounted && roomId.isNotEmpty && roomId != _createdRoomId) {
           _createdRoomId = roomId;
+          _lastHandledRoomId = null;
+          _hasInitialScrolled = false;
+          _previousMessageIds = [];
           _initStreams();
           setState(() {});
           ChatService.markRoomAsRead(
@@ -490,6 +500,52 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
     }
 
     return '';
+  }
+
+  bool _hasNewMessage(List<String> current, List<String> previous) {
+    if (current.length != previous.length) return true;
+    if (current.isEmpty) return false;
+    return current.last != previous.last;
+  }
+
+  void _scrollToBottom({bool animate = false}) {
+    if (!mounted) return;
+
+    if (animate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollController.hasClients) return;
+        final position = _scrollController.position;
+        if (position.hasPixels && position.maxScrollExtent > 0) {
+          position.animateTo(
+            position.maxScrollExtent,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+      return;
+    }
+
+    void scrollPass(int remainingAttempts, double lastMaxExtent) {
+      if (!mounted || !_scrollController.hasClients) return;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollController.hasClients) return;
+
+        final position = _scrollController.position;
+        final currentMax = position.maxScrollExtent;
+
+        if (currentMax > 0) {
+          position.jumpTo(currentMax);
+        }
+
+        if (remainingAttempts > 0 && (currentMax - lastMaxExtent).abs() > 1.0) {
+          scrollPass(remainingAttempts - 1, currentMax);
+        }
+      });
+    }
+
+    scrollPass(4, -1.0);
   }
 
   @override
@@ -1521,22 +1577,50 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
         }
 
         // ============================================================
+        // HANDLE AUTO-SCROLLING
+        // ============================================================
+
+        final currentMessageIds = docs.map((d) => d.id).toList();
+
+        if (_lastHandledRoomId != _effectiveRoomId) {
+          _lastHandledRoomId = _effectiveRoomId;
+          _hasInitialScrolled = false;
+          _previousMessageIds = [];
+        }
+
+        if (!_hasInitialScrolled) {
+          _hasInitialScrolled = true;
+          _previousMessageIds = currentMessageIds;
+          _scrollToBottom(animate: false);
+        } else {
+          final newMessageArrived = _hasNewMessage(
+            currentMessageIds,
+            _previousMessageIds,
+          );
+          if (newMessageArrived) {
+            _previousMessageIds = currentMessageIds;
+            final lastDoc = docs.last.data();
+            final isMe =
+                lastDoc['senderId']?.toString() == widget.currentUserId;
+
+            bool isNearBottom = false;
+            if (_scrollController.hasClients) {
+              final maxScroll = _scrollController.position.maxScrollExtent;
+              final currentScroll = _scrollController.position.pixels;
+              isNearBottom = (maxScroll - currentScroll) <= 200;
+            }
+
+            if (isMe || isNearBottom) {
+              _scrollToBottom(animate: true);
+            }
+          }
+        }
+
+        // ============================================================
         // BUILD DATE ENTRIES
         // ============================================================
 
         final entries = _buildEntries(docs);
-
-        // ============================================================
-        // SCROLL TO BOTTOM
-        // ============================================================
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _scrollController.hasClients) {
-            _scrollController.jumpTo(
-              _scrollController.position.maxScrollExtent,
-            );
-          }
-        });
 
         // ============================================================
         // MESSAGE LIST

@@ -161,9 +161,19 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
   // ============================================================
 
   Future<void> _checkEnquiryStatus() async {
+    if (postDetails == null) return;
+
+    if (postDetails!.isEnquired == 1) {
+      if (!mounted) return;
+      setState(() {
+        hasEnquired = true;
+      });
+      return;
+    }
+
     final userId = AppPreferences.getUserId();
 
-    if (userId == null || postDetails == null) {
+    if (userId == null) {
       return;
     }
 
@@ -498,8 +508,17 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
         )
         .toList();
 
-    final requiredFields = extraFields.where((v) => v.isRequired).toList();
-    final displayFields = extraFields.where((v) => !v.isRequired).toList();
+    final isEnquired = post.isEnquired == 1 || hasEnquired;
+    final List<SingleMatchValue> requiredFields;
+    final List<SingleMatchValue> displayFields;
+
+    if (isEnquired) {
+      requiredFields = extraFields;
+      displayFields = [];
+    } else {
+      requiredFields = extraFields.where((v) => v.isRequired).toList();
+      displayFields = extraFields.where((v) => !v.isRequired).toList();
+    }
 
     final isClosed = post.status == 2;
 
