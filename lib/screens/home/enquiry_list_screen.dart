@@ -225,6 +225,13 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
     return 'https://lost-and-found.skyraantech.com/backend/$cleanUrl';
   }
 
+  bool _hasValidImage(String? url) {
+    final u = (url ?? '').trim().toLowerCase();
+    if (u.isEmpty || u == 'null' || u == 'undefined') return false;
+    if (u.endsWith('/backend/') || u.endsWith('/backend')) return false;
+    return true;
+  }
+
   String _timeAgo(DateTime? date) {
     if (date == null) return '';
     final diff = DateTime.now().difference(date);
@@ -592,14 +599,19 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: Colors.transparent,
-                  child: profileImage.isNotEmpty
+                  backgroundColor: AppColors.fieldGrey,
+                  child: _hasValidImage(profileImage)
                       ? AppCachedNetworkImage(
                           borderRadius: BorderRadius.circular(24),
                           imageUrl: profileImage,
                           fit: BoxFit.cover,
                           height: 48,
                           width: 48,
+                          errorWidget: const Icon(
+                            Icons.person,
+                            size: 30,
+                            color: AppColors.primaryColor,
+                          ),
                         )
                       : const Icon(
                           Icons.person,

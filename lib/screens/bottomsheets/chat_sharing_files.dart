@@ -257,56 +257,79 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
   Future<void> _shareAddress() async {
     if (_loading) return;
 
+    setState(() => _loading = true);
+
     try {
-      setState(() => _loading = true);
-
-      final granted = await AppLocationPermission().requestLocationPermission(context);
-
-      if (!granted) {
-        _stopLoading();
-        return;
+      if (widget.onAddressFetched != null) {
+        // not used anymore, kept for compatibility
       }
 
-      final Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      String address = 'Current location';
-      try {
-        final placemarks = await placemarkFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
-        if (placemarks.isNotEmpty) {
-          final formatted = _formatPlacemark(placemarks.first);
-          if (formatted.isNotEmpty) address = formatted;
-        }
-      } catch (e) {
-        debugPrint('[ADDRESS] Geocoding error: $e');
+      if (widget.onAttachmentSelected != null) {
+        // Wait until the parent finishes fetching the profile address
+        await widget.onAttachmentSelected!({'type': 'address'});
       }
-
-      _stopLoading();
 
       if (!mounted) return;
-
       Navigator.of(context).pop();
-
-      if (widget.onAddressFetched != null) {
-        widget.onAddressFetched!(address);
-      } else if (widget.onAttachmentSelected != null) {
-        widget.onAttachmentSelected!({
-          'type': 'address',
-          'address': address,
-        });
-      }
     } catch (e) {
       _stopLoading();
-
       if (!mounted) return;
-
       _showError('Unable to get your address.\n$e');
     }
   }
+  // Future<void> _shareAddress() async {
+  //   if (_loading) return;
+  //
+  //   try {
+  //     setState(() => _loading = true);
+  //
+  //     final granted = await AppLocationPermission().requestLocationPermission(context);
+  //
+  //     if (!granted) {
+  //       _stopLoading();
+  //       return;
+  //     }
+  //
+  //     final Position position = await Geolocator.getCurrentPosition(
+  //       desiredAccuracy: LocationAccuracy.high,
+  //     );
+  //
+  //     String address = 'Current location';
+  //     try {
+  //       final placemarks = await placemarkFromCoordinates(
+  //         position.latitude,
+  //         position.longitude,
+  //       );
+  //       if (placemarks.isNotEmpty) {
+  //         final formatted = _formatPlacemark(placemarks.first);
+  //         if (formatted.isNotEmpty) address = formatted;
+  //       }
+  //     } catch (e) {
+  //       debugPrint('[ADDRESS] Geocoding error: $e');
+  //     }
+  //
+  //     _stopLoading();
+  //
+  //     if (!mounted) return;
+  //
+  //     Navigator.of(context).pop();
+  //
+  //     if (widget.onAddressFetched != null) {
+  //       widget.onAddressFetched!(address);
+  //     } else if (widget.onAttachmentSelected != null) {
+  //       widget.onAttachmentSelected!({
+  //         'type': 'address',
+  //         'address': address,
+  //       });
+  //     }
+  //   } catch (e) {
+  //     _stopLoading();
+  //
+  //     if (!mounted) return;
+  //
+  //     _showError('Unable to get your address.\n$e');
+  //   }
+  // }
 
   String _formatPlacemark(Placemark place) {
     final List<String> parts = [];
@@ -391,40 +414,62 @@ class _ChatSharingFilesState extends State<ChatSharingFiles> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildOption(
-                      title: 'Camera',
-                      onTap: _openCamera,
+              Stack(
+                children: [
+                  Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    _buildDivider(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildOption(
+                          title: 'Camera',
+                          onTap: _openCamera,
+                        ),
+                        _buildDivider(),
 
-                    _buildOption(
-                      title: 'Attach Photo',
-                      onTap: _attachPhoto,
-                    ),
-                    _buildDivider(),
+                        _buildOption(
+                          title: 'Attach Photo',
+                          onTap: _attachPhoto,
+                        ),
+                        _buildDivider(),
 
-                    _buildOption(
-                      title: 'Share Location',
-                      onTap: _shareLocation,
-                    ),
-                    _buildDivider(),
+                        _buildOption(
+                          title: 'Share Location',
+                          onTap: _shareLocation,
+                        ),
+                        _buildDivider(),
 
-                    _buildOption(
-                      title: 'Share Address',
-                      onTap: _shareAddress,
-                      isLast: true,
+                        _buildOption(
+                          title: 'Share Address',
+                          onTap: _shareAddress,
+                          isLast: true,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+
+                  if (_loading)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(200),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(strokeWidth: 3),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+
               ),
 
               const SizedBox(height: 10),

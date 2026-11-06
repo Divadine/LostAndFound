@@ -215,14 +215,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
                               return TabBarView(
                                 children: [
-                                  _buildChatList(
-                                    receivedLeads,
-                                    emptyMessage: 'No leads yet',
+                                  _KeepAliveTab(
+                                   
+                                    child: _buildChatList(
+                                      receivedLeads,
+                                      emptyMessage: 'No leads yet',
+                                    ),
                                   ),
 
-                                  _buildChatList(
-                                    sentEnquiries,
-                                    emptyMessage: 'No enquiries sent',
+                                  _KeepAliveTab(
+                                    child: _buildChatList(
+                                      sentEnquiries,
+                                      emptyMessage: 'No enquiries sent',
+                                    ),
                                   ),
                                 ],
                               );
@@ -354,6 +359,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return StreamBuilder<bool>(
       stream: ChatService.presenceStream(chat.otherUserId),
+      initialData: ChatService.presenceCached(chat.otherUserId),
       builder: (context, presenceSnapshot) {
         debugPrint(
           '[PRESENCE CHECK] '
@@ -1077,4 +1083,23 @@ Widget ChatTile({
       ],
     ).pad(),
   );
+}
+class _KeepAliveTab extends StatefulWidget {
+  final Widget child;
+  const _KeepAliveTab({required this.child});
+
+  @override
+  State<_KeepAliveTab> createState() => _KeepAliveTabState();
+}
+
+class _KeepAliveTabState extends State<_KeepAliveTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
 }

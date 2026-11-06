@@ -3403,7 +3403,7 @@ class _RecoverDeletePopUpState extends State<RecoverDeletePopUp> {
         const SizedBox(height: 7),
         const AppText(
           text:
-'Your account and data will be permanently deleted. You can’t reverse this, but reactivation is possible within 15 days by logging in.' ,
+'Your account and data will be permanently deleted. You can’t reverse this, but reactivation is possible within 30 days by logging in.' ,
           fontSize: 12,
           fontWeight: FontWeight.w400,
           textAlign: TextAlign.center,

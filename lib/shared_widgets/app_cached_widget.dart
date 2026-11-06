@@ -11,6 +11,7 @@ class AppCachedNetworkImage extends StatefulWidget {
   final double? width;
   final double? height;
   final BorderRadius? borderRadius;
+  final Widget? errorWidget;
 
   const AppCachedNetworkImage({
     super.key,
@@ -19,6 +20,7 @@ class AppCachedNetworkImage extends StatefulWidget {
     this.width,
     this.height,
     this.borderRadius,
+    this.errorWidget,
   });
 
   @override
@@ -42,13 +44,17 @@ class _AppCachedNetworkImageState extends State<AppCachedNetworkImage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_resolvedUrl.isEmpty) {
-      return Container(
-        color: Colors.grey,
-        width: widget.width,
-        height: widget.height,
-        child: const Icon(Icons.image_not_supported, size: 40),
-      );
+    final cleanUrl = _resolvedUrl.toLowerCase();
+    if (cleanUrl.isEmpty ||
+        cleanUrl.endsWith('/backend/') ||
+        cleanUrl.endsWith('/backend')) {
+      return widget.errorWidget ??
+          Container(
+            color: Colors.grey,
+            width: widget.width,
+            height: widget.height,
+            child: const Icon(Icons.image_not_supported, size: 40),
+          );
     }
 
     return ClipRRect(
@@ -68,7 +74,9 @@ class _AppCachedNetworkImageState extends State<AppCachedNetworkImage> {
             ),
           ),
         ),
-        errorWidget: (context, url, error) => const NoInternetWidget(size: 40, showText: false),
+        errorWidget: (context, url, error) =>
+            widget.errorWidget ??
+            const NoInternetWidget(size: 40, showText: false),
       ),
     );
   }
@@ -78,6 +86,13 @@ class EnquiredPersonsAvatar extends StatelessWidget {
   final List<String> images;
 
   const EnquiredPersonsAvatar({super.key, required this.images});
+
+  bool _hasValidImage(String? url) {
+    final u = (url ?? '').trim().toLowerCase();
+    if (u.isEmpty || u == 'null' || u == 'undefined') return false;
+    if (u.endsWith('/backend/') || u.endsWith('/backend')) return false;
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,16 +111,12 @@ class EnquiredPersonsAvatar extends StatelessWidget {
               left: startOffset + (i * 14),
               child: CircleAvatar(
                 radius: 10,
-                backgroundColor: Colors.transparent,
-                child: (images[i].trim().isEmpty)
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(40),
-                        child: Image.asset(
-                          AssetImages.profilePic,
-                          height: 20,
-                          width: 20,
-                          fit: BoxFit.cover,
-                        ),
+                backgroundColor: AppColors.fieldGrey,
+                child: !_hasValidImage(images[i])
+                    ? const Icon(
+                        Icons.person,
+                        size: 14,
+                        color: AppColors.primaryColor,
                       )
                     : AppCachedNetworkImage(
                         imageUrl: images[i],
@@ -113,6 +124,11 @@ class EnquiredPersonsAvatar extends StatelessWidget {
                         height: 20,
                         width: 20,
                         fit: BoxFit.cover,
+                        errorWidget: const Icon(
+                          Icons.person,
+                          size: 14,
+                          color: AppColors.primaryColor,
+                        ),
                       ),
               ),
             ),

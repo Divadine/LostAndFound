@@ -35,7 +35,7 @@ class OtpSharedScreen extends StatefulWidget {
 class _OtpSharedScreenState extends State<OtpSharedScreen> {
   String otp = '';
   Timer? timer;
-  static const int otpTimerDuration = 30;
+  static const int otpTimerDuration = 180;
   int seconds = otpTimerDuration;
   int? enableRestart;
   String? errorText;
@@ -132,6 +132,7 @@ class _OtpSharedScreenState extends State<OtpSharedScreen> {
   }
 
   Future<void> _onVerifyTap() async {
+    FocusScope.of(context).unfocus();
     otp = _controller.map((e) => e.text).join();
     if (otp.length != 4) {
       setState(() => errorText = "Please enter OTP");

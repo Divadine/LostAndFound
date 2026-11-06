@@ -616,6 +616,20 @@ class _SendEnquiryState extends State<SendEnquiry> {
         print(
           '[Chat] Initial enquiry message sent.',
         );
+
+        // Notify the post owner
+        try {
+          final receiverId = int.tryParse(otherUserId);
+          if (receiverId != null && receiverId != 0) {
+            final res = await authController.sendNotification(
+              userId: receiverId,
+            );
+            print('[SendEnquiry] Notification response: ${res.message}');
+          }
+        } catch (e) {
+          print('[SendEnquiry] Notification error: $e');
+        }
+
       }
 
       if (!mounted) {

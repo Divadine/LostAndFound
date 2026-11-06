@@ -26,10 +26,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -53,10 +50,18 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBIkg-SwPHijA-hwe49-9hHWBgrLNW0BME',
-    appId: '1:404375922415:android:401f1b0168ce66b51f9d1a',
-    messagingSenderId: '404375922415',
-    projectId: 'lostandfound-de15f',
-    storageBucket: 'lostandfound-de15f.firebasestorage.app',
+    apiKey: 'AIzaSyC9r3TOM80LZMQtJ1ERdOqerKCdzGpwUI8',
+    appId: '1:291874512696:android:929c53d48df2f84db2abcd',
+    messagingSenderId: '291874512696',
+    projectId: 'findora-59197',
+    storageBucket: 'findora-59197.firebasestorage.app',
+  );
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyDobSxBy-OVhway4QvyygJVjvXuWrkwicA',
+    appId: '1:291874512696:ios:673e779f4b11ef3fb2abcd',
+    messagingSenderId: '291874512696',
+    projectId: 'findora-59197',
+    storageBucket: 'findora-59197.firebasestorage.app',
+    iosBundleId: 'com.findora.lostandfound',
   );
 }

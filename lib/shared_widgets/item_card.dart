@@ -79,9 +79,19 @@ class ItemCard extends StatelessWidget {
     this.hideClosedFooter = false, // NEW
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final isClosed = status == 2;
+  String _fullUrl(String? url) {
+  final u = (url ?? '').trim();
+  if (u.isEmpty || u.toLowerCase() == 'null') return '';
+  if (u.startsWith('http://') || u.startsWith('https://')) return u;
+  final path = u.startsWith('/') ? u.substring(1) : u;
+  return 'https://lost-and-found.skyraantech.com/backend/$path';
+  }
+
+@override
+Widget build(BuildContext context) {
+
+    //final isClosed = status == 2;
+    final profileImgUrl = _fullUrl(profileUrl);
     final cardBg = bg ?? AppColors.white;
     final borderColor = Colors.transparent;
 
@@ -99,6 +109,8 @@ class ItemCard extends StatelessWidget {
     // Also ensuring it only shows for Found posts.
     // ============================================================
     final hasEnquiry = isFound && enquiriesCount != null && enquiriesCount! > 0;
+
+
 
     return GestureDetector(
       onTap: onTap,
@@ -140,17 +152,14 @@ class ItemCard extends StatelessWidget {
                         color: AppColors.white,
                       ),
                       clipBehavior: Clip.antiAlias,
-                      child: (profileUrl != null && profileUrl!.trim().isNotEmpty)
+                      child: profileImgUrl.isNotEmpty
                           ? AppCachedNetworkImage(
-                        imageUrl: profileUrl!,
-                        fit: BoxFit.cover,
-                        borderRadius: BorderRadius.circular(20),
-                      )
-                          : Icon(Icons.person, size: 30),
-                      // Image.asset(
-                      //         AssetImages.profilePic,
-                      //         fit: BoxFit.cover,
-                      //       ),
+                              imageUrl: profileImgUrl,
+                              fit: BoxFit.cover,
+                              borderRadius: BorderRadius.circular(20),
+                              errorWidget: const Icon(Icons.person, size: 30),
+                            )
+                          : const Icon(Icons.person, size: 30),
                     ).padVertical(5),
                     if (profileName != null && profileName!.trim().isNotEmpty)
                       Flexible(

@@ -508,18 +508,22 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
         )
         .toList();
 
-    final isEnquired = post.isEnquired == 1 || hasEnquired;
-    final List<SingleMatchValue> requiredFields;
-    final List<SingleMatchValue> displayFields;
+    // final isEnquired = post.isEnquired == 1 || hasEnquired;
+    // final List<SingleMatchValue> requiredFields;
+    // final List<SingleMatchValue> displayFields;
+    //
+    // if (isEnquired) {
+    //   requiredFields = extraFields;
+    //   displayFields = [];
+    // } else {
+    // requiredFields = extraFields.where((v) => v.isRequired).toList();
+    // displayFields = extraFields.where((v) => !v.isRequired).toList();
+    // }
 
-    if (isEnquired) {
-      requiredFields = extraFields;
-      displayFields = [];
-    } else {
-      requiredFields = extraFields.where((v) => v.isRequired).toList();
-      displayFields = extraFields.where((v) => !v.isRequired).toList();
-    }
-
+    final List<SingleMatchValue> requiredFields =
+    extraFields.where((v) => v.isRequired).toList();
+    final List<SingleMatchValue> displayFields =
+    extraFields.where((v) => !v.isRequired).toList();
     final isClosed = post.status == 2;
 
     return Column(

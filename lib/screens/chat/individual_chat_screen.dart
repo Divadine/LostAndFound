@@ -118,6 +118,9 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
   String _otherUserPhone = '';
   bool _phoneLoading = false;
 
+  String _otherUserAltPhone = '';
+  bool _altPhoneLoading = false;
+
   bool _contactDialogShowing = false;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
@@ -138,9 +141,12 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
     authRepository: AuthRepository(apiClient: ApiClient()),
   );
 
+  Stream<bool>? _presenceStream;
+
   @override
   void initState() {
     super.initState();
+    _presenceStream = ChatService.presenceStream(widget.otherUserId);
 
     _otherUserAvatar = widget.otherUserAvatar.trim();
 
@@ -288,7 +294,8 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
 
   Future<void> _loadPhoneAndInitialize() async {
     await _loadOtherUserPhone();
-
+    if (!mounted) return;
+    await _loadOtherUserAltPhone();
     if (!mounted) return;
 
     await _initializeChat();
@@ -341,6 +348,51 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
       debugPrint('[PHONE] ERROR: $e');
     } finally {
       _phoneLoading = false;
+    }
+  }
+
+  Future<void> _loadOtherUserAltPhone() async {
+    if (_altPhoneLoading) return;
+    _altPhoneLoading = true;
+
+    try {
+      final otherUserId = int.tryParse(widget.otherUserId.trim());
+
+      // 1. Profile API (source of truth)
+      if (otherUserId != null) {
+        final response = await _authController.getProfile(userId: otherUserId);
+
+        if (response.status == 1 && response.data != null) {
+          String alt = response.data!.altMobile?.toString().trim() ?? '';
+          if (alt.toLowerCase() == 'null') alt = '';
+
+          if (!mounted) return;
+          setState(() => _otherUserAltPhone = alt);
+
+          if (_effectiveRoomId.isNotEmpty) {
+            await ChatService.setParticipantAltPhone(
+              roomId: _effectiveRoomId,
+              userId: widget.otherUserId,
+              altPhone: alt,
+            );
+          }
+          return;
+        }
+      }
+
+      // 2. API fail aana Firestore cache
+      if (_effectiveRoomId.isNotEmpty && widget.otherUserId.trim().isNotEmpty) {
+        final fsAlt = await ChatService.getParticipantAltPhone(
+          roomId: _effectiveRoomId,
+          userId: widget.otherUserId,
+        );
+        if (!mounted) return;
+        setState(() => _otherUserAltPhone = fsAlt);
+      }
+    } catch (e) {
+      debugPrint('[ALT PHONE] ERROR: $e');
+    } finally {
+      _altPhoneLoading = false;
     }
   }
 
@@ -605,7 +657,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
     final receiverId = int.tryParse(receiverStr);
 
     if (receiverId == null || receiverId == 0) {
-      debugPrint(
+      print(
         '[FCM] Notification receiver: Invalid receiver ID: "$receiverStr"',
       );
       return;
@@ -789,20 +841,18 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
     await AppRecorderService.instance.cancelRecording();
   }
 
-  Future<void> _call() async {
+  Future<void> _call(String rawPhone) async {
     if (_isOffline) {
       _showNoInternetSnackbar();
       return;
     }
-    final phone = _otherUserPhone.trim().replaceAll(RegExp(r'[^\d+]'), '');
+    final phone = rawPhone.trim().replaceAll(RegExp(r'[^\d+]'), '');
 
     if (phone.isEmpty) {
       if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Phone number unavailable')));
-
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Phone number unavailable')),
+      );
       return;
     }
 
@@ -813,32 +863,149 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Could not open dialer')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open dialer')),
+        );
       }
     } catch (e) {
       debugPrint('[CALL] ERROR: $e');
     }
   }
 
-  Future<void> _copyPhone() async {
+  Future<void> _copyPhone(String rawPhone) async {
     if (_isOffline) {
       _showNoInternetSnackbar();
       return;
     }
-    final phone = _otherUserPhone.trim();
-
+    final phone = rawPhone.trim();
     if (phone.isEmpty) return;
 
     await Clipboard.setData(ClipboardData(text: phone));
 
     if (!mounted) return;
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Phone number copied')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Phone number copied')),
+    );
   }
+  Future<void> _copyNumbers() async {
+    if (_isOffline) {
+      _showNoInternetSnackbar();
+      return;
+    }
+
+    final text = _otherUserAltPhone.isNotEmpty
+        ? '$_otherUserPhone, $_otherUserAltPhone'
+        : _otherUserPhone;
+
+    if (text.trim().isEmpty) return;
+
+    await Clipboard.setData(ClipboardData(text: text));
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _otherUserAltPhone.isNotEmpty
+              ? 'Numbers copied'
+              : 'Phone number copied',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onCallTap() async {
+    // Alternate illana direct call
+    if (_otherUserAltPhone.isEmpty) {
+      await _call(_otherUserPhone);
+      return;
+    }
+
+    // Rendu number irundha select panna sheet
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.call),
+              title: const Text('Mobile'),
+              subtitle: Text(_otherUserPhone),
+              onTap: () {
+                Navigator.pop(ctx);
+                _call(_otherUserPhone);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.call),
+              title: const Text('Alternate'),
+              subtitle: Text(_otherUserAltPhone),
+              onTap: () {
+                Navigator.pop(ctx);
+                _call(_otherUserAltPhone);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Future<void> _call() async {
+  //   if (_isOffline) {
+  //     _showNoInternetSnackbar();
+  //     return;
+  //   }
+  //   final phone = _otherUserPhone.trim().replaceAll(RegExp(r'[^\d+]'), '');
+  //
+  //   if (phone.isEmpty) {
+  //     if (!mounted) return;
+  //
+  //     ScaffoldMessenger.of(
+  //       context,
+  //     ).showSnackBar(const SnackBar(content: Text('Phone number unavailable')));
+  //
+  //     return;
+  //   }
+  //
+  //   final uri = Uri(scheme: 'tel', path: phone);
+  //
+  //   try {
+  //     if (await canLaunchUrl(uri)) {
+  //       await launchUrl(uri, mode: LaunchMode.externalApplication);
+  //     } else {
+  //       if (!mounted) return;
+  //       ScaffoldMessenger.of(
+  //         context,
+  //       ).showSnackBar(const SnackBar(content: Text('Could not open dialer')));
+  //     }
+  //   } catch (e) {
+  //     debugPrint('[CALL] ERROR: $e');
+  //   }
+  // }
+  //
+  // Future<void> _copyPhone() async {
+  //   if (_isOffline) {
+  //     _showNoInternetSnackbar();
+  //     return;
+  //   }
+  //   final phone = _otherUserPhone.trim();
+  //
+  //   if (phone.isEmpty) return;
+  //
+  //   await Clipboard.setData(ClipboardData(text: phone));
+  //
+  //   if (!mounted) return;
+  //
+  //   ScaffoldMessenger.of(
+  //     context,
+  //   ).showSnackBar(const SnackBar(content: Text('Phone number copied')));
+  // }
 
   Future<void> _blockChat() async {
     if (_isOffline) {
@@ -968,6 +1135,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Column(
                           children: [
+                            const SizedBox(height: 12),
                             _buildPhoneRow(),
                             const SizedBox(height: 8),
                             _buildTopItemCard(),
@@ -1190,17 +1358,31 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
       ).padHorizontal(50);
     }
 
+    return  _buildNumbersCard();
+  }
+  Widget _buildNumbersCard() {
+    final hasAlt = _otherUserAltPhone.isNotEmpty;
+
     return AppContainer(
       widget: Row(
         children: [
           AppIconWidget(assetPath: AssetImages.mobileIcon),
-
           const SizedBox(width: 8),
-
-          Expanded(child: AppText(text: _otherUserPhone, fontSize: 12)),
-
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppText(text: _otherUserPhone, fontSize: 12),
+                if (hasAlt) ...[
+                  const SizedBox(height: 4),
+                  AppText(text: _otherUserAltPhone, fontSize: 12),
+                ],
+              ],
+            ),
+          ),
           InkWell(
-            onTap: _copyPhone,
+            onTap: _copyNumbers,
             child: Row(
               spacing: 5,
               mainAxisSize: MainAxisSize.min,
@@ -1215,11 +1397,9 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
               ],
             ),
           ),
-
           const SizedBox(width: 12),
-
           InkWell(
-            onTap: _call,
+            onTap: _onCallTap,
             child: Row(
               spacing: 5,
               mainAxisSize: MainAxisSize.min,
@@ -1266,6 +1446,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
         senderId: widget.currentUserId,
         receiverId: widget.otherUserId,
       );
+      await _notifyOtherUser(preview: 'Contact request');
 
       if (!mounted) return;
 
@@ -1327,6 +1508,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
 
             await _loadOtherUserPhone();
 
+            await _loadOtherUserAltPhone();
             if (!mounted) return;
 
             Navigator.of(context).pop();
@@ -3222,7 +3404,8 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
         const SizedBox(width: 20),
 
         StreamBuilder<bool>(
-          stream: ChatService.presenceStream(widget.otherUserId),
+          stream: _presenceStream,    //ChatService.presenceStream(widget.otherUserId),
+          initialData: ChatService.presenceCached(widget.otherUserId),
           builder: (context, snapshot) {
             final isOnline = snapshot.data ?? false;
             return Stack(

@@ -42,7 +42,7 @@ class ChatService {
 
       // Start heartbeat only after the initial write succeeds.
       _presenceHeartbeatTimer = Timer.periodic(
-        const Duration(seconds: 20),
+        const Duration(seconds: 10),
             (timer) async {
           if (_activePresenceUserId != uid) {
             timer.cancel();
@@ -86,69 +86,7 @@ class ChatService {
       debugPrint('[PRESENCE] Failed to set OFFLINE for $uid: $e');
     }
   }
-  static const int _presenceStaleSeconds = 45;
-
-  static Stream<bool> presenceStream(String userId) {
-    final uid = userId.trim();
-
-    if (uid.isEmpty) {
-      return Stream<bool>.value(false);
-    }
-
-    late StreamController<bool> controller;
-    StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? sub;
-    Timer? ticker;
-
-    Map<String, dynamic>? latest;
-    bool? lastEmitted;
-
-    bool compute() {
-      final data = latest;
-      if (data == null || data['isOnline'] != true) return false;
-
-      final lastSeen = data['lastSeen'];
-
-      // Server timestamp can be null for a moment during a write.
-      if (lastSeen == null) return true;
-      if (lastSeen is! Timestamp) return false;
-
-      final elapsed = DateTime.now().difference(lastSeen.toDate());
-      return !elapsed.isNegative && elapsed.inSeconds <= _presenceStaleSeconds;
-    }
-
-    void emit() {
-      final value = compute();
-      if (value != lastEmitted) {
-        lastEmitted = value;
-        if (!controller.isClosed) controller.add(value);
-      }
-    }
-
-    controller = StreamController<bool>.broadcast(
-      onListen: () {
-        sub = _presenceRef(uid).snapshots().listen(
-          (snapshot) {
-            latest = snapshot.exists ? snapshot.data() : null;
-            emit();
-          },
-          onError: (e) {
-            debugPrint('[PRESENCE] stream error: $e');
-            latest = null;
-            emit();
-          },
-        );
-
-        // Snapshot varaadha neratthulayum stale-a check pannum.
-        ticker = Timer.periodic(const Duration(seconds: 10), (_) => emit());
-      },
-      onCancel: () async {
-        await sub?.cancel();
-        ticker?.cancel();
-      },
-    );
-
-    return controller.stream;
-  }
+  static const int _presenceStaleSeconds = 25;
 
   // static Stream<bool> presenceStream(String userId) {
   //   final uid = userId.trim();
@@ -157,26 +95,227 @@ class ChatService {
   //     return Stream<bool>.value(false);
   //   }
   //
-  //   return _presenceRef(uid).snapshots().map((snapshot) {
-  //     if (!snapshot.exists) return false;
+  //   late StreamController<bool> controller;
+  //   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? sub;
+  //   Timer? ticker;
   //
-  //     final data = snapshot.data();
-  //     if (data == null || data['isOnline'] != true) {
-  //       return false;
-  //     }
+  //   Map<String, dynamic>? latest;
+  //   bool? lastEmitted;
+  //
+  //   bool compute() {
+  //     final data = latest;
+  //     if (data == null || data['isOnline'] != true) return false;
   //
   //     final lastSeen = data['lastSeen'];
   //
-  //     // A server timestamp can temporarily be null during a write.
+  //     // Server timestamp can be null for a moment during a write.
   //     if (lastSeen == null) return true;
-  //
   //     if (lastSeen is! Timestamp) return false;
   //
   //     final elapsed = DateTime.now().difference(lastSeen.toDate());
+  //     return !elapsed.isNegative && elapsed.inSeconds <= _presenceStaleSeconds;
+  //   }
   //
-  //     return elapsed.inSeconds <= 70 && !elapsed.isNegative;
-  //   }).distinct();
+  //   void emit() {
+  //     final value = compute();
+  //     if (value != lastEmitted) {
+  //       lastEmitted = value;
+  //       if (!controller.isClosed) controller.add(value);
+  //     }
+  //   }
+  //
+  //   controller = StreamController<bool>.broadcast(
+  //     onListen: () {
+  //       sub = _presenceRef(uid).snapshots().listen(
+  //         (snapshot) {
+  //           latest = snapshot.exists ? snapshot.data() : null;
+  //           emit();
+  //         },
+  //         onError: (e) {
+  //           debugPrint('[PRESENCE] stream error: $e');
+  //           latest = null;
+  //           emit();
+  //         },
+  //       );
+  //
+  //       // Snapshot varaadha neratthulayum stale-a check pannum.
+  //       ticker = Timer.periodic(const Duration(seconds: 10), (_) => emit());
+  //     },
+  //     onCancel: () async {
+  //       await sub?.cancel();
+  //       ticker?.cancel();
+  //     },
+  //   );
+  //
+  //   return controller.stream;
   // }
+
+  // static final Map<String, Stream<bool>> _presenceStreams = {};
+  // static final Map<String, bool> _presenceCache = {};
+  //
+  // static bool presenceCached(String userId) =>
+  //     _presenceCache[userId.trim()] ?? false;
+  //
+  // static Stream<bool> presenceStream(String userId) {
+  //   final uid = userId.trim();
+  //   if (uid.isEmpty) return Stream<bool>.value(false);
+  //   return _presenceStreams.putIfAbsent(uid, () => _buildPresenceStream(uid));
+  // }
+  //
+  // static Stream<bool> _buildPresenceStream(String uid) {
+  //   late StreamController<bool> controller;
+  //   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? sub;
+  //   Timer? ticker;
+  //
+  //   Map<String, dynamic>? latest;
+  //   bool? lastEmitted;
+  //
+  //   bool compute() {
+  //     final data = latest;
+  //     if (data == null || data['isOnline'] != true) return false;
+  //     final lastSeen = data['lastSeen'];
+  //     if (lastSeen == null) return true;
+  //     if (lastSeen is! Timestamp) return false;
+  //     final elapsed = DateTime.now().difference(lastSeen.toDate());
+  //     return !elapsed.isNegative && elapsed.inSeconds <= _presenceStaleSeconds;
+  //   }
+  //
+  //   void emit() {
+  //     final value = compute();
+  //     _presenceCache[uid] = value; // cache update
+  //     if (value != lastEmitted) {
+  //       lastEmitted = value;
+  //       if (!controller.isClosed) controller.add(value);
+  //     }
+  //   }
+  //
+  //   controller = StreamController<bool>.broadcast(
+  //     onListen: () {
+  //       lastEmitted = null; // re-listen aanaalum first value emit aaganum
+  //       sub = _presenceRef(uid).snapshots().listen(
+  //             (snapshot) {
+  //           latest = snapshot.exists ? snapshot.data() : null;
+  //           emit();
+  //         },
+  //         onError: (e) {
+  //           latest = null;
+  //           emit();
+  //         },
+  //       );
+  //       ticker = Timer.periodic(const Duration(seconds: 5), (_) => emit());
+  //     },
+  //     onCancel: () async {
+  //       await sub?.cancel();
+  //       ticker?.cancel();
+  //       sub = null;
+  //       ticker = null;
+  //     },
+  //   );
+  //
+  //   return controller.stream;
+  // }
+
+
+  static final Map<String, Stream<bool>> _presenceStreams = {};
+  static final Map<String, bool> _presenceCache = {};
+  static final Map<String, StreamSubscription> _presenceSubs = {};
+  static final Map<String, Timer> _presenceTickers = {};
+
+  static bool presenceCached(String userId) =>
+      _presenceCache[userId.trim()] ?? false;
+
+  static Stream<bool> presenceStream(String userId) {
+    final uid = userId.trim();
+    if (uid.isEmpty) return Stream<bool>.value(false);
+    return _presenceStreams.putIfAbsent(uid, () => _buildPresenceStream(uid));
+  }
+
+  /// Logout-la call pannunga
+  static void disposePresence() {
+    for (final s in _presenceSubs.values) {
+      s.cancel();
+    }
+    for (final t in _presenceTickers.values) {
+      t.cancel();
+    }
+    _presenceSubs.clear();
+    _presenceTickers.clear();
+    _presenceStreams.clear();
+    _presenceCache.clear();
+  }
+
+  static Stream<bool> _buildPresenceStream(String uid) {
+    final controller = StreamController<bool>.broadcast();
+
+    bool isOnlineFlag = false;
+    Timestamp? lastSeenTs;
+    DateTime? lastChangeAt;
+    bool gotServerSnapshot = false;
+    bool? lastEmitted;
+
+    bool compute() {
+      if (!isOnlineFlag || lastChangeAt == null) return false;
+      return DateTime.now().difference(lastChangeAt!).inSeconds <=
+          _presenceStaleSeconds;
+    }
+
+    void emit() {
+      final value = compute();
+      _presenceCache[uid] = value;
+      if (value != lastEmitted) {
+        lastEmitted = value;
+        if (!controller.isClosed) controller.add(value);
+      }
+    }
+
+    // Subscription cancel aagathu, so tab change/screen change-la delay irukkathu
+    _presenceSubs[uid] = _presenceRef(uid)
+        .snapshots(includeMetadataChanges: true)
+        .listen(
+          (snap) {
+        // Cache-la irundhu vandha stale snapshot-ah ignore pannu
+        if (snap.metadata.isFromCache && !gotServerSnapshot) return;
+
+        final data = snap.exists ? snap.data() : null;
+        final online = data?['isOnline'] == true;
+        final ls = data?['lastSeen'];
+
+        if (!gotServerSnapshot) {
+          gotServerSnapshot = true;
+          // First time mattum: romba pazhasa irundha offline
+          final age = ls is Timestamp
+              ? DateTime.now().difference(ls.toDate()).abs()
+              : Duration.zero;
+          lastChangeAt = age.inSeconds > 60
+              ? DateTime.now().subtract(const Duration(hours: 1))
+              : DateTime.now();
+          isOnlineFlag = online;
+          if (ls is Timestamp) lastSeenTs = ls;
+        } else {
+          var changed = false;
+          if (online != isOnlineFlag) {
+            isOnlineFlag = online;
+            changed = true;
+          }
+          if (ls is Timestamp && ls != lastSeenTs) {
+            lastSeenTs = ls;
+            changed = true;
+          }
+          if (changed) lastChangeAt = DateTime.now();
+        }
+        emit();
+      },
+      onError: (e) {
+        isOnlineFlag = false;
+        emit();
+      },
+    );
+
+    _presenceTickers[uid] =
+        Timer.periodic(const Duration(seconds: 5), (_) => emit());
+
+    return controller.stream;
+  }
 
   // ============================================================
   // GENERATE DETERMINISTIC ROOM ID
@@ -432,6 +571,7 @@ class ChatService {
     String name = '',
     String avatar = '',
     String phone = '',
+    String altPhone = '',
   }) async {
     final cleanRoomId = roomId.trim();
     final cleanUserId = userId.trim();
@@ -465,13 +605,39 @@ class ChatService {
         participant['phone'] = phone.trim();
       }
 
+      if (altPhone.trim().isNotEmpty) {          // NEW
+        participant['altPhone'] = altPhone.trim();
+      }
+
+
       participant['name'] ??= '';
       participant['avatar'] ??= '';
       participant['phone'] ??= '';
+      participant['altPhone'] ??= '';
 
       participants[cleanUserId] = participant;
       transaction.update(roomRef, {'participants': participants});
     });
+  }
+
+
+
+  static Future<void> setParticipantAltPhone({
+    required String roomId,
+    required String userId,
+    required String altPhone,
+  }) async {
+    final rid = roomId.trim();
+    final uid = userId.trim();
+    if (rid.isEmpty || uid.isEmpty) return;
+
+    try {
+      await _rooms.doc(rid).update({
+        'participants.$uid.altPhone': altPhone.trim(),
+      });
+    } catch (e) {
+      debugPrint('[ChatService] Error setting alt phone: $e');
+    }
   }
 
   // ============================================================
@@ -671,6 +837,26 @@ class ChatService {
       roomId: roomId,
       userId: userId,
       phone: phone,
+    );
+  }
+
+  static Future<String> getParticipantAltPhone({
+    required String roomId,
+    required String userId,
+  }) async {
+    final p = await getParticipant(roomId: roomId, userId: userId);
+    return p?['altPhone']?.toString().trim() ?? '';
+  }
+
+  static Future<void> updateParticipantAltPhone({
+    required String roomId,
+    required String userId,
+    required String altPhone,
+  }) async {
+    await updateParticipantProfile(
+      roomId: roomId,
+      userId: userId,
+      altPhone: altPhone,
     );
   }
 
