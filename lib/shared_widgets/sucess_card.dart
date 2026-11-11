@@ -16,7 +16,7 @@ Widget SucessCard({
   return GestureDetector(
     onTap: onTap,
     child: Container(
-      height: 100,
+      height: AppUtils.isTab ? 130: 100,
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.closedColor,

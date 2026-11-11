@@ -14,6 +14,7 @@ import 'package:lost_and_found/models/authmodels/login_otp_response_model.dart';
 import 'package:lost_and_found/models/authmodels/login_otp_verfiy_model.dart';
 import 'package:lost_and_found/models/authmodels/pincode_details_model.dart';
 import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
+import 'package:lost_and_found/utils/device_info_helper.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/categories_model/color_model.dart';
 import 'package:lost_and_found/models/delete_post/delete_post_reasons.dart';
@@ -118,12 +119,19 @@ class AuthRepository {
   Future<ResponseModel> updateProfile(UpdateProfileForm profile) async {
     final map  =  profile.toMap();
     final file = map.remove('profileimg') as File?;
+
+    final logMap = Map<String, dynamic>.from(map);
+    if (logMap.containsKey('device_token')) {
+      logMap['device_token'] = DeviceInfoHelper.maskToken(logMap['device_token'] as String?);
+    }
+    debugPrint('[user/update] FormData parameters: $logMap');
+
     final formData = dio.FormData.fromMap({...map,
       if(file != null)
         'profileimg' : await dio.MultipartFile.fromFile(file.path,filename: file.path.split('/').last,)
     });
-    
-    return  await apiClient.post(ApiEndPoints.updateProfile,data: formData); // NEW
+
+    return await apiClient.post(ApiEndPoints.updateProfile,data: formData); // NEW
   }
 
   Future<ResponseModel<ProfileScreenModel>> getProfile({
@@ -913,6 +921,30 @@ class AuthRepository {
       '[Notification] send status=${response.status}, '
           'message=${response.message}, '
           'data=${response.data}',
+    );
+
+    return response;
+  }
+
+
+  Future<ResponseModel> createRequest({
+    required int userId,
+    required int postId,
+    required int receiverId,
+    required String name,
+  }) async {
+    final response = await apiClient.post(
+      ApiEndPoints.createRequest,
+      data: {
+        'user_id': userId,
+        'receiver_id': receiverId,
+        'post_id': postId,
+        'name': name,
+      },
+    );
+
+    print(
+      '[CreateRequest] status=${response.status}, message=${response.message}, data=${response.data}',
     );
 
     return response;

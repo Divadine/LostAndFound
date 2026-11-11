@@ -100,24 +100,29 @@ class AppUiHelper {
       context: context,
       isScrollControlled: true,
       isDismissible: isDismissible,
-
+      constraints: const BoxConstraints(maxWidth: double.infinity),
       backgroundColor: Colors.transparent,
       builder: (context) {
         final maxHeight = MediaQuery.of(context).size.height * maxHeightFactor;
         final bottomInset = MediaQuery.of(context).viewInsets.bottom;
         final bottomNavHeight = MediaQuery.of(context).padding.bottom;
+        final bottomNav = MediaQuery.of(context).padding.bottom;        // gesture / nav bar
         return SafeArea(
+          left: false,
+          right: false,
           child: Padding(
             padding: EdgeInsets.only(bottom: bottomInset + bottomNavHeight),
             child: Stack(
+              fit: StackFit.passthrough,
               clipBehavior: Clip.none,
               children: [
                 Container(
+                  width: double.infinity,
                   constraints: BoxConstraints(
                     maxHeight: maxHeight,
                     minHeight: minHeight == true ? maxHeight : 0,
                   ),
-                  padding: const EdgeInsets.fromLTRB(
+                  padding: EdgeInsets.fromLTRB(
                     16,12,16,30
                   ),
                   decoration: BoxDecoration(
@@ -127,7 +132,8 @@ class AppUiHelper {
                     ),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                   // crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [

@@ -37,6 +37,7 @@ import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
+import 'package:lost_and_found/utils/device_info_helper.dart';
 import 'package:lost_and_found/screens/otp_screen_shared.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -1204,6 +1205,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               final int altStatus = _isAltVerified ? 1 : 0;
 
 
+              final deviceId = await DeviceInfoHelper.getDeviceId();
+              final deviceType = DeviceInfoHelper.getDeviceType();
+              final deviceToken = await DeviceInfoHelper.getDeviceToken();
+              final appVersion = await DeviceInfoHelper.getAppVersion();
+
               final profile = UpdateProfileForm(
                 id: widget.profileModel.userId,
                 profileImg: choosenImage,
@@ -1222,6 +1228,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 log: longitude,
                 profileStatus: profileStatus,
                 altVerified: _isAltVerified,
+                deviceId: deviceId,
+                deviceType: deviceType,
+                deviceToken: deviceToken,
+                appVersion: appVersion,
               );
 
               final response = await authController.updateProfileForm(profile);

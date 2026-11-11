@@ -192,8 +192,15 @@ Widget build(BuildContext context) {
                         ),
                       ),
                     Spacer(),
-                    if (percentageMatch != null)
-                      MatchBadge(percentage: percentageMatch!),
+                    // if (percentageMatch != null)
+                    //   MatchBadge(percentage: percentageMatch!),
+                    if (percentageMatch != null) ...[
+                      // const Spacer(),
+                      MatchBadge(
+                        percentage: percentageMatch!,
+                      ),
+                      // const SizedBox(width: 5),
+                    ],
                   ],
                 ).padHorizontal(18),
               ),

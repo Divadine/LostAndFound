@@ -26,6 +26,7 @@ import 'package:lost_and_found/models/posts_model/post_match_item.dart';
 import 'package:lost_and_found/models/posts_model/single_match_item.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
 import 'package:lost_and_found/utils/device_info_helper.dart';
+import 'package:lost_and_found/utils/notification.dart';
 
 class AuthControllers {
   final AuthRepository authRepository;
@@ -65,6 +66,9 @@ class AuthControllers {
       await AppPreferences.setProfileStatus(user.status);
       await AppPreferences.setIsLoggedIn(true);
       await AppPreferences.setLastAuthScreen('');
+
+      // Trigger backend device token update after login
+      await AppNotificationService().setupFcmToken();
     }
     // if (response.status == 1 && response.data?.token != null) {
     //   await AppPreferences.saveToken(response.data!.token);
@@ -87,8 +91,30 @@ class AuthControllers {
   }
 
   Future<ResponseModel> updateProfileForm(UpdateProfileForm profile) async {
-    return await authRepository.updateProfile(profile);
+    final deviceId = (profile.deviceId != null && profile.deviceId!.isNotEmpty)
+        ? profile.deviceId!
+        : await DeviceInfoHelper.getDeviceId();
 
+    final deviceType = (profile.deviceType != null && profile.deviceType!.isNotEmpty)
+        ? profile.deviceType!
+        : DeviceInfoHelper.getDeviceType();
+
+    final deviceToken = (profile.deviceToken != null && profile.deviceToken!.isNotEmpty)
+        ? profile.deviceToken!
+        : await DeviceInfoHelper.getDeviceToken();
+
+    final appVersion = (profile.appVersion != null && profile.appVersion!.isNotEmpty)
+        ? profile.appVersion!
+        : await DeviceInfoHelper.getAppVersion();
+
+    final updatedProfile = profile.copyWith(
+      deviceId: deviceId,
+      deviceType: deviceType,
+      deviceToken: deviceToken,
+      appVersion: appVersion,
+    );
+
+    return await authRepository.updateProfile(updatedProfile);
   }
 
 
@@ -406,6 +432,20 @@ class AuthControllers {
   }) async {
     return await authRepository.sendNotification(
       userId: userId,
+    );
+  }
+
+  Future<ResponseModel> createRequest({
+    required int userId,
+    required int receiverId,
+    required int postId,
+    required String name,
+  }) async {
+    return await authRepository.createRequest(
+      userId: userId,
+      receiverId: receiverId,
+      postId: postId,
+      name: name,
     );
   }
 

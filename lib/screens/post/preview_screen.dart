@@ -494,6 +494,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
             width: 100,
             child: AppText(text: title, fontSize: 13, fontWeight: FontWeight.w600),
           ),
+          SizedBox(width : AppUtils.isTab ? 20 : 2),
           Expanded(
             child: AppText(text: value, fontSize: 13, fontWeight: FontWeight.w400),
           ),

@@ -1,10 +1,14 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart' as dio;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:lost_and_found/api_providers/api_client.dart';
+import 'package:lost_and_found/api_providers/api_endpoints.dart';
 
 import 'app_preferences.dart';
 import 'app_utils.dart';
+import 'device_info_helper.dart';
 
 /// Handles local notification tap when the app is in background.
 @pragma('vm:entry-point')
@@ -27,6 +31,9 @@ class AppNotificationService {
 
   /// Main notification initialization
   Future<void> init() async {
+    // Request permission first to ensure token can be fetched on Android 13+ / iOS
+    await requestPermission();
+
     // Initialize local notifications
     await initializePlatformNotifications();
 
@@ -48,26 +55,75 @@ class AppNotificationService {
 
       print('======================================');
       print('[FCM] Current user ID: ${userId ?? "Not logged in"}');
-      print('[FCM] Current token: ${fcmToken ?? "no_token_available"}');
+      print('[FCM] Current token: ${DeviceInfoHelper.maskToken(fcmToken)}');
       print('[FCM] Token registered for user: ${userId ?? "None"}');
       print('======================================');
 
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        await _updateBackendDeviceToken(fcmToken);
+      }
+
       if (Platform.isIOS) {
         final String? apnsToken = await messaging.getAPNSToken();
-        print('[FCM] APNS TOKEN: $apnsToken');
+        print('[FCM] APNS TOKEN: ${DeviceInfoHelper.maskToken(apnsToken)}');
       }
 
       // Listen for FCM token refresh
       messaging.onTokenRefresh.listen((String newToken) async {
         final int? currentUserId = AppPreferences.getUserId();
         print('======================================');
-        print('[FCM] Token refreshed: $newToken');
+        print('[FCM] Token refreshed: ${DeviceInfoHelper.maskToken(newToken)}');
         print('[FCM] Current user ID: ${currentUserId ?? "Not logged in"}');
         print('[FCM] Token registered for user: ${currentUserId ?? "None"}');
         print('======================================');
+
+        if (newToken.isNotEmpty) {
+          await _updateBackendDeviceToken(newToken);
+        }
       });
     } catch (e) {
       print('[FCM] Error setting up FCM token: $e');
+    }
+  }
+
+  /// Sends device_id, device_type, and device_token to backend user/update API
+  Future<void> _updateBackendDeviceToken(String fcmToken) async {
+    try {
+      if (fcmToken.isEmpty) {
+        print('[FCM] Backend update skipped: FCM token is empty.');
+        return;
+      }
+
+      final String? authToken = await AppPreferences.getToken();
+      if (authToken == null || authToken.isEmpty) {
+        print('[FCM] Backend update skipped: Auth token is missing (User not logged in).');
+        return;
+      }
+
+      final String deviceId = await DeviceInfoHelper.getDeviceId();
+      final String deviceType = DeviceInfoHelper.getDeviceType();
+
+      print('[FCM] Sending device info to backend (${ApiEndPoints.updateProfile}):');
+      print('[FCM]   device_id: $deviceId');
+      print('[FCM]   device_type: $deviceType');
+      print('[FCM]   device_token: ${DeviceInfoHelper.maskToken(fcmToken)}');
+
+      final formData = dio.FormData.fromMap({
+        'device_id': deviceId,
+        'device_type': deviceType,
+        'device_token': fcmToken,
+      });
+
+      final ApiClient apiClient = ApiClient();
+      final response = await apiClient.post(
+        ApiEndPoints.updateProfile,
+        data: formData,
+        addToken: true,
+      );
+
+      print('[FCM] user/update Response: status=${response.status}, message=${response.message}, data=${response.data}');
+    } catch (e) {
+      print('[FCM] Exception while updating backend device token: $e');
     }
   }
 

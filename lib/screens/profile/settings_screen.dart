@@ -435,6 +435,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                                     mainAxisSize: MainAxisSize.min,
                                     spacing: 15,
                                     children: [
+                                      SizedBox(height: AppUtils.isTab ? 30 : 20),
                                       AppText(
                                         text: 'How are you feeling ? ',
                                         fontSize: 18,
@@ -451,19 +452,17 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                                       ),
                                       Flexible(
                                         child: Row(
-                                          mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                          crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: List.generate(
                                             5,
                                                 (stars) => GestureDetector(
                                               onTap: () {
-                                                if (rating < 2) return;
                                                 setDialogState(() {
-                                                  int selectedStar = stars + 1;
+                                                  final selectedStar = stars + 1;
+
                                                   if (rating == selectedStar) {
-                                                    rating = rating - 1;
+                                                    rating = selectedStar - 1;
                                                   } else {
                                                     rating = selectedStar;
                                                   }

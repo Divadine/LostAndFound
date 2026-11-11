@@ -91,6 +91,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
         pageSize: _pageSize,
       );
 
+      debugPrint('========== NOTIFICATION API RESPONSE ==========');
+
+      debugPrint('Success: ${response.isSuccess}');
+      debugPrint('Message: ${response.message}');
+      debugPrint('Data: ${response.data}');
+
+      debugPrint('===============================================');
+
       if (!mounted) return;
 
       if (response.isSuccess && response.data != null) {

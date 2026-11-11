@@ -65,6 +65,7 @@ class ApiEndPoints {
   //enquiry
   static const createEnquiry = 'enquiry/createEnquiry';
   static const viewEnquiry = 'enquiry/viewEnquiry';
+  static const createRequest = 'enquiry/createRequest';
 
 
   //logout
@@ -80,6 +81,7 @@ class ApiEndPoints {
   //notification
   static const String notification = 'notification/getNotificationList';
   static const String sendNotification = 'notification/send';
+
 
 
 

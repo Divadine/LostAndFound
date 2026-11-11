@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 
@@ -1085,6 +1086,36 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
     );
   }
 
+
+  Future<void> _callCreateRequestApi() async {
+    final userId = int.tryParse(widget.currentUserId.trim());
+    final receiverId = int.tryParse(widget.otherUserId.trim());
+    final postId = int.tryParse(
+      widget.itemPostId.trim().isNotEmpty
+          ? widget.itemPostId.trim()
+          : _extractPostId(),
+    );
+    final myName = (AppPreferences.getUserName() ?? '').trim();
+
+    if (userId == null || receiverId == null || postId == null) {
+      debugPrint('[CreateRequest] skipped: userId=$userId receiverId=$receiverId postId=$postId');
+      return;
+    }
+
+    debugPrint('[CreateRequest] user_id=$userId receiver_id=$receiverId post_id=$postId name="$myName"');
+
+    try {
+      await _authController.createRequest(
+        userId: userId,
+        receiverId: receiverId,
+        postId: postId,
+        name: myName,
+      );
+    } catch (e) {
+      print('[CreateRequest] ERROR: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -1366,7 +1397,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
     return AppContainer(
       widget: Row(
         children: [
-          AppIconWidget(assetPath: AssetImages.mobileIcon),
+          AppIconWidget(assetPath: AssetImages.mobileIcon,size : AppUtils.isTab ? 25 : 0),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -1387,7 +1418,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
               spacing: 5,
               mainAxisSize: MainAxisSize.min,
               children: [
-                AppIconWidget(assetPath: AssetImages.copy, size: 16),
+                AppIconWidget(assetPath: AssetImages.copy, size: AppUtils.isTab ? 22 : 16),
                 const SizedBox(width: 4),
                 const AppText(
                   text: 'Copy',
@@ -1404,7 +1435,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
               spacing: 5,
               mainAxisSize: MainAxisSize.min,
               children: [
-                AppIconWidget(assetPath: AssetImages.call, size: 16),
+                AppIconWidget(assetPath: AssetImages.call, size: AppUtils.isTab ? 22 : 16),
                 const SizedBox(width: 4),
                 const AppText(
                   text: 'Call',
@@ -1446,7 +1477,8 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
         senderId: widget.currentUserId,
         receiverId: widget.otherUserId,
       );
-      await _notifyOtherUser(preview: 'Contact request');
+      await _callCreateRequestApi();
+      // await _notifyOtherUser(preview: 'Contact request');
 
       if (!mounted) return;
 
@@ -1533,6 +1565,16 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
         widget.itemLocation.trim().isNotEmpty ||
         widget.itemPostDate.trim().isNotEmpty;
 
+    print(
+      '[ITEM CARD] nav values -> '
+          'name="${widget.itemName}", '
+          'image="${widget.itemImage}", '
+          'location="${widget.itemLocation}", '
+          'date="${widget.itemPostDate}", '
+          'postId="${widget.itemPostId}", '
+          'matchedPostId="${widget.matchedPostId}", '
+          'roomId="${widget.roomId}"',
+    );
     if (navHasAnyData) {
       return ItemCard(
         imageWidth: 170,
@@ -3411,7 +3453,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
             return Stack(
               clipBehavior: Clip.none,
               children: [
-                _chatAvatar(_otherUserAvatar, size: 36),
+                _chatAvatar(_otherUserAvatar, size: AppUtils.isTab ? 45 : 36),
                 if (isOnline)
                   Positioned(
                     bottom: 0,

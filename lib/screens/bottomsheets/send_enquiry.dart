@@ -617,18 +617,9 @@ class _SendEnquiryState extends State<SendEnquiry> {
           '[Chat] Initial enquiry message sent.',
         );
 
-        // Notify the post owner
-        try {
-          final receiverId = int.tryParse(otherUserId);
-          if (receiverId != null && receiverId != 0) {
-            final res = await authController.sendNotification(
-              userId: receiverId,
-            );
-            print('[SendEnquiry] Notification response: ${res.message}');
-          }
-        } catch (e) {
-          print('[SendEnquiry] Notification error: $e');
-        }
+        // Note: Do not call authController.sendNotification() here.
+        // authController.createEnquiry() on the backend already triggers the "New Enquiry" notification.
+        // Calling sendNotification() here sends a redundant "New Message" push notification.
 
       }
 

@@ -109,6 +109,7 @@ class _PoliceStationHandOverState extends State<PoliceStationHandOver> {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       spacing: 10,
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,

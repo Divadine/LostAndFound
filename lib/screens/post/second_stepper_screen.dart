@@ -630,7 +630,7 @@ class _SecondStepperScreenState extends State<SecondStepperScreen> {
                           AppRecorder(
                             service: _recorderService,
                             onRecordTap: _handleMicPermission,
-                          )
+                          ),
 
                         ],
                       ),

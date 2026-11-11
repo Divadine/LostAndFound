@@ -196,7 +196,6 @@ class _HandoverMatchedPersonsState extends State<HandoverMatchedPersons> {
     debugPrint('[Handover] enquiryId: ${enquiryId ?? "NONE (Proceeding without enquiry)"}');
 
     final result = await AppUiHelper.showBottomSheet(
-
       maxHeightFactor: 0.7,
       context: context,
       child: HandoverProofDocuments(
