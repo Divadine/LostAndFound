@@ -226,10 +226,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
   }
 
   bool _hasValidImage(String? url) {
-    final u = (url ?? '').trim().toLowerCase();
-    if (u.isEmpty || u == 'null' || u == 'undefined') return false;
-    if (u.endsWith('/backend/') || u.endsWith('/backend')) return false;
-    return true;
+    return AvatarUtils.isValid(url);
   }
 
   String _timeAgo(DateTime? date) {
@@ -603,7 +600,7 @@ class _EnquiryListScreenState extends State<EnquiryListScreen> {
                   child: _hasValidImage(profileImage)
                       ? AppCachedNetworkImage(
                           borderRadius: BorderRadius.circular(24),
-                          imageUrl: profileImage,
+                          imageUrl: AvatarUtils.clean(profileImage),
                           fit: BoxFit.cover,
                           height: 48,
                           width: 48,

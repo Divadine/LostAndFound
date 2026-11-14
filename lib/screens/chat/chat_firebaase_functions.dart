@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class ChatService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -449,12 +450,12 @@ class ChatService {
               'participants': {
                 cleanCurrentUserId: {
                   'name': currentUserName?.trim() ?? '',
-                  'avatar': currentUserAvatar?.trim() ?? '',
+                  'avatar': AvatarUtils.clean(currentUserAvatar),
                   'phone': currentUserPhone?.trim() ?? '',
                 },
                 cleanOtherUserId: {
                   'name': otherUserName?.trim() ?? '',
-                  'avatar': otherUserAvatar?.trim() ?? '',
+                  'avatar': AvatarUtils.clean(otherUserAvatar),
                   'phone': otherUserPhone?.trim() ?? '',
                 },
               },
@@ -498,7 +499,7 @@ class ChatService {
               participants[cleanCurrentUserId] ?? {},
             );
             final cName = currentUserName?.trim() ?? '';
-            final cAvatar = currentUserAvatar?.trim() ?? '';
+            final cAvatar = AvatarUtils.clean(currentUserAvatar);
             final cPhone = currentUserPhone?.trim() ?? '';
 
             if (cName.isNotEmpty) {
@@ -517,7 +518,7 @@ class ChatService {
               participants[cleanOtherUserId] ?? {},
             );
             final oName = otherUserName?.trim() ?? '';
-            final oAvatar = otherUserAvatar?.trim() ?? '';
+            final oAvatar = AvatarUtils.clean(otherUserAvatar);
             final oPhone = otherUserPhone?.trim() ?? '';
 
             if (oName.isNotEmpty &&
@@ -599,7 +600,7 @@ class ChatService {
         participant['name'] = name.trim();
       }
       if (avatar.trim().isNotEmpty) {
-        participant['avatar'] = avatar.trim();
+        participant['avatar'] = AvatarUtils.clean(avatar);
       }
       if (phone.trim().isNotEmpty) {
         participant['phone'] = phone.trim();
@@ -656,7 +657,7 @@ class ChatService {
     try {
       final roomRef = _rooms.doc(cleanRoomId);
       await roomRef.update({
-        'participants.$cleanUserId.avatar': avatarUrl.trim(),
+        'participants.$cleanUserId.avatar': AvatarUtils.clean(avatarUrl),
       });
     } catch (e) {
       debugPrint('[ChatService] Error setting participant avatar: $e');
@@ -675,7 +676,7 @@ class ChatService {
     if (cleanUserId.isEmpty) return;
 
     try {
-      final cleanAvatar = avatarUrl.trim();
+      final cleanAvatar = AvatarUtils.clean(avatarUrl);
       final roomsQuery = await _rooms
           .where('users', arrayContains: cleanUserId)
           .get();

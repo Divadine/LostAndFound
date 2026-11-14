@@ -32,40 +32,6 @@ Future<void> firebaseMessagingBackgroundHandler(
   print('Data: ${message.data}');
   print('======================================');
 }
-
-// void main() async {
-//
-//   WidgetsFlutterBinding.ensureInitialized();
-//   await Firebase.initializeApp(
-//     options: DefaultFirebaseOptions.currentPlatform,
-//   );
-//
-//   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-//   PlatformDispatcher.instance.onError = (error, stack) {
-//     return true;
-//   };
-//   FirebaseMessaging.onBackgroundMessage(
-//     firebaseMessagingBackgroundHandler,
-//   );  // try {
-//   //   if (Firebase.apps.isEmpty) {
-//   //     await Firebase.initializeApp(
-//   //       options: DefaultFirebaseOptions.currentPlatform,
-//   //     );
-//   //   }
-//   // } on FirebaseException catch (e) {
-//   //   if (e.code != 'duplicate-app') {
-//   //     rethrow;
-//   //   }
-//   // } catch (e) {
-//   //   rethrow;
-//   // }
-//   await AppPreferences.init();
-//   await AppPermissions.init();
-//   await AppNotificationService().init();
-//   runApp(MyApp());
-// }
-
-
 Future<void> main() async {
   //WidgetsFlutterBinding.ensureInitialized();
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -128,15 +94,6 @@ class _MyAppState extends State<MyApp> {
       ).copyWith(textScaler: TextScaler.linear(1.0), boldText: false),
       child: MaterialApp.router(
         routerConfig: AppRoutes.router,
-
-
-        // theme: ThemeData(
-        //   // appBarTheme: AppBarTheme(
-        //   //   systemOverlayStyle:SystemUiOverlayStyle(
-        //   //     statusBarColor: AppColors.primaryColor
-        //   //   )
-        //   // )
-        // ),
         title: 'Findora',
         debugShowCheckedModeBanner: false,
       ),

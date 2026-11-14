@@ -13,6 +13,7 @@ import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 import 'message_tick.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -718,7 +719,7 @@ class ChatRoomData {
     // AVATAR
     // ============================================================
 
-    final otherUserAvatar = otherParticipant['avatar']?.toString().trim() ?? '';
+    final otherUserAvatar = AvatarUtils.clean(otherParticipant['avatar']?.toString());
 
     // ============================================================
     // PHONE
@@ -913,9 +914,8 @@ Widget ChatTile({
       ? 'No messages yet'
       : lastMessage;
 
-  final cleanImageUrl = imageUrl.trim();
-  final isAvatarEmpty =
-      cleanImageUrl.isEmpty || cleanImageUrl.toLowerCase() == 'null';
+  final cleanImageUrl = AvatarUtils.clean(imageUrl);
+  final isAvatarEmpty = cleanImageUrl.isEmpty;
 
   return InkWell(
     onTap: onTap,
@@ -946,6 +946,7 @@ Widget ChatTile({
                         width: 56,
 
                         fit: BoxFit.cover,
+                        errorWidget: Icon(Icons.person, size: 30, color: AppColors.grey),
                       )
                     : Icon(Icons.person, size: 30, color: AppColors.grey),
               ),

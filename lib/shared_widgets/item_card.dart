@@ -400,6 +400,8 @@ Widget build(BuildContext context) {
                             text:
                             'Available Matching item - $foundCount founded',
                             fontSize: 12,
+                            maxLine: 1,
+                            textOverflow: TextOverflow.ellipsis,
                             fontWeight: FontWeight.w500,
                           ),
                         ),

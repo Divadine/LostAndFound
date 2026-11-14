@@ -88,6 +88,10 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
   bool _isAudioPlaying = false;
   Duration _audioDuration = Duration.zero;
   Duration _audioPosition = Duration.zero;
+  StreamSubscription<PlayerState>? _playerStateSub;
+  StreamSubscription<int>? _durationSub;
+  StreamSubscription<void>? _completionSub;
+  bool _isDisposed = false;
 
   // Video Playback
   VideoPlayerController? _videoController;
@@ -105,11 +109,20 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
     _setupVideo();
 
     _mediaCoordinatorSub = MediaPlaybackCoordinator.instance.onPlayRequested.listen((id) {
+      if (_isDisposed || !mounted) return;
       if (id != MediaPlaybackCoordinator.audioId && _isAudioPlaying) {
-        _waveController.pausePlayer();
+        try {
+          _waveController.pausePlayer();
+        } catch (e) {
+          debugPrint('Error pausing audio player: $e');
+        }
       }
       if (id != MediaPlaybackCoordinator.videoId && (_videoController?.value.isPlaying ?? false)) {
-        _videoController?.pause();
+        try {
+          _videoController?.pause();
+        } catch (e) {
+          debugPrint('Error pausing video player: $e');
+        }
       }
     });
   }
@@ -130,6 +143,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
 
   Future<void> _setupAudio() async {
     if (widget.audioPath == null || widget.audioPath!.isEmpty) return;
+    if (_isDisposed) return;
     try {
       await _waveController.preparePlayer(
         path: widget.audioPath!,
@@ -138,32 +152,42 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
         volume: 1.0,
       );
 
+      if (_isDisposed || !mounted) return;
+
       final durationMs = await _waveController.getDuration();
-      if (!mounted) return;
+      if (_isDisposed || !mounted) return;
+
       setState(() {
         _audioReady = true;
         _audioDuration = Duration(milliseconds: durationMs);
       });
 
-      _waveController.onPlayerStateChanged.listen((state) {
-        if (!mounted) return;
+      _playerStateSub = _waveController.onPlayerStateChanged.listen((state) {
+        if (_isDisposed || !mounted) return;
         setState(() => _isAudioPlaying = state == PlayerState.playing);
       });
 
-      _waveController.onCurrentDurationChanged.listen((positionMs) {
-        if (!mounted) return;
+      _durationSub = _waveController.onCurrentDurationChanged.listen((positionMs) {
+        if (_isDisposed || !mounted) return;
         setState(() => _audioPosition = Duration(milliseconds: positionMs));
       });
 
-      _waveController.onCompletion.listen((_) async {
-        await _waveController.seekTo(0);
-        if (!mounted) return;
+      _completionSub = _waveController.onCompletion.listen((_) async {
+        if (_isDisposed || !mounted) return;
+        try {
+          await _waveController.seekTo(0);
+        } catch (e) {
+          debugPrint('Error seeking audio to 0 on completion: $e');
+        }
+        if (_isDisposed || !mounted) return;
         setState(() {
           _isAudioPlaying = false;
           _audioPosition = Duration.zero;
         });
       });
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Error setting up audio player: $e');
+    }
   }
 
   Future<void> _setupVideo() async {
@@ -186,9 +210,29 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
 
   @override
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+
     _connectivitySub?.cancel();
     _mediaCoordinatorSub?.cancel();
-    _waveController.dispose();
+    _playerStateSub?.cancel();
+    _durationSub?.cancel();
+    _completionSub?.cancel();
+
+    if (_isAudioPlaying) {
+      try {
+        _waveController.pausePlayer();
+      } catch (e) {
+        debugPrint('Error pausing wave controller during dispose: $e');
+      }
+    }
+
+    try {
+      _waveController.dispose();
+    } catch (e) {
+      debugPrint('Error disposing wave controller: $e');
+    }
+
     _videoController?.dispose();
     super.dispose();
   }
@@ -201,12 +245,16 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
   }
 
   Future<void> _toggleAudio() async {
-    if (!_audioReady) return;
-    if (_isAudioPlaying) {
-      await _waveController.pausePlayer();
-    } else {
-      MediaPlaybackCoordinator.instance.requestPlay(MediaPlaybackCoordinator.audioId);
-      await _waveController.startPlayer();
+    if (_isDisposed || !_audioReady || !mounted) return;
+    try {
+      if (_isAudioPlaying) {
+        await _waveController.pausePlayer();
+      } else {
+        MediaPlaybackCoordinator.instance.requestPlay(MediaPlaybackCoordinator.audioId);
+        await _waveController.startPlayer();
+      }
+    } catch (e) {
+      debugPrint('Error toggling audio playback: $e');
     }
   }
 
@@ -236,7 +284,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
     final imageIds = imageResponse.data!.map((e) => e.id).join(',');
 
     // Step 2: call createPostStep1
-    final userId = await AppPreferences.getUserId();
+    final userId = AppPreferences.getUserId();
     final postResponse = await authController.createPostStep1(
       userId: userId ?? 0,
       postType: widget.postType,
@@ -740,7 +788,7 @@ class _PreviewPostScreenState extends State<PreviewPostScreen> {
             },
             child: CircleAvatar(
               radius: 22,
-              backgroundColor: Colors.white.withOpacity(0.8),
+              backgroundColor: Colors.white.withValues(alpha: 0.8),
               child: Icon(_isVideoPlaying ? Icons.pause : Icons.play_arrow, color: AppColors.primaryColor, size: 30),
             ),
           ),

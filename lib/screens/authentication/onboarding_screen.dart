@@ -108,6 +108,9 @@ class OnboardingScreenState extends State<OnboardingScreen> {
                               fontSize: 28,
                               color: AppColors.primaryColor,
                               fontWeight: FontWeight.w600,
+                              textAlign: TextAlign.center,
+                              softWrap: true,
+
                             ),
                             AppText(
                               text: model.description,

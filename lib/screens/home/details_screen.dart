@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/enums/handover_type.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:lost_and_found/models/handover/handover_type.dart';
 import 'package:lost_and_found/models/posts_model/post_match_item.dart';
 import 'package:lost_and_found/models/posts_model/single_match_item.dart';
@@ -395,10 +396,10 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
   }
 
   String get _posterAvatar {
-    if (widget.posterAvatar.isNotEmpty) return widget.posterAvatar;
+    if (widget.posterAvatar.isNotEmpty) return AvatarUtils.clean(widget.posterAvatar);
     final apiAvatar = postDetails?.posterAvatar ?? '';
-    if (apiAvatar.isNotEmpty) return apiAvatar;
-    if (widget.isUserPost) return AppPreferences.getUserAvatar() ?? '';
+    if (apiAvatar.isNotEmpty) return AvatarUtils.clean(apiAvatar);
+    if (widget.isUserPost) return AvatarUtils.clean(AppPreferences.getUserAvatar());
     return '';
   }
 
@@ -599,12 +600,17 @@ class _LostItemsDetailsScreenState extends State<LostItemsDetailsScreen> {
                   Row(
                     children: [
                       ClipOval(
-                        child: _posterAvatarUrl.isNotEmpty
+                        child: AvatarUtils.isValid(_posterAvatarUrl)
                             ? AppCachedNetworkImage(
-                          imageUrl: _posterAvatarUrl,
+                          imageUrl: AvatarUtils.clean(_posterAvatarUrl),
                           width: 34,
                           height: 34,
                           fit: BoxFit.cover,
+                          errorWidget: const Icon(
+                            Icons.person,
+                            size: 20,
+                            color: AppColors.primaryColor,
+                          ),
                         )
                             : CircleAvatar(
                           radius: 17,

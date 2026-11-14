@@ -499,14 +499,16 @@ class _HomeScreenState extends State<HomeScreen>
     );
     _selectedIndex = widget.initialTabIndex ?? 0;
 
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging ||
-          _tabController.index != _selectedIndex) {
-        setState(() {
-          _selectedIndex = _tabController.index;
-        });
-      }
-    });
+    // _tabController.addListener(() {
+    //   if (_tabController.indexIsChanging ||
+    //       _tabController.index != _selectedIndex) {
+    //     setState(() {
+    //       _selectedIndex = _tabController.index;
+    //     });
+    //   }
+    // });
+
+    _tabController.addListener(_handleTabChange);
 
     _lostScrollController.addListener(() {
       if (_lostScrollController.position.pixels >=
@@ -622,6 +624,7 @@ class _HomeScreenState extends State<HomeScreen>
     WidgetsBinding.instance.removeObserver(this);
     AppUtils.postRefreshNotifier.removeListener(_refreshPosts);
     _connectivitySub?.cancel();
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     filterStateStream.close();
     _lostScrollController.dispose();
@@ -630,6 +633,23 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
+  void _handleTabChange() {
+    if (!mounted) return;
+
+    final newIndex = _tabController.index;
+
+    if (_selectedIndex == newIndex) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      if (_selectedIndex != _tabController.index) {
+        setState(() {
+          _selectedIndex = _tabController.index;
+        });
+      }
+    });
+  }
   // ============================================================
   // BUILD
   // ============================================================
@@ -1421,17 +1441,20 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Row(
       spacing: 10,
-
       mainAxisAlignment: MainAxisAlignment.center,
-
+      mainAxisSize: MainAxisSize.max,
       children: [
         AppIconWidget(assetPath: image, color: color),
 
-        AppText(
-          text: title,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: color,
+        Flexible(
+          child: AppText(
+            text: title,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: color,
+            maxLine: 1,
+            textOverflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

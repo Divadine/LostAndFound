@@ -3,13 +3,11 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lost_and_found/api_providers/api_client.dart';
 import 'package:lost_and_found/controllers/auth_controllers.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
-import 'package:lost_and_found/screens/authentication/profile_screen.dart';
 import 'package:lost_and_found/screens/profile/webView.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
@@ -191,11 +189,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                       final String? profileImageUrl =
                       profile?.profileImageUrl?.trim();
 
-                      final bool hasProfileImage =
-                          profileImageUrl != null &&
-                              profileImageUrl.isNotEmpty &&
-                              profileImageUrl.toLowerCase() != 'null' &&
-                              profileImageUrl.toLowerCase() != 'undefined';
+                      final bool hasProfileImage = AvatarUtils.isValid(profileImageUrl);
 
                       return CircleAvatar(
                         radius: 40,
@@ -204,7 +198,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                         child: hasProfileImage
                             ? ClipOval(
                           child: CachedNetworkImage(
-                            imageUrl: profileImageUrl,
+                            imageUrl: AvatarUtils.clean(profileImageUrl),
                             width: 80,
                             height: 80,
                             fit: BoxFit.cover,

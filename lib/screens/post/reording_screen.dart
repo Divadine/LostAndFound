@@ -157,41 +157,88 @@ class _AppRecorderState extends State<AppRecorder> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GestureDetector(
                 onTap: _service.togglePlayback,
                 child: AppIconWidget(
                   assetPath: _service.isPlaying
                       ? AssetImages.recordingPlay
-                      : AssetImages.recordingPause
-                  ,
+                      : AssetImages.recordingPause,
                 ),
               ),
-              const SizedBox(width: 7),
-              Flexible(child: _buildWave()),
-            ],
-          ).pad(),
-          const SizedBox(height: 7),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              AppText(text: _service.formatDuration(displayDuration)),
-              Row(
-                children: [
-                  AppIconWidget(assetPath: AssetImages.recordSave),
-                  const SizedBox(width: 10),
-                  AppText(
-                    text: 'Recording Saved',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildWave(),
               ),
             ],
-          ),
+          ).pad(),
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.spaceAround,
+          //   crossAxisAlignment: CrossAxisAlignment.center,
+          //   children: [
+          //     GestureDetector(
+          //       onTap: _service.togglePlayback,
+          //       child: AppIconWidget(
+          //         assetPath: _service.isPlaying
+          //             ? AssetImages.recordingPlay
+          //             : AssetImages.recordingPause
+          //         ,
+          //       ),
+          //     ),
+          //     const SizedBox(width: 7),
+          //     Flexible(child: _buildWave()),
+          //   ],
+          // ).pad(),
+          const SizedBox(height: 7),
+          Row(
+            children: [
+              AppText(
+                text: _service.formatDuration(displayDuration),
+                fontSize: 12,
+                maxLine: 1,
+              ),
+              const Spacer(),
+              Flexible(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppIconWidget(
+                      assetPath: AssetImages.recordSave,
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: AppText(
+                        text: 'Recording Saved',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        maxLine: 1,
+                        textOverflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ).padHorizontal(),
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.spaceAround,
+          //   crossAxisAlignment: CrossAxisAlignment.center,
+          //   children: [
+          //     AppText(text: _service.formatDuration(displayDuration)),
+          //     Row(
+          //       children: [
+          //         AppIconWidget(assetPath: AssetImages.recordSave),
+          //         const SizedBox(width: 10),
+          //         AppText(
+          //           text: 'Recording Saved',
+          //           fontSize: 12,
+          //           fontWeight: FontWeight.w500,
+          //         ),
+          //       ],
+          //     ),
+          //   ],
+          // ),
           const SizedBox(height: 7),
           Row(
             children: [
@@ -270,26 +317,65 @@ class _AppRecorderState extends State<AppRecorder> {
     final total = _waveHeights.length;
     final filledCount = (progress * total).floor();
 
-    final double barWidth = AppUtils.isTab ? 6 : 3;
-    final double horizontalMargin = AppUtils.isTab ? 6 : 3;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        const gap = 2.0;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: List.generate(total, (i) {
-        final bool filled = i < filledCount;
+        final barWidth = (
+            (availableWidth - (total - 1) * gap) / total
+        ).clamp(1.0, AppUtils.isTab ? 6.0 : 4.0);
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: EdgeInsets.symmetric(horizontal: horizontalMargin),
-          width: barWidth,
-          height: _waveHeights[i] + 6,
-          decoration: BoxDecoration(
-            color: filled ? AppColors.primaryColor : AppColors.grey,
-            borderRadius: BorderRadius.circular(5),
+        return SizedBox(
+          width: availableWidth,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: List.generate(total, (i) {
+              final filled = i < filledCount;
+
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: barWidth,
+                height: _waveHeights[i] + 6,
+                decoration: BoxDecoration(
+                  color: filled
+                      ? AppColors.primaryColor
+                      : AppColors.grey,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              );
+            }),
           ),
         );
-      }),
+      },
     );
   }
+  // Widget _buildWave() {
+  //   final progress = _service.waveProgress;
+  //   final total = _waveHeights.length;
+  //   final filledCount = (progress * total).floor();
+  //
+  //   final double barWidth = AppUtils.isTab ? 6 : 3;
+  //   final double horizontalMargin = AppUtils.isTab ? 6 : 3;
+  //
+  //   return Row(
+  //     mainAxisAlignment: MainAxisAlignment.center,
+  //     crossAxisAlignment: CrossAxisAlignment.center,
+  //     children: List.generate(total, (i) {
+  //       final bool filled = i < filledCount;
+  //
+  //       return AnimatedContainer(
+  //         duration: const Duration(milliseconds: 200),
+  //         margin: EdgeInsets.symmetric(horizontal: horizontalMargin),
+  //         width: barWidth,
+  //         height: _waveHeights[i] + 6,
+  //         decoration: BoxDecoration(
+  //           color: filled ? AppColors.primaryColor : AppColors.grey,
+  //           borderRadius: BorderRadius.circular(5),
+  //         ),
+  //       );
+  //     }),
+  //   );
+  // }
 }

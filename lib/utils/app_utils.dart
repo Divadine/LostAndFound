@@ -195,3 +195,46 @@ class AppUtils {
   }
 }
 
+class AvatarUtils {
+  static bool isValid(String? url) {
+    if (url == null) return false;
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return false;
+
+    final lower = trimmed.toLowerCase();
+    if (lower == 'null' || lower == 'undefined') return false;
+
+    if (lower.endsWith('/null') ||
+        lower.endsWith('/undefined') ||
+        lower.endsWith('/backend/') ||
+        lower.endsWith('/backend')) {
+      return false;
+    }
+
+    try {
+      final uri = Uri.parse(trimmed);
+      if (!uri.hasScheme || !uri.hasAuthority) return false;
+      if (uri.scheme != 'http' && uri.scheme != 'https') return false;
+    } catch (_) {
+      return false;
+    }
+
+    return true;
+  }
+
+  static String clean(String? url) {
+    if (url == null) return '';
+    final trimmed = url.trim();
+    return isValid(trimmed) ? trimmed : '';
+  }
+}
+
+String buildImageUrl(String? path) {
+  final p = path?.trim() ?? '';
+  if (p.isEmpty || p.toLowerCase() == 'null' || p.toLowerCase() == 'undefined') return '';
+  if (p.startsWith('http')) return AvatarUtils.clean(p);
+  final fullUrl = 'https://findora.skyraantechnologies.com/backend/$p';
+  return AvatarUtils.clean(fullUrl);
+}
+
+

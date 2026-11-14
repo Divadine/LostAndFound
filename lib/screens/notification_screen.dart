@@ -217,7 +217,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         // GetProfileModel — adjust if it uses different keys
         // (e.g. fullName, profileImage, mobileNumber, etc.)
         otherUserName = profile.name?.toString().trim() ?? '';
-        otherUserAvatar = profile.profileImageUrl?.toString().trim() ?? '';
+        otherUserAvatar = AvatarUtils.clean(profile.profileImageUrl);
         otherUserPhone = profile.mobile?.toString().trim() ?? '';
       }
     } catch (e) {
@@ -367,26 +367,38 @@ class _NotificationCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          (imageUrl != null && imageUrl!.trim().isNotEmpty)
+          AvatarUtils.isValid(imageUrl)
               ? AppCachedNetworkImage(
-            imageUrl: imageUrl!,
-            height: 76,
-            width: 76,
-            fit: BoxFit.cover,
-            borderRadius: BorderRadius.circular(16),
-          )
+                  imageUrl: AvatarUtils.clean(imageUrl),
+                  height: 76,
+                  width: 76,
+                  fit: BoxFit.cover,
+                  borderRadius: BorderRadius.circular(16),
+                  errorWidget: Container(
+                    height: 76,
+                    width: 76,
+                    decoration: BoxDecoration(
+                      color: AppColors.grey.withAlpha(20),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.image_not_supported_outlined,
+                      color: AppColors.grey,
+                    ),
+                  ),
+                )
               : Container(
-            height: 76,
-            width: 76,
-            decoration: BoxDecoration(
-              color: AppColors.grey.withAlpha(20),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(
-              Icons.image_not_supported_outlined,
-              color: AppColors.grey,
-            ),
-          ),
+                  height: 76,
+                  width: 76,
+                  decoration: BoxDecoration(
+                    color: AppColors.grey.withAlpha(20),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.image_not_supported_outlined,
+                    color: AppColors.grey,
+                  ),
+                ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/no_internet_widget.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
-import 'package:lost_and_found/utils/app_images.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class AppCachedNetworkImage extends StatefulWidget {
   final String imageUrl;
@@ -28,26 +28,22 @@ class AppCachedNetworkImage extends StatefulWidget {
 }
 
 class _AppCachedNetworkImageState extends State<AppCachedNetworkImage> {
-  // Base URL for the backend — used to resolve relative image paths
-  // returned by getPost / Match / viewEnquiry etc.
-  static const String _baseUrl = 'https://lost-and-found.skyraantech.com/backend/';
-
   String get _resolvedUrl {
     final url = widget.imageUrl.trim();
-    if (url.isEmpty) return '';
+    if (url.isEmpty || url.toLowerCase() == 'null' || url.toLowerCase() == 'undefined') {
+      return '';
+    }
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url; // already absolute (e.g. from createImage response)
+      return AvatarUtils.clean(url);
     }
     final cleanPath = url.startsWith('/') ? url.substring(1) : url;
-    return '$_baseUrl$cleanPath';
+    return buildImageUrl(cleanPath);
   }
 
   @override
   Widget build(BuildContext context) {
-    final cleanUrl = _resolvedUrl.toLowerCase();
-    if (cleanUrl.isEmpty ||
-        cleanUrl.endsWith('/backend/') ||
-        cleanUrl.endsWith('/backend')) {
+    final resolved = _resolvedUrl;
+    if (resolved.isEmpty || !AvatarUtils.isValid(resolved)) {
       return widget.errorWidget ??
           Container(
             color: Colors.grey,
@@ -60,7 +56,7 @@ class _AppCachedNetworkImageState extends State<AppCachedNetworkImage> {
     return ClipRRect(
       borderRadius: widget.borderRadius ?? BorderRadius.circular(6),
       child: CachedNetworkImage(
-        imageUrl: _resolvedUrl,
+        imageUrl: resolved,
         width: widget.width,
         height: widget.height,
         fit: widget.fit,
@@ -88,10 +84,7 @@ class EnquiredPersonsAvatar extends StatelessWidget {
   const EnquiredPersonsAvatar({super.key, required this.images});
 
   bool _hasValidImage(String? url) {
-    final u = (url ?? '').trim().toLowerCase();
-    if (u.isEmpty || u == 'null' || u == 'undefined') return false;
-    if (u.endsWith('/backend/') || u.endsWith('/backend')) return false;
-    return true;
+    return AvatarUtils.isValid(url);
   }
 
   @override
@@ -119,7 +112,7 @@ class EnquiredPersonsAvatar extends StatelessWidget {
                         color: AppColors.primaryColor,
                       )
                     : AppCachedNetworkImage(
-                        imageUrl: images[i],
+                        imageUrl: AvatarUtils.clean(images[i]),
                         borderRadius: BorderRadius.circular(40),
                         height: 20,
                         width: 20,

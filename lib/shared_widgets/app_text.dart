@@ -31,23 +31,28 @@ class AppText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MediaQuery(
-      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(1.0)),
-      child: Text(
-        text,
-        overflow: textOverflow,
-        textAlign: textAlign,
-        maxLines: maxLine,
-        softWrap: softWrap,
-        style: appTextStyle(
-          color: color ?? Theme.of(context).textTheme.bodyMedium!.color!,
-          fontSize: AppUtils.isTab ? fontSize + 7 : fontSize,
-          fontWeight: fontWeight,
-          height: height,
-          textDecoration: textDecoration,
-        ),
-      ),
-    );
-  }
+        data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(1.0)),
+        child: Text(
+          text,
+          overflow: textOverflow,
+          textAlign: textAlign,
+          maxLines: maxLine,
+          softWrap: softWrap,
+          style: appTextStyle(
+            color: color ?? Theme
+                .of(context)
+                .textTheme
+                .bodyMedium!
+                .color!,
+            fontSize: AppUtils.isTab ? fontSize + 7 : fontSize,
+            fontWeight: fontWeight,
+            height: height,
+            textDecoration: textDecoration,
+          ),
+        )
+        );
+    }
 }
 
 TextStyle appTextStyle({

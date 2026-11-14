@@ -387,14 +387,42 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
     }
   }
 
+
   Future<void> _pickImage() async {
-    if (_isPickingImage) return;
-    if (selectedImages.length >= maxImages) return;
-    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (picked != null) {
-      setState(() => selectedImages.add(File(picked.path)));
+    // Prevent multiple simultaneous picker requests
+    if (_isPickingImage || selectedImages.length >= maxImages) {
+      return;
+    }
+
+    _isPickingImage = true;
+
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (!mounted || picked == null) return;
+
+      setState(() {
+        selectedImages.add(File(picked.path));
+      });
+    } on PlatformException catch (e) {
+      debugPrint(
+        'Image Picker PlatformException: ${e.code} - ${e.message}',
+      );
+
+      if (e.code == 'already_active') {
+        debugPrint('Another image picker request is already active.');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Image Picker Error: $e');
+      debugPrintStack(stackTrace: stackTrace);
+    } finally {
+      _isPickingImage = false;
     }
   }
+
 
   void _removeImage(int index) {
     setState(() => selectedImages.removeAt(index));
@@ -732,7 +760,7 @@ class _FirstStepperScreenState extends State<FirstStepperScreen> {
             }
 
             return GestureDetector(
-              onTap: _pickImage,
+              onTap: _isPickingImage ? null : _pickImage,
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: AppColors.fieldGrey),

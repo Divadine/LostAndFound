@@ -61,6 +61,23 @@ class _LoginScreenState extends State<LoginScreen> {
     // Step 1: check user status
     final checkResponse = await authController.checkUser(phone);
 
+    print('========== API STATUS CODE ==========');
+    print('Current State: ${checkResponse.currentState}');
+    print('Response Message: ${checkResponse.message}');
+    print('=====================================');
+
+
+    print('========== LOGIN CHECK RESPONSE ==========');
+    print('Current State: ${checkResponse.currentState}');
+    print('Message: ${checkResponse.message}');
+    print('Data: ${checkResponse.data}');
+    print('User Status: ${checkResponse.data?.status}');
+    print('User ID: ${checkResponse.data?.userId}');
+    print('Is Reported: ${checkResponse.data?.isReported}');
+    print('Is Already Submitted: ${checkResponse.data?.isAlreadySubmitted}');
+    print('Is Deleted: ${checkResponse.data?.isDeletedAccount}');
+    print('==========================================');
+
     if (!mounted) return;
     setState(() => isLoading = false);
 

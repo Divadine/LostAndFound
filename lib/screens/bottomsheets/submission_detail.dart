@@ -190,13 +190,17 @@ class _ReceivedDetailsState extends State<ReceivedDetails> {
       widget: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          widget.data.avatarUrl.isNotEmpty
+          AvatarUtils.isValid(widget.data.avatarUrl)
               ? AppCachedNetworkImage(
-                  imageUrl: widget.data.avatarUrl,
+                  imageUrl: AvatarUtils.clean(widget.data.avatarUrl),
                   fit: BoxFit.cover,
                   width: 52,
                   height: 52,
                   borderRadius: BorderRadius.circular(26),
+                  errorWidget: Icon(
+                    Icons.person,
+                    color: AppColors.primaryColor,
+                  ),
                 )
               : CircleAvatar(
                   radius: 26,

@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 
 class AppPreferences {
   static late SharedPreferences _prefs;
@@ -140,11 +141,13 @@ class AppPreferences {
   static const String _userAvatarKey = "user_avatar";
 
   static Future<void> saveUserAvatar(String avatar) async {
-    await _prefs.setString(_userAvatarKey, avatar);
+    final cleaned = AvatarUtils.clean(avatar);
+    await _prefs.setString(_userAvatarKey, cleaned);
   }
 
   static String? getUserAvatar() {
-    return _prefs.getString(_userAvatarKey);
+    final avatar = _prefs.getString(_userAvatarKey);
+    return AvatarUtils.clean(avatar);
   }
 
   static Future<void> clearAll() async {

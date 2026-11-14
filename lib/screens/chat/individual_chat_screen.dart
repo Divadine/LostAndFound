@@ -149,7 +149,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
     super.initState();
     _presenceStream = ChatService.presenceStream(widget.otherUserId);
 
-    _otherUserAvatar = widget.otherUserAvatar.trim();
+    _otherUserAvatar = AvatarUtils.clean(widget.otherUserAvatar);
 
     _otherUserPhone = widget.otherUserPhone.trim();
 
@@ -217,7 +217,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
             );
             final otherP = participants[widget.otherUserId];
             if (otherP is Map) {
-              final avatar = otherP['avatar']?.toString().trim() ?? '';
+              final avatar = AvatarUtils.clean(otherP['avatar']?.toString());
               if (avatar != _otherUserAvatar) {
                 setState(() {
                   _otherUserAvatar = avatar;
@@ -561,45 +561,70 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
     return current.last != previous.last;
   }
 
+
   void _scrollToBottom({bool animate = false}) {
     if (!mounted) return;
 
     if (animate) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_scrollController.hasClients) return;
+
         final position = _scrollController.position;
-        if (position.hasPixels && position.maxScrollExtent > 0) {
+
+        // Important: dimensions must be calculated first.
+        if (!position.hasContentDimensions || !position.hasPixels) return;
+
+        final maxExtent = position.maxScrollExtent;
+
+        if ((maxExtent - position.pixels).abs() > 1) {
           position.animateTo(
-            position.maxScrollExtent,
+            maxExtent,
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
           );
         }
       });
+
       return;
     }
 
     void scrollPass(int remainingAttempts, double lastMaxExtent) {
-      if (!mounted || !_scrollController.hasClients) return;
-
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_scrollController.hasClients) return;
+        if (!mounted) return;
+
+        if (!_scrollController.hasClients) {
+          if (remainingAttempts > 0) {
+            scrollPass(remainingAttempts - 1, lastMaxExtent);
+          }
+          return;
+        }
 
         final position = _scrollController.position;
+
+        // Prevent maxScrollExtent null check crash.
+        if (!position.hasContentDimensions || !position.hasPixels) {
+          if (remainingAttempts > 0) {
+            scrollPass(remainingAttempts - 1, lastMaxExtent);
+          }
+          return;
+        }
+
         final currentMax = position.maxScrollExtent;
 
-        if (currentMax > 0) {
+        if ((currentMax - position.pixels).abs() > 1) {
           position.jumpTo(currentMax);
         }
 
-        if (remainingAttempts > 0 && (currentMax - lastMaxExtent).abs() > 1.0) {
+        if (remainingAttempts > 0 &&
+            (currentMax - lastMaxExtent).abs() > 1.0) {
           scrollPass(remainingAttempts - 1, currentMax);
         }
       });
     }
 
-    scrollPass(4, -1.0);
+    scrollPass(5, -1.0);
   }
+
 
   @override
   void dispose() {
@@ -1827,12 +1852,20 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
             final isMe =
                 lastDoc['senderId']?.toString() == widget.currentUserId;
 
+
             bool isNearBottom = false;
+
             if (_scrollController.hasClients) {
-              final maxScroll = _scrollController.position.maxScrollExtent;
-              final currentScroll = _scrollController.position.pixels;
-              isNearBottom = (maxScroll - currentScroll) <= 200;
+              final position = _scrollController.position;
+
+              if (position.hasContentDimensions && position.hasPixels) {
+                final maxScroll = position.maxScrollExtent;
+                final currentScroll = position.pixels;
+
+                isNearBottom = (maxScroll - currentScroll) <= 200;
+              }
             }
+
 
             if (isMe || isNearBottom) {
               _scrollToBottom(animate: true);
@@ -2038,8 +2071,8 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
   // ============================================================
 
   Widget _chatAvatar(String? url, {double size = 28}) {
-    final cleanUrl = url?.trim() ?? '';
-    final isEmpty = cleanUrl.isEmpty || cleanUrl.toLowerCase() == 'null';
+    final cleanUrl = AvatarUtils.clean(url);
+    final isEmpty = cleanUrl.isEmpty;
     return CircleAvatar(
       radius: size / 2,
       backgroundColor: AppColors.fieldGrey,
@@ -2050,6 +2083,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
                 height: size,
                 width: size,
                 fit: BoxFit.cover,
+                errorWidget: Icon(Icons.person, size: size * 0.7, color: AppColors.grey),
               )
             : Icon(Icons.person, size: size * 0.7, color: AppColors.grey),
       ),
@@ -2057,9 +2091,9 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
   }
 
   Widget _withAvatar({required bool isMe, required Widget child}) {
-    final senderAvatar = isMe
-        ? (AppPreferences.getUserAvatar() ?? '')
-        : _otherUserAvatar;
+    final senderAvatar = AvatarUtils.clean(
+      isMe ? (AppPreferences.getUserAvatar() ?? '') : _otherUserAvatar,
+    );
 
     return Row(
       mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,

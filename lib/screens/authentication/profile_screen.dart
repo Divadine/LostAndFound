@@ -15,21 +15,18 @@ import 'package:lost_and_found/models/authmodels/profile_form_models.dart';
 import 'package:lost_and_found/models/authmodels/profile_screen_model.dart';
 import 'package:lost_and_found/models/posts_model/selected_location_model.dart';
 import 'package:lost_and_found/repository/Auth_repository.dart';
-import 'package:lost_and_found/screens/authentication/otp_screen.dart';
-import 'package:lost_and_found/screens/authentication/register_screen.dart';
 import 'package:lost_and_found/screens/chat/chat_firebaase_functions.dart';
-import 'package:lost_and_found/shared_widgets/full_screen_image_viewer.dart';
 import 'package:lost_and_found/screens/maps/location_selection_screen.dart';
+import 'package:lost_and_found/screens/otp_screen_shared.dart';
 import 'package:lost_and_found/screens/permissions/location_permission.dart';
 import 'package:lost_and_found/screens/post/first_stepper_screen.dart';
 import 'package:lost_and_found/shared_widgets/app_bar.dart';
 import 'package:lost_and_found/shared_widgets/app_button.dart';
-import 'package:lost_and_found/shared_widgets/app_cached_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_dropdown_field.dart';
 import 'package:lost_and_found/shared_widgets/app_icon_widget.dart';
 import 'package:lost_and_found/shared_widgets/app_text.dart';
 import 'package:lost_and_found/shared_widgets/app_text_field.dart';
-import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
+import 'package:lost_and_found/shared_widgets/full_screen_image_viewer.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_dialog.dart';
 import 'package:lost_and_found/utils/app_images.dart';
@@ -38,7 +35,6 @@ import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
 import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:lost_and_found/utils/device_info_helper.dart';
-import 'package:lost_and_found/screens/otp_screen_shared.dart';
 
 class ProfileScreen extends StatefulWidget {
   final ProfileScreenModel profileModel;
@@ -50,7 +46,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-
   final TextEditingController alternativeController = TextEditingController();
   final AuthControllers authController = AuthControllers(
     authRepository: AuthRepository(apiClient: ApiClient()),
@@ -85,7 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   final List<TextEditingController> _controller = List.generate(
     4,
-        (_) => TextEditingController(),
+    (_) => TextEditingController(),
   );
 
   final TextEditingController nameController = TextEditingController();
@@ -106,7 +101,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isFormValid = false;
 
   final AppLocationPermission _appPermissions = AppLocationPermission();
-
 
   @override
   void initState() {
@@ -218,49 +212,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Future<void> _openMapForAddress() async {
-  //   final granted = await _appPermissions.requestLocationPermission(context);
-  //   if (!granted) return;
-  //
-  //   if (!mounted) return;
-  //
-  //   List<SelectedLocationModel>? existingLocations;
-  //   if (latitude != null &&
-  //       longitude != null &&
-  //       addressController.text.isNotEmpty) {
-  //     existingLocations = [
-  //       SelectedLocationModel(
-  //         address: addressController.text,
-  //         latitude: double.tryParse(latitude!) ?? 0.0,
-  //         longitude: double.tryParse(longitude!) ?? 0.0,
-  //       )
-  //     ];
-  //   }
-  //
-  //   final singleLocation = await context.pushNamed(
-  //     AppRoutes.mapScreen,
-  //     extra: MapScreenModel(
-  //       needSingleLocation: true,
-  //       selectedLocation: existingLocations,
-  //       fetchPincode: true,
-  //     ),
-  //   );
-  //
-  //   if (singleLocation != null) {
-  //     final locations = singleLocation as SelectedLocationModel;
-  //     setState(() {
-  //       addressController.text = locations.address;
-  //       latitude = locations.latitude.toString();
-  //       longitude = locations.longitude.toString();
-  //     });
-  //     _checkFormValidity();
-  //
-  //     if (locations.pincode != null && locations.pincode!.isNotEmpty) {
-  //       await _applyPincodeFromMap(locations.pincode!);
-  //     }
-  //   }
-  // }
-
   Future<void> _applyPincodeFromMap(String pincode) async {
     final savedLat = latitude;
     final savedLng = longitude;
@@ -299,8 +250,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _checkFormValidity() {
     final isNameValid = nameController.text.trim().isNotEmpty;
     final isMobileValid = mobileController.text.trim().isNotEmpty;
-    final isPinValid = pinController.text.length == 6 &&AppUtils.validatePincode(pinController.text) == null;
-    final isLandmarkValid = landmarkController.text.trim().isNotEmpty;
+    final isPinValid = pinController.text.length == 6 &&
+        AppUtils.validatePincode(pinController.text) == null;
     final isAddressValid = addressController.text.trim().isNotEmpty;
     final isCityValid = cityController.text.isNotEmpty;
     final isStateValid = stateController.text.isNotEmpty;
@@ -313,7 +264,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final valid = isNameValid &&
         isMobileValid &&
         isPinValid &&
-        // isLandmarkValid && // Landmark is required but we allow clicking Save to show the error
         isAddressValid &&
         isCityValid &&
         isStateValid &&
@@ -325,14 +275,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  String? _validatePinCode(String value) {
-    final errorPinCode = AppUtils.validatePincode(value);
-
-    isPinCodeValid =
-        value.length == 6 && errorPinCode == null;
-
-    return errorPinCode;
-  }
   Future<void> photoFromGallery() async {
     final XFile? pic = await picker.pickImage(source: ImageSource.gallery);
 
@@ -356,8 +298,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     AppRoutes.pop();
     _checkFormValidity();
   }
-
-
 
   @override
   void dispose() {
@@ -394,12 +334,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: AppColors.white,
       appBar: isNotFromSetUp
           ? CustomAppBar(
-        title: '',
-        leadingSvg: AssetImages.backArrow,
-        onLeadingTap: () {
-          AppRoutes.pop();
-        },
-      )
+              title: '',
+              leadingSvg: AssetImages.backArrow,
+              onLeadingTap: () {
+                AppRoutes.pop();
+              },
+            )
           : null,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -409,7 +349,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               spacing: 10,
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.center,
-
               children: [
                 AppText(
                   text: 'Profile',
@@ -423,69 +362,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     final File? selectedImage = asyncSnapshot.data;
 
                     final String? profileImageUrl =
-                    widget.profileModel.profileImageUrl?.trim();
+                        widget.profileModel.profileImageUrl?.trim();
 
                     final bool hasNetworkImage = !_isImageDeleted &&
-                        profileImageUrl != null &&
-                        profileImageUrl.isNotEmpty &&
-                            profileImageUrl.toLowerCase() != 'null' &&
-                            profileImageUrl.toLowerCase() != 'undefined';
+                        AvatarUtils.isValid(profileImageUrl);
 
-                    final bool hasImage = selectedImage != null || hasNetworkImage;
+                    final bool hasImage =
+                        selectedImage != null || hasNetworkImage;
                     return Stack(
                       children: [
                         GestureDetector(
                           onTap: () => FullScreenImageViewer.open(
                             context,
                             file: selectedImage,
-                            networkUrl: hasNetworkImage ? profileImageUrl : null,
+                            networkUrl:
+                                hasNetworkImage ? profileImageUrl : null,
                           ),
                           child: CircleAvatar(
                             radius: 50,
-                            backgroundColor:
-                            AppColors.fieldGrey.withAlpha(40),
+                            backgroundColor: AppColors.fieldGrey.withAlpha(40),
                             backgroundImage: selectedImage != null
                                 ? FileImage(selectedImage)
                                 : null,
                             child: selectedImage != null
                                 ? null
                                 : hasNetworkImage
-                                ? ClipOval(
-                              child: CachedNetworkImage(
-                                imageUrl: profileImageUrl,
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) {
-                                  return const SizedBox(
-                                    width: 100,
-                                    height: 100,
-                                    child: Center(
-                                      child:
-                                      CircularProgressIndicator(),
-                                    ),
-                                  );
-                                },
-                                errorWidget:
-                                    (context, url, error) {
-                                  return const Icon(
-                                    Icons.person,
-                                    size: 50,
-                                  );
-                                },
-                              ),
-                            )
-                                : const Icon(
-                              Icons.person,
-                              size: 50,
-                            ),
+                                    ? ClipOval(
+                                        child: CachedNetworkImage(
+                                          imageUrl: profileImageUrl!,
+                                          width: 100,
+                                          height: 100,
+                                          fit: BoxFit.cover,
+                                          placeholder: (context, url) {
+                                            return const SizedBox(
+                                              width: 100,
+                                              height: 100,
+                                              child: Center(
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              ),
+                                            );
+                                          },
+                                          errorWidget: (context, url, error) {
+                                            return const Icon(
+                                              Icons.person,
+                                              size: 50,
+                                            );
+                                          },
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.person,
+                                        size: 50,
+                                      ),
                           ),
                         ),
-
                         Positioned(
                           bottom: 0,
                           right: -4,
-
                           child: GestureDetector(
                             onTap: () {
                               FocusManager.instance.primaryFocus?.unfocus();
@@ -514,12 +448,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         await photoFromGallery();
                                         AppRoutes.pop();
                                       },
-
                                       child: Row(
                                         crossAxisAlignment:
-                                        CrossAxisAlignment.center,
+                                            CrossAxisAlignment.center,
                                         mainAxisAlignment:
-                                        MainAxisAlignment.center,
+                                            MainAxisAlignment.center,
                                         spacing: 10,
                                         children: [
                                           AppIconWidget(
@@ -533,8 +466,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         ],
                                       ),
                                     ),
-
-                                    if(hasImage)...[
+                                    if (hasImage) ...[
                                       Divider(),
                                       GestureDetector(
                                         onTap: () {
@@ -542,9 +474,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         },
                                         child: Row(
                                           crossAxisAlignment:
-                                          CrossAxisAlignment.center,
+                                              CrossAxisAlignment.center,
                                           mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                              MainAxisAlignment.center,
                                           spacing: 10,
                                           children: [
                                             AppIconWidget(
@@ -560,7 +492,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         ),
                                       ),
                                     ]
-
                                   ],
                                 ),
                               );
@@ -572,7 +503,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 shape: BoxShape.circle,
                               ),
                               child: Container(
-                                //color: AppColors.white,
                                 padding: EdgeInsets.all(4),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
@@ -603,6 +533,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     validator: (v) => AppUtils.required(v),
                   ),
                 ),
+
                 // Mobile Number
                 buildTextFieldWithHeading(
                   title: 'Mobile Number',
@@ -620,12 +551,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onSubmit: (v) {},
                         ),
                       ),
-
                       Expanded(
                         flex: 8,
                         child: AppTextField(
                           maxLength: 10,
-                          readOnly:true, // !widget.profileModel.isFromEdit,
+                          readOnly: true,
                           hintText: 'Enter a mobile number',
                           textController: mobileController,
                           onChange: (v) {
@@ -635,7 +565,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           textInputType: TextInputType.phone,
                           validator: (v) => AppUtils.validateMobileNumber(v),
                           suffixIcon: widget.profileModel.isFromEdit
-                              ?   AppIconWidget(assetPath: AssetImages.blueTick, size: 20).pad()
+                              ? AppIconWidget(
+                                      assetPath: AssetImages.blueTick, size: 20)
+                                  .pad()
                               : null,
                         ),
                       ),
@@ -644,7 +576,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
 
                 // Alternate Mobile Number
-                StreamBuilder(
+                StreamBuilder<String?>(
                   stream: mobileStream.stream,
                   builder: (context, asyncSnapshot) {
                     final numberData = asyncSnapshot.data;
@@ -655,14 +587,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           IntrinsicHeight(
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
-
                               spacing: 10,
                               children: [
                                 SizedBox(
                                   width: AppUtils.isTab ? 90 : 70,
                                   child: AppTextField(
-                                    borderColor: AppColors.fieldGrey.withAlpha(50),
-                                    contentPadding: EdgeInsets.all(AppUtils.isTab ?16 : 10),
+                                    borderColor:
+                                        AppColors.fieldGrey.withAlpha(50),
+                                    contentPadding: EdgeInsets.all(
+                                        AppUtils.isTab ? 16 : 10),
                                     textColor: AppColors.fieldGrey,
                                     readOnly: true,
                                     hintText: '+91',
@@ -671,15 +604,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     onSubmit: (v) {},
                                   ),
                                 ),
-
                                 Expanded(
                                   flex: 8,
                                   child: AppTextField(
                                     maxLength: 10,
                                     readOnly: _isAltVerified,
                                     hintText: 'Enter a mobile number',
-                                    contentPadding: EdgeInsets.all(AppUtils.isTab ?16 : 10),
-                                    borderColor: AppColors.fieldGrey.withAlpha(50),
+                                    contentPadding: EdgeInsets.all(
+                                        AppUtils.isTab ? 16 : 10),
+                                    borderColor:
+                                        AppColors.fieldGrey.withAlpha(50),
                                     textController: alternativeController,
                                     onChange: (v) {
                                       bool isValid = false;
@@ -695,7 +629,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         canVerify = false;
                                       } else {
                                         final error =
-                                        AppUtils.validateMobileNumber(v);
+                                            AppUtils.validateMobileNumber(v);
                                         mobileStream.add(error);
                                         isValid = error == null;
                                         canVerify = error == null;
@@ -703,10 +637,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                                       if (isValid != isAlternativeNumberValid) {
                                         setState(() =>
-                                        isAlternativeNumberValid = isValid);
+                                            isAlternativeNumberValid = isValid);
                                       }
                                       if (canVerify != _canVerifyAlternative) {
-                                        setState(() => _canVerifyAlternative = canVerify);
+                                        setState(() =>
+                                            _canVerifyAlternative = canVerify);
                                       }
 
                                       if (_isAltVerified) {
@@ -719,78 +654,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     textInputType: TextInputType.phone,
                                     suffixIcon: GestureDetector(
                                       onTap: _isAltVerified ||
-                                          !_canVerifyAlternative
+                                              !_canVerifyAlternative
                                           ? null
                                           : () {
-                                        if (AppUtils.validateMobileNumber(
-                                            alternativeController
-                                                .text) ==
-                                            null) {
-                                          AppDialogue.showPopup(
-                                            showCloseIcon: true,
-                                            context: context,
-                                            content: OtpSharedScreen(
-                                              isAlternateNumber: true,
-                                              mobileNumber:
-                                              alternativeController
-                                                  .text,
-                                              onVerifyOtp:
-                                                  (String otp) async {
-                                                final response =
-                                                await authController
-                                                    .verifyMobileOtp(
-                                                  phone:
-                                                  alternativeController
-                                                      .text,
-                                                  otp: otp,
-                                                  userId: widget
-                                                      .profileModel.userId!,
+                                              if (AppUtils.validateMobileNumber(
+                                                      alternativeController
+                                                          .text) ==
+                                                  null) {
+                                                AppDialogue.showPopup(
+                                                  showCloseIcon: true,
+                                                  context: context,
+                                                  content: OtpSharedScreen(
+                                                    isAlternateNumber: true,
+                                                    mobileNumber:
+                                                        alternativeController
+                                                            .text,
+                                                    onVerifyOtp:
+                                                        (String otp) async {
+                                                      final response =
+                                                          await authController
+                                                              .verifyMobileOtp(
+                                                        phone:
+                                                            alternativeController
+                                                                .text,
+                                                        otp: otp,
+                                                        userId: widget
+                                                            .profileModel
+                                                            .userId!,
+                                                      );
+                                                      if (response.status == 1) {
+                                                        if (!mounted) return null;
+
+                                                        setState(() {
+                                                          _isAltVerified = true;
+                                                          isAlternativeNumberValid =
+                                                              true;
+                                                          _canVerifyAlternative =
+                                                              true;
+                                                        });
+
+                                                        verifyMobileStream
+                                                            .add(true);
+
+                                                        return null;
+                                                      }
+                                                      return response.message;
+                                                    },
+                                                    onSendOtp: () async {
+                                                      final response =
+                                                          await authController
+                                                              .generateMobileOtp(
+                                                          alternativeController
+                                                              .text);
+                                                      if (response.isSuccess) {
+                                                        return null;
+                                                      }
+                                                      if (response
+                                                              .currentState ==
+                                                          CurrentState
+                                                              .noInternet) {
+                                                        return 'No internet connection. Please check your network.';
+                                                      }
+                                                      return response.message
+                                                              .isNotEmpty
+                                                          ? response.message
+                                                          : 'Failed to send OTP';
+                                                    },
+                                                  ),
                                                 );
-                                                if (response.status == 1) {
-                                                  if (!mounted) return null;
-
-                                                  setState(() {
-                                                    _isAltVerified = true;
-                                                    isAlternativeNumberValid = true;
-                                                    _canVerifyAlternative = true;
-                                                  });
-
-                                                  verifyMobileStream.add(true);
-
-                                                  return null;
-                                                }
-                                                return response.message;
-                                              },
-                                              onSendOtp: () async {
-                                                final response =
-                                                await authController
-                                                    .generateMobileOtp(
-                                                    alternativeController
-                                                        .text);
-                                                if (response.isSuccess)
-                                                  return null;
-                                                if (response.currentState ==
-                                                    CurrentState
-                                                        .noInternet) {
-                                                  return 'No internet connection. Please check your network.';
-                                                }
-                                                return response
-                                                    .message.isNotEmpty
-                                                    ? response.message
-                                                    : 'Failed to send OTP';
-                                              },
-                                            ),
-                                          );
-                                        }
-                                      },
+                                              }
+                                            },
                                       child: SizedBox(
-                                        width: AppUtils.isTab ? 110 :100,
+                                        width: AppUtils.isTab ? 110 : 100,
                                         child: Container(
                                           decoration: BoxDecoration(
                                             color: _isAltVerified
                                                 ? AppColors.lightGreen
                                                 : AppColors.idCardColor,
-                                            borderRadius: const BorderRadius.only(
+                                            borderRadius:
+                                                const BorderRadius.only(
                                               topRight: Radius.circular(6),
                                               bottomRight: Radius.circular(6),
                                             ),
@@ -807,7 +749,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                   Icon(
                                                     Icons.check,
                                                     color: AppColors.green,
-                                                    size: AppUtils.isTab ? 20 :18,
+                                                    size: AppUtils.isTab
+                                                        ? 20
+                                                        : 18,
                                                   ),
                                                 if (_isAltVerified)
                                                   const SizedBox(width: 4),
@@ -820,8 +764,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                   color: _isAltVerified
                                                       ? AppColors.green
                                                       : (_canVerifyAlternative
-                                                      ? AppColors.primaryColor
-                                                      : AppColors.grey),
+                                                          ? AppColors
+                                                              .primaryColor
+                                                          : AppColors.grey),
                                                 ),
                                               ],
                                             ),
@@ -835,17 +780,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           if (numberData != null)
-                            buildErrorText(errorText: numberData ?? ''),
+                            buildErrorText(errorText: numberData),
                         ],
                       ),
                     );
                   },
                 ),
 
-                StreamBuilder(
+                StreamBuilder<String?>(
                   stream: pinStream.stream,
                   builder: (context, asyncSnapshot) {
-                    final pinData = asyncSnapshot.data;
                     return buildTextFieldWithHeading(
                         title: ' PinCode',
                         fieldWidget: AppTextField(
@@ -880,49 +824,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             pinStream.add(error);
                             _checkFormValidity();
                           },
-
                           onSubmit: (v) {},
                           suffixIcon: GestureDetector(
-                            onTap: isPinCodeValid && pinController.text.length == 6
+                            onTap: isPinCodeValid &&
+                                    pinController.text.length == 6
                                 ? () async {
-                              final result = await addressControllers
-                                  .getAddressByPincode(pinController.text);
+                                    final result = await addressControllers
+                                        .getAddressByPincode(
+                                            pinController.text);
 
-                              if (!mounted) return;
+                                    if (!mounted) return;
 
-                              if (result != null) {
-                                setState(() {
-                                  countryController.text = result.country;
-                                  stateController.text = result.state;
+                                    if (result != null) {
+                                      setState(() {
+                                        countryController.text = result.country;
+                                        stateController.text = result.state;
 
-                                  cityOptions = result.areas;
+                                        cityOptions = result.areas;
 
-                                  selectedCityName = cityOptions.isNotEmpty
-                                      ? cityOptions.first.name
-                                      : null;
+                                        selectedCityName =
+                                            cityOptions.isNotEmpty
+                                                ? cityOptions.first.name
+                                                : null;
 
-                                  cityController.text = selectedCityName ?? '';
+                                        cityController.text =
+                                            selectedCityName ?? '';
 
-                                  latitude = result.latitude;
-                                  longitude = result.longitude;
+                                        latitude = result.latitude;
+                                        longitude = result.longitude;
 
-                                  _isCityFetched = cityOptions.isNotEmpty;
-                                });
+                                        _isCityFetched = cityOptions.isNotEmpty;
+                                      });
 
-                                _checkFormValidity();
-                              } else {
-                                AppDialogue.showPopup(
-                                  context: context,
-
-                                  content: AppText(
-                                    text: 'Could not fetch location details',
-                                  ),
-                                );
-                              }
-                            }
+                                      _checkFormValidity();
+                                    } else {
+                                      AppDialogue.showPopup(
+                                        context: context,
+                                        content: AppText(
+                                          text:
+                                              'Could not fetch location details',
+                                        ),
+                                      );
+                                    }
+                                  }
                                 : null,
                             child: SizedBox(
-                              width: AppUtils.isTab ?150 : 100,
+                              width: AppUtils.isTab ? 150 : 100,
                               child: Container(
                                 padding: EdgeInsets.symmetric(
                                   vertical: 16,
@@ -950,9 +897,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ),
-                        )
-
-                    );
+                        ));
                   },
                 ),
 
@@ -979,7 +924,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fieldWidget: AppTextField(
                           hintText: 'Enter state',
                           readOnly: true,
-
                           textController: stateController,
                           onChange: (v) {},
                           onSubmit: (v) {},
@@ -988,80 +932,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
 
                       //city
-                      //city
                       buildTextFieldWithHeading(
                         title: 'City',
                         fieldWidget: AppDropdownField<String>(
                           value: selectedCityName,
                           menuHeight: 250,
                           borderColor: AppColors.fieldGrey.withAlpha(20),
-
                           hintText: !_isCityFetched
                               ? 'Fetch pincode first'
                               : 'Select city',
-
                           items: cityOptions.map((a) => a.name).toList(),
-
                           itemLabel: (value) => value,
-
-                          selectedItemColor: AppColors.primaryColor.withAlpha(30),
+                          selectedItemColor:
+                              AppColors.primaryColor.withAlpha(30),
                           selectedItemTextColor: AppColors.primaryColor,
-
-                          // Only reserve/show the dropdown arrow once city options are actually fetched.
-                          // Passing null (not SizedBox.shrink()) means no icon slot is rendered at all,
-                          // so the field looks identical to your other empty fields until then.
                           suffixIcon: _isCityFetched
                               ? const Icon(Icons.keyboard_arrow_down)
                               : null,
                           hideSuffixIcon: cityOptions.isEmpty,
-                          //hideSuffixIcon: !_isCityFetched,
                           onChanged: !_isCityFetched
                               ? null
                               : (v) {
-                            setState(() {
-                              selectedCityName = v;
-                              cityController.text = v ?? '';
-                            });
+                                  setState(() {
+                                    selectedCityName = v;
+                                    cityController.text = v ?? '';
+                                  });
 
-                            _checkFormValidity();
-                          },
+                                  _checkFormValidity();
+                                },
                         ),
                       ),
-                      // buildTextFieldWithHeading(
-                      //   title: 'City',
-                      //   fieldWidget:
-                      //   AppDropdownField<String>(
-                      //     value: selectedCityName,
-                      //     menuHeight: 250,
-                      //     borderColor: AppColors.fieldGrey.withAlpha(20),
-                      //
-                      //     hintText: !_isCityFetched
-                      //         ? 'Fetch pincode first'
-                      //         : 'Select city',
-                      //
-                      //     items: cityOptions.map((a) => a.name).toList(),
-                      //
-                      //     itemLabel: (value) => value,
-                      //
-                      //     selectedItemColor: AppColors.primaryColor.withAlpha(30),
-                      //     selectedItemTextColor: AppColors.primaryColor,
-                      //
-                      //     suffixIcon: _isCityFetched
-                      //         ? const Icon(Icons.keyboard_arrow_down)
-                      //         : const SizedBox.shrink(),
-                      //
-                      //     onChanged: !_isCityFetched
-                      //         ? null
-                      //         : (v) {
-                      //       setState(() {
-                      //         selectedCityName = v;
-                      //         cityController.text = v ?? '';
-                      //       });
-                      //
-                      //       _checkFormValidity();
-                      //     },
-                      //   ),
-                      // ),
                     ],
                   ),
                 ),
@@ -1071,14 +971,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
-
                   children: [
                     AppText(
                       text: 'Address details',
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ).pad(1),
-
                     GestureDetector(
                       onTap: _openMapForAddress,
                       child: Container(
@@ -1097,7 +995,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 fit: BoxFit.cover,
                               ),
                             ),
-
                             Center(
                               child: AppTextField(
                                 onTap: _openMapForAddress,
@@ -1158,9 +1055,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _checkFormValidity();
                     },
                     onSubmit: (v) {},
-                    validator: (v) {
-                      //return AppUtils.required(v);
-                    },
+                    validator: (v) => null,
                   ),
                 ),
               ],
@@ -1168,7 +1063,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-
       bottomNavigationBar: SafeArea(
         child: Container(
           decoration: BoxDecoration(
@@ -1182,103 +1076,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: AppButton(
             title: widget.profileModel.isFromEdit ? 'Save' : 'Save & Next',
             radius: BorderRadius.circular(7),
-            onTap: _isFormValid ? () async {
-              if (!_formKey.currentState!.validate()) return;
-              if (!_isFormValid) return;
+            onTap: _isFormValid
+                ? () async {
+                    if (!_formKey.currentState!.validate()) return;
+                    if (!_isFormValid) return;
 
-              // profile_status:
-              //  0 -> register flow (first time setup) OR edit flow with a new image picked
-              //  1 -> edit flow, image unchanged
+                    final int profileStatus = (choosenImage != null ||
+                            (!_isImageDeleted &&
+                                widget.profileModel.profileImageUrl != null &&
+                                widget
+                                    .profileModel.profileImageUrl!.isNotEmpty))
+                        ? 0
+                        : 1;
 
+                    final deviceId = await DeviceInfoHelper.getDeviceId();
+                    final deviceType = DeviceInfoHelper.getDeviceType();
+                    final deviceToken = await DeviceInfoHelper.getDeviceToken();
+                    final appVersion = await DeviceInfoHelper.getAppVersion();
 
+                    final profile = UpdateProfileForm(
+                      id: widget.profileModel.userId,
+                      profileImg: choosenImage,
+                      name: nameController.text,
+                      phoneNo: mobileController.text,
+                      altNo: alternativeController.text.isNotEmpty
+                          ? alternativeController.text
+                          : null,
+                      pinCode: pinController.text,
+                      country: countryController.text,
+                      state: stateController.text,
+                      city: cityController.text,
+                      address: addressController.text,
+                      landMark: landmarkController.text,
+                      lat: latitude,
+                      log: longitude,
+                      profileStatus: profileStatus,
+                      altVerified: _isAltVerified,
+                      deviceId: deviceId,
+                      deviceType: deviceType,
+                      deviceToken: deviceToken,
+                      appVersion: appVersion,
+                    );
 
-              final int profileStatus = (choosenImage != null ||
-                      (!_isImageDeleted &&
-                          widget.profileModel.profileImageUrl != null &&
-                          widget.profileModel.profileImageUrl!.isNotEmpty))
-                  ? 0
-                  : 1;
-
-              // alt_status:
-              //  1 -> alternate number verified
-              //  0 -> not verified
-              final int altStatus = _isAltVerified ? 1 : 0;
-
-
-              final deviceId = await DeviceInfoHelper.getDeviceId();
-              final deviceType = DeviceInfoHelper.getDeviceType();
-              final deviceToken = await DeviceInfoHelper.getDeviceToken();
-              final appVersion = await DeviceInfoHelper.getAppVersion();
-
-              final profile = UpdateProfileForm(
-                id: widget.profileModel.userId,
-                profileImg: choosenImage,
-                name: nameController.text,
-                phoneNo: mobileController.text,
-                altNo: alternativeController.text.isNotEmpty
-                    ? alternativeController.text
-                    : null,
-                pinCode: pinController.text,
-                country: countryController.text,
-                state: stateController.text,
-                city: cityController.text,
-                address: addressController.text,
-                landMark: landmarkController.text,
-                lat: latitude,
-                log: longitude,
-                profileStatus: profileStatus,
-                altVerified: _isAltVerified,
-                deviceId: deviceId,
-                deviceType: deviceType,
-                deviceToken: deviceToken,
-                appVersion: appVersion,
-              );
-
-              final response = await authController.updateProfileForm(profile);
-              if (!mounted) return;
-              if (response.status == 1) {
-                final userId = AppPreferences.getUserId();
-                String updatedAvatar = '';
-                if (userId != null) {
-                  final profileResp = await authController.getProfile(userId: userId);
-                  updatedAvatar = _isImageDeleted ? '' : (profileResp.data?.profileImageUrl ?? '');
-                }
-                await AppPreferences.saveUserAvatar(updatedAvatar);
-                if (userId != null) {
-                  await ChatService.updateAvatarEverywhere(userId.toString(), updatedAvatar);
-                }
-                if (!widget.profileModel.isFromEdit) {
-                  await AppPreferences.setProfileStatus(1);
-                }
-                await AppPreferences.saveUserName(nameController.text);
-                if (widget.profileModel.isFromEdit) {
-                  context.pop();
-                } else {
-                  AppRoutes.pushAndRemoveUntil(AppRoutes.firstHomeScreen);
-                }
-              } else {
-                AppDialogue.showPopup(
-                  context: context,
-                  content: AppText(
-                    text: response.message ,
-                  ),
-                );
-              }
-            } : null,
-
-
-            bgColor: _isFormValid
-                ? AppColors.primaryColor
-                : AppColors.idCardColor,
-
-            textColor: _isFormValid
-                ? AppColors.white
-                : AppColors.black,
+                    final response =
+                        await authController.updateProfileForm(profile);
+                    if (!mounted) return;
+                    if (response.status == 1) {
+                      final userId = AppPreferences.getUserId();
+                      String updatedAvatar = '';
+                      if (userId != null) {
+                        final profileResp =
+                            await authController.getProfile(userId: userId);
+                        updatedAvatar = _isImageDeleted
+                            ? ''
+                            : AvatarUtils.clean(
+                                profileResp.data?.profileImageUrl);
+                      }
+                      await AppPreferences.saveUserAvatar(updatedAvatar);
+                      if (userId != null) {
+                        await ChatService.updateAvatarEverywhere(
+                            userId.toString(), updatedAvatar);
+                      }
+                      if (!widget.profileModel.isFromEdit) {
+                        await AppPreferences.setProfileStatus(1);
+                      }
+                      await AppPreferences.saveUserName(nameController.text);
+                      if (widget.profileModel.isFromEdit) {
+                        context.pop();
+                      } else {
+                        AppRoutes.pushAndRemoveUntil(
+                            AppRoutes.firstHomeScreen);
+                      }
+                    } else {
+                      AppDialogue.showPopup(
+                        context: context,
+                        content: AppText(
+                          text: response.message,
+                        ),
+                      );
+                    }
+                  }
+                : null,
+            bgColor:
+                _isFormValid ? AppColors.primaryColor : AppColors.idCardColor,
+            textColor: _isFormValid ? AppColors.white : AppColors.black,
           ).pad(16),
         ),
       ),
     );
   }
 }
-
-

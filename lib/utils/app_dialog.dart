@@ -28,6 +28,7 @@ import 'package:lost_and_found/shared_widgets/auth_change_text.dart';
 import 'package:lost_and_found/utils/app_colors.dart';
 import 'package:lost_and_found/utils/app_images.dart';
 import 'package:lost_and_found/utils/app_preferences.dart';
+import 'package:lost_and_found/utils/app_utils.dart';
 import 'package:lost_and_found/utils/app_permission.dart';
 import 'package:lost_and_found/utils/app_routes.dart';
 import 'package:lost_and_found/utils/app_ui_helper.dart';
@@ -1158,13 +1159,17 @@ class TransferCompleted extends StatelessWidget {
       widget: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          data.avatarUrl.isNotEmpty
+          AvatarUtils.isValid(data.avatarUrl)
               ? AppCachedNetworkImage(
-            imageUrl: data.avatarUrl,
+            imageUrl: AvatarUtils.clean(data.avatarUrl),
             fit: BoxFit.cover,
             width: 52,
             height: 52,
             borderRadius: BorderRadius.circular(26),
+            errorWidget: Icon(
+              Icons.person,
+              color: AppColors.primaryColor,
+            ),
           )
               : CircleAvatar(
             radius: 26,

@@ -1,3 +1,5 @@
+import 'package:lost_and_found/utils/app_utils.dart';
+
 class ProfileScreenModel {
   final int? userId;
   final String? userUid;
@@ -71,7 +73,8 @@ class ProfileScreenModel {
       return null;
     }
 
-    return imageUrl;
+    final built = buildImageUrl(imageUrl);
+    return built.isEmpty ? null : built;
   }
 
   ProfileScreenModel copyWith({
